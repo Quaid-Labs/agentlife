@@ -1,0 +1,61 @@
+================================================================================
+FILLER SESSION F065 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F065 (Filler — Quick Question)
+Date: 2026-04-18 11:36
+Topic: how do i undo a git commit
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F065
+  Track: filler
+  Timestamp: 2026-04-18 11:36:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  ok i messed up, how do i undo my last git commit? haven't pushed yet
+
+AI ASSISTANT:
+  If you want to keep the changes but uncommit them:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  ok did the soft one, changes are still there right?
+
+AI ASSISTANT:
+  Yep! Your changes are back in the staging area, ready to commit again. You can see them with `git status`.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  perfect thx, was gonna say the wrong commit message lol
+
+AI ASSISTANT:
+  Classic! At least you caught it before pushing. Now you can recommit with the right message.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F124 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 17 and 18
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F124 (Filler — Work Session)
+Date: 2026-04-16 14:05
+Topic: can you help me write acceptance criteria for 8 user stories
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F124
+  Track: filler
+  Timestamp: 2026-04-16 14:05:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  hey can you help me write acceptance criteria for 8 user stories? working on the recipe app auth feature
+
+AI ASSISTANT:
+  Sure! Do you have the user stories drafted already, or should we start from scratch? Also, what auth method are you going with - OAuth, magic links, or traditional email/password?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  yeah i have them drafted. going with email/password for now, oauth later. let me paste the first few
+
+AI ASSISTANT:
+  Perfect, go ahead and paste them. I'll help you write clear, testable acceptance criteria for each one.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  ok here's the list:
+
+AI ASSISTANT:
+  Got it. Let's start with #1 (sign up). Here's what I'd suggest:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  yeah perfect. one thing tho - do we need the welcome email? feels like extra scope
+
+AI ASSISTANT:
+  Fair point - you could skip it for MVP and add it later. The core functionality works without it. Want to mark it as "nice to have" or remove it entirely?
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  let's remove it for now. ok do #2 and #3
+
+AI ASSISTANT:
+  **User Story 2: Log In**
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  yeah. for the lockout thing - is 15min standard? seems long
+
+AI ASSISTANT:
+  15min is pretty common for security, but you could do 5min if you want to be less restrictive. OWASP recommends 15-30min, but for a recipe app 5min is probably fine. Your call.
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  ok let's do 5min. can you do #4 and #5 now?
+
+AI ASSISTANT:
+  **User Story 4: View Profile**
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  wait - do we need confirmation emails for email changes? also re-authenticate seems annoying
+
+AI ASSISTANT:
+  The confirmation emails are a security best practice (prevents account hijacking), but you could skip for MVP. Re-auth is important though - without it, someone who grabs your unlocked laptop could change your email and lock you out. Maybe just password confirmation instead of full logout/login?
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  oh good point. yeah password confirmation works. and let's keep one confirmation email to the NEW address only
+
+AI ASSISTANT:
+  Perfect. I'll update #5:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  yep let's finish this
+
+AI ASSISTANT:
+  **User Story 6: Change Password**
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  why soft delete instead of hard delete?
+
+AI ASSISTANT:
+  Soft delete lets you recover from accidents ("wait I didn't mean to delete!") and preserves data for analytics/auditing. Hard delete is permanent and can break foreign key relationships if users have recipes/comments. You could add a 30-day grace period before hard deletion. But if you want true GDPR compliance, you'd eventually need hard delete with cascade rules.
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  ok soft delete with 30 day grace period makes sense. last one is #8
+
+AI ASSISTANT:
+  **User Story 8: Persistent Login**
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  yeah that would be great. can you put it in a table format with columns for story, acceptance criteria, and edge cases?
+
+AI ASSISTANT:
+  Here's the full table:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  perfect! this is super helpful. gonna paste this into linear and start breaking down tasks. thanks!
+
+AI ASSISTANT:
+  You're welcome! Good luck with the implementation. Let me know if you need help with the actual auth code or database schema later.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

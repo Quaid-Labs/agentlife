@@ -1,0 +1,116 @@
+================================================================================
+FILLER SESSION F104 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F104 (Filler — Recipe App Micro)
+Date: 2026-03-30 10:22
+Topic: how do i handle file uploads for recipe images
+Turn Count: 9
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F104
+  Track: filler
+  Timestamp: 2026-03-30 10:22:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  how do i handle file uploads for recipe images
+
+AI ASSISTANT:
+  For Express, use `multer` for file uploads. Here's a basic setup:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  yeah and how do i validate it's actually an image
+
+AI ASSISTANT:
+  Add file filter to multer config:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  cool. should i store the path in sqlite or the actual image blob
+
+AI ASSISTANT:
+  Store the **path** in SQLite, keep files on disk. Way more efficient.
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  makes sense. what about serving the images back to the client
+
+AI ASSISTANT:
+  Serve static files with Express:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  lol i'm getting ENOENT when i try to upload, directory doesn't exist
+
+AI ASSISTANT:
+  Multer doesn't auto-create the directory. Add this on startup:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  nice that fixed it. how should i test this, mocking file uploads seems annoying
+
+AI ASSISTANT:
+  Use `supertest` with buffer uploads:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  perfect. last thing - should i worry about duplicate filenames or does multer handle that
+
+AI ASSISTANT:
+  Multer generates random names by default (like `3f2a1b4c5d6e7f8g`), so no collisions. But no extension either.
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  sick, that's exactly what i needed thx
+
+AI ASSISTANT:
+  Nice! Your recipe app's coming together. Images + auth + SQLite — pretty solid stack. Lmk if you hit any issues with the uploads.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

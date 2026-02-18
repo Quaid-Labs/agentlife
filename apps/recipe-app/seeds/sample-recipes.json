@@ -1,0 +1,162 @@
+[
+  {
+    "title": "Vegetable Stir-Fry",
+    "ingredients": "2 tbsp sesame oil, 1 red bell pepper sliced, 1 yellow bell pepper sliced, 2 cups broccoli florets, 1 large carrot julienned, 1 cup snap peas trimmed, 3 cloves garlic minced, 1 inch fresh ginger grated, 3 tbsp soy sauce, 1 tbsp rice vinegar, 1 tsp cornstarch, 1 tsp sriracha, 2 green onions sliced, 1 tbsp sesame seeds, steamed rice for serving",
+    "instructions": "Whisk soy sauce, rice vinegar, cornstarch, and sriracha in a small bowl. Heat sesame oil in a wok over high heat. Add garlic and ginger, stir 30 seconds. Add broccoli and carrots, cook 3 minutes. Add bell peppers and snap peas, cook 2 minutes. Pour sauce over vegetables, toss until glossy and thickened. Serve over steamed rice topped with green onions and sesame seeds.",
+    "dietary_tags": ["vegetarian", "vegan", "dairy-free"],
+    "image_url": "",
+    "prep_time": 25
+  },
+  {
+    "title": "Roasted Cauliflower Tacos",
+    "ingredients": "1 large head cauliflower cut into florets, 2 tbsp olive oil, 1 tsp cumin, 1 tsp smoked paprika, 1/2 tsp chili powder, 8 small corn tortillas, 1 cup shredded purple cabbage, 1 avocado sliced, 1/2 cup pickled red onions, 1/4 cup fresh cilantro, 1 lime juiced, 1/2 cup sour cream, salt and pepper to taste",
+    "instructions": "Preheat oven to 425F. Toss cauliflower with olive oil, cumin, smoked paprika, chili powder, salt, and pepper. Spread on a baking sheet and roast 25-30 minutes until edges are charred and crispy. Warm tortillas in a dry skillet. Mix sour cream with half the lime juice. Assemble tacos with roasted cauliflower, cabbage, avocado, pickled onions, and cilantro. Drizzle with lime sour cream and remaining lime juice.",
+    "dietary_tags": ["vegetarian", "gluten-free"],
+    "image_url": "",
+    "prep_time": 40
+  },
+  {
+    "title": "Mushroom Risotto",
+    "ingredients": "1.5 cups arborio rice, 8 oz mixed mushrooms sliced (cremini shiitake oyster), 4 cups vegetable broth warmed, 1/2 cup dry white wine, 1 medium onion finely diced, 3 cloves garlic minced, 2 tbsp butter, 2 tbsp olive oil, 1/2 cup grated parmesan, 2 tbsp fresh thyme leaves, salt and pepper to taste",
+    "instructions": "Heat olive oil and 1 tbsp butter in a wide pan. Saute mushrooms until golden, about 6 minutes. Set aside. In the same pan, saute onion until soft. Add garlic, cook 1 minute. Add rice, stir 2 minutes until edges are translucent. Pour in wine, stir until absorbed. Add warm broth one ladle at a time, stirring frequently, waiting until each addition is absorbed before adding the next. This takes about 18-20 minutes. Fold in mushrooms, remaining butter, parmesan, and thyme. Season with salt and pepper. Serve immediately.",
+    "dietary_tags": ["vegetarian"],
+    "image_url": "",
+    "prep_time": 45
+  },
+  {
+    "title": "Black Bean Burgers",
+    "ingredients": "2 cans black beans drained and rinsed, 1/2 cup breadcrumbs, 1 egg, 1/2 red onion finely diced, 2 cloves garlic minced, 1 tsp cumin, 1 tsp smoked paprika, 1/2 tsp cayenne, 2 tbsp fresh cilantro chopped, 1 tbsp lime juice, 4 burger buns, lettuce leaves, tomato slices, avocado slices, 2 tbsp olive oil, salt and pepper to taste",
+    "instructions": "Mash black beans in a large bowl with a fork, leaving some chunks for texture. Mix in breadcrumbs, egg, onion, garlic, cumin, smoked paprika, cayenne, cilantro, lime juice, salt, and pepper. Form into 4 patties and refrigerate 15 minutes. Heat olive oil in a skillet over medium heat. Cook patties 4-5 minutes per side until a crust forms. Serve on buns with lettuce, tomato, and avocado.",
+    "dietary_tags": ["vegetarian"],
+    "image_url": "",
+    "prep_time": 35
+  },
+  {
+    "title": "Chickpea Curry",
+    "ingredients": "1 can chickpeas drained and rinsed, 1 can coconut milk, 2 tbsp curry paste, 1 medium onion diced, 3 cloves garlic minced, 1 inch fresh ginger grated, 1 tsp turmeric, 1 tsp garam masala, 1 can diced tomatoes, 2 cups fresh spinach, 1 tbsp coconut oil, salt to taste, fresh cilantro for garnish, basmati rice for serving",
+    "instructions": "Heat coconut oil in a large pot over medium heat. Saute onion until softened, about 5 minutes. Add garlic, ginger, curry paste, turmeric, and garam masala. Stir 1 minute until fragrant. Pour in diced tomatoes and coconut milk. Add chickpeas and bring to a simmer. Cook 20 minutes, stirring occasionally, until sauce thickens. Stir in spinach and cook until wilted, about 2 minutes. Season with salt. Serve over basmati rice topped with fresh cilantro.",
+    "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free"],
+    "image_url": "",
+    "prep_time": 35
+  },
+  {
+    "title": "Grilled Salmon with Herbs",
+    "ingredients": "4 salmon fillets 6 oz each, 2 tbsp olive oil, 2 tbsp fresh dill chopped, 1 tbsp fresh parsley chopped, 2 cloves garlic minced, 1 lemon zested and juiced, 1/2 tsp black pepper, 1 lb asparagus trimmed, 1 tbsp olive oil for asparagus, pinch of salt",
+    "instructions": "Mix olive oil, dill, parsley, garlic, lemon zest, half the lemon juice, and pepper. Coat salmon fillets with the herb mixture and let marinate 15 minutes. Preheat grill to medium-high. Toss asparagus with olive oil and a pinch of salt. Grill salmon skin-side down 4-5 minutes, flip carefully and cook 3-4 minutes more until internal temp reaches 145F. Grill asparagus alongside, turning occasionally, about 4 minutes. Drizzle remaining lemon juice over everything before serving.",
+    "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "low-carb", "paleo", "keto"],
+    "image_url": "",
+    "prep_time": 30
+  },
+  {
+    "title": "Chicken and Vegetable Soup (Low Sodium)",
+    "ingredients": "1.5 lbs boneless skinless chicken breast, 8 cups low-sodium chicken broth, 3 medium carrots peeled and diced, 3 celery stalks diced, 1 medium onion diced, 3 cloves garlic minced, 2 bay leaves, 1 tsp dried thyme, 1/2 tsp black pepper, 1 cup green beans cut into 1-inch pieces, 2 cups fresh spinach, 1 tbsp olive oil, 1 tbsp fresh parsley chopped, 1 tbsp lemon juice",
+    "instructions": "Heat olive oil in a large pot over medium heat. Saute onion, carrots, and celery 5 minutes until starting to soften. Add garlic, cook 1 minute. Add broth, bay leaves, thyme, and pepper. Bring to a boil. Add whole chicken breasts, reduce to a simmer. Cook 20 minutes until chicken is cooked through. Remove chicken and shred with two forks. Return shredded chicken to pot. Add green beans, simmer 5 minutes. Stir in spinach and lemon juice, cook 2 minutes until spinach wilts. Remove bay leaves. Garnish with parsley.",
+    "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"],
+    "image_url": "",
+    "prep_time": 45
+  },
+  {
+    "title": "Turkey Meatballs with Zucchini Noodles",
+    "ingredients": "1 lb ground turkey, 1/4 cup almond flour, 1 egg, 2 cloves garlic minced, 1 tsp dried oregano, 1 tsp dried basil, 1/2 tsp onion powder, 1/4 tsp black pepper, 4 medium zucchini spiralized, 2 cups no-salt-added marinara sauce, 1 tbsp olive oil, 2 tbsp fresh basil leaves, pinch of salt",
+    "instructions": "Preheat oven to 400F. Mix ground turkey, almond flour, egg, garlic, oregano, dried basil, onion powder, pepper, and a pinch of salt. Roll into 16 meatballs and place on a parchment-lined baking sheet. Bake 18-20 minutes until cooked through and lightly browned. While meatballs bake, heat olive oil in a large skillet. Saute spiralized zucchini 2-3 minutes until just tender (do not overcook). Warm marinara sauce in a saucepan. Serve zucchini noodles topped with meatballs and marinara. Garnish with fresh basil.",
+    "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "low-carb"],
+    "image_url": "",
+    "prep_time": 35
+  },
+  {
+    "title": "Baked Cod with Lemon",
+    "ingredients": "4 cod fillets 6 oz each, 2 tbsp olive oil, 3 cloves garlic minced, 1 lemon sliced into thin rounds, 1 tbsp fresh thyme leaves, 1 tsp dried oregano, 1/4 tsp black pepper, 1 lb cherry tomatoes halved, 1/2 cup kalamata olives halved, 2 tbsp capers rinsed, 2 tbsp fresh parsley chopped, pinch of salt",
+    "instructions": "Preheat oven to 400F. Place cod fillets in a baking dish. Drizzle with olive oil and rub with garlic, thyme, oregano, pepper, and a pinch of salt. Arrange lemon slices over the fish. Scatter cherry tomatoes, olives, and capers around the fillets. Bake 15-18 minutes until fish flakes easily with a fork and reaches 145F internal temp. Garnish with fresh parsley. Serve directly from the baking dish.",
+    "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "low-carb", "paleo"],
+    "image_url": "",
+    "prep_time": 25
+  },
+  {
+    "title": "Herb-Roasted Chicken Breast",
+    "ingredients": "4 boneless skinless chicken breasts, 2 tbsp olive oil, 1 tbsp fresh rosemary chopped, 1 tbsp fresh thyme leaves, 2 cloves garlic minced, 1 tsp smoked paprika, 1/2 tsp black pepper, 1 lb brussels sprouts halved, 2 medium sweet potatoes peeled and cubed, 1 tbsp olive oil for vegetables, 1 tsp garlic powder, pinch of salt",
+    "instructions": "Preheat oven to 425F. Mix olive oil, rosemary, thyme, garlic, smoked paprika, pepper, and a pinch of salt. Rub mixture over chicken breasts. Toss brussels sprouts and sweet potatoes with remaining olive oil, garlic powder, and a pinch of salt. Spread vegetables on a large baking sheet and nestle chicken breasts among them. Roast 25-30 minutes until chicken reaches 165F internal temp and vegetables are tender and caramelized. Let chicken rest 5 minutes before slicing.",
+    "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "paleo"],
+    "image_url": "",
+    "prep_time": 40
+  },
+  {
+    "title": "Lentil Soup",
+    "ingredients": "1.5 cups green or brown lentils rinsed, 6 cups low-sodium vegetable broth, 1 can diced tomatoes no salt added, 2 medium carrots diced, 2 celery stalks diced, 1 medium onion diced, 4 cloves garlic minced, 2 tsp cumin, 1 tsp smoked paprika, 1/2 tsp turmeric, 1/4 tsp black pepper, 2 cups fresh kale chopped, 1 tbsp olive oil, 1 tbsp lemon juice, pinch of salt",
+    "instructions": "Heat olive oil in a large pot over medium heat. Saute onion, carrots, and celery 5 minutes. Add garlic, cumin, smoked paprika, and turmeric. Stir 1 minute until fragrant. Add lentils, broth, diced tomatoes, pepper, and a pinch of salt. Bring to a boil, then reduce heat and simmer 25-30 minutes until lentils are tender. Stir in kale and lemon juice, cook 3 minutes until kale wilts. Adjust seasoning. Serve hot, optionally with a drizzle of olive oil.",
+    "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"],
+    "image_url": "",
+    "prep_time": 40
+  },
+  {
+    "title": "Roasted Vegetable Medley",
+    "ingredients": "2 medium zucchini cut into half-moons, 1 large eggplant cubed, 2 red bell peppers cut into chunks, 1 large red onion cut into wedges, 1 pint cherry tomatoes, 4 cloves garlic whole, 3 tbsp olive oil, 1 tbsp balsamic vinegar, 1 tsp dried oregano, 1 tsp dried thyme, 1/2 tsp black pepper, 2 tbsp fresh basil chiffonade, pinch of salt",
+    "instructions": "Preheat oven to 425F. Toss all vegetables and garlic cloves with olive oil, balsamic vinegar, oregano, thyme, pepper, and a pinch of salt. Spread in a single layer on two large baking sheets (do not crowd). Roast 30-35 minutes, stirring halfway through, until vegetables are tender and edges are caramelized. Transfer to a serving platter and scatter fresh basil over top. Serve warm or at room temperature.",
+    "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "paleo"],
+    "image_url": "",
+    "prep_time": 45
+  },
+  {
+    "title": "Quinoa Stuffed Peppers",
+    "ingredients": "6 large bell peppers tops cut off and seeded, 1 cup quinoa rinsed, 2 cups low-sodium vegetable broth, 1 can black beans drained and rinsed, 1 cup corn kernels, 1 cup diced tomatoes, 1/2 red onion finely diced, 2 cloves garlic minced, 1 tsp cumin, 1 tsp chili powder, 1/4 tsp black pepper, 2 tbsp fresh cilantro chopped, 1 tbsp olive oil, 1 tbsp lime juice, pinch of salt",
+    "instructions": "Cook quinoa in vegetable broth according to package directions. Preheat oven to 375F. Heat olive oil in a skillet. Saute onion and garlic 3 minutes. Add cumin and chili powder, stir 30 seconds. Combine cooked quinoa, sauteed onion mixture, black beans, corn, diced tomatoes, pepper, a pinch of salt, and lime juice. Stuff peppers with the quinoa filling and place upright in a baking dish. Add 1/4 cup water to the bottom of the dish. Cover with foil and bake 30 minutes. Remove foil and bake 10 more minutes. Top with cilantro.",
+    "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"],
+    "image_url": "",
+    "prep_time": 55
+  },
+  {
+    "title": "Tofu Stir-Fry",
+    "ingredients": "14 oz extra-firm tofu drained and pressed, 2 tbsp low-sodium soy sauce, 1 tbsp rice vinegar, 1 tsp sesame oil, 1 tbsp cornstarch, 2 tbsp vegetable oil, 1 red bell pepper sliced, 1 cup sugar snap peas, 1 cup broccoli florets, 2 cloves garlic minced, 1 inch fresh ginger grated, 1 tbsp hoisin sauce (low sodium), 1 green onion sliced, 1 tsp sesame seeds, steamed brown rice for serving",
+    "instructions": "Cut tofu into 3/4-inch cubes and pat thoroughly dry. Toss with cornstarch. Heat 1 tbsp vegetable oil in a wok over high heat. Fry tofu cubes 5-6 minutes, turning occasionally, until golden and crispy on all sides. Remove and set aside. Add remaining oil to wok. Stir-fry garlic and ginger 30 seconds. Add broccoli, cook 2 minutes. Add bell pepper and snap peas, cook 2 minutes more. Whisk soy sauce, rice vinegar, sesame oil, and hoisin together. Return tofu to wok, pour in sauce, and toss everything until coated and heated through. Serve over brown rice, topped with green onion and sesame seeds.",
+    "dietary_tags": ["vegetarian", "vegan", "dairy-free", "diabetic-friendly", "low-sodium"],
+    "image_url": "",
+    "prep_time": 30
+  },
+  {
+    "title": "Spinach and White Bean Stew",
+    "ingredients": "2 cans cannellini beans drained and rinsed, 6 oz fresh baby spinach, 4 cups low-sodium vegetable broth, 1 can diced tomatoes no salt added, 1 medium onion diced, 4 cloves garlic minced, 2 medium carrots diced, 2 celery stalks diced, 1 tsp dried rosemary, 1 tsp dried thyme, 1/2 tsp red pepper flakes, 1/4 tsp black pepper, 1 tbsp olive oil, 1 tbsp lemon juice, pinch of salt",
+    "instructions": "Heat olive oil in a large pot over medium heat. Saute onion, carrots, and celery 5 minutes until softened. Add garlic, rosemary, thyme, and red pepper flakes. Stir 1 minute. Pour in broth, diced tomatoes, pepper, and a pinch of salt. Add cannellini beans. Bring to a boil, then reduce heat and simmer 20 minutes until carrots are tender and flavors have melded. Stir in spinach in handfuls, allowing each batch to wilt before adding more. Finish with lemon juice. Serve with crusty bread if desired.",
+    "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"],
+    "image_url": "",
+    "prep_time": 35
+  },
+  {
+    "title": "Classic Beef Tacos",
+    "ingredients": "1 lb ground beef 85/15, 1 packet taco seasoning, 1/4 cup water, 8 hard taco shells, 1 cup shredded cheddar cheese, 1 cup shredded iceberg lettuce, 1 large tomato diced, 1/2 cup sour cream, 1/4 cup pickled jalapenos, 1/2 cup salsa, 1 lime cut into wedges, hot sauce to taste",
+    "instructions": "Brown ground beef in a large skillet over medium-high heat, breaking into crumbles, about 6-8 minutes. Drain excess fat. Add taco seasoning and water. Stir and simmer 3-4 minutes until sauce thickens. Warm taco shells according to package directions. Spoon seasoned beef into shells. Top with cheddar cheese, lettuce, diced tomato, sour cream, jalapenos, and salsa. Squeeze lime over tacos. Serve with hot sauce on the side.",
+    "dietary_tags": ["gluten-free"],
+    "image_url": "",
+    "prep_time": 20
+  },
+  {
+    "title": "Spaghetti Bolognese",
+    "ingredients": "1 lb spaghetti, 1 lb ground beef, 1/2 lb Italian sausage casings removed, 1 large onion finely diced, 3 cloves garlic minced, 2 medium carrots finely diced, 2 celery stalks finely diced, 1 can crushed tomatoes 28 oz, 2 tbsp tomato paste, 1/2 cup red wine, 1 tsp dried oregano, 1 tsp dried basil, 1/2 tsp salt, 1/4 tsp black pepper, 1/4 cup fresh parsley chopped, grated parmesan for serving",
+    "instructions": "Heat a large heavy-bottomed pot over medium-high heat. Brown ground beef and Italian sausage together, breaking into small pieces, about 8 minutes. Remove meat and drain all but 1 tbsp fat. Saute onion, carrots, and celery in the same pot 5 minutes until softened. Add garlic, cook 1 minute. Add tomato paste, stir 2 minutes. Pour in red wine and scrape up browned bits. Return meat to pot. Add crushed tomatoes, oregano, basil, salt, and pepper. Bring to a simmer. Cover partially and cook 30-40 minutes, stirring occasionally. Cook spaghetti according to package directions. Toss pasta with sauce. Garnish with parsley and parmesan.",
+    "dietary_tags": [],
+    "image_url": "",
+    "prep_time": 60
+  },
+  {
+    "title": "Shrimp Scampi",
+    "ingredients": "1.5 lbs large shrimp peeled and deveined, 12 oz linguine, 4 tbsp butter, 3 tbsp olive oil, 6 cloves garlic thinly sliced, 1/2 cup dry white wine, 1/4 tsp red pepper flakes, 1 large lemon juiced and zested, 1/4 cup fresh parsley chopped, 1/2 tsp salt, 1/4 tsp black pepper, 1/2 cup reserved pasta water",
+    "instructions": "Cook linguine in salted boiling water until al dente. Reserve 1/2 cup pasta water before draining. Heat olive oil and 2 tbsp butter in a large skillet over medium-high heat. Add shrimp in a single layer, season with salt and pepper, cook 2 minutes per side until pink. Remove shrimp. Add remaining butter and garlic to the skillet. Cook 1 minute until garlic is fragrant but not browned. Add red pepper flakes and wine, simmer 2 minutes. Add lemon juice and zest. Return shrimp to pan. Toss in drained linguine, adding pasta water as needed for a silky sauce. Garnish with parsley and serve immediately.",
+    "dietary_tags": [],
+    "image_url": "",
+    "prep_time": 25
+  },
+  {
+    "title": "Chicken Parmesan",
+    "ingredients": "4 boneless skinless chicken breasts pounded to 1/2-inch thickness, 1 cup all-purpose flour, 2 eggs beaten, 1.5 cups panko breadcrumbs, 1/2 cup grated parmesan, 1 tsp garlic powder, 1 tsp dried Italian seasoning, 2 cups marinara sauce, 1 cup shredded mozzarella, 1/4 cup olive oil for frying, 1/2 tsp salt, 1/4 tsp black pepper, fresh basil leaves for garnish, spaghetti for serving",
+    "instructions": "Preheat oven to 425F. Set up three shallow dishes: flour with salt and pepper, beaten eggs, and panko mixed with parmesan, garlic powder, and Italian seasoning. Dredge each chicken breast in flour, dip in egg, then press into panko mixture. Heat olive oil in a large oven-safe skillet over medium-high heat. Fry chicken 3-4 minutes per side until golden brown. Spoon marinara sauce over each breast. Top with mozzarella. Transfer skillet to oven and bake 15 minutes until cheese is bubbly and chicken reaches 165F. Garnish with fresh basil. Serve over spaghetti with extra marinara.",
+    "dietary_tags": [],
+    "image_url": "",
+    "prep_time": 45
+  },
+  {
+    "title": "Pulled Pork Sliders",
+    "ingredients": "3 lb pork shoulder bone-in, 2 tbsp brown sugar, 1 tbsp smoked paprika, 1 tsp garlic powder, 1 tsp onion powder, 1/2 tsp cayenne pepper, 1 tsp salt, 1/2 tsp black pepper, 1 cup apple cider vinegar, 1 cup BBQ sauce, 12 slider buns, 1 cup coleslaw mix, 2 tbsp coleslaw dressing, dill pickle slices",
+    "instructions": "Mix brown sugar, smoked paprika, garlic powder, onion powder, cayenne, salt, and pepper. Rub all over pork shoulder. Place in slow cooker. Pour apple cider vinegar over the pork. Cook on low 8-10 hours or high 5-6 hours until meat falls apart easily. Remove pork, discard bone, and shred with two forks. Drain liquid from slow cooker, return shredded pork, and stir in BBQ sauce. Keep on warm setting until ready to serve. Toss coleslaw mix with dressing. Toast slider buns. Build sliders with pulled pork, coleslaw, and pickle slices.",
+    "dietary_tags": [],
+    "image_url": "",
+    "prep_time": 90
+  }
+]

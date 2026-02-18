@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F108 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 1 and 2
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F108 (Filler — Work Session)
+Date: 2026-03-02 08:47
+Topic: i need to write a technical design doc for a new caching layer
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F108
+  Track: filler
+  Timestamp: 2026-03-02 08:47:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  hey i need to write a technical design doc for a new caching layer we're adding to our api. never written one before lol any tips on structure?
+
+AI ASSISTANT:
+  Hey! I can help with that. For a caching layer design doc, you'll want to cover: goals/motivation, proposed architecture, data flow, cache invalidation strategy, monitoring, and rollout plan.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  it's for our product catalog api. we're thinking redis. response times are like 800ms rn and we need to get under 200ms
+
+AI ASSISTANT:
+  Got it - that's a solid use case. Let me start a doc structure for you:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yeah that'd be great. also should i include like competitive analysis? my manager mentioned looking at what stripe does
+
+AI ASSISTANT:
+  For an internal design doc, you don't need a full competitive analysis, but a quick "Industry Context" section with 2-3 bullet points on what Stripe/similar companies do can add credibility.
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  ngl that's perfect. can you do the architecture section? i'm thinking redis cluster with read replicas but not sure how to describe it
+
+AI ASSISTANT:
+  Nice - Redis cluster with replicas is solid for high availability. Here's the architecture section:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  yeah exactly. should i add a diagram? and what about the invalidation strategy that seems important
+
+AI ASSISTANT:
+  Yes, definitely add a diagram - even a simple one helps a lot. You can do a basic flow diagram showing: Client → API Server → Redis → Database (on cache miss).
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  that's good but we also have this catalog service that publishes updates to kafka. should i mention subscribing to those events for invalidation?
+
+AI ASSISTANT:
+  Oh yeah, that's actually a better approach than relying solely on TTL! Event-driven invalidation is way more precise. Let me revise:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  perfect. ok what about rollout? my manager is gonna ask about how we test this without breaking prod
+
+AI ASSISTANT:
+  Good thinking - rollout plan is where stakeholders get nervous. Here's a phased approach:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  yeah that's solid. should i add a section on costs? the redis cluster isn't cheap
+
+AI ASSISTANT:
+  Absolutely - finance/leadership always wants to see cost justification. Here's a cost section:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  she'll def want the numbers lol. ok last thing - metrics and monitoring. what should i include there?
+
+AI ASSISTANT:
+  Here's a metrics section that'll keep your oncall team happy:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  nah that's perfect actually. super helpful. let me put this all together in a doc. should i send it to you for review before i show my manager?
+
+AI ASSISTANT:
+  Yeah for sure! Once you have it in a Google doc or whatever, feel free to share and I can give it a quick review - check for any gaps, make sure the flow makes sense, maybe suggest where to tighten things up.
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  awesome thanks. btw do you think i should mention alternatives we considered? like we looked at memcached too but went with redis
+
+AI ASSISTANT:
+  Oh yeah, good call - an "Alternatives Considered" section shows you did your homework and makes the doc more defensible. Keep it brief:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  perfect. ok i think i have everything i need. gonna write this up now, thanks so much for the help!
+
+AI ASSISTANT:
+  You got it! You have all the key pieces - problem, architecture, invalidation, rollout, costs, metrics, and alternatives. That's a solid design doc structure.
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  oh yeah good idea on the tldr. my vp definitely won't read past that lol. thanks again!
+
+AI ASSISTANT:
+  Haha exactly - the TL;DR is for the people who have 47 tabs open and 12 meetings today. They'll skim those bullets and approve based on that alone.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

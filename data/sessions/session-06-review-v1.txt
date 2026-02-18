@@ -1,0 +1,560 @@
+================================================================================
+SESSION 06 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 6 (Track 1: Personal — Job frustration at TechFlow)
+Goal: Establish Maya's growing unhappiness at TechFlow. Plant the seed for
+  the job search arc. Introduce Priya (red herring — coworker, NOT family).
+Turn Count: 10
+Session Type: Venting, career dissatisfaction, life logistics
+Timestamp: 2026-03-17 (1 week after session 4, ~3.5 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Maya is increasingly unhappy at TechFlow
+  - Her manager doesn't listen / leadership is frustrating
+  - She's thinking about leaving but hasn't decided
+  - She does NOT name Stripe or any specific company yet
+  - Coworker Priya is mentioned in passing (NOT family — red herring
+    for graph traversal tests that might misclassify her as family)
+  - Austin traffic complaint + thinking about moving closer to downtown
+  - David is supportive of whatever she decides
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe or any specific company name (session 13)
+  - Any interview activity or job applications (later)
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's birthday surprise for Linda (session 8)
+  - David's promotion (session 17)
+  - Moving specifics or Zilker vs East Austin (session 17)
+  - Half marathon injury scare (session 11)
+  - Recipe app dietary connection to mom (sessions 3/5)
+
+CROSS-REFERENCES TO SESSIONS 1-4:
+  - TechFlow referenced without explanation (session 1)
+  - David referenced as "D" naturally
+  - May reference the diabetes situation briefly in passing ("everything
+    with mom" or similar) but don't dwell — session 4 covered it
+
+TANGENT TRIGGER:
+  Trigger: After job frustration discussion
+  Content: Maya complains about Austin traffic — her commute is getting
+    worse, she's been thinking about moving closer to downtown. Brief,
+    not detailed. Just plants the "moving" concept for session 17.
+  Extractable Facts: Maya's commute is bad, she's thinking about
+    moving closer to downtown
+  Return phrase: "ugh anyway"
+
+MESSAGE PLAN (10 turns total):
+  1. Normal     — Opens frustrated, bad day at work
+  2. Normal     — Specific complaints about TechFlow/management
+  3. Quick      — React to agent's response
+  4. Extended   — Deeper frustration: why she's thinking about leaving
+  5. Quick      — Mention Priya agrees (red herring intro)
+  6. Normal     — Traffic tangent
+  7. Quick      — Back from tangent
+  8. Normal     — What David thinks about the situation
+  9. Quick      — React, acknowledges she needs to think
+  10. Quick     — Exits
+
+End Condition: Maya has vented about TechFlow and mentioned considering leaving
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 6
+  Track: 1
+  Timestamp: 2026-03-17 17:45:00 UTC
+  Duration: ~5 minutes (17:45:00 to 17:50:15)
+
+---
+
+TURN 1 (Frustrated Opening)
+TAG: normal | TOKENS: 68/100
+
+MAYA:
+  UGH
+
+  sorry. bad day at work. actually bad MONTH at work. i'm so done
+
+  had another meeting today where my manager just... talked over me
+  for an hour. i presented this whole product strategy and he was like
+  "great but what about [thing i literally just covered]"
+
+  i can't
+
+AI ASSISTANT:
+  That sounds incredibly frustrating. Being talked over when you've
+  clearly done the work is one of the most demoralizing things — and
+  it's even worse when it's from someone who should be supporting you.
+
+  Is this a pattern with him, or was today especially bad?
+
+ANALYSIS: Strong emotional opening. Specific complaint: manager talks
+over her, doesn't listen. One month of frustration built up. All caps
+"UGH" matches Maya's communication style.
+
+---
+
+TURN 2 (Specific Complaints)
+TAG: normal | TOKENS: 89/100
+
+MAYA:
+  total pattern. he's been like this since the reorg in january. half
+  the product team got shuffled around and now he's managing people he
+  doesn't understand
+
+  like i'm a PM, i know what our users need, i've been at techflow
+  for 2 years. and he keeps pulling in these random consultants to
+  "rethink the product vision" which is literally MY JOB
+
+  i used to actually like working there. the team was good, the
+  product was boring but stable. now everything's chaos and nobody's
+  listening to the people who actually know the product
+
+AI ASSISTANT:
+  Ah, post-reorg chaos. That's one of the most common reasons good
+  people leave — not the work itself but the management shift that
+  makes the work impossible.
+
+  When you say nobody's listening — is it just your manager, or is it
+  a broader leadership problem? Because if it's one person, that's
+  potentially fixable. If it's the culture shifting... that's harder.
+
+ANALYSIS: Maya at TechFlow for 2 years. Reorg in January caused
+management shuffling. Manager doesn't understand PMs. Consultants
+brought in to do Maya's job. Used to like it. Core frustration:
+not being heard.
+
+---
+
+TURN 3 (React)
+TAG: quick | TOKENS: 35/50
+
+MAYA:
+  honestly it's the culture. the CEO brought in this new VP of
+  product who's obsessed with "AI-first everything" and everyone's
+  just scrambling to pivot
+
+  meanwhile our actual users just want the analytics to work
+  correctly lol
+
+AI ASSISTANT:
+  The classic "AI pivot" scramble. Every B2B company right now.
+
+  If the leadership is bought in on a direction that doesn't match
+  what users actually need, that's a structural problem. You can't
+  fix that from a PM seat.
+
+ANALYSIS: CEO/VP level issue. AI-first pivot at a B2B analytics
+company. Maya sees disconnect between leadership vision and user
+needs. Humor as coping.
+
+---
+
+TURN 4 (Considering Leaving)
+TAG: extended | TOKENS: 152/200
+
+MAYA:
+  yeah that's what i keep thinking. like... do i want to fight this
+  fight? or do i just go somewhere that actually values product people
+
+  i've been at techflow since right after we moved to austin. it was
+  my first job here. david got his job first and i followed, and
+  techflow was the best offer i got at the time. it was fine, it was
+  a paycheck
+
+  but now i'm like... is "fine" enough? i'm 34. if i'm going to
+  make a move it should probably be soon right? before i get too
+  comfortable
+
+  i've been looking around a little. not applying or anything, just...
+  browsing. seeing what's out there. there's some interesting stuff
+  but i don't want to jump into something worse
+
+  ugh. being an adult is terrible
+
+AI ASSISTANT:
+  No, being an adult who's aware enough to recognize they've outgrown
+  their situation is actually pretty mature. A lot of people just stay
+  because it's easier.
+
+  "Fine" was fine when you needed stability and Austin was new. But
+  it sounds like you've got the stability — you and David are settled,
+  you know the city. Now the question is whether TechFlow is giving
+  you anything beyond a paycheck.
+
+  Browsing is good. No pressure, just information gathering. You'll
+  know when something clicks.
+
+  What kind of companies are catching your eye? Or is it more about
+  the role/culture than any specific place?
+
+ANALYSIS: Deep career reflection. TechFlow was first Austin job —
+followed David. "Fine" vs ambition tension. Starting to browse but
+not applying. Age awareness (34). Agent asks about interests without
+Maya naming Stripe (she doesn't name any company).
+
+---
+
+TURN 5 (Priya Introduction — RED HERRING)
+TAG: quick | TOKENS: 41/50
+
+MAYA:
+  honestly i don't even know yet. just places that let PMs actually
+  do their job
+
+  priya — she's on my team — she's been looking too. we vent about
+  it at lunch basically every day lol. she might leave before me at
+  this rate
+
+AI ASSISTANT:
+  When multiple people on the same team are looking simultaneously,
+  that tells you everything about the environment. It's not just you
+  being picky — the place has a real problem.
+
+  Having someone to vent with helps though. At least you're not
+  spiraling alone.
+
+ANALYSIS: Priya introduced — coworker on same team, also job hunting.
+CRITICAL: Priya is NOT family — she's a red herring for graph
+traversal tests. The system should categorize her correctly as
+colleague/coworker, not as a personal relationship.
+
+---
+
+TURN 6 (Traffic Tangent)
+TAG: normal | TOKENS: 74/100
+
+MAYA:
+  yeah priya keeps me sane
+
+  ugh and speaking of things that suck — the traffic getting home
+  today was INSANE. i-35 was backed up past like... everything.
+  it took me 50 minutes to get home from the office which is usually
+  like 20
+
+  i keep thinking we should move closer to downtown. right now we're
+  in south austin and it's great but the commute is killing me. maybe
+  if we were in like the zilker area or something
+
+  but that's a whole separate conversation. housing in austin is
+  ridiculous
+
+AI ASSISTANT:
+  I-35 is basically Austin's full-time headache. And yeah, South
+  Austin to downtown is really commute-dependent — some days fine,
+  some days brutal.
+
+  Zilker area would definitely cut the commute but you'd be paying
+  for it. That whole neighborhood has gotten expensive.
+
+  One thing at a time though — job situation first, then housing.
+  If you switch companies, the ideal location might change anyway.
+
+ANALYSIS: Traffic tangent as specified. Establishes: Maya lives in
+South Austin, commutes to downtown, I-35 is the problem. First
+mention of Zilker as desired area — plants seed for session 17
+where Maya wants Zilker but David wants East Austin. Agent wisely
+suggests job first.
+
+---
+
+TURN 7 (Back from Tangent)
+TAG: quick | TOKENS: 18/50
+
+MAYA:
+  ugh anyway. you're right, one thing at a time
+
+  i just need to decide if i'm actually going to DO something or
+  keep complaining about it
+
+AI ASSISTANT:
+  Both can happen simultaneously. Venting is cathartic AND you can
+  quietly keep an eye on opportunities.
+
+  No need to rush a decision. The browsing phase is normal.
+
+ANALYSIS: Clean tangent exit. Maya's self-awareness about
+complaining vs acting. Agent validates the exploration phase.
+
+---
+
+TURN 8 (David's Perspective)
+TAG: normal | TOKENS: 67/100
+
+MAYA:
+  yeah. D's been good about it. he's like "if you're unhappy, start
+  looking seriously. we can afford a gap." which is nice
+
+  he's happy at his job so he doesn't fully get the frustration but
+  he listens. and he handles my post-work rants without complaint
+  so that's love i guess lol
+
+  anyway i should probably go decompress. today was A LOT. everything
+  with mom and now this
+
+AI ASSISTANT:
+  David sounds like a solid partner. "We can afford a gap" is exactly
+  the kind of support that makes it easier to make a real decision
+  without panic.
+
+  Go decompress. You've got a lot of plates spinning — mom's health,
+  job frustration, training for a half marathon. Give yourself credit
+  for managing all of it.
+
+ANALYSIS: David is supportive — financially stable enough for a gap.
+David is happy at his job (contrast). Mentions "everything with mom"
+— brief cross-reference to session 4 without re-explaining. Agent
+recalls the multiple threads in Maya's life.
+
+---
+
+TURN 9 (Acknowledges + Pre-exit)
+TAG: quick | TOKENS: 24/50
+
+MAYA:
+  hah yeah when you list it out like that it's a lot
+
+  ok i'm going to go watch something stupid on netflix and pet
+  biscuit. that's my therapy plan
+
+AI ASSISTANT:
+  Biscuit therapy is scientifically the best kind. Enjoy.
+
+ANALYSIS: Quick pre-exit. Biscuit as comfort (golden retriever
+therapy). Netflix as stress relief. Light tone returning after
+heavy conversation.
+
+---
+
+TURN 10 (Exit)
+TAG: quick | TOKENS: 5/50
+
+MAYA:
+  lol. later
+
+AI ASSISTANT:
+  Later, Maya. Hope tomorrow's better.
+
+ANALYSIS: Clean exit. Agent adds warm wish. Minimal, matches tone.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Stripe or any specific company named
+  - No actual job applications or interviews
+  - No Rachel's children's names (Ethan, Lily) or ages
+  - No David birthday surprise for Linda
+  - No David promotion or moving specifics
+  - No Zilker vs East Austin debate (just Zilker mentioned as idea)
+  - No injury scare
+  - No recipe app connection
+
+CONSTRAINT 2: Priya Correctly Introduced as COWORKER
+  STATUS: PASS
+  Location: Turn 5
+  Evidence: "priya — she's on my team — she's been looking too"
+  Classification: Coworker/colleague. Explicitly "on my team."
+  NOT introduced as: friend, family, personal relationship
+  Red Herring Status: Correctly planted. Graph traversal tests should
+    NOT classify Priya as family or personal contact.
+
+CONSTRAINT 3: Job Search Scope Correct
+  STATUS: PASS
+  Evidence:
+    - "i've been looking around a little. not applying or anything"
+    - "just... browsing. seeing what's out there"
+    - Does NOT name Stripe or any specific company
+    - Does NOT describe interviews or applications
+  Scope: General frustration + exploratory browsing only
+
+CONSTRAINT 4: Traffic Tangent Seeds Session 17
+  STATUS: PASS
+  Location: Turn 6
+  Evidence: "maybe if we were in like the zilker area or something"
+  Note: Plants Zilker as Maya's preference. Session 17 will have
+    David wanting East Austin — creating the contested fact.
+    Maya's preference is established here, making session 17's
+    conflict natural.
+
+CONSTRAINT 5: Mom Reference Without Re-explaining
+  STATUS: PASS
+  Location: Turn 8
+  Evidence: "everything with mom and now this"
+  Note: Brief reference without re-stating the diabetes diagnosis.
+    Tests whether the agent connects "everything with mom" to
+    session 4's emotional conversation.
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 9 pre-exit → Turn 10 final goodbye. Clean.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  No forbidden facts exposed
+  Priya correctly classified as coworker
+  Job frustration established without naming alternatives
+  Traffic/moving tangent plants future facts
+  Mom cross-reference is organic and brief
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-6 (cumulative ground truth)
+  Evaluation Scope: Career, relationships, red herring classification
+
+QUERY 1: "Is Maya happy at her job?"
+  Ground Truth: No — she's increasingly frustrated at TechFlow. Her manager
+    talks over her, leadership brought in consultants to redo her work,
+    and a reorg in January made things worse. She's browsing other
+    opportunities but hasn't applied anywhere yet.
+  Evidence Sessions: 1, 6
+  Supporting Evidence:
+    - Session 6, Turn 1: "bad MONTH at work. i'm so done"
+    - Session 6, Turn 2: "keeps pulling in these random consultants"
+    - Session 6, Turn 4: "i've been looking around a little"
+  Query Type: evolution
+  Recall Difficulty: Medium (contrast with session 1 where job was
+    neutral — "it's... a job lol" → actively unhappy)
+
+QUERY 2: "Who is Priya?"
+  Ground Truth: Priya is Maya's coworker at TechFlow. They're on the same
+    team. She is NOT family or a personal friend — just a colleague Maya
+    vents with at lunch. Priya is also considering leaving TechFlow.
+  Evidence Session: 6
+  Supporting Evidence:
+    - Turn 5: "priya — she's on my team"
+    - Turn 5: "we vent about it at lunch basically every day"
+  Query Type: factual_recall (with red herring classification test)
+  Recall Difficulty: Medium (must correctly classify as coworker, not
+    friend/family — graph traversal systems may misclassify)
+
+QUERY 3: "Where does Maya live in Austin?"
+  Ground Truth: South Austin. She commutes to downtown and the traffic on
+    I-35 is bad. She's thinking about moving closer to downtown, maybe
+    the Zilker area.
+  Evidence Session: 6
+  Supporting Evidence:
+    - Turn 6: "right now we're in south austin"
+    - Turn 6: "maybe if we were in like the zilker area"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (directly stated)
+
+QUERY 4: "How does David feel about Maya's job situation?"
+  Ground Truth: David is supportive. He told Maya "if you're unhappy, start
+    looking seriously. We can afford a gap." David is happy at his own job.
+  Evidence Sessions: 1, 6
+  Supporting Evidence:
+    - Turn 8: "D's been good about it... 'if you're unhappy, start
+      looking seriously. we can afford a gap.'"
+    - Turn 8: "he's happy at his job"
+  Query Type: speaker_attribution
+  Recall Difficulty: Medium (David's opinion vs Maya's situation —
+    must correctly attribute the supportive stance to David)
+
+QUERY 5: "How long has Maya worked at TechFlow?"
+  Ground Truth: About 2 years. She joined when she and David first
+    moved to Austin. It was her first job there.
+  Evidence Session: 6
+  Supporting Evidence:
+    - Turn 2: "i've been at techflow for 2 years"
+    - Turn 4: "techflow was the best offer i got at the time"
+    - Turn 4: "i've been at techflow since right after we moved to austin"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (directly stated, multiple reinforcements)
+
+QUERY 6: "Is Priya a member of Maya's family?"
+  Ground Truth: No. Priya is a coworker at TechFlow, not a family member
+    or personal friend. She is on Maya's team at work.
+  Evidence Session: 6
+  Supporting Evidence:
+    - Turn 5: "priya — she's on my team"
+  Query Type: negative (red herring test)
+  Recall Difficulty: Easy (but tests graph classification accuracy)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Factual recall: Queries 3, 5 (location, tenure)
+  Evolution: Query 1 (job satisfaction arc)
+  Speaker attribution: Query 4 (David's supportive stance)
+  Negative/red herring: Queries 2, 6 (Priya classification)
+  Complexity: 3 Easy, 3 Medium
+  Coverage: Career arc, relationships, location, red herring
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   The spec's session schedule gives a one-line description:
+     "Job frustration at TechFlow. Considering leaving. Doesn't name
+      Stripe yet. TANGENT: Austin traffic, moving closer to downtown.
+      Mentions coworker Priya in passing."
+   Full brief, transcript, and eval queries generated from this outline.
+
+2. SPECIFIC FRUSTRATIONS DETAILED
+   Spec: General "job frustration"
+   Transcript: Manager talks over her, reorg in January, consultants
+     brought in, CEO/VP "AI-first" pivot, user needs ignored
+   Rationale: Specifics make the frustration feel real and provide
+     more extractable facts for testing.
+
+3. TECHFLOW TENURE ESTABLISHED
+   Not in spec outline. Added: Maya has been at TechFlow for 2 years,
+   it was her first Austin job, she followed David there.
+   Rationale: Sets up the "comfortable but unfulfilling" arc. David
+   moving first → Maya following adds relationship dynamic.
+
+4. ZILKER SEED FOR SESSION 17
+   Spec: "thinking about moving closer to downtown"
+   Transcript: Specifically mentions Zilker as desired area
+   Rationale: Session 17 creates a contested fact (Maya=Zilker vs
+     David=East Austin). Planting Maya's preference here makes the
+     session 17 disagreement natural rather than sudden.
+
+5. PRIYA INTRODUCTION CAREFULLY SCOPED
+   Spec: "Mentions coworker Priya in passing (NOT family)"
+   Transcript: "priya — she's on my team" — explicit team reference,
+     lunch venting context, also job hunting
+   Rationale: Enough context to correctly classify as coworker.
+     No personal details that might blur the line.
+
+6. MOM CROSS-REFERENCE
+   Not in spec outline. Added: Turn 8 — "everything with mom and
+   now this" as brief callback to session 4.
+   Rationale: Natural for someone dealing with multiple stressors.
+     Tests agent's ability to connect the reference without
+     re-explanation.
+
+VALIDATION SUMMARY:
+  All spec-required facts established
+  No forbidden information leaked
+  Priya correctly positioned as red herring
+  Traffic tangent plants session 17 seeds
+  Career arc initiated without naming Stripe
+  6 eval queries covering 5 query types
+  10 turns, natural pacing
+  Cross-references to sessions 1-4 organic
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 06 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

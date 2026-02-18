@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F032 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 12 and 13
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F032 (Filler — Work Session)
+Date: 2026-03-29 16:22
+Topic: write a SQL query to find users who signed up but never activated
+Turn Count: 17
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F032
+  Track: filler
+  Timestamp: 2026-03-29 16:22:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  need a sql query to find users who signed up but never activated their account
+
+AI ASSISTANT:
+  Here's a SQL query to identify inactive users:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  yeah can you add signup source and also only show users from last 30 days
+
+AI ASSISTANT:
+  Here's the updated query with signup source and 30-day filter:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  perfect. can you also write the email we should send these users to get them to activate
+
+AI ASSISTANT:
+  Here's a re-engagement email draft:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  like the first one. can you make it shorter tho, like 3-4 sentences max
+
+AI ASSISTANT:
+  Here's the condensed version:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  second one is good. now can you help me figure out what to track for this campaign
+
+AI ASSISTANT:
+  Here's what you should track for this re-engagement campaign:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  yeah make a tracking sheet. just the key stuff, don't overcomplicate it
+
+AI ASSISTANT:
+  Here's a simple tracking sheet structure:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  nah this is good. one more thing - what kpis should i put in the weekly report for D about this
+
+AI ASSISTANT:
+  Here's what to include in David's weekly report:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  perfect thx. btw can you remind me what our baseline activation rate is rn
+
+AI ASSISTANT:
+  I don't have your current baseline activation rate in context — you'll need to check your analytics dashboard or ask your data team for the latest number.
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  we're at like 18% i think. also want to test different subject lines, can you give me 5 more options
+
+AI ASSISTANT:
+  Here are 5 additional subject line options to test:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  nah i'm good. just gonna run urgency vs benefit first and see what happens
+
+AI ASSISTANT:
+  Smart — urgency vs benefit is the best starting test. That'll tell you if your users respond more to scarcity or value props, which informs everything else.
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  ok cool. last thing - what's a good sample size for this test to be legit
+
+AI ASSISTANT:
+  Here's how to calculate your sample size:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  around 1200 i think so we're good
+
+AI ASSISTANT:
+  Perfect — 1,200 is a solid sample size. Split that 600/600 and you'll have enough power to detect a 2-3 percentage point difference with confidence.
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  awesome thanks. gonna run this next week after rach leaves
+
+AI ASSISTANT:
+  Sounds good — running it after Rachel's visit gives you time to focus on the test results without distractions.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

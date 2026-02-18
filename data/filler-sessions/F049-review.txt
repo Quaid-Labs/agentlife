@@ -1,0 +1,138 @@
+================================================================================
+FILLER SESSION F049 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 16 and 17
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F049 (Filler — Recipe App Micro)
+Date: 2026-04-10 09:54
+Topic: i'm getting CORS errors when i call the API from the frontend
+Turn Count: 13
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F049
+  Track: filler
+  Timestamp: 2026-04-10 09:54:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  getting cors errors when i call the api from frontend... tried to fetch recipes and it's blocking me. running express backend on 3001, react on 3000
+
+AI ASSISTANT:
+  CORS errors happen when your Express backend doesn't allow requests from your React dev server's origin. You need to add the CORS middleware to your Express app.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  ok that fixed it! now i want to add a share feature... like generate a shareable link for a recipe. should i make a separate shares table?
+
+AI ASSISTANT:
+  Yes, a separate `shares` table is the right approach. This lets you track share metrics, set expiration, and make shares optional (private recipes stay private).
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  nice! want to add tests for this before i hook up the frontend. using jest already for the other routes
+
+AI ASSISTANT:
+  Here's a complete test suite for the sharing endpoints using Jest and supertest:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  tests passing! one thing tho... if someone shares a recipe then deletes it, the share link should show a nice message not just 404
+
+AI ASSISTANT:
+  Good UX thinking. You need to differentiate between "never existed" vs "was deleted". Here's the fix using a soft delete pattern:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  perfect. now frontend time lol... what's the cleanest way to show the share modal? thinking a button on each recipe card
+
+AI ASSISTANT:
+  Here's a clean share modal using React hooks and your existing API:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  love it but the modal styling is kinda basic... can you make it look better? thinking smooth fade in and nicer buttons
+
+AI ASSISTANT:
+  Here's a polished CSS with animations and modern styling:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ok this looks sick! last thing... need a page to actually VIEW the shared recipe. like /shared/:token route in react
+
+AI ASSISTANT:
+  Here's the shared recipe view page with error handling for all the cases (expired, deleted, not found):
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yeah send the css! also wondering if i should add social share buttons? like "share on twitter" or whatever
+
+AI ASSISTANT:
+  Here's the CSS plus social share buttons:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  makes sense lol. ok one more thing... should i add auth? like right now anyone can create/delete recipes. seems bad
+
+AI ASSISTANT:
+  Yeah, you definitely need auth before deploying. Here's a lightweight JWT setup with bcrypt for password hashing:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  damn ok this is getting real lol. gonna set up env vars and test this tomorrow. thanks D!
+
+AI ASSISTANT:
+  No problem! Here's a quick `.env` setup guide so you don't forget:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

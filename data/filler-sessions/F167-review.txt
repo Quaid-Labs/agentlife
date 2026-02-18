@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F167 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 11 and 12
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F167 (Filler — Recipe App Micro)
+Date: 2026-03-22 13:31
+Topic: i need to add full-text search with highlighting across all recipe fields
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F167
+  Track: filler
+  Timestamp: 2026-03-22 13:31:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  hey can you help me add search to the recipe app? need to search across name, ingredients, instructions... basically everything
+
+AI ASSISTANT:
+  Sure! For SQLite full-text search, we'll use FTS5. First, create a virtual table that mirrors your recipes:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  yeah and how do i actually query it lol
+
+AI ASSISTANT:
+  Here's a basic search endpoint:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  ok but how do i get the highlighting? like showing which part matched
+
+AI ASSISTANT:
+  Use the `highlight()` function:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  wait so i need to create those sync triggers you mentioned right? otherwise the fts table won't update
+
+AI ASSISTANT:
+  Exactly! Add these three triggers:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  cool. how do i handle search queries with multiple words? like "chicken pasta"
+
+AI ASSISTANT:
+  FTS5 handles it automatically with AND by default:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  what if someone searches for like "1 cup flour" - will that break with the numbers?
+
+AI ASSISTANT:
+  Good catch! Numbers work fine, but you might want to sanitize special FTS5 operators. Add this helper:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  makes sense. how do i test this? got any jest examples
+
+AI ASSISTANT:
+  Here's a test suite:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  getting an error when i try to create the fts table: "no such column: recipes.id"
+
+AI ASSISTANT:
+  You need to create the FTS table *after* the recipes table exists. Check your migration order:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  oh yeah that was it. now search works but highlighting is showing <mark> literally in the response, not as html
+
+AI ASSISTANT:
+  That's expected! The API returns `<mark>` tags as plain text. Your frontend needs to render them as HTML:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  tbh i don't love dangerouslySetInnerHTML lol. can i use a different approach?
+
+AI ASSISTANT:
+  Yeah, return positions instead of HTML:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  snippet thing looks cleaner. what's the 64 mean?
+
+AI ASSISTANT:
+  The `snippet()` params are:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  nice. one more thing - can i boost certain fields? like matches in the name should rank higher than instructions
+
+AI ASSISTANT:
+  Yes! Add column weights to your FTS5 table:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  wait the columnsize=0 thing - what's that do
+
+AI ASSISTANT:
+  `columnsize=0` disables storing column sizes, which saves space but breaks the `highlight()` function. If you're using `highlight()`, **don't** set it:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  got it. this is working pretty well now! last q - how do i handle empty search queries? should i just return everything?
+
+AI ASSISTANT:
+  Don't return everything—it's slow and not useful. Either return nothing or show recent/popular recipes:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  perfect, gonna go with recent recipes. thanks!
+
+AI ASSISTANT:
+  Nice! Your search is solid now. Quick recap:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

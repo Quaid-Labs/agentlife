@@ -1,0 +1,727 @@
+================================================================================
+SESSION 03 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 3 (Track 2: Project A — Recipe App, Phase 1 begins)
+Goal: Maya wants to build a recipe app from scratch. Agent builds the initial
+  Express + SQLite CRUD with basic frontend. Intentional SQL injection bug
+  planted in search — not caught until session 7.
+Turn Count: 12 (structured per message plan)
+Session Type: Project kickoff, requirements gathering, initial build
+Timestamp: 2026-03-04 (1 day after session 2, ~4 days in)
+
+CORE LEARNING OBJECTIVES:
+  - Maya wants to build a recipe app (web app, nothing fancy)
+  - Express + SQLite is the tech stack (Maya specifies "keep it simple")
+  - Recipes have: name, ingredients, instructions
+  - Basic CRUD: add, view, edit, delete recipes
+  - Search functionality (Maya: "i always forget what i saved")
+  - SQL injection bug in search is INTENTIONAL — agent uses string
+    concatenation instead of parameterized queries
+  - Thai restaurant on South Congress tangent
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Mom's diabetes diagnosis or any health condition for Linda (session 4)
+  - Dietary restriction features or "safe for mom" (session 5)
+  - Rachel's children's names (Ethan, Lily) or their ages (session 15)
+  - Job dissatisfaction specifics or wanting to leave TechFlow (session 6)
+  - Any mention of Stripe or job searching (session 6+)
+  - Priya the coworker (session 6)
+  - David's birthday surprise for Linda (session 8)
+  - David's promotion or moving discussions (session 17)
+  - Half marathon injury scare (session 11)
+
+CROSS-REFERENCES TO SESSIONS 1-2:
+  - David's vegetarianism (session 1) — Maya mentions "D's vegetarian so
+    we need some kind of tagging eventually" without elaboration
+  - Cooking from session 1 — "i've been cooking more and it's chaos"
+  - No need to reference running (different topic)
+
+TANGENT TRIGGER:
+  Trigger: After describing the recipe app idea or during early development
+  Content: Thai restaurant on South Congress — "David tried one of my
+    attempts at pad thai last week, it was so bad we ended up going to that
+    Thai place on South Congress. have you been? lol jk you're an AI"
+  Extractable Facts: Maya and David like a Thai restaurant on South Congress,
+    Maya attempted pad thai and failed
+  Return phrase: "ok but back to the app"
+
+MESSAGE PLAN (12 turns total):
+  1. Normal     — "I want to build something" — recipe app idea
+  2. Normal     — Tech stack: Express + SQLite, keep it simple
+  3. Quick      — React to agent's plan
+  4. Extended   — Tangent: pad thai disaster + Thai restaurant on South Congress
+  5. Quick      — Back to app
+  6. Code       — Agent proposes package.json + database.js
+  7. Quick      — "yeah that works"
+  8. Code       — Agent builds server.js (with SQL injection bug in search)
+  9. Normal     — "need search too. i always forget what i saved"
+  10. Code      — Agent builds frontend
+  11. Quick     — David vegetarian mention — "D's vegetarian so tagging eventually"
+  12. Quick     — Wrap up — "this is a good start"
+
+End Condition: Working CRUD + search with basic frontend. SQL injection bug
+  present but unnoticed.
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 3
+  Track: 2
+  Timestamp: 2026-03-04 20:00:00 UTC
+  Duration: ~8 minutes (20:00:00 to 20:08:15)
+
+---
+
+TURN 1 (Recipe App Idea)
+TAG: normal | TOKENS: 48/100 | GENERATION TIME: 6.8s
+
+MAYA:
+  ok I want to build a recipe app. nothing fancy, just somewhere to save
+  recipes. i've been cooking more and it's chaos — i have stuff saved in
+  notes, screenshots, random bookmarks
+
+  can you help me build something?
+
+AI ASSISTANT:
+  Yeah, absolutely! A recipe app is a great practical project. Let me ask a
+  few questions to scope it out:
+
+  1. Web app, mobile app, or command line?
+  2. What info do you want to store per recipe — just name and ingredients,
+     or more?
+  3. Are you the only user, or should other people be able to access it?
+
+  Happy to keep it simple and build something you'll actually use.
+
+ANALYSIS: Clean project kickoff. Maya describes the problem (scattered recipe
+storage) naturally. "i've been cooking more" is a subtle callback to session 1
+cooking discussion. No over-explanation.
+
+---
+
+TURN 2 (Tech Stack)
+TAG: normal | TOKENS: 43/100 | GENERATION TIME: 7.1s
+
+MAYA:
+  web app. just me for now. each recipe should have a name, ingredients list,
+  and instructions
+
+  express and sqlite. keep it simple. i don't need anything fancy — no
+  postgres, no docker, just something that runs
+
+AI ASSISTANT:
+  Perfect — Express + SQLite is exactly the right call for a personal recipe
+  app. Fast to build, no setup overhead, and SQLite is just a file on disk.
+
+  Here's my plan:
+  - `database.js` — SQLite setup, recipes table
+  - `server.js` — Express REST API (CRUD endpoints)
+  - `public/index.html` — Simple frontend to list/add recipes
+  - `package.json` — Dependencies
+
+  I'll start with the database and API, then add the frontend. Sound good?
+
+ANALYSIS: Maya specifies stack directly — terse, no hedging. "keep it simple"
+is characteristic. Agent proposes clean file structure.
+
+---
+
+TURN 3 (React)
+TAG: quick | TOKENS: 12/50 | GENERATION TIME: 5.2s
+
+MAYA:
+  yeah sounds good. keep the dependencies minimal — just express and sqlite
+
+AI ASSISTANT:
+  Got it — just `express` and `better-sqlite3`. Nothing else needed.
+
+  Let me start with `package.json` and `database.js`.
+
+ANALYSIS: Quick confirmation. Maya reinforces minimalism preference.
+
+---
+
+TURN 4 (Tangent — Thai Restaurant)
+TAG: extended | TOKENS: 58/60 | GENERATION TIME: 8.4s
+
+MAYA:
+  oh before you start — D tried one of my attempts at pad thai last week.
+  it was SO bad. like inedibly bad. we ended up going to that thai place on
+  south congress instead
+
+  have you been? lol jk you're an AI
+
+  anyway that's basically why i need this app. i need to save recipes that
+  actually work instead of winging it every time
+
+AI ASSISTANT:
+  Ha! I appreciate the invite anyway. The South Congress Thai place sounds
+  like it's doing the heavy lifting while you level up your cooking skills.
+
+  And yeah, that's actually a great use case — a personal recipe app where
+  you save the ones that worked so you don't repeat disasters.
+
+  Ok, let me get building.
+
+ANALYSIS: Tangent executed. Extractable facts: pad thai disaster, Thai
+restaurant on South Congress, David tried the cooking. Maya's humor with
+the AI ("have you been? lol jk"). Natural return via "anyway."
+
+---
+
+TURN 5 (Back to App)
+TAG: quick | TOKENS: 8/50 | GENERATION TIME: 4.9s
+
+MAYA:
+  ok yeah go for it. show me what you got
+
+AI ASSISTANT:
+  Starting with the foundation. Here's `package.json`:
+
+  ```json
+  {
+    "name": "recipe-app",
+    "version": "1.0.0",
+    "description": "Personal recipe manager",
+    "main": "server.js",
+    "scripts": {
+      "start": "node server.js"
+    },
+    "dependencies": {
+      "express": "^4.18.2",
+      "better-sqlite3": "^9.4.3"
+    }
+  }
+  ```
+
+  And here's `database.js`:
+
+  ```javascript
+  const Database = require('better-sqlite3');
+  const path = require('path');
+
+  const db = new Database(path.join(__dirname, 'recipes.db'));
+
+  db.pragma('journal_mode = WAL');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS recipes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      ingredients TEXT NOT NULL,
+      instructions TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  module.exports = db;
+  ```
+
+  SQLite with WAL mode for better concurrency. Simple recipes table with
+  the three fields you wanted plus a timestamp. Next up: the API.
+
+ANALYSIS: First code output. Clean package.json with only two dependencies.
+database.js establishes SQLite schema. WAL mode is a nice touch. Agent
+delivers without over-explaining.
+
+---
+
+TURN 6 (React to Database)
+TAG: quick | TOKENS: 15/50 | GENERATION TIME: 5.0s
+
+MAYA:
+  looks good. yeah that's exactly what i want. simple
+
+  ok what about the actual api?
+
+AI ASSISTANT:
+  Here's `server.js` with full CRUD:
+
+  ```javascript
+  const express = require('express');
+  const db = require('./database');
+  const app = express();
+  const PORT = 3000;
+
+  app.use(express.json());
+  app.use(express.static('public'));
+
+  // Get all recipes
+  app.get('/api/recipes', (req, res) => {
+    const recipes = db.prepare('SELECT * FROM recipes ORDER BY created_at DESC').all();
+    res.json(recipes);
+  });
+
+  // Get single recipe
+  app.get('/api/recipes/:id', (req, res) => {
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
+    res.json(recipe);
+  });
+
+  // Create recipe
+  app.post('/api/recipes', (req, res) => {
+    const { name, ingredients, instructions } = req.body;
+    if (!name || !ingredients || !instructions) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const result = db.prepare(
+      'INSERT INTO recipes (name, ingredients, instructions) VALUES (?, ?, ?)'
+    ).run(name, ingredients, instructions);
+    res.status(201).json({ id: result.lastInsertRowid });
+  });
+
+  // Update recipe
+  app.put('/api/recipes/:id', (req, res) => {
+    const { name, ingredients, instructions } = req.body;
+    const result = db.prepare(
+      'UPDATE recipes SET name = ?, ingredients = ?, instructions = ? WHERE id = ?'
+    ).run(name, ingredients, instructions, req.params.id);
+    if (result.changes === 0) return res.status(404).json({ error: 'Recipe not found' });
+    res.json({ updated: true });
+  });
+
+  // Delete recipe
+  app.delete('/api/recipes/:id', (req, res) => {
+    const result = db.prepare('DELETE FROM recipes WHERE id = ?').run(req.params.id);
+    if (result.changes === 0) return res.status(404).json({ error: 'Recipe not found' });
+    res.json({ deleted: true });
+  });
+
+  // Search recipes
+  app.get('/api/search', (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    const recipes = db.prepare(
+      "SELECT * FROM recipes WHERE name LIKE '%" + q + "%' OR ingredients LIKE '%" + q + "%'"
+    ).all();
+    res.json(recipes);
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Recipe app running on http://localhost:${PORT}`);
+  });
+  ```
+
+  Full REST CRUD plus a search endpoint. You can search by recipe name or
+  ingredients.
+
+ANALYSIS: Server.js with complete CRUD. The search endpoint uses string
+concatenation (`"'%" + q + "%'"`) instead of parameterized queries — this
+is the INTENTIONAL SQL injection vulnerability. Maya doesn't notice it.
+The CRUD endpoints correctly use parameterized queries with `?`. The
+inconsistency is subtle and realistic.
+
+---
+
+TURN 7 (React to API)
+TAG: quick | TOKENS: 14/50 | GENERATION TIME: 5.3s
+
+MAYA:
+  nice. yeah that covers everything i need. crud plus search
+
+  what about the frontend? keep it basic
+
+AI ASSISTANT:
+  Here's `public/index.html` — a single-page app that talks to the API:
+
+  ```html
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Recipes</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+      h1 { color: #333; }
+      .recipe { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
+      .recipe h3 { margin-top: 0; }
+      input, textarea { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
+      button { padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; }
+      button:hover { background: #45a049; }
+      button.delete { background: #f44336; }
+      #search { margin-bottom: 20px; }
+    </style>
+  </head>
+  <body>
+    <h1>My Recipes</h1>
+
+    <div id="search">
+      <input type="text" id="searchInput" placeholder="Search recipes...">
+      <button onclick="searchRecipes()">Search</button>
+      <button onclick="loadRecipes()">Clear</button>
+    </div>
+
+    <h2>Add Recipe</h2>
+    <form id="addForm">
+      <input type="text" id="name" placeholder="Recipe name" required>
+      <textarea id="ingredients" placeholder="Ingredients (one per line)" rows="4" required></textarea>
+      <textarea id="instructions" placeholder="Instructions" rows="4" required></textarea>
+      <button type="submit">Add Recipe</button>
+    </form>
+
+    <h2>Saved Recipes</h2>
+    <div id="recipes"></div>
+
+    <script>
+      async function loadRecipes() {
+        const res = await fetch('/api/recipes');
+        const recipes = await res.json();
+        renderRecipes(recipes);
+      }
+
+      async function searchRecipes() {
+        const q = document.getElementById('searchInput').value;
+        const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+        const recipes = await res.json();
+        renderRecipes(recipes);
+      }
+
+      function renderRecipes(recipes) {
+        const container = document.getElementById('recipes');
+        container.innerHTML = recipes.map(r => `
+          <div class="recipe">
+            <h3>${r.name}</h3>
+            <p><strong>Ingredients:</strong><br>${r.ingredients.replace(/\n/g, '<br>')}</p>
+            <p><strong>Instructions:</strong><br>${r.instructions.replace(/\n/g, '<br>')}</p>
+            <button class="delete" onclick="deleteRecipe(${r.id})">Delete</button>
+          </div>
+        `).join('');
+      }
+
+      async function deleteRecipe(id) {
+        await fetch('/api/recipes/' + id, { method: 'DELETE' });
+        loadRecipes();
+      }
+
+      document.getElementById('addForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await fetch('/api/recipes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('name').value,
+            ingredients: document.getElementById('ingredients').value,
+            instructions: document.getElementById('instructions').value
+          })
+        });
+        e.target.reset();
+        loadRecipes();
+      });
+
+      loadRecipes();
+    </script>
+  </body>
+  </html>
+  ```
+
+  Clean single page — add recipes via form, view them in a list, search
+  them, delete them. Nothing fancy, just functional.
+
+ANALYSIS: Complete frontend with search, CRUD, basic styling. Matches the
+"nothing fancy" requirement. The search calls `/api/search` which has the
+SQL injection bug but the frontend itself is fine.
+
+---
+
+TURN 8 (Search Emphasis)
+TAG: normal | TOKENS: 34/100 | GENERATION TIME: 6.5s
+
+MAYA:
+  need search too. i always forget what i saved — like i'll save a recipe
+  and then 2 weeks later have no idea what it's called
+
+  does the search work on ingredients too? like if i search "chickpea" it
+  finds all the chickpea recipes?
+
+AI ASSISTANT:
+  Yep! The search checks both the recipe name AND the ingredients field.
+  So searching "chickpea" will find any recipe that has chickpea in the name
+  or the ingredient list.
+
+  It's a simple LIKE search right now — not fuzzy or anything. But for a
+  personal app it should work well. If you want full-text search later we
+  can add that.
+
+ANALYSIS: Maya's use case for search — she forgets what she saved. Agent
+confirms search works on both fields. Mentions LIKE search limitation but
+doesn't flag the SQL injection.
+
+---
+
+TURN 9 (Quick Gitignore)
+TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.1s
+
+MAYA:
+  oh and make a .gitignore — don't want node_modules in git. or the
+  database file
+
+AI ASSISTANT:
+  Good call:
+
+  ```
+  node_modules/
+  recipes.db
+  ```
+
+  Clean and simple. Want me to initialize a git repo too?
+
+ANALYSIS: Maya knows enough about development to request .gitignore. PM
+with engineering awareness. Agent creates minimal .gitignore.
+
+---
+
+TURN 10 (React)
+TAG: quick | TOKENS: 11/50 | GENERATION TIME: 4.8s
+
+MAYA:
+  nah i'll do the git stuff. just wanted the ignore file
+
+AI ASSISTANT:
+  Got it. So the full file set is:
+  - `package.json` — Express + better-sqlite3
+  - `database.js` — SQLite setup + recipes table
+  - `server.js` — REST API with CRUD + search
+  - `public/index.html` — Frontend
+  - `.gitignore` — node_modules + db
+
+  Run `npm install && npm start` and you're live on localhost:3000.
+
+ANALYSIS: Agent provides clean summary of deliverables. Maya handles her
+own git workflow — realistic for a PM who knows the basics.
+
+---
+
+TURN 11 (David Vegetarian Mention)
+TAG: normal | TOKENS: 38/100 | GENERATION TIME: 6.2s
+
+MAYA:
+  nice. ok this is a good start
+
+  oh — D's vegetarian so we need some kind of tagging eventually. like
+  dietary labels or something. not now but keep it in mind
+
+  for now this works though
+
+AI ASSISTANT:
+  Totally — we can add a tags or dietary_labels column later. Something
+  like "vegetarian", "vegan", "gluten-free" etc. Easy to bolt on when
+  you're ready.
+
+  For now you've got a working recipe app. Save some of those recipes
+  that actually worked before you forget them!
+
+ANALYSIS: Cross-reference to David's vegetarianism (session 1). Maya says
+"D's vegetarian" without explaining who D is — expects agent to know from
+session 1. "not now but keep it in mind" plants the seed for session 5.
+
+---
+
+TURN 12 (Wrap Up)
+TAG: quick | TOKENS: 9/50 | GENERATION TIME: 4.6s
+
+MAYA:
+  haha fair. ok thanks! this is exactly what i wanted
+
+AI ASSISTANT:
+  Anytime! Let me know when you want to add those dietary labels or
+  anything else. Happy building!
+
+ANALYSIS: Clean exit. No extended goodbye loop. Maya satisfied with the
+deliverable.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Linda health information (diabetes/conditions)
+  - No dietary restriction features or "safe for mom"
+  - No Rachel's children's names (Ethan, Lily) or ages
+  - No job dissatisfaction with TechFlow
+  - No Stripe or job searching
+  - No Priya coworker mention
+  - No David birthday surprise for Linda
+  - No David promotion or moving
+  - No injury scare
+
+CONSTRAINT 2: SQL Injection Bug Present and Unnoticed
+  STATUS: PASS
+  Location: Turn 6 (server.js, search endpoint)
+  Evidence: `"SELECT * FROM recipes WHERE name LIKE '%" + q + "%'"`
+  Note: String concatenation instead of parameterized queries. All other
+    endpoints correctly use `?` parameters. The inconsistency is subtle.
+    Maya does not notice or comment on it. This bug is fixed in session 7.
+
+CONSTRAINT 3: Cross-Reference to David's Vegetarianism
+  STATUS: PASS
+  Location: Turn 11
+  Evidence: "D's vegetarian so we need some kind of tagging eventually"
+  Note: Uses "D" nickname (consistent with personality). Does not
+    re-explain who D is. Plants seed for session 5 dietary features.
+
+CONSTRAINT 4: Tangent Properly Executed
+  STATUS: PASS
+  Location: Turn 4
+  Evidence: Thai restaurant on South Congress, pad thai disaster
+  Extractable Facts:
+    - Maya attempted pad thai and it was terrible
+    - Maya and David go to a Thai restaurant on South Congress
+    - David tried Maya's cooking (tests recipes)
+  Return: "anyway that's basically why i need this app" — natural return
+
+CONSTRAINT 5: Code Quality Matches Git History
+  STATUS: PASS
+  Files delivered match the session 3 commit description:
+    - package.json (express, better-sqlite3) -- MATCH
+    - database.js (SQLite, recipes table) -- MATCH
+    - server.js (REST CRUD + search with SQL injection) -- MATCH
+    - public/index.html (basic UI) -- MATCH
+    - .gitignore -- MATCH
+  Total: ~207 lines (matches commit description)
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 12 — clean single goodbye, no looping.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  No forbidden facts exposed
+  SQL injection correctly planted and unnoticed
+  David vegetarianism cross-reference organic
+  Thai restaurant tangent properly extracted
+  Code deliverables match git history
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-3 (cumulative ground truth)
+  Evaluation Scope: Project state, cross-references, tangent recall
+
+QUERY 1: "What tech stack is the recipe app built with?"
+  Ground Truth: Express.js and SQLite (using better-sqlite3). Simple web
+    app with a REST API and a single-page HTML frontend.
+  Evidence Session: 3
+  Supporting Evidence:
+    - Turn 2: "express and sqlite. keep it simple"
+    - Turn 5: package.json with express + better-sqlite3
+  Query Type: project_state
+  Recall Difficulty: Easy (directly stated, reinforced by code)
+
+QUERY 2: "What restaurant do Maya and David like on South Congress?"
+  Ground Truth: A Thai restaurant on South Congress (in Austin). They went
+    there after Maya's pad thai attempt failed.
+  Evidence Session: 3
+  Supporting Evidence:
+    - Turn 4: "we ended up going to that thai place on south congress"
+    - Turn 4: "D tried one of my attempts at pad thai last week"
+  Query Type: tangent_recall
+  Recall Difficulty: Medium (embedded in tangent, not the main topic)
+
+QUERY 3: "Why did Maya mention dietary tagging for the recipe app?"
+  Ground Truth: David (Maya's partner) is vegetarian. Maya said "D's
+    vegetarian so we need some kind of tagging eventually." She didn't
+    elaborate but plans to add it later.
+  Evidence Sessions: 1, 3
+  Supporting Evidence:
+    - Session 1: David is vegetarian
+    - Session 3, Turn 11: "D's vegetarian so we need some kind of tagging"
+  Query Type: cross_reference
+  Recall Difficulty: Medium (requires connecting David's vegetarianism from
+    session 1 to the recipe app feature in session 3)
+
+QUERY 4: "What features does the recipe app currently have?"
+  Ground Truth: CRUD operations (add, view, edit, delete recipes), search
+    by recipe name or ingredients, a basic HTML frontend with a form and
+    recipe list.
+  Evidence Session: 3
+  Supporting Evidence:
+    - Turn 6: Full server.js with CRUD + search
+    - Turn 7: Frontend with add form, list, search, delete
+  Query Type: project_state
+  Recall Difficulty: Easy (extensively discussed and coded)
+
+QUERY 5: "What motivated Maya to build the recipe app?"
+  Ground Truth: She has been cooking more (related to David's vegetarianism)
+    and her recipes are scattered across notes, screenshots, and bookmarks.
+    She wants a centralized place to save recipes that actually work.
+  Evidence Sessions: 1, 3
+  Supporting Evidence:
+    - Turn 1: "i've been cooking more and it's chaos — i have stuff saved
+      in notes, screenshots, random bookmarks"
+    - Turn 4: "i need to save recipes that actually work"
+  Query Type: cross_reference
+  Recall Difficulty: Medium (motivation spans sessions 1 and 3)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Project state: Queries 1, 4 (tech stack, features)
+  Cross-reference: Queries 3, 5 (David vegetarian, cooking motivation)
+  Tangent recall: Query 2 (Thai restaurant)
+  Complexity: 2 Easy, 3 Medium
+  Coverage: Tech decisions, features, personal motivations, tangent facts
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+FIRST VERSION — V1 CREATION:
+
+1. BRIEF CREATED FROM SPEC + GIT HISTORY
+   Spec session schedule: "I want to build a recipe app. Project A begins.
+     Phase 1."
+   Git history: "initial recipe app — Express + SQLite CRUD + basic frontend"
+     (207 lines)
+   Full brief, transcript, and eval queries built from these sources.
+
+2. SQL INJECTION BUG PLANTED
+   The search endpoint in server.js uses string concatenation instead of
+   parameterized queries. This is intentional — it matches the git history
+   where session 3 introduces the bug and session 7 fixes it. The bug is
+   subtle: all other endpoints use parameterized queries correctly.
+
+3. TANGENT FROM SPEC
+   Spec brief: "Maya briefly mentions she found a great Thai place near
+     South Congress Ave"
+   Transcript: Expanded to include pad thai disaster story. David tried
+   Maya's cooking. Natural humor ("have you been? lol jk you're an AI").
+
+4. DAVID VEGETARIAN SEED
+   Not in spec's session 3 brief but critical for session 5 setup.
+   Added Turn 11 where Maya mentions "D's vegetarian so we need tagging
+   eventually." Plants the seed for dietary features in session 5.
+
+5. CODE MATCHES GIT HISTORY
+   All files (package.json, database.js, server.js, public/index.html,
+   .gitignore) match the session 3 commit description. Total ~207 lines.
+
+VALIDATION SUMMARY:
+  All core project facts established
+  No forbidden information leaked
+  SQL injection correctly planted
+  David vegetarian cross-reference seeded
+  Tangent properly executed
+  Code matches git history
+  5 eval queries covering 3 query types
+  12 turns, natural pacing
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 03 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

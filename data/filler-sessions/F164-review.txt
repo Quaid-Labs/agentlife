@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F164 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 9 and 8
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F164 (Filler — Recipe App Micro)
+Date: 2026-03-16 11:09
+Topic: i want to add a full nutrition facts calculation system using the usda api
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F164
+  Track: filler
+  Timestamp: 2026-03-16 11:09:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  hey can we add nutrition facts to the recipe app? like actual usda data with calories protein etc
+
+AI ASSISTANT:
+  Yeah definitely! We can use the USDA FoodData Central API. Want to integrate it so each ingredient automatically pulls nutrition info, or do you want users to look it up manually?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  auto would be sick. how hard is it to set up?
+
+AI ASSISTANT:
+  Not too bad. You'll need a free API key from fdc.nal.usda.gov, then we can add a service to fetch data. Here's a basic wrapper:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  yeah let's do it. so ingredients table needs a new column for the fdc id right?
+
+AI ASSISTANT:
+  Exactly! Add `fdc_id` to track the USDA food item:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  ok i ran the migrations. how do we hook this up to the ingredients endpoint?
+
+AI ASSISTANT:
+  Add a new endpoint to search USDA foods and link them:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  cool. now how do we actually calculate nutrition for a whole recipe?
+
+AI ASSISTANT:
+  You'll sum up nutrients from all ingredients based on their quantities. Here's a calculation function:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  wait what if the units don't match? like ingredient is in cups but usda serving is grams
+
+AI ASSISTANT:
+  Good catch. You'll need unit conversion. Here's a helper:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ok this is getting complicated lol. should we cache the usda responses so we don't hit rate limits?
+
+AI ASSISTANT:
+  Absolutely. The nutrition_facts table I showed earlier is for caching. Here's the caching logic:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  perfect. how do we parse the usda response? their format looks weird
+
+AI ASSISTANT:
+  Yeah it's nested. Here's a parser for the common nutrients:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  nice. so now i need an endpoint to get nutrition for a recipe right?
+
+AI ASSISTANT:
+  Yep! Here's the endpoint:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  should i recalc every time or cache it? feels like ingredients might change
+
+AI ASSISTANT:
+  Good point. I'd recalculate on-demand but add a `nutrition_updated_at` timestamp. Only recalc if ingredients changed since last calculation:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  ok cool. what about serving sizes? recipe nutrition should be per serving not total
+
+AI ASSISTANT:
+  Right! Add servings to recipes table and divide totals:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  dope. can we add tests for this? feels like lots of edge cases
+
+AI ASSISTANT:
+  For sure. Here's a test suite to start:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  getting this error when i test: `TypeError: Cannot read property 'grams' of undefined` in convertToGrams
+
+AI ASSISTANT:
+  That's happening when the unit isn't in your conversion table. Add a fallback:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ok that fixed it. last thing - how do i show this on the frontend? want a nice nutrition label
+
+AI ASSISTANT:
+  Here's a React component for a nutrition facts panel:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  perfect this is exactly what i needed. gonna test it out with a few recipes, thanks!
+
+AI ASSISTANT:
+  Nice! Let me know how it goes. If you run into issues with specific ingredients not matching well in USDA search, we can add a manual override feature later. Good luck!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

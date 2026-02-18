@@ -1,0 +1,50 @@
+================================================================================
+FILLER SESSION F194 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F194 (Filler — Quick Question)
+Date: 2026-04-20 22:31
+Topic: how to remove a git branch
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F194
+  Track: filler
+  Timestamp: 2026-04-20 22:31:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  hey how do i delete a git branch? the local one not remote
+
+AI ASSISTANT:
+  Use `git branch -d branch-name` for a safe delete (only if merged), or `git branch -D branch-name` to force delete it.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  ok cool and what if i already pushed it to github
+
+AI ASSISTANT:
+  Run `git push origin --delete branch-name` to remove it from the remote. The local branch deletion is separate, so you'd do both commands.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

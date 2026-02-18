@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F062 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 17 and 18
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F062 (Filler — Work Session)
+Date: 2026-04-16 15:15
+Topic: help me write a tech spec review checklist
+Turn Count: 19
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F062
+  Track: filler
+  Timestamp: 2026-04-16 15:15:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  need to write a checklist for reviewing tech specs at stripe. something i can reuse for every PRD that comes my way. can u draft one?
+
+AI ASSISTANT:
+  I'll create a comprehensive tech spec review checklist for you. Here's a reusable template:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  this is good but too long lol. can u make a shorter version? like 10-12 items max that hit the critical stuff
+
+AI ASSISTANT:
+  Absolutely. Here's the streamlined version:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  lmao love the bonus question. ok can u also give me like 5 red flags that mean i should push back immediately?
+
+AI ASSISTANT:
+  Here are the 5 instant red flags:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  ok perfect. now can u write me a template email i can send when i'm pushing back on a spec? need it to be firm but not mean
+
+AI ASSISTANT:
+  Here's a template you can customize:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~31
+
+MAYA:
+  this is great. one more thing - can u give me examples of good vs bad problem statements? like 2 of each so i can show my team what i mean
+
+AI ASSISTANT:
+  Here are clear examples:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  ok last thing i swear lol. what questions should i ask in the review meeting itself? like when we're all in the room going through it
+
+AI ASSISTANT:
+  Here's your live review meeting script:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  these are fire. ok gonna save all this. thank u!!
+
+AI ASSISTANT:
+  You're welcome! Glad these are helpful. You now have:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  actually yeah the stripe specific version would be clutch. especially around payments and compliance stuff
+
+AI ASSISTANT:
+  Here's your Stripe-specific tech spec addendum:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  this is perfect. ok one more scenario - what if the spec is like 80% good but the timeline is totally unrealistic? how do i handle that specifically
+
+AI ASSISTANT:
+  Great question. Here's how to handle the unrealistic timeline scenario:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  ok that's super helpful. what if they push back and say "well eng estimated 3 weeks so that's what we're going with"
+
+AI ASSISTANT:
+  Here's how to handle the "but eng said 3 weeks!" defense:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~31
+
+MAYA:
+  lol the nuclear option is brutal but yeah sometimes u gotta. ok last last thing - any tips for when i'm reviewing a spec from someone way more senior than me?
+
+AI ASSISTANT:
+  Great question. Here's how to review up without getting steamrolled:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  this is gold thank u. gonna bookmark this whole convo lol
+
+AI ASSISTANT:
+  You're so welcome! You now have a complete tech spec review toolkit:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  wait actually can u turn the essential 10 item one into a google doc template i can copy paste? with checkboxes and everything
+
+AI ASSISTANT:
+  Here's the Google Doc formatted version with checkboxes:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  perfect this is exactly what i needed. gonna start using this tomorrow. thanks again!!
+
+AI ASSISTANT:
+  Amazing! You're all set. Hope your first review with the new checklist goes smoothly.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

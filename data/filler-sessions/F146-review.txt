@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F146 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 8 and 10
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F146 (Filler — Recipe App Micro)
+Date: 2026-03-17 16:16
+Topic: help me add a social features module with follows comments and likes
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F146
+  Track: filler
+  Timestamp: 2026-03-17 16:16:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  hey can you help me add social features to the recipe app? like follows, comments, likes on recipes
+
+AI ASSISTANT:
+  Sure! Let's start with the database schema. Do you want to add this to your existing SQLite database? We'll need tables for follows, comments, and likes. Want me to draft the schema first?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  yeah that works. keep it simple tho, dont need anything fancy
+
+AI ASSISTANT:
+  Here's a basic schema to add to your database:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  yep looks good. now what about the routes? should i make a new social.js file or add to existing routes
+
+AI ASSISTANT:
+  I'd create a new `routes/social.js` to keep things organized. Here's a starter:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  yeah add those. also should i add some kind of auth check middleware?
+
+AI ASSISTANT:
+  Good call. Here's the rest of the routes with auth assumption:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  not really lol. just been testing without it. should i add jwt or something
+
+AI ASSISTANT:
+  JWT works well for this. Here's simple auth middleware:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  cool. how do i test these routes? should i write some jest tests
+
+AI ASSISTANT:
+  Yeah, here's a test setup for social routes:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  k running the tests and getting this error: "TypeError: Cannot read properties of undefined (reading 'id')"
+
+AI ASSISTANT:
+  That's probably because `req.user` is undefined. The JWT middleware might not be running. Did you add the middleware to your routes? Should look like:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  ok that fixed it but now getting "SQLITE_CONSTRAINT: UNIQUE constraint failed: follows.follower_id, follows.following_id"
+
+AI ASSISTANT:
+  That's because you're trying to follow the same user twice. Your test might be running multiple times or not cleaning up. Add this to reset between tests:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  nice that worked. now how do i get a list of who someone is following? need a GET route for that
+
+AI ASSISTANT:
+  Here's a route to get following list:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  nah public is fine for now. what about getting comments and likes for a recipe
+
+AI ASSISTANT:
+  Here's routes to fetch comments and likes:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  sweet. should i add indexes on these foreign keys? feels like itll get slow with lots of data
+
+AI ASSISTANT:
+  Absolutely, good thinking. Add these indexes:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  done. ok last thing - how do i show recipes from people you follow? like a feed
+
+AI ASSISTANT:
+  Here's a feed route that shows recipes from followed users:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  yeah prob should include my own recipes in the feed too
+
+AI ASSISTANT:
+  Updated feed to include your own recipes:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  perfect. lemme test this real quick
+
+AI ASSISTANT:
+  Cool, let me know if you hit any issues. While you test, here's a test case you can add:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  tests pass! this is pretty solid tbh. think im good for now. thanks D
+
+AI ASSISTANT:
+  Nice work! You've got a solid social layer now - follows, comments, likes, and a feed. When you're ready to expand, you could add notifications for new comments/likes, or let people share recipes. Have fun with the rest of the app!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

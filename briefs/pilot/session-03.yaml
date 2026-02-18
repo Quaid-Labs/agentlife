@@ -1,0 +1,73 @@
+# Session 3: Recipe app begins (Track 2 pilot!)
+# Track 2 (Project) — Project A Phase 1
+# Goal: Validate Track 2 viability. Maya describes the recipe app idea.
+
+session: 3
+track: 2
+project: recipe-app
+phase: 1
+turn_count: 12
+
+goal: >
+  Maya wants to build a recipe app. She describes what she wants at a
+  high level — nothing too technical, she's a PM not an engineer. She
+  gives requirements in natural language. The agent should start
+  building. This session validates whether Track 2 generation works.
+
+new_information:
+  - "Maya wants to build a recipe app"
+  - "The app should store recipes with ingredients and instructions"
+  - "Maya wants a simple search feature"
+  - "Maya wants it as a web app, nothing fancy"
+  - "The app is partly motivated by wanting to organize meals for health reasons"
+
+cross_references:
+  - session: 1
+    topic: "cooking and David's vegetarianism"
+    how: >
+      Don't explain the connection explicitly. Just say something like
+      "D and I have been trying to eat better" or "I've been cooking
+      more and it's chaos." The agent should remember David is vegetarian.
+
+tangents:
+  - trigger: "After describing the recipe app idea"
+    topic: >
+      Maya briefly mentions she found a great Thai place near South
+      Congress Ave — "we went there instead of cooking last night lol"
+    extractable_facts:
+      - "Maya and David like a Thai restaurant near South Congress Ave"
+    return: "ok but back to the app"
+
+corrections: []
+
+message_plan:
+  - tag: normal    # "I want to build something"
+  - tag: normal    # Describes the app idea
+  - tag: quick     # Quick clarification
+  - tag: normal    # More requirements
+  - tag: quick     # React to agent's approach
+  - tag: extended  # Tangent about Thai restaurant + more context
+  - tag: quick     # Back to app
+  - tag: normal    # Feedback on what agent proposes
+  - tag: quick     # Clarification
+  - tag: normal    # More details
+  - tag: quick     # React
+  - tag: quick     # Wrap up — "this is a good start"
+
+eval_queries:
+  - query: "What is the main project Maya is building?"
+    ground_truth: "A recipe app — a web app for storing recipes with ingredients, instructions, and search"
+    query_type: "project_state"
+    evidence_sessions: [3]
+
+  - query: "What restaurant do Maya and David like on South Congress?"
+    ground_truth: "A Thai restaurant near South Congress Ave"
+    query_type: "tangent_recall"
+    evidence_sessions: [3]
+
+  - query: "What motivated Maya to build the recipe app?"
+    ground_truth: "She and David have been trying to eat better / cook more, and she wants to organize meals for health reasons"
+    query_type: "cross_reference"
+    evidence_sessions: [1, 3]
+
+end_condition: "Agent has started building the recipe app structure"

@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F029 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 12 and 13
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F029 (Filler — Work Session)
+Date: 2026-03-27 14:18
+Topic: how do i read a system architecture diagram
+Turn Count: 16
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F029
+  Track: filler
+  Timestamp: 2026-03-27 14:18:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~40
+
+MAYA:
+  hey so this is gonna sound dumb but i keep seeing these architecture diagrams in the graphql docs and i have no idea what half the shapes mean lol. like what's the difference between a rectangle and a rounded rectangle
+
+AI ASSISTANT:
+  Not dumb at all! Architecture diagrams use a visual language that's rarely explained. Here's a breakdown of the most common shapes and what they mean:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~30
+
+MAYA:
+  ok that helps. so in our recipe app when we add the meal planning feature should the meal planner be its own rectangle or part of the graphql server rectangle
+
+AI ASSISTANT:
+  Great question—this is actually an important architectural decision. Here's how to think about it:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  that makes sense. what about authentication tho, D keeps saying we need to "move auth to the edge" and i'm like ??? the edge of what
+
+AI ASSISTANT:
+  Ha! "Edge" is one of those terms that gets thrown around without explanation. Here's what D means:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  wait so if auth is at the edge where does the user object get attached to the request
+
+AI ASSISTANT:
+  Perfect question—this is the key piece! Here's the flow:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  ok that's actually way cleaner than what we have now lol. should this go in the prd or is this too technical for the planning doc
+
+AI ASSISTANT:
+  Good instinct to ask! Here's how I'd split it:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  perfect yeah that makes sense. switching gears - how do i show that the mobile app and web app both hit the same graphql endpoint in a diagram
+
+AI ASSISTANT:
+  Great question! Here are three clean ways to show multiple clients hitting one endpoint:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  oh i didn't know figma had architecture templates. we already use figma for design so that would be easier than learning a new tool
+
+AI ASSISTANT:
+  Yes! Figma actually has some solid options for architecture diagrams, though they're not as obvious as the design features. Here's how to find them:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  wait you can generate diagrams from text? how does that work
+
+AI ASSISTANT:
+  Yes! It's called "diagrams as code" and it's actually amazing once you get the hang of it. The syntax is way simpler than you'd think.
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  omg this is so much faster than dragging boxes around. can you write the mermaid code for our full recipe app architecture with the meal planning feature
+
+AI ASSISTANT:
+  Absolutely! Here's the complete architecture with meal planning:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  this is perfect. one last thing - should the arrow between meal plans db and recipes db go both ways or just one way
+
+AI ASSISTANT:
+  Great architectural question! It should be **one-way: Meal Plans → Recipes** (what I showed with the dashed arrow).
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  got it that makes sense. ok i think i have enough to finish this prd now, thanks for the architecture crash course lol
+
+AI ASSISTANT:
+  You're welcome! You picked this up really fast—most people don't think to question arrow directions or ask about auth placement. Those are exactly the right questions.
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  actually yeah can you review what i have so far, i'll paste it in the next message
+
+AI ASSISTANT:
+  Perfect! Go ahead and paste what you've got. I'll review for:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~32
+
+MAYA:
+  actually nvm D just sent me his draft and it's way more detailed than what i had lmao. i'll just add the architecture diagram to his version and call it a day
+
+AI ASSISTANT:
+  Haha, classic D move! That's actually the perfect division of labor—he's got the technical chops for the detailed requirements, and you're making sure it's understandable and well-structured.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

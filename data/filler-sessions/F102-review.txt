@@ -1,0 +1,105 @@
+================================================================================
+FILLER SESSION F102 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F102 (Filler — Recipe App Micro)
+Date: 2026-03-21 15:42
+Topic: the CSS is broken on mobile, the cards are overlapping
+Turn Count: 9
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F102
+  Track: filler
+  Timestamp: 2026-03-21 15:42:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  hey the css is broken on mobile, recipe cards are all overlapping each other lol
+
+AI ASSISTANT:
+  Let me check the card styles. Can you share a screenshot or tell me which page? I'll look at the media queries in the CSS.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  it's the browse recipes page. happens on my iphone, cards stack weird and text overlaps the images
+
+AI ASSISTANT:
+  Found it. The `.recipe-card` doesn't have proper flexbox constraints on mobile. Try this fix:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  ok that's better but the card images are still huge on mobile, like way taller than they should be
+
+AI ASSISTANT:
+  The images need aspect-ratio control. Update the image styles:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  perfect! also can you add a quick filter dropdown for meal type? like breakfast/lunch/dinner
+
+AI ASSISTANT:
+  Sure. Add this to your browse page HTML:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  wait the api doesn't have meal_type in the db yet. can you add that column?
+
+AI ASSISTANT:
+  Yeah, create a migration file `migrations/003_add_meal_type.sql`:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  cool running it now... uh oh getting error: "SQLITE_ERROR: near "DEFAULT": syntax error"
+
+AI ASSISTANT:
+  Ah, SQLite doesn't support `DEFAULT` in `ALTER TABLE`. Use this instead:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  worked! thanks. gonna test the filter now
+
+AI ASSISTANT:
+  Nice! Let me know if the filter works smoothly. The index should keep it fast even when you have lots of recipes.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

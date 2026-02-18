@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F132 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 6 and 7
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F132 (Filler — Work Session)
+Date: 2026-03-14 13:22
+Topic: help me create a code review standards guide for the team
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F132
+  Track: filler
+  Timestamp: 2026-03-14 13:22:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  hey can you help me draft a code review standards doc for the team? we keep getting inconsistent feedback and D is annoyed lol
+
+AI ASSISTANT:
+  Sure! Let's start with the basics. What are the biggest pain points right now? Like, are reviews too slow, too nitpicky, or just all over the place in terms of what people focus on?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  honestly all three lmao. some people bikeshed about naming, others let actual bugs through. and yeah reviews sit for days sometimes
+
+AI ASSISTANT:
+  Got it. Let's build something practical. I'm thinking: response time expectations, what to focus on (bugs/architecture vs style), and maybe a checklist. Want to start with response time SLAs?
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  yeah lets do that first. what's reasonable? we're a small team, like 6 engineers
+
+AI ASSISTANT:
+  For a small team, I'd suggest:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  4 hours feels tight but maybe that's good? we can try it. ok what about the priority thing, like bugs vs style
+
+AI ASSISTANT:
+  Here's a framework:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  yeah we use prettier already so style should be automated. love the P0/P1/P2 thing, super clear
+
+AI ASSISTANT:
+  Perfect. Want to add a review checklist? Something like: "Does it work? Is it tested? Is it secure? Is it maintainable?" Keep it short so people actually use it.
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  yes definitely. what would you put on it?
+
+AI ASSISTANT:
+  Here's a quick checklist:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  ok yeah thats good. should we add something about tone? like people can be kinda harsh sometimes
+
+AI ASSISTANT:
+  Absolutely. Tone section could look like:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  perfect. oh also should we say anything about when to approve vs request changes?
+
+AI ASSISTANT:
+  Good call. How about:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yeah that makes sense. what about PR size? we get some massive ones sometimes and theyre impossible to review
+
+AI ASSISTANT:
+  Let's add PR size guidelines:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  ok can you put this all together in a doc format? like with sections and everything
+
+AI ASSISTANT:
+  Here's the full document:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  this is great! maybe add a section about when to involve D (he's the tech lead) for bigger decisions?
+
+AI ASSISTANT:
+  Good idea. I'll add an escalation section:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  perfect. should we add this to the repo wiki or somewhere else?
+
+AI ASSISTANT:
+  I'd suggest both:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  yeah that would be helpful actually
+
+AI ASSISTANT:
+  Here's a PR template addition:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  awesome thanks. i think this should help a lot. gonna share it with the team tomorrow
+
+AI ASSISTANT:
+  Nice! Maybe give them a heads up that you're trying to standardize the process and ask for feedback after a week or two. That way people feel involved rather than like it's being imposed. Good luck!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

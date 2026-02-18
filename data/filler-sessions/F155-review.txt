@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F155 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F155 (Filler — Recipe App Micro)
+Date: 2026-04-19 16:55
+Topic: help me build an ingredient substitution suggestion feature
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F155
+  Track: filler
+  Timestamp: 2026-04-19 16:55:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  hey can you help me add a feature to suggest ingredient substitutions? like if someone doesn't have buttermilk it suggests yogurt or whatever
+
+AI ASSISTANT:
+  Yeah, I can help with that. Are you thinking of a simple hardcoded mapping (butter → oil, buttermilk → yogurt) or something fancier? Where do you want this to show up - recipe detail page?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  hardcoded is fine for now lol. yeah on the recipe detail page, maybe like a little icon next to each ingredient you can click?
+
+AI ASSISTANT:
+  Cool. Let's add a substitutions table and an endpoint. Here's the schema:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  yes please! add like the common ones - butter, eggs, buttermilk, that kind of stuff
+
+AI ASSISTANT:
+  Here's the seed data:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  yep running it now... ok done. now how do i get these to show up in the api?
+
+AI ASSISTANT:
+  Add this route to your recipes router:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  hmm i'm getting an empty array back. my ingredients are like "2 cups buttermilk" but the table just has "buttermilk"
+
+AI ASSISTANT:
+  Ah yeah, you need fuzzy matching. Try this:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  perfect that works! now how do i show this in the frontend? i'm using react btw
+
+AI ASSISTANT:
+  Add state to fetch substitutions and show them in a popover:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  ok cool. what icon should i use lol
+
+AI ASSISTANT:
+  I'd use a swap/exchange icon - like ⇄ or 🔄. If you're using an icon library, try `ArrowsRightLeftIcon` (heroicons) or `SwapHoriz` (material). Keep it subtle so it doesn't clutter the ingredient list.
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  using heroicons. here's what i have but the popover isn't showing up when i click
+
+AI ASSISTANT:
+  You need state to track which ingredient's popover is open:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  nice that works but the popover is getting cut off at the edge of the container
+
+AI ASSISTANT:
+  Add `z-10` to the popover and make sure the parent has `overflow-visible`:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  perfect! one more thing - can we add a way for users to submit their own substitutions?
+
+AI ASSISTANT:
+  Sure. Add a POST endpoint:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  yeah but ngl i'm worried about spam or bad data. should i add moderation?
+
+AI ASSISTANT:
+  Good call. Add a `status` column:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  smart. ok last thing i swear - how do i write tests for this?
+
+AI ASSISTANT:
+  Here's a basic Jest test:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  got it thx! gonna write a few more tests then deploy this
+
+AI ASSISTANT:
+  Nice! Don't forget to add an index on `ingredient_substitutions.ingredient` since you're doing LIKE queries - it'll speed things up:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

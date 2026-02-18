@@ -1,0 +1,204 @@
+================================================================================
+FILLER SESSION F137 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 11 and 12
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F137 (Filler — Work Session)
+Date: 2026-03-22 18:44
+Topic: i want to create an onboarding guide for new engineers on my team
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F137
+  Track: filler
+  Timestamp: 2026-03-22 18:44:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  hey can you help me draft an onboarding guide for new engineers? we keep getting questions about the same stuff and i want something they can reference
+
+AI ASSISTANT:
+  Sure! Let's start with the basics. What are the most common questions new engineers ask in their first week? Also, what's your stack and main product areas?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  mostly like "where's the staging env" "how do i deploy" "who owns what service" etc. we're react/node, postgres, deployed on aws. main product is the marketplace platform
+
+AI ASSISTANT:
+  Got it. Let's structure it into sections: Environment Setup, Architecture Overview, Deploy Process, Team & Ownership, and Getting Help. Want to start with the deploy process since that seems to come up a lot?
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  yeah that's a good start. deploy process would be super helpful. we use github actions and it's kinda confusing tbh
+
+AI ASSISTANT:
+  Okay, let me draft the deploy section:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  yeah that's close but we actually deploy to prod on tuesdays and thursdays only, not continuous. and staging auto-deploys from develop branch not main
+
+AI ASSISTANT:
+  Ah, good catches. Here's the updated version:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  perfect. ok what about the "who owns what" section? we have like 6 microservices and it's always unclear
+
+AI ASSISTANT:
+  Let's make a service ownership table. Can you list out the services and who owns each? Format like: service name - what it does - owning team/person
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~31
+
+MAYA:
+  ok so theres: api-gateway (handles routing, maya owns), user-service (auth stuff, rach's team), marketplace-service (listings/search, david's team), payments-service (stripe integration, payments team), notifications-service (emails/sms, maya), analytics-service (data pipeline, shared i guess?)
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  yeah add github repo links. they're all under the company org like github.com/ourcompany/api-gateway etc. also add oncall info for payments since they have a rotation
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  yep. now can we add a section on local setup? like how to get everything running. we use docker compose
+
+AI ASSISTANT:
+  Sure! What's the basic flow - clone repos, install dependencies, run docker-compose? Any specific env vars they need to set up or services they need running locally?
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~30
+
+MAYA:
+  yeah basically clone the repo, copy .env.example to .env, fill in some api keys (we have a 1password vault for that), then docker-compose up. postgres and redis run in docker
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  looks good but add that they need to run migrations after docker is up. it's npm run migrate
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  perfect. what else should we include? maybe architecture overview?
+
+AI ASSISTANT:
+  Yeah, architecture overview would be helpful. A simple diagram or description of how requests flow through your services? Like: user → api-gateway → marketplace-service → database, that kind of thing?
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~32
+
+MAYA:
+  yeah exactly. so it's like: frontend hits api-gateway, gateway routes to the right service, services talk to postgres or redis, some services call each other too. payments calls user-service to verify accounts
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  yeah that's solid. one thing - we don't actually share postgres, each service has its own db. and we use rabbitmq not redis pubsub
+
+AI ASSISTANT:
+  Ah, important distinctions! Updated:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yes perfect. ok last section - can you add a "getting help" section with like slack channels and stuff?
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  nah that's great. can you put it all together into one doc so i can share it?
+
+AI ASSISTANT:
+  # Engineering Onboarding Guide
+
+---
+
+TURN 16 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  this is awesome, thanks! gonna drop it in the wiki and send to the team
+
+AI ASSISTANT:
+  Nice! Glad it helped. You might want to add a note at the top saying "last updated March 2026" so people know it's current. And maybe pin it in #engineering so new folks see it right away?
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

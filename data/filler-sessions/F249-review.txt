@@ -1,0 +1,127 @@
+================================================================================
+FILLER SESSION F249 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 19 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F249 (Filler — Work Session)
+Date: 2026-04-28 15:03
+Topic: how do i read a system architecture diagram
+Turn Count: 16
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F249
+  Track: filler
+  Timestamp: 2026-04-28 15:03:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~34
+
+MAYA:
+  hey so i'm looking at this system architecture diagram for our payment flow and i honestly have no idea what half these boxes and arrows mean lol. how do i actually read these things?
+
+AI ASSISTANT:
+  Architecture diagrams can be overwhelming at first, but they follow consistent patterns once you know what to look for. Here's a practical framework for reading them:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  ok that helps. so the cylinders are always databases? we have like 3 of them and idk why we need that many
+
+AI ASSISTANT:
+  Not always, but cylinders are the standard symbol for databases. Three databases usually means you're separating concerns for good reasons:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  one says "postgres - users" one says "postgres - payments" and one says "redis cache". ok so that makes sense actually
+
+AI ASSISTANT:
+  Exactly! That's a textbook separation pattern. Here's what each one is doing:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  yeah there's arrows from "payment api" to both the payments db and redis, and then a separate arrow going out to "stripe api"
+
+AI ASSISTANT:
+  Perfect - that's the standard flow. Here's what's happening in sequence when a payment processes:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  there's also a box that says "webhook handler" with a dashed arrow FROM stripe back to it
+
+AI ASSISTANT:
+  Oh that's a critical piece! The dashed arrow is perfect notation because webhooks are **asynchronous** - they happen independently of your main payment flow.
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  yeah it has an arrow to something labeled "notification service" and that's connected to like email/sms boxes
+
+AI ASSISTANT:
+  Nice! That's a complete event-driven notification pipeline. Here's the full picture:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  there's one more thing - a box labeled "fraud detection" between payment api and stripe api but it's got a dotted outline not solid
+
+AI ASSISTANT:
+  The dotted outline is significant - it indicates that fraud detection is **optional, conditional, or not always in the flow**. Here's what that means:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  no it just shows arrows going through it. but this makes sense now, i can actually follow the whole flow
+
+AI ASSISTANT:
+  Awesome! Now you can read architecture diagrams like a PM pro. Here's a quick mental checklist for next time you encounter one:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  perfect. gonna add this to our eng docs for other pms. thanks D
+
+AI ASSISTANT:
+  Nice! Here's a quick doc template you can drop into your eng wiki:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

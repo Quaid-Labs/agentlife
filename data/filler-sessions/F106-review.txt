@@ -1,0 +1,116 @@
+================================================================================
+FILLER SESSION F106 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F106 (Filler — Recipe App Micro)
+Date: 2026-04-14 10:56
+Topic: the dietary filter is returning vegetarian recipes when i search for vegan
+Turn Count: 10
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F106
+  Track: filler
+  Timestamp: 2026-04-14 10:56:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  the dietary filter is returning vegetarian recipes when i search for vegan, pretty sure i set it up right but idk
+
+AI ASSISTANT:
+  Can you show me the filter logic? Usually this happens when the database query checks for `includes('vegan')` but vegetarian recipes also match. Need to see your WHERE clause.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~1
+
+MAYA:
+  ```js
+
+AI ASSISTANT:
+  There's the issue - `LIKE '%vegan%'` matches both "vegan" and "vegetarian" because of the substring. You need exact tag matching. Try this:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  ohh makes sense, let me try that
+
+AI ASSISTANT:
+  Cool - that should fix it. The comma wrapping ensures "vegan" only matches ",vegan," not ",vegetarian,". Test with a few recipes to confirm both filters work now.
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  wait im getting an error now
+
+AI ASSISTANT:
+  My bad - the string concatenation syntax is wrong. SQLite uses `||` differently. Try this instead:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  still erroring, maybe my schema is wrong? tags column is just TEXT
+
+AI ASSISTANT:
+  Schema is fine - TEXT works for comma-separated values. The error might be from how you're storing tags. Can you run:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~1
+
+MAYA:
+  ```
+
+AI ASSISTANT:
+  Found it - inconsistent spacing breaks the match. You have `"vegan, gluten-free"` (with space) vs `"vegan"` (no space). Two fixes:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ok normalized the existing data and updated the insert, working now. should i add a test for this?
+
+AI ASSISTANT:
+  Definitely - this is a good edge case to lock down. Something like:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  perfect, added that plus one for the comma spacing. thanks D
+
+AI ASSISTANT:
+  Nice! Good call adding the spacing test too - prevents regressions. Let me know if you hit any other filter weirdness.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

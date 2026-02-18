@@ -1,0 +1,204 @@
+================================================================================
+FILLER SESSION F173 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F173 (Filler — Work Session)
+Date: 2026-04-18 16:35
+Topic: help me create a competitive analysis template
+Turn Count: 19
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F173
+  Track: filler
+  Timestamp: 2026-04-18 16:35:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  hey can you help me put together a competitive analysis template for my PM team? we keep doing these ad hoc and they're all over the place
+
+AI ASSISTANT:
+  I'll create a comprehensive competitive analysis template you can standardize across your PM team. Here's a structured framework:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  this is great! can you turn section 3 into more of a feature comparison matrix? like something i can fill out for multiple competitors at once
+
+AI ASSISTANT:
+  Absolutely. Here's a feature comparison matrix format for Section 3:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  perfect. now can you draft the intro email i'd send to my team when i roll this out? keep it casual but clear about why we're standardizing
+
+AI ASSISTANT:
+  Here's a draft email:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  lol the tone is good but can you make the "why we're doing this" section a bit shorter? like 2 sentences max
+
+AI ASSISTANT:
+  Here's the tightened version:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  yeah that's better. ok can you add a section to the template about recent news & announcements? like funding rounds, exec changes, product launches
+
+AI ASSISTANT:
+  Here's the new section to add after Section 8:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  yes good. also can you add a "when to update this" section at the very top? like guidelines for how often we should refresh these
+
+AI ASSISTANT:
+  Here's the addition for the very top of the template, right after the title:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  perfect. one more thing - can you create a scoring rubric we could use in the strengths/weaknesses section? like a standardized way to rate competitors
+
+AI ASSISTANT:
+  Here's a scoring rubric to add to Section 5:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  this is great but can you simplify the threat level calc? the gap score thing feels complicated. maybe just like high/medium/low based on the overall vibe?
+
+AI ASSISTANT:
+  Good call. Here's the simplified version:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  yeah that's way better. ok last thing i promise - can you add a "competitive intelligence sources" appendix? like where to find this info consistently
+
+AI ASSISTANT:
+  Here's an appendix to add at the very end:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  nah this is comprehensive. actually wait - can you add a section about how to handle analyzing competitors that aren't public about pricing?
+
+AI ASSISTANT:
+  Here's an addition for the appendix:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  yeah that's really helpful. ok i think we're done with the template. can you now help me fill out the feature matrix for square as an example?
+
+AI ASSISTANT:
+  Sure! Here's the feature comparison matrix filled out for Square:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  this is great. can you do the same for adyen real quick?
+
+AI ASSISTANT:
+  Here's Adyen added to the matrix:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  perfect. ok can you write up the executive summary section for adyen based on what we just did?
+
+AI ASSISTANT:
+  Here's the Executive Summary for Adyen:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~29
+
+MAYA:
+  yeah this is really good. alright i think i have everything i need. can you package all of this into a single google doc outline i can copy over?
+
+AI ASSISTANT:
+  Here's the complete template in a single outline you can copy into Google Docs:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  amazing thank you!! this is exactly what i needed
+
+AI ASSISTANT:
+  You're welcome! This should really help standardize how your team approaches competitive analysis. The feature matrix format makes it super easy to compare multiple competitors side-by-side, and having consistent sections means you can actually track how competitors evolve over time.
+
+---
+
+TURN 16 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  will do. btw i'm gonna add a section for product screenshots too, that way we have visual reference
+
+AI ASSISTANT:
+  Smart addition! Here's a section you can drop in after the Feature Comparison Matrix:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

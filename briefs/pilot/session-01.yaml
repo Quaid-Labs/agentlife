@@ -1,0 +1,85 @@
+# Session 1: Maya introduces herself
+# Track 1 (Personal) — Foundation session
+# Goal: Establish core facts about Maya's life
+
+session: 1
+track: 1
+turn_count: 8
+
+goal: >
+  Maya's first conversation with her AI assistant. She introduces herself
+  naturally — mentions her job, partner, dog, and a bit about her life.
+  Not a dump of facts — a natural getting-to-know-you chat. Use people's
+  NAMES when introducing them (say "my mom Linda" not just "my mom").
+
+new_information:
+  - "Maya is a product manager at TechFlow in Austin, TX"
+  - "Maya's partner is David, a software engineer"
+  - "David is vegetarian"
+  - "Maya has a golden retriever named Biscuit, he's 3 years old"
+  - "Maya's mom is named Linda, she lives in Houston"
+  - "Maya has a sister named Rachel who lives in Seattle and has two kids"
+
+# Facts reserved for future sessions — Maya must NOT mention these
+do_not_reveal:
+  - "Mom's diabetes diagnosis or any health condition for Linda (session 4)"
+  - "Any specific app or project idea like a recipe app (session 3)"
+  - "Rachel's children's names (Ethan, Lily) or their ages (session 15)"
+  - "Half marathon or any race training (session 2)"
+  - "Job dissatisfaction specifics or wanting to leave TechFlow (session 6)"
+  - "Any mention of Stripe or job searching (session 6+)"
+  - "Priya the coworker (session 6)"
+
+cross_references: []
+
+tangents:
+  - trigger: "After mentioning David or cooking"
+    topic: >
+      Maya mentions she's been trying to cook more at home, David's
+      vegetarian so it's been an adjustment. She's not great at it yet.
+      Maybe mentions watching cooking videos late at night.
+    extractable_facts:
+      - "David is vegetarian"
+      - "Maya is learning to cook"
+    return: "Anyway"
+
+corrections: []
+
+# Streamlined plan — no repeated false exits. One clean goodbye.
+message_plan:
+  - tag: normal    # Opening — introduces herself (name, job, Austin, David, Biscuit)
+  - tag: normal    # Family — mom Linda in Houston, sister Rachel in Seattle
+  - tag: quick     # React to assistant's response
+  - tag: extended  # Cooking tangent — David's vegetarianism, learning to cook
+  - tag: quick     # React / follow-up
+  - tag: normal    # Question about how this works / what assistant remembers
+  - tag: normal    # One more life detail or Biscuit anecdote
+  - tag: quick     # Single clean goodbye
+
+eval_queries:
+  - query: "What is Maya's partner's name?"
+    ground_truth: "David"
+    query_type: "factual_recall"
+    evidence_sessions: [1]
+
+  - query: "What kind of dog does Maya have?"
+    ground_truth: "A golden retriever named Biscuit, 3 years old"
+    query_type: "factual_recall"
+    evidence_sessions: [1]
+
+  - query: "Where does Maya's mom live?"
+    ground_truth: "Houston. Her mom's name is Linda."
+    query_type: "factual_recall"
+    evidence_sessions: [1]
+
+  - query: "Is David vegetarian or vegan?"
+    ground_truth: "Vegetarian"
+    query_type: "factual_recall"
+    evidence_sessions: [1]
+
+  - query: "What does Maya do for work?"
+    ground_truth: "Product manager at TechFlow in Austin, TX"
+    query_type: "factual_recall"
+    evidence_sessions: [1]
+
+end_condition: "Maya has introduced herself and key people in her life"

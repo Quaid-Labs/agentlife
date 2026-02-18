@@ -1,0 +1,50 @@
+================================================================================
+FILLER SESSION F005 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 3 and 4
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F005 (Filler — Quick Question)
+Date: 2026-03-06 11:16
+Topic: how long to boil eggs for soft yolk
+Turn Count: 2
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F005
+  Track: filler
+  Timestamp: 2026-03-06 11:16:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  hey how long do i boil eggs if i want the yolk still soft
+
+AI ASSISTANT:
+  For soft-boiled eggs with a runny yolk, bring water to a boil, add eggs, and cook for 6-7 minutes. Then immediately transfer to ice water to stop cooking.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  perfect thanks, making some for lunch
+
+AI ASSISTANT:
+  Nice! They're great on toast or with a little salt and pepper. Enjoy your lunch!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

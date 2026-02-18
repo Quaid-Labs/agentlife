@@ -1,0 +1,781 @@
+================================================================================
+SESSION 12 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 12 (Track 2: Project A — Recipe app, Phase 2 continued)
+Goal: Normalize ingredients, fix the grocery list aggregation bug from
+  session 10, add a nutrition API stub. David tangent about cooking and
+  Biscuit.
+Turn Count: 14
+Session Type: Schema refactor, bug fix, API research, tangent
+Timestamp: 2026-03-22 (4 days after session 10, ~4 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Ingredients need to be structured data (name, amount, unit), not text
+  - Fix the grocery list aggregation bug from session 10
+  - Nutrition API research: FoodData and Edamam mentioned
+  - David suggested FoodData API (important for session 16/18 attribution)
+  - David has been adding recipes to the app
+  - David and Maya made chickpea curry, Biscuit tried to eat chickpeas
+    off the floor
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe or any specific company name (session 13)
+  - David's birthday surprise for Linda (session 8)
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's promotion (session 17)
+  - Moving specifics (session 17)
+  - Nutrition API recommendation (agent will research in session 16)
+  - Which API is "better" — that determination happens after research
+
+CROSS-REFERENCES:
+  - Session 10: Grocery list bug (doesn't aggregate duplicates)
+  - Session 10: David does the grocery shopping (motivates the fix)
+  - Session 4/5: Mom's diabetes (dietary context for nutrition tracking)
+  - Session 1: David is vegetarian, Biscuit is a golden retriever
+  - Session 1: Maya mentioned David cooks sometimes
+
+TANGENT TRIGGER:
+  Trigger: After the ingredient normalization discussion
+  Content: David has been adding recipes to the app. He found an amazing
+    chickpea curry recipe, they made it last night, Biscuit tried to eat
+    chickpeas off the floor.
+  Extractable Facts: David adds recipes to the app, they made chickpea
+    curry, Biscuit tried to eat chickpeas
+  Return phrase: "anyway"
+
+MESSAGE PLAN (14 turns total):
+  1. Normal     — Opens: structured ingredients needed
+  2. Quick      — React to approach
+  3. Normal     — Grocery list problem — the aggregation bug
+  4. Code       — Agent writes 002_normalize_ingredients.sql
+  5. Quick      — React to migration
+  6. Normal     — David tangent: chickpea curry, Biscuit
+  7. Quick      — Back from tangent, ingredient endpoints
+  8. Code       — Agent writes ingredient CRUD endpoints
+  9. Normal     — Fix the grocery list with GROUP BY
+  10. Code      — Agent rewrites grocery list endpoint (aggregated)
+  11. Quick     — React to fix
+  12. Normal    — Nutrition API request — FoodData and Edamam
+  13. Code      — Agent writes nutrition API stub
+  14. Quick     — Wrap up
+
+End Condition: Ingredients normalized, grocery list fixed, nutrition
+  stub committed
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 12
+  Track: 2
+  Timestamp: 2026-03-22 11:00:00 UTC
+  Duration: ~10 minutes (11:00:00 to 11:10:30)
+
+---
+
+TURN 1 (Structured Ingredients)
+TAG: normal | TOKENS: 48/50 | GENERATION TIME: 6.0s
+
+MAYA:
+  ok so i was looking at the recipe app and the ingredients are a
+  mess. they're just a text blob
+
+  if we're doing a grocery list we need real ingredient data. name,
+  amount, unit. otherwise we can't actually combine things
+
+  let's fix this
+
+AI ASSISTANT:
+  Totally agree — text blobs are fine for display but useless for
+  computation. You need structured ingredients to do anything smart
+  with them.
+
+  I'm thinking a new `recipe_ingredients` table: `recipe_id`, `name`,
+  `amount`, `unit`, and maybe a `category` field (produce, dairy,
+  pantry) for grouping the grocery list.
+
+  Want me to write the migration?
+
+ANALYSIS: Maya identifies the core data problem. She's connecting
+the grocery list bug (session 10) to the root cause: unstructured
+ingredients. Agent proposes a clean schema.
+
+---
+
+TURN 2 (React to Approach)
+TAG: quick | TOKENS: 12/50 | GENERATION TIME: 3.1s
+
+MAYA:
+  yeah, category is smart. do it. separate table with a foreign key
+  back to recipes
+
+AI ASSISTANT:
+  On it.
+
+ANALYSIS: Quick approval. Maya validates the approach. Concise.
+
+---
+
+TURN 3 (Grocery List Bug Reference)
+TAG: normal | TOKENS: 42/50 | GENERATION TIME: 5.4s
+
+MAYA:
+  and once we have real ingredients we can fix the grocery list.
+  right now if two recipes both need onions it shows up twice
+
+  D actually noticed — he was testing it and was like "why does it
+  say buy onions three times." which is fair
+
+  so the grocery list needs to group by ingredient and sum the amounts
+
+AI ASSISTANT:
+  Yeah, that's exactly the problem with text-based ingredients — you
+  can't GROUP BY something that's a free-form string.
+
+  With normalized ingredients, the fix is straightforward: GROUP BY
+  the ingredient name and unit, sum the amounts. Done.
+
+  Let me write the migration first, then we'll fix the grocery
+  endpoint.
+
+ANALYSIS: David noticed the grocery list bug while testing. He's
+actively using the app (new fact). Maya explicitly wants GROUP BY
+aggregation. Agent connects the normalization to the fix.
+
+---
+
+TURN 4 (Normalize Ingredients Migration)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 12.1s
+
+AI ASSISTANT:
+  Here's `migrations/002_normalize_ingredients.sql`:
+
+  ```sql
+  -- Normalize ingredients into their own table for better
+  -- grocery list aggregation
+
+  CREATE TABLE IF NOT EXISTS recipe_ingredients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id INTEGER NOT NULL
+      REFERENCES recipes(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    amount TEXT,
+    unit TEXT,
+    category TEXT DEFAULT 'other'
+  );
+
+  -- Index for fast lookups by recipe
+  CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe
+    ON recipe_ingredients(recipe_id);
+
+  -- Index for grocery list aggregation by ingredient name
+  CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_name
+    ON recipe_ingredients(name);
+  ```
+
+  Structured ingredients: name, amount, unit, and category. Cascade
+  delete so ingredients are removed when a recipe is deleted. Two
+  indexes: one for per-recipe lookups, one for grocery aggregation.
+
+  The old `ingredients` text column stays for backward compatibility
+  — we'll read from the new table when it has data, fall back to
+  text parsing otherwise.
+
+ANALYSIS: Clean migration. Proper indexes for both use cases. CASCADE
+delete. Backward compatibility note — agent thinks about migration
+paths, not just new features.
+
+---
+
+TURN 5 (React to Migration)
+TAG: quick | TOKENS: 10/50 | GENERATION TIME: 2.7s
+
+MAYA:
+  good. dual path is smart — don't want to break existing recipes
+
+AI ASSISTANT:
+  Exactly. Old recipes still work via text, new ones get structured
+  data. Gradual migration.
+
+ANALYSIS: Maya appreciates backward compatibility. Brief acknowledgment.
+
+---
+
+TURN 6 (David Tangent — Chickpea Curry + Biscuit)
+TAG: normal | TOKENS: 50/50 | GENERATION TIME: 6.3s
+
+MAYA:
+  D's been adding recipes already btw. he found this amazing
+  chickpea curry. we made it last night, biscuit tried to eat the
+  chickpeas off the floor
+
+  he was just picking them up one by one with his mouth like a
+  little vacuum. it was hilarious. golden retrievers will literally
+  eat anything
+
+  anyway — back to the code
+
+AI ASSISTANT:
+  Ha, Biscuit the chickpea vacuum. That's amazing. And it's cool
+  that David's actually using the app — real user testing is the
+  best kind.
+
+  Ok, back to code — ingredient endpoints next?
+
+ANALYSIS: TANGENT. David adds recipes to the app (he's a real user).
+They made chickpea curry. Biscuit ate chickpeas off the floor — vivid,
+memorable detail. "Anyway" return phrase matches spec. Extractable
+facts: David uses the app, chickpea curry recipe, Biscuit behavior.
+
+---
+
+TURN 7 (Back from Tangent — Ingredient Endpoints)
+TAG: quick | TOKENS: 18/50 | GENERATION TIME: 3.6s
+
+MAYA:
+  yeah. add ingredients to a recipe, get ingredients for a recipe.
+  standard crud. nothing fancy
+
+AI ASSISTANT:
+  Simple POST and GET for recipe ingredients. Coming up.
+
+ANALYSIS: Quick requirements after tangent. Maya keeps it concise.
+
+---
+
+TURN 8 (Ingredient Endpoints)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 13.4s
+
+AI ASSISTANT:
+  Added ingredient endpoints to `server.js`:
+
+  ```javascript
+  // Add ingredients to a recipe (normalized)
+  app.post('/api/recipes/:id/ingredients', (req, res) => {
+    const { ingredients } = req.body;
+    if (!Array.isArray(ingredients)) {
+      return res.status(400).json({
+        error: 'ingredients must be an array'
+      });
+    }
+    const recipe = db.prepare(
+      'SELECT * FROM recipes WHERE id = ?'
+    ).get(req.params.id);
+    if (!recipe) {
+      return res.status(404).json({ error: 'Recipe not found' });
+    }
+
+    const insert = db.prepare(
+      `INSERT INTO recipe_ingredients
+       (recipe_id, name, amount, unit, category)
+       VALUES (?, ?, ?, ?, ?)`
+    );
+    const insertMany = db.transaction((items) => {
+      for (const item of items) {
+        insert.run(
+          req.params.id,
+          item.name,
+          item.amount || '',
+          item.unit || '',
+          item.category || 'other'
+        );
+      }
+    });
+    insertMany(ingredients);
+
+    const saved = db.prepare(
+      'SELECT * FROM recipe_ingredients WHERE recipe_id = ?'
+    ).all(req.params.id);
+    res.status(201).json(saved);
+  });
+
+  // Get ingredients for a recipe
+  app.get('/api/recipes/:id/ingredients', (req, res) => {
+    const ingredients = db.prepare(
+      'SELECT * FROM recipe_ingredients WHERE recipe_id = ?'
+    ).all(req.params.id);
+    res.json(ingredients);
+  });
+  ```
+
+  Batch insert via transaction (accepts an array of ingredient
+  objects), individual GET per recipe. Validation on input format.
+
+ANALYSIS: Clean ingredient CRUD. Transaction for batch inserts. Array
+input validation. Standard pattern matching existing endpoints.
+
+---
+
+TURN 9 (Fix the Grocery List)
+TAG: normal | TOKENS: 38/50 | GENERATION TIME: 5.2s
+
+MAYA:
+  ok now the important part — fix the grocery list. use the new
+  ingredients table, group by name and unit, show the total amounts
+
+  and group them by category too if you can. produce together, dairy
+  together, that kind of thing. D will appreciate that
+
+AI ASSISTANT:
+  Love it — category grouping makes the list actually useful for
+  shopping. Walk through produce, then dairy, then pantry.
+
+  I'll rewrite the grocery list endpoint to use the normalized
+  ingredients with GROUP BY and category organization.
+
+ANALYSIS: Maya specifies the fix. GROUP BY name+unit, category grouping.
+David again referenced as the user who benefits. Agent acknowledges
+the shopping workflow.
+
+---
+
+TURN 10 (Fixed Grocery List Endpoint)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 14.8s
+
+AI ASSISTANT:
+  Rewrote the grocery list endpoint:
+
+  ```javascript
+  // Generate grocery list (FIXED: aggregates duplicates)
+  app.get('/api/meal-plans/:id/grocery-list', (req, res) => {
+    const plan = db.prepare(
+      'SELECT * FROM meal_plans WHERE id = ?'
+    ).get(req.params.id);
+    if (!plan) {
+      return res.status(404).json({
+        error: 'Meal plan not found'
+      });
+    }
+
+    // Try normalized ingredients first
+    const items = db.prepare(`
+      SELECT ri.name, ri.amount, ri.unit, ri.category,
+             COUNT(*) as recipe_count
+      FROM meal_plan_items mpi
+      JOIN recipe_ingredients ri
+        ON ri.recipe_id = mpi.recipe_id
+      WHERE mpi.plan_id = ?
+      GROUP BY LOWER(ri.name), ri.unit
+      ORDER BY ri.category, ri.name
+    `).all(req.params.id);
+
+    if (items.length > 0) {
+      const byCategory = {};
+      for (const item of items) {
+        const cat = item.category || 'other';
+        if (!byCategory[cat]) byCategory[cat] = [];
+        const label = item.amount
+          ? `${item.amount}${item.unit ? ' ' + item.unit : ''}` +
+            ` ${item.name}`
+          : item.name;
+        byCategory[cat].push({
+          ...item, label,
+          times_needed: item.recipe_count
+        });
+      }
+
+      return res.json({
+        plan_id: plan.id,
+        week_start: plan.week_start,
+        grocery_list: byCategory,
+        total_unique_items: items.length,
+      });
+    }
+
+    // Fallback: text-based ingredients (old recipes)
+    const textItems = db.prepare(`
+      SELECT r.ingredients FROM meal_plan_items mpi
+      JOIN recipes r ON r.id = mpi.recipe_id
+      WHERE mpi.plan_id = ?
+    `).all(req.params.id);
+
+    const ingredientMap = new Map();
+    for (const item of textItems) {
+      const lines = item.ingredients
+        .split('\n')
+        .map(l => l.trim().toLowerCase())
+        .filter(Boolean);
+      for (const line of lines) {
+        ingredientMap.set(
+          line, (ingredientMap.get(line) || 0) + 1
+        );
+      }
+    }
+
+    res.json({
+      plan_id: plan.id,
+      week_start: plan.week_start,
+      grocery_list: Object.fromEntries(ingredientMap),
+      total_unique_items: ingredientMap.size,
+    });
+  });
+  ```
+
+  Two paths:
+  1. **Normalized path**: GROUP BY ingredient name + unit, ordered by
+     category. Returns `times_needed` for each item.
+  2. **Fallback**: Text parsing with dedup via Map (better than the
+     old flat array — at least deduplicates exact matches).
+
+  Grouped by category so the list reads like a store layout.
+
+ANALYSIS: BUG FIXED. Grocery list now uses GROUP BY with LOWER() for
+case-insensitive matching. Category grouping for shopping workflow.
+Fallback path for old recipes improved (Map-based dedup). The session
+10 bug is resolved.
+
+---
+
+TURN 11 (React to Fix)
+TAG: quick | TOKENS: 14/50 | GENERATION TIME: 3.0s
+
+MAYA:
+  much better. D will be happy — no more "buy onions three times"
+
+  ok one more thing
+
+AI ASSISTANT:
+  What's next?
+
+ANALYSIS: Quick approval. Callback to David's complaint (Turn 3).
+Transition to nutrition API.
+
+---
+
+TURN 12 (Nutrition API Request)
+TAG: normal | TOKENS: 48/50 | GENERATION TIME: 5.9s
+
+MAYA:
+  need a nutrition api for the app. something with dietary labels.
+  D mentioned something called fooddata but also look at edamam
+
+  don't need to pick one yet. just set up a stub endpoint that we
+  can plug a real api into later. return placeholder data for now
+
+  eventually i want to show calories and dietary info per recipe.
+  with mom's situation i want this to be actually useful
+
+AI ASSISTANT:
+  Makes sense — having the endpoint shape ready means we can swap in
+  the real API later without changing the frontend.
+
+  I'll look into both FoodData (USDA's open database) and Edamam
+  (commercial API with good dietary label support) when we're ready
+  to go live. For now, a stub that returns placeholder nutrition data.
+
+  The "mom's situation" connection is a great north star for this
+  feature — if Linda can use the nutrition info to make better
+  choices, that's the real test of whether it works.
+
+ANALYSIS: David suggested FoodData API (speaker attribution — critical
+for session 16/18 callback). Edamam also mentioned. Maya connects this
+to her mom's diabetes ("mom's situation" — cross-reference to session
+4). Agent acknowledges both APIs and the personal motivation.
+
+---
+
+TURN 13 (Nutrition API Stub)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 11.6s
+
+AI ASSISTANT:
+  Added nutrition stub to `server.js`:
+
+  ```javascript
+  // ── Nutrition API stub ─────────────────────────────────────
+  // Placeholder — will connect to FoodData or Edamam later
+
+  app.get('/api/nutrition/:ingredientName', (req, res) => {
+    const name = req.params.ingredientName;
+
+    // Stub: returns placeholder nutrition data
+    // TODO: replace with actual API call (FoodData or Edamam)
+    res.json({
+      ingredient: name,
+      source: 'placeholder',
+      per_serving: {
+        calories: 0,
+        protein_g: 0,
+        carbs_g: 0,
+        fat_g: 0,
+        fiber_g: 0,
+        sugar_g: 0,
+      },
+      dietary_labels: [],
+      note: 'Stub data — connect nutrition API for real values',
+    });
+  });
+  ```
+
+  Simple stub: accepts an ingredient name, returns a placeholder
+  nutrition object. The shape is ready for FoodData or Edamam —
+  both return similar data structures. The `dietary_labels` array
+  is where the diabetic-friendly / vegetarian flags would go.
+
+  Everything's committed: ingredient normalization, fixed grocery
+  list, and nutrition stub.
+
+ANALYSIS: Clean API stub with placeholder data. TODO comment references
+both APIs. dietary_labels field connects to the existing dietary
+filtering system. Committed with all session 12 changes.
+
+---
+
+TURN 14 (Wrap Up)
+TAG: quick | TOKENS: 15/50 | GENERATION TIME: 3.2s
+
+MAYA:
+  awesome. ingredients are way better now. the grocery list actually
+  works and we've got the nutrition stub ready
+
+  thanks. good session
+
+AI ASSISTANT:
+  Big improvements! The normalized ingredients unlock a lot of
+  possibilities — smart grocery lists, nutrition tracking, recipe
+  comparison. Nice foundation.
+
+  Talk soon!
+
+ANALYSIS: Clean exit. Maya satisfied with progress. Agent highlights
+future possibilities enabled by the normalization. No prolonged
+goodbye.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Stripe or company names
+  - No David birthday surprise
+  - No Rachel's children's names
+  - No David promotion
+  - No moving details
+  - No nutrition API recommendation (just research direction)
+
+CONSTRAINT 2: Grocery List Bug Fix Correctly Sequenced
+  STATUS: PASS
+  Bug planted: Session 10 (grocery list doesn't aggregate)
+  Bug noticed: Session 12, Turn 3 (David found the issue)
+  Bug fixed: Session 12, Turn 10 (GROUP BY with normalized data)
+  Sequence: Plant -> Notice -> Fix across 2 sessions. Clean.
+
+CONSTRAINT 3: David FoodData Attribution Correct
+  STATUS: PASS
+  Location: Turn 12
+  Evidence: "D mentioned something called fooddata"
+  Note: David suggested FoodData. This attribution is tested in session
+    16 when Maya asks "what was that API?" and in session 18 when David's
+    FoodData preference conflicts with agent's research. The speaker
+    attribution must survive across sessions.
+
+CONSTRAINT 4: Mom's Diabetes Cross-Reference
+  STATUS: PASS
+  Location: Turn 12
+  Evidence: "with mom's situation i want this to be actually useful"
+  Note: Oblique reference to Linda's diabetes (session 4) without
+    re-explaining. "Mom's situation" — expects the agent to know.
+    Tests memory continuity across 8 sessions.
+
+CONSTRAINT 5: Biscuit Tangent Natural
+  STATUS: PASS
+  Location: Turn 6
+  Evidence: "biscuit tried to eat the chickpeas off the floor"
+  Note: Vivid, memorable detail. Biscuit as golden retriever (session 1)
+    behaving characteristically. David cooking (session 1 callback).
+    Natural tangent within a coding session.
+
+CONSTRAINT 6: Code Matches Git History
+  STATUS: PASS
+  Git commit: 0a9c37e ("session 12: normalize ingredients table, fix
+    grocery list aggregation, nutrition API stub (Edamam)")
+  Files created/modified: migrations/002_normalize_ingredients.sql,
+    server.js (ingredient endpoints, fixed grocery list, nutrition stub)
+
+CONSTRAINT 7: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 14 only. Clean single exit.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  Bug fix correctly sequenced from session 10
+  FoodData attribution to David correctly placed
+  Mom's diabetes cross-referenced obliquely
+  Biscuit tangent natural and memorable
+  Code matches git history
+  No forbidden facts leaked
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-12 (cumulative ground truth)
+  Evaluation Scope: Speaker attribution, project state, bug tracking,
+    tangent recall
+
+QUERY 1: "Who suggested the FoodData API?"
+  Ground Truth: David mentioned FoodData. Maya also wants to look at
+    Edamam. The suggestion came from David, not Maya or the agent.
+  Evidence Session: 12
+  Supporting Evidence:
+    - Turn 12: "D mentioned something called fooddata"
+  Query Type: speaker_attribution
+  Recall Difficulty: Medium (David's suggestion. Critical for session
+    16/18 attribution chain. Must not misattribute to the agent.)
+
+QUERY 2: "What nutrition APIs has Maya mentioned for the recipe app?"
+  Ground Truth: Two: FoodData (USDA, David suggested it) and Edamam.
+    Neither has been integrated yet — just a stub endpoint returning
+    placeholder data.
+  Evidence Session: 12
+  Supporting Evidence:
+    - Turn 12: "D mentioned something called fooddata but also look
+      at edamam"
+    - Turn 13: stub endpoint with TODO comment
+  Query Type: factual_recall
+  Recall Difficulty: Medium (two names to retain, distinction between
+    who suggested which)
+
+QUERY 3: "What was the grocery list bug and how was it fixed?"
+  Ground Truth: The grocery list didn't aggregate duplicate ingredients.
+    If the same ingredient appeared in multiple recipes in a meal plan,
+    it showed up multiple times. Fixed by normalizing ingredients into
+    a separate table (recipe_ingredients with name, amount, unit,
+    category) and using GROUP BY with LOWER() for case-insensitive
+    matching. Also added category grouping for the list.
+  Evidence Sessions: 10, 12
+  Supporting Evidence:
+    - Session 10, Turn 10: bug planted (flat array, no aggregation)
+    - Session 12, Turn 3: "it shows up twice" / David noticed
+    - Session 12, Turn 10: GROUP BY fix with normalized data
+  Query Type: project_state (bug lifecycle)
+  Recall Difficulty: Hard (requires connecting bug introduction in
+    session 10 to fix in session 12, with David's discovery in between)
+
+QUERY 4: "What recipe did David find recently?"
+  Ground Truth: David found a chickpea curry recipe. He and Maya made
+    it, and Biscuit tried to eat the chickpeas off the floor.
+  Evidence Session: 12
+  Supporting Evidence:
+    - Turn 6: "he found this amazing chickpea curry. we made it last
+      night, biscuit tried to eat the chickpeas off the floor"
+  Query Type: tangent_recall
+  Recall Difficulty: Medium (embedded in tangent during a coding
+    session. Vivid detail helps retention.)
+
+QUERY 5: "Is David using the recipe app?"
+  Ground Truth: Yes — David has been actively adding recipes to the
+    app. He found a chickpea curry recipe and added it. He also noticed
+    the grocery list bug while testing.
+  Evidence Session: 12
+  Supporting Evidence:
+    - Turn 6: "D's been adding recipes already"
+    - Turn 3: "D actually noticed" (the grocery list bug)
+  Query Type: factual_recall
+  Recall Difficulty: Easy (stated directly, reinforced across turns)
+
+QUERY 6: "What is the recipe_ingredients table schema?"
+  Ground Truth: recipe_ingredients has: id, recipe_id (FK to recipes
+    with CASCADE delete), name, amount, unit, category (default 'other').
+    Indexed on recipe_id and ingredient name.
+  Evidence Session: 12
+  Supporting Evidence:
+    - Turn 4: 002_normalize_ingredients.sql migration
+  Query Type: project_state
+  Recall Difficulty: Medium (schema details from single migration)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Speaker attribution: Query 1 (David suggested FoodData)
+  Factual recall: Queries 2, 5 (APIs, David using app)
+  Project state: Queries 3, 6 (bug lifecycle, schema)
+  Tangent recall: Query 4 (chickpea curry + Biscuit)
+  Complexity: 1 Easy, 4 Medium, 1 Hard
+  Coverage: Attribution chain, bug tracking, tangent extraction, schema
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec outline: "Recipe app. Schema change for meal planning feature.
+     TANGENT: 'David suggested a grocery list feature -- he does most
+     of our shopping.' [T2-D] 'need a nutrition API for the app.
+     something with dietary labels.'"
+   Full session created with ingredient normalization, grocery list
+   fix, nutrition stub, and David tangent across 14 turns.
+
+2. GROCERY LIST BUG FIX SEQUENCED
+   Spec: Not explicitly stated as bug-then-fix
+   Transcript: Session 10 plants the bug, session 12 fixes it. David
+     discovers the problem in between.
+   Rationale: The bug lifecycle (plant -> notice -> fix) creates a
+     multi-session project state tracking test. Query 3 requires
+     connecting both sessions.
+
+3. DAVID'S BUG DISCOVERY
+   Not in spec. Added: Turn 3 — David found the duplicate issue while
+     testing the grocery list.
+   Rationale: Makes David a real user of the app. His grocery shopping
+     role (session 10) motivates his testing. Creates additional
+     attribution data point.
+
+4. CHICKPEA CURRY TANGENT
+   Spec: David tangent about cooking
+   Transcript: Specific recipe (chickpea curry), cooking together,
+     Biscuit eating chickpeas off the floor.
+   Rationale: Vivid, memorable details create stronger recall targets.
+     Biscuit detail connects to golden retriever personality from
+     session 1 ("golden retrievers will literally eat anything").
+
+5. MOM'S SITUATION CROSS-REFERENCE
+   Spec: Not explicitly called out for session 12
+   Transcript: Turn 12 — "with mom's situation i want this to be
+     actually useful"
+   Rationale: Connects the nutrition API to Linda's diabetes (session
+     4). Maya's personal motivation for the feature. Oblique reference
+     tests agent memory without re-explanation.
+
+6. FOODDATA ATTRIBUTION TO DAVID
+   Spec: "David suggests FoodData — conflicts with agent's own
+     research later in session 16"
+   Transcript: Turn 12 — "D mentioned something called fooddata"
+   Rationale: Speaker attribution is critical. David suggested
+     FoodData. The agent mentioned Edamam in the response. Session 16
+     tests: "what was that API you found?" — agent must recall
+     whether it found FoodData or Edamam.
+
+7. GIT HISTORY ALIGNMENT
+   Session 12 commit: 0a9c37e with 002_normalize_ingredients.sql,
+   ingredient endpoints, fixed grocery list, and nutrition stub.
+   Bug visible in session 10 commit (e1d7605), fix in session 12.
+
+VALIDATION SUMMARY:
+  Ingredient normalization with proper migration
+  Grocery list bug fixed with GROUP BY aggregation
+  FoodData attribution correctly assigned to David
+  Nutrition API stub ready for session 16 research
+  Mom's diabetes cross-referenced for feature motivation
+  Chickpea curry tangent with memorable Biscuit detail
+  6 eval queries covering 4 query types
+  14 turns, natural refactoring pacing
+  No forbidden facts leaked
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 12 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

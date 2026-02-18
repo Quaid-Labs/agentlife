@@ -1,0 +1,73 @@
+# Session 5: Recipe app + dietary restrictions (Track 2 cross-reference test)
+# Track 2 (Project) — The CRITICAL cross-reference session
+# Goal: Maya connects mom's diabetes to recipe app features WITHOUT explaining.
+
+session: 5
+track: 2
+project: recipe-app
+phase: 1
+turn_count: 10
+
+goal: >
+  Maya returns to the recipe app. She wants dietary restriction filtering
+  added. She does NOT explain the connection to her mom — she just says
+  "you know my mom's situation" or "this is personal for me." The agent
+  should connect session 4 (diabetes diagnosis) to this feature request.
+  This is THE key cross-reference test for the benchmark.
+
+new_information:
+  - "Maya wants dietary restriction filters: diabetic-friendly, vegetarian, low-sodium"
+  - "Maya wants a 'safe for mom' quick filter"
+  - "Maya wants the filters to be prominent, not buried in settings"
+
+cross_references:
+  - session: 4
+    topic: "mom's diabetes"
+    how: >
+      Do NOT explain the connection. Say things like "you know my mom's
+      situation" or "this is personal for me" or "dietary stuff matters
+      more to me now." The agent should connect it to Linda's diabetes.
+  - session: 1
+    topic: "David is vegetarian"
+    how: >
+      Mention "D's thing too" or "vegetarian option obviously." Don't
+      re-explain that David is vegetarian.
+
+tangents: []
+
+corrections: []
+
+message_plan:
+  - tag: normal    # "back to the recipe app"
+  - tag: normal    # Feature request — dietary restrictions
+  - tag: quick     # Quick reference to mom — "you know the situation"
+  - tag: normal    # Specifics — what filters she wants
+  - tag: quick     # "and vegetarian obviously" (David reference)
+  - tag: normal    # UX preference — filters should be prominent
+  - tag: quick     # React to agent's approach
+  - tag: normal    # Feedback / adjustments
+  - tag: quick     # Satisfied with direction
+  - tag: quick     # Wrap up
+
+eval_queries:
+  - query: "What motivated the dietary restriction feature in the recipe app?"
+    ground_truth: "Maya's mother Linda was diagnosed with Type 2 diabetes (session 4). Maya said 'you know my mom's situation' without explaining."
+    query_type: "cross_reference"
+    evidence_sessions: [4, 5]
+
+  - query: "What dietary filters does Maya want in the recipe app?"
+    ground_truth: "Diabetic-friendly, vegetarian, and low-sodium. Plus a 'safe for mom' quick filter."
+    query_type: "project_state"
+    evidence_sessions: [5]
+
+  - query: "Why does the recipe app need a vegetarian filter?"
+    ground_truth: "David (Maya's partner) is vegetarian — mentioned in session 1"
+    query_type: "cross_reference"
+    evidence_sessions: [1, 5]
+
+  - query: "Does Maya have children?"
+    ground_truth: "No — Maya has not mentioned having children. She has a partner (David), a dog (Biscuit), a mom (Linda), and a sister (Rachel)."
+    query_type: "negative"
+    evidence_sessions: []
+
+end_condition: "Agent has implemented or started dietary restriction filtering"

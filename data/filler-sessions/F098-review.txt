@@ -1,0 +1,94 @@
+================================================================================
+FILLER SESSION F098 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F098 (Filler — Recipe App Micro)
+Date: 2026-03-07 10:28
+Topic: the grocery list is showing duplicate ingredients
+Turn Count: 8
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F098
+  Track: filler
+  Timestamp: 2026-03-07 10:28:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  hey so the grocery list is showing duplicates... like "2 eggs" and "3 eggs" both showing up. can you look at the aggregation logic?
+
+AI ASSISTANT:
+  Let me check the grocery list aggregation. Can you show me the code that combines ingredients from multiple recipes? It's likely in your grocery list route or helper function.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  yeah here's the route. pretty basic rn
+
+AI ASSISTANT:
+  Found it — you're not aggregating at all, just returning raw ingredients. Here's the fix:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  oh lol that makes sense. but what if some recipes say "cup" and others say "cups"? gonna get duplicates again
+
+AI ASSISTANT:
+  Good catch. You'll need to normalize units before grouping. Add a helper:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  wait should i normalize when saving recipes or when generating the list? don't wanna reprocess old data tbh
+
+AI ASSISTANT:
+  Generate-time is fine for now:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  ok testing now... works but showing "eggs-undefined" lol. some recipes don't have units i guess
+
+AI ASSISTANT:
+  Ah yeah, handle missing units:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  perfect that fixed it thx! gonna add a test for this before d breaks it later lmao
+
+AI ASSISTANT:
+  Smart move lol. Here's a starter test:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

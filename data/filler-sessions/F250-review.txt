@@ -1,0 +1,50 @@
+================================================================================
+FILLER SESSION F250 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 19 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F250 (Filler — Quick Question)
+Date: 2026-04-28 16:54
+Topic: how do i export a csv from google sheets
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F250
+  Track: filler
+  Timestamp: 2026-04-28 16:54:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  how do i export a csv from google sheets
+
+AI ASSISTANT:
+  File → Download → Comma Separated Values (.csv). It'll download to your default folder.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  can i do it for just one tab or does it grab the whole thing
+
+AI ASSISTANT:
+  Just the active tab. If you need a specific tab, click on it first, then File → Download → CSV.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

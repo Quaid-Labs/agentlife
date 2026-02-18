@@ -1,0 +1,871 @@
+================================================================================
+SESSION 07 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 7 (Track 2: Project A — Recipe App, Phase 1 final)
+Goal: Frontend redesign based on Maya's feedback. She reviews the current
+  UI and has strong opinions. Also: the SQL injection bug from session 3
+  is discovered and fixed. Thai restaurant tangent is a callback.
+Turn Count: 14 (longer session — review + tangent + security fix + redesign)
+Session Type: Code review, UI feedback, security fix, redesign
+Timestamp: 2026-03-11 (3 days after session 5, ~10 days in)
+
+CORE LEARNING OBJECTIVES:
+  - Maya has opinions on the current UI: "it looks like a spreadsheet"
+  - She wants card layout with images, not a list
+  - She wants a collapsible add form (it takes up too much space)
+  - She wants prep time displayed on each recipe
+  - SQL injection bug from session 3 is discovered and fixed
+  - Thai restaurant callback tangent (David tried a test recipe)
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe or any specific company in job search (session 13)
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's birthday surprise for Linda (session 8)
+  - David's promotion or moving discussions (session 17)
+  - Half marathon injury scare (session 11)
+  - Job dissatisfaction specifics at TechFlow (session 6)
+  - Priya the coworker (session 6)
+  - Phase 2 features: meal planning, migrations, GraphQL (sessions 10+)
+
+CROSS-REFERENCES TO SESSIONS 1-5:
+  - Thai restaurant on South Congress (session 3 tangent) — callback
+  - David referenced as "D" (session 1)
+  - Recipe app context from sessions 3 and 5 — Maya continues without
+    re-explaining the project
+  - SQL injection bug planted in session 3 — agent discovers it here
+
+TANGENT TRIGGER:
+  Trigger: During or after Maya gives UI feedback
+  Content: "D tried one of the test recipes and it was terrible. we ordered
+    thai from that place on south congress instead. you know the one"
+  Extractable Facts: David cooks/tests recipes, they go to the South
+    Congress Thai restaurant regularly (reinforcement from session 3)
+  Return phrase: "ok anyway — back to the frontend"
+
+MESSAGE PLAN (14 turns total):
+  1. Normal     — Opens reviewing the app: "it looks like a spreadsheet"
+  2. Normal     — UI feedback: wants cards, images, better layout
+  3. Quick      — "the add form is taking up too much space"
+  4. Extended   — Tangent: D tested a recipe, Thai restaurant callback
+  5. Quick      — Back to frontend
+  6. Normal     — Wants prep time on recipes
+  7. Code       — Agent starts the CSS grid card redesign
+  8. Quick      — React to card design
+  9. Normal     — "wait what about images? i want images on the cards"
+  10. Code      — Agent adds image_url + prep_time fields, updates cards
+  11. Normal    — Agent notices SQL injection bug, explains and fixes
+  12. Quick     — Maya reacts: "wait what? that's been broken this whole time?"
+  13. Code      — Agent shows the fix
+  14. Quick     — Wrap up — satisfied with redesign + fix
+
+End Condition: Frontend redesigned with cards, images, prep time. SQL
+  injection bug fixed. Collapsible add form.
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 7
+  Track: 2
+  Timestamp: 2026-03-11 19:15:00 UTC
+  Duration: ~10 minutes (19:15:00 to 19:25:30)
+
+---
+
+TURN 1 (UI Review — "Spreadsheet")
+TAG: normal | TOKENS: 42/100 | GENERATION TIME: 6.8s
+
+MAYA:
+  ok so i've been using the recipe app for a few days and it works great
+  BUT it looks terrible. like it looks like a spreadsheet
+
+  i need it to look like an actual app. not a database viewer. you know
+  what i mean?
+
+AI ASSISTANT:
+  Ha, yeah — a list of text blocks with borders is very "here's the raw
+  data" energy. Totally makes sense to give it some visual polish.
+
+  What's your vision? When you think "looks like an app" — cards? Grid
+  layout? Something more like a Pinterest board for recipes?
+
+ANALYSIS: Maya's aesthetic feedback. "Looks like a spreadsheet" is direct,
+non-technical criticism. She doesn't say "the CSS needs work" — she says
+it looks bad. PM language, not engineer language.
+
+---
+
+TURN 2 (Design Feedback)
+TAG: normal | TOKENS: 48/100 | GENERATION TIME: 7.2s
+
+MAYA:
+  cards. definitely cards. like a grid of recipe cards with the name and
+  maybe a photo. and when you click one it expands or shows the full
+  recipe
+
+  right now everything is just stacked vertically with all the
+  ingredients and instructions visible. it's overwhelming. i don't need
+  to see every recipe's full instructions at once
+
+AI ASSISTANT:
+  Cards in a responsive grid, show summary info on the card face (name,
+  maybe a thumbnail and key tags), then expand for full details. That'll
+  clean up the visual clutter a lot.
+
+  A few questions:
+  - Do you want images on the cards? That means adding an image URL field
+    to recipes
+  - How many columns? 2-3 on desktop, 1 on mobile?
+
+ANALYSIS: Maya describes the design she wants: cards, grid, collapsed
+details. "I don't need to see every recipe's full instructions at once"
+is the specific pain point. Agent asks smart follow-ups about scope.
+
+---
+
+TURN 3 (Add Form Complaint)
+TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.5s
+
+MAYA:
+  yes images. and the add form is taking up too much space right now —
+  it's like half the page. can you make it collapsible? like a button
+  that opens it
+
+AI ASSISTANT:
+  Totally — collapsible add form with a "+" button or "Add Recipe"
+  toggle. Hidden by default, opens when you need it.
+
+  Let me redesign the whole frontend. Give me a sec.
+
+ANALYSIS: Add form criticism — too much real estate. Wants it collapsible.
+Quick, decisive message. Agent acknowledges and starts working.
+
+---
+
+TURN 4 (Tangent — Thai Restaurant Callback)
+TAG: extended | TOKENS: 52/60 | GENERATION TIME: 8.0s
+
+MAYA:
+  oh btw — D tried one of the test recipes last night. this chickpea
+  curry thing i saved. he said it was "fine" which in david language
+  means it was bad lol
+
+  we ended up ordering thai from that place on south congress instead.
+  you know the one. we keep going back there whenever my cooking fails
+
+  i should just save their menu as a recipe at this point haha
+
+  ok anyway — back to the frontend
+
+AI ASSISTANT:
+  Ha! "Fine" is definitely code for "let's order food." The South Congress
+  Thai place is clearly your safety net.
+
+  Saving their menu as a recipe is honestly not a bad idea — at least
+  you'd always have a guaranteed backup plan in the app.
+
+  Ok, back to the redesign. Here's what I'm doing:
+
+ANALYSIS: Thai restaurant callback from session 3. New extractable facts:
+David actively tests recipes from the app, "fine" = bad in David's
+vocabulary, they go to the South Congress Thai place regularly (pattern).
+Maya's humor about saving the restaurant menu. Clean "anyway" return.
+
+---
+
+TURN 5 (Back to Frontend)
+TAG: quick | TOKENS: 8/50 | GENERATION TIME: 4.8s
+
+MAYA:
+  yeah show me what you got
+
+AI ASSISTANT:
+  First — let me add `image_url` and `prep_time` fields to the database.
+  These make the cards actually useful:
+
+  ```javascript
+  // Updated database.js schema
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS recipes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      ingredients TEXT NOT NULL,
+      instructions TEXT NOT NULL,
+      dietary_tags TEXT DEFAULT '',
+      image_url TEXT DEFAULT '',
+      prep_time INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  ```
+
+  Added `image_url` (URL to a recipe photo) and `prep_time` (minutes).
+  Now for the frontend.
+
+ANALYSIS: Agent adds new fields to support the card design. Clean schema
+migration approach — adds columns to the CREATE TABLE. In a real app
+you'd need a migration, but for SQLite personal app this is fine.
+
+---
+
+TURN 6 (Prep Time Request)
+TAG: normal | TOKENS: 28/100 | GENERATION TIME: 6.0s
+
+MAYA:
+  oh yes prep time. i definitely want that on the cards. like "30 min"
+  in the corner or something. so you can quickly see what's fast to make
+
+  especially useful when it's 7pm and you're hungry and don't want to
+  commit to a 2 hour recipe
+
+AI ASSISTANT:
+  100% — prep time as a quick-glance badge on each card. The "what can
+  I make RIGHT NOW" use case.
+
+  Here's the full frontend redesign:
+
+  ```html
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Recipes</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #f5f5f5;
+        color: #333;
+        padding: 20px;
+      }
+      .header {
+        max-width: 1000px;
+        margin: 0 auto 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      h1 { font-size: 1.8rem; }
+      .controls {
+        max-width: 1000px;
+        margin: 0 auto 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .controls input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        flex: 1;
+        min-width: 200px;
+      }
+      .controls button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-primary { background: #4CAF50; color: white; }
+      .btn-mom { background: #E91E63; color: white; }
+      .btn-secondary { background: #eee; color: #333; }
+      .btn-add { background: #2196F3; color: white; font-size: 16px; }
+
+      /* Filters */
+      .filters {
+        max-width: 1000px;
+        margin: 0 auto 15px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .filters label {
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      /* Card Grid */
+      .recipe-grid {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      .recipe-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        cursor: pointer;
+      }
+      .recipe-card:hover { transform: translateY(-2px); }
+      .recipe-card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        background: #eee;
+      }
+      .card-body { padding: 15px; }
+      .card-body h3 { font-size: 1.1rem; margin-bottom: 8px; }
+      .card-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #888;
+      }
+      .prep-badge {
+        background: #FFF3E0;
+        color: #E65100;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+      }
+      .diet-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+      .diet-tag {
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        background: #E8F5E9;
+        color: #2E7D32;
+      }
+
+      /* Collapsible Add Form */
+      .add-section {
+        max-width: 1000px;
+        margin: 0 auto 20px;
+      }
+      .add-form {
+        display: none;
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      .add-form.open { display: block; }
+      .add-form input, .add-form textarea {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>My Recipes</h1>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="Search recipes...">
+      <button class="btn-primary" onclick="searchRecipes()">Search</button>
+      <button class="btn-mom" onclick="safeForMom()">Safe for Mom</button>
+      <button class="btn-secondary" onclick="clearAll()">Clear</button>
+    </div>
+
+    <div class="filters">
+      <label><input type="checkbox" class="diet-filter" value="diabetic-friendly"> Diabetic</label>
+      <label><input type="checkbox" class="diet-filter" value="low-sodium"> Low-Sodium</label>
+      <label><input type="checkbox" class="diet-filter" value="vegetarian"> Vegetarian</label>
+      <label><input type="checkbox" class="diet-filter" value="gluten-free"> GF</label>
+      <label><input type="checkbox" class="diet-filter" value="dairy-free"> DF</label>
+    </div>
+
+    <div class="add-section">
+      <button class="btn-add" onclick="toggleAddForm()">+ Add Recipe</button>
+      <div class="add-form" id="addForm">
+        <!-- form fields here -->
+      </div>
+    </div>
+
+    <div class="recipe-grid" id="recipes"></div>
+
+    <script>
+      function toggleAddForm() {
+        document.getElementById('addForm').classList.toggle('open');
+      }
+
+      function renderRecipes(recipes) {
+        const container = document.getElementById('recipes');
+        container.innerHTML = recipes.map(r => `
+          <div class="recipe-card" onclick="showDetails(${r.id})">
+            ${r.image_url ? `<img src="${r.image_url}" alt="${r.name}">` : '<div style="height:180px;background:#eee;display:flex;align-items:center;justify-content:center;color:#aaa;">No image</div>'}
+            <div class="card-body">
+              <h3>${r.name}</h3>
+              <div class="card-meta">
+                <span>${new Date(r.created_at).toLocaleDateString()}</span>
+                ${r.prep_time ? `<span class="prep-badge">${r.prep_time} min</span>` : ''}
+              </div>
+              ${r.dietary_tags ? `<div class="diet-tags">${r.dietary_tags.split(',').map(t => `<span class="diet-tag">${t}</span>`).join('')}</div>` : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // ... search, filter, CRUD functions ...
+      async function loadRecipes() {
+        const res = await fetch('/api/recipes');
+        const recipes = await res.json();
+        renderRecipes(recipes);
+      }
+      loadRecipes();
+    </script>
+  </body>
+  </html>
+  ```
+
+  Complete redesign: CSS grid cards with images, prep time badges, dietary
+  tags as pills, collapsible add form behind a blue "+" button. Search bar
+  and "Safe for Mom" button stayed at the top.
+
+ANALYSIS: Major frontend overhaul. Grid layout, card design with hover
+effects, image support, prep time badge, dietary tag pills. Collapsible
+add form (hidden by default). "Safe for Mom" button retained. Clean,
+modern design. Agent delivers a substantial CSS + HTML redesign.
+
+---
+
+TURN 7 (React to Cards)
+TAG: quick | TOKENS: 14/50 | GENERATION TIME: 5.2s
+
+MAYA:
+  oh wow that's so much better. the cards look great. i love the prep
+  time badge thing
+
+AI ASSISTANT:
+  Thanks! The orange prep time badge gives you that quick-glance info.
+  And the dietary tags as little green pills make it easy to scan.
+
+  Want me to walk through any of the changes?
+
+ANALYSIS: Positive reaction to the redesign. Maya specifically calls out
+the prep time badge — matches her "what can I make right now" use case.
+
+---
+
+TURN 8 (Images Question)
+TAG: normal | TOKENS: 28/100 | GENERATION TIME: 6.1s
+
+MAYA:
+  no i get it. love the card layout. one thing — for images, i'm
+  probably just going to paste URLs right? like from google or whatever?
+
+  i don't want to deal with uploading files
+
+AI ASSISTANT:
+  Yep, just paste a URL in the image field when you add a recipe. No
+  upload needed. You can grab image URLs from recipe sites, Google
+  Images, or even just link to photos you've taken if they're hosted
+  somewhere.
+
+  If there's no image URL, it shows a gray placeholder so the layout
+  doesn't break. Down the line we could add image upload but URLs keep
+  it simple for now.
+
+ANALYSIS: Practical question about images. Maya wants simplicity — paste
+URLs, no file upload. Agent confirms and mentions graceful fallback for
+missing images.
+
+---
+
+TURN 9 (Form Fields Check)
+TAG: quick | TOKENS: 19/50 | GENERATION TIME: 5.3s
+
+MAYA:
+  perfect. and the add form has image url and prep time fields now right?
+  just want to make sure
+
+AI ASSISTANT:
+  Yes — the add form now has: recipe name, ingredients, instructions,
+  image URL, prep time (in minutes), and the dietary label checkboxes.
+  All wrapped in the collapsible section.
+
+ANALYSIS: Maya double-checking completeness. Realistic PM behavior —
+verifying the form fields match the card display.
+
+---
+
+TURN 10 (SQL Injection Discovery)
+TAG: normal | TOKENS: 87/100 | GENERATION TIME: 8.5s
+
+AI ASSISTANT:
+  Hey, while I was updating the search endpoint for the redesign, I
+  noticed something I should flag.
+
+  The search function has a SQL injection vulnerability. Look at this
+  line in `server.js`:
+
+  ```javascript
+  // BEFORE (vulnerable):
+  const recipes = db.prepare(
+    "SELECT * FROM recipes WHERE name LIKE '%" + q + "%' OR ingredients LIKE '%" + q + "%'"
+  ).all();
+  ```
+
+  That `q` value goes directly into the SQL string without sanitization.
+  Someone could pass a crafted search query and mess with your database.
+  All the other endpoints use parameterized queries correctly — this one
+  just slipped through.
+
+  Here's the fix:
+
+  ```javascript
+  // AFTER (safe):
+  app.get('/api/search', (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    const recipes = db.prepare(
+      "SELECT * FROM recipes WHERE name LIKE ? OR ingredients LIKE ?"
+    ).all(`%${q}%`, `%${q}%`);
+    res.json(recipes);
+  });
+  ```
+
+  Now the search term goes through prepared statement parameters — same
+  pattern as all the other endpoints.
+
+MAYA:
+  wait what? that's been broken this whole time?
+
+  like someone could have messed with my database?
+
+ANALYSIS: The SQL injection fix. Agent discovers the bug from session 3
+while working on the redesign. Explains the vulnerability clearly —
+string concatenation vs parameterized queries. Maya's reaction is
+surprise and mild alarm. "This whole time" emphasizes the time gap
+(session 3 to session 7, about a week).
+
+---
+
+TURN 11 (SQL Injection Reassurance)
+TAG: quick | TOKENS: 32/50 | GENERATION TIME: 5.8s
+
+MAYA:
+  ok but it's just me using this locally right? like nobody else can
+  access it?
+
+  still — fix it. that's embarrassing
+
+AI ASSISTANT:
+  Yeah, since it's running on localhost, you're fine — nobody can reach
+  it from outside. But it's still good practice to fix. If you ever
+  deploy this or share it, you'd want it locked down.
+
+  Already fixed. The search now uses parameterized queries just like
+  everything else.
+
+ANALYSIS: Maya rationalizes the risk (localhost only) but still wants it
+fixed. "That's embarrassing" — takes code quality personally. Agent
+reassures while validating the fix. Clean resolution.
+
+---
+
+TURN 12 (Collapsible Form Check)
+TAG: quick | TOKENS: 16/50 | GENERATION TIME: 5.0s
+
+MAYA:
+  ok good. and the add form is collapsible now right? i click the button
+  and it opens?
+
+AI ASSISTANT:
+  Yep — there's a blue "+" button that toggles the form open and closed.
+  Closed by default so the recipe grid is front and center. Click to add,
+  fill in the fields, submit, form closes again.
+
+ANALYSIS: Maya confirming the collapsible form. Third time she's asked
+about it — it was clearly a pain point. Agent confirms the behavior.
+
+---
+
+TURN 13 (Satisfaction + Summary)
+TAG: normal | TOKENS: 35/100 | GENERATION TIME: 6.5s
+
+MAYA:
+  ok this is really good. it actually looks like something i'd want to
+  use now. before it was functional but ugly
+
+  so to recap: cards with images and prep time, collapsible add form,
+  dietary filters still there, and you fixed the search bug. yeah?
+
+AI ASSISTANT:
+  That's the full list:
+  1. **Card grid layout** — responsive, 2-3 columns
+  2. **Recipe images** — via URL, with placeholder fallback
+  3. **Prep time badge** — orange badge on each card
+  4. **Dietary tag pills** — green chips on each card
+  5. **Collapsible add form** — "+" button, hidden by default
+  6. **SQL injection fix** — search now uses parameterized queries
+  7. **image_url + prep_time fields** — added to database schema
+
+  The app went from "spreadsheet" to "actual recipe app." Nice upgrade.
+
+ANALYSIS: Maya recaps the changes — PM instinct to verify deliverables.
+Agent provides numbered summary. Both acknowledge the transformation.
+
+---
+
+TURN 14 (Wrap Up)
+TAG: quick | TOKENS: 12/50 | GENERATION TIME: 4.8s
+
+MAYA:
+  love it. thanks — this is way better. i'm going to go add some
+  recipes with actual photos now
+
+AI ASSISTANT:
+  Enjoy! The cards are going to look great with real recipe photos in
+  there. Let me know when you want to add more features!
+
+ANALYSIS: Clean exit. Maya excited to use the improved app. Natural
+endpoint — she wants to populate it with content. No extended goodbye.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Stripe or any specific company in job search
+  - No Rachel's children's names (Ethan, Lily) or ages
+  - No David birthday surprise for Linda
+  - No David promotion or moving specifics
+  - No injury scare
+  - No job dissatisfaction with TechFlow
+  - No Priya coworker mention
+  - No Phase 2 features (meal planning, migrations, GraphQL)
+
+CONSTRAINT 2: SQL Injection Bug Discovery Correct
+  STATUS: PASS
+  Location: Turn 10
+  Evidence: Agent discovers the vulnerability from session 3's server.js
+  Bug: `"SELECT * FROM recipes WHERE name LIKE '%" + q + "%'"` — string
+    concatenation instead of parameterized query
+  Fix: `db.prepare("...WHERE name LIKE ? OR ingredients LIKE ?").all(...)`
+  Timeline: Bug planted in session 3, discovered and fixed in session 7.
+  Maya's reaction authentic: surprise, mild alarm, then rationalization
+    (localhost only).
+
+CONSTRAINT 3: Thai Restaurant Callback Correct
+  STATUS: PASS
+  Location: Turn 4
+  Evidence: "we ended up ordering thai from that place on south congress
+    instead. you know the one"
+  Note: Callback to session 3's Thai restaurant tangent. "You know the
+    one" expects agent to remember the previous mention. New fact:
+    they go there regularly ("we keep going back there whenever my
+    cooking fails"). Reinforces the pattern, not just a single visit.
+
+CONSTRAINT 4: Code Changes Match Git History
+  STATUS: PASS
+  Session 7 commit: "frontend redesign (cards, images, prep time) +
+    fix search SQL injection" (+100 lines)
+  Files changed:
+    - database.js (image_url, prep_time) -- MATCH
+    - server.js (FIXED SQL injection) -- MATCH
+    - public/index.html (complete CSS grid card redesign) -- MATCH
+
+CONSTRAINT 5: David Referenced Correctly
+  STATUS: PASS
+  Location: Turn 4
+  Evidence: "D tried one of the test recipes last night"
+  Note: Uses "D" nickname (consistent). Does not re-explain who David is.
+    New fact: David actively tries recipes from the app.
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 14 — clean single goodbye. No looping.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  No forbidden facts exposed
+  SQL injection bug correctly resolved
+  Thai restaurant callback organic
+  Code changes match git history
+  David cross-reference natural
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-7 (cumulative ground truth)
+  Evaluation Scope: Project state evolution, tangent callback, security recall
+
+QUERY 1: "What changed in the recipe app's frontend?"
+  Ground Truth: Complete redesign from a list layout to a CSS grid card
+    layout. Cards show recipe name, image, prep time badge, and dietary
+    tag pills. The add form was made collapsible (hidden by default with
+    a "+" button). Images are added via URL with a placeholder fallback.
+  Evidence Session: 7
+  Supporting Evidence:
+    - Turn 1: "it looks like a spreadsheet"
+    - Turn 2: "cards. definitely cards. like a grid"
+    - Turn 6: Frontend code with grid layout, card design, prep badges
+    - Turn 13: Numbered summary of all changes
+  Query Type: project_state
+  Recall Difficulty: Medium (many details, requires comprehensive recall)
+
+QUERY 2: "What was the security bug in the recipe app?"
+  Ground Truth: SQL injection vulnerability in the search endpoint. The
+    search function used string concatenation to build the SQL query
+    instead of parameterized queries. It was present since the app was
+    first built (session 3) and fixed in session 7 by switching to
+    prepared statement parameters.
+  Evidence Sessions: 3, 7
+  Supporting Evidence:
+    - Session 3, Turn 6: Vulnerable search code planted
+    - Session 7, Turn 10: Agent discovers and explains the bug
+    - Session 7, Turn 10: Fix using parameterized queries
+  Query Type: factual_recall
+  Recall Difficulty: Medium (specific technical detail, spans two sessions)
+
+QUERY 3: "Do Maya and David have a regular restaurant they go to?"
+  Ground Truth: Yes — a Thai restaurant on South Congress in Austin. They
+    go there regularly, especially when Maya's cooking attempts fail.
+    Maya mentioned it in session 3 (after a pad thai disaster) and again
+    in session 7 (after David tried a recipe from the app and it was bad).
+  Evidence Sessions: 3, 7
+  Supporting Evidence:
+    - Session 3, Turn 4: "that thai place on south congress"
+    - Session 7, Turn 4: "that place on south congress... we keep going
+      back there whenever my cooking fails"
+  Query Type: tangent_recall
+  Recall Difficulty: Medium (embedded in tangents in two sessions,
+    requires recognizing the pattern/callback)
+
+QUERY 4: "What does the recipe app currently look like?"
+  Ground Truth: A responsive CSS grid of recipe cards. Each card shows an
+    image (or gray placeholder), the recipe name, a prep time badge (orange,
+    showing minutes), and dietary tag pills (green). There's a search bar,
+    dietary filter checkboxes, a "Safe for Mom" button, and a collapsible
+    "+" add form. It was redesigned from a simple list layout.
+  Evidence Session: 7
+  Supporting Evidence:
+    - Turn 6: Full HTML/CSS code for the card grid
+    - Turn 7: Maya approves the card layout
+    - Turn 13: Numbered summary of changes
+  Query Type: project_state
+  Recall Difficulty: Medium (detailed visual description from code)
+
+QUERY 5: "Does David cook?"
+  Ground Truth: David tests recipes from the app. He tried a chickpea
+    curry that Maya saved and said it was "fine" (which Maya says means
+    it was bad). He also tried Maya's pad thai in session 3. He cooks
+    but the results are mixed.
+  Evidence Sessions: 3, 7
+  Supporting Evidence:
+    - Session 3, Turn 4: "D tried one of my attempts at pad thai"
+    - Session 7, Turn 4: "D tried one of the test recipes last night.
+      this chickpea curry thing"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (scattered across tangents in two sessions)
+
+QUERY 6: "What new fields were added to the recipe database?"
+  Ground Truth: Two new fields: image_url (TEXT, for recipe photos via
+    URL) and prep_time (INTEGER, cooking time in minutes). These were
+    added in session 7 alongside the frontend redesign.
+  Evidence Session: 7
+  Supporting Evidence:
+    - Turn 5: Database schema update code
+    - Turn 6: "i definitely want [prep time] on the cards"
+    - Turn 8: "for images, i'm probably just going to paste URLs"
+  Query Type: project_state
+  Recall Difficulty: Easy (directly coded and discussed)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Project state: Queries 1, 4, 6 (frontend changes, current look, schema)
+  Factual recall: Queries 2, 5 (security bug, David cooking)
+  Tangent recall: Query 3 (Thai restaurant callback)
+  Complexity: 1 Easy, 5 Medium
+  Coverage: UI evolution, security, tangent callbacks, personal facts,
+    schema changes
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+FIRST VERSION — V1 CREATION:
+
+1. BRIEF CREATED FROM SPEC + GIT HISTORY
+   Spec session schedule: "Recipe app frontend. First round of user
+     feedback on output. TANGENT: David tried one of the test recipes,
+     it was terrible. They ordered Thai from that place on South Congress
+     instead."
+   Git history: "frontend redesign (cards, images, prep time) + fix
+     search SQL injection" (+100 lines)
+   Full brief, transcript, and eval queries built from these sources.
+
+2. LONGER SESSION (14 TURNS)
+   This session is longer than sessions 3 and 5 because it combines:
+     - UI review and feedback (turns 1-3)
+     - Tangent callback (turn 4)
+     - Database changes (turn 5)
+     - Full frontend redesign (turns 6-9)
+     - SQL injection discovery and fix (turns 10-11)
+     - Verification and wrap-up (turns 12-14)
+   The natural flow of "review -> feedback -> redesign -> discover bug ->
+   fix -> verify" requires more turns than a straight feature build.
+
+3. SQL INJECTION RESOLUTION ARC
+   The bug was planted in session 3 (server.js search endpoint using
+   string concatenation). In session 7, the agent discovers it while
+   updating the search code for the redesign. This creates a 3-session
+   arc (planted in 3, unnoticed in 5, fixed in 7) that tests whether
+   the memory system tracks code quality evolution.
+
+4. THAI RESTAURANT CALLBACK
+   Session 3 introduced the Thai restaurant on South Congress. Session 7
+   callbacks to it: "you know the one." The second mention establishes
+   a pattern (they go regularly) rather than a single data point.
+   Extractable: David tests recipes from the app, "fine" = bad in David
+   language, regular visits to the Thai place.
+
+5. MAYA'S DESIGN LANGUAGE
+   Maya describes UI wants in non-technical terms:
+     - "looks like a spreadsheet" (not "needs better CSS")
+     - "cards with images" (not "CSS grid with object-fit cover")
+     - "the add form is taking up too much space" (not "make it collapsible")
+   Agent translates PM language into implementation. This is
+   characteristic and should be consistent across sessions.
+
+6. CODE MATCHES GIT HISTORY
+   Changes to database.js (image_url, prep_time), server.js (SQL injection
+   fix), and public/index.html (complete redesign) match the session 7
+   commit description (+100 lines).
+
+VALIDATION SUMMARY:
+  All core brief facts established
+  No forbidden information leaked
+  SQL injection bug properly resolved (3-session arc)
+  Thai restaurant callback organic
+  Code matches git history
+  6 eval queries covering 3 query types
+  14 turns (longer session justified by scope)
+  Maya's non-technical design language consistent
+  David cross-reference natural
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 07 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

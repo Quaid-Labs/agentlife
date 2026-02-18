@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F157 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 2
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F157 (Filler — Recipe App Micro)
+Date: 2026-03-01 16:48
+Topic: i need to implement a recipe difficulty scoring algorithm
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F157
+  Track: filler
+  Timestamp: 2026-03-01 16:48:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~29
+
+MAYA:
+  hey so i need to add a difficulty score to recipes but idk how to calculate it. like should it be based on steps? ingredients? time? what makes sense
+
+AI ASSISTANT:
+  Good question! I'd combine a few factors:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  yeah show me the code. also where does this go? like in the recipe model or separate util?
+
+AI ASSISTANT:
+  I'd put it in a utility function to keep it reusable. Here's a basic setup:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  ok but what if someone makes like a 2 step recipe that takes 3 hours lol. this would score it wrong
+
+AI ASSISTANT:
+  True! The weights need tweaking. For slow-cook stuff, time matters more:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  yeah that's better. how do i test this tho? like should i write unit tests or just manually check some recipes
+
+AI ASSISTANT:
+  Definitely write tests! Here's a Jest example:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  cool. so once i have the score how do i store it? add a difficulty column to recipes table?
+
+AI ASSISTANT:
+  Yep, add it to your schema:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  wait do i need to recalculate this every time someone edits a recipe or can i just save it once
+
+AI ASSISTANT:
+  Recalculate on every edit! Otherwise if someone adds steps, the difficulty stays stale. Just call `calculateDifficulty()` in your update route:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  k makes sense. btw should i let users filter by difficulty or is that overkill for v1
+
+AI ASSISTANT:
+  Not overkill at all! Super useful feature. Add a query param:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  nice. one more thing - what if i want to add ingredient complexity later? like truffle oil is harder to find than salt lol
+
+AI ASSISTANT:
+  Smart thinking! Make the scoring modular so you can extend it:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  oh wait i just tried this and got an error. lemme paste it
+
+AI ASSISTANT:
+  Sure, paste the error and I'll help debug!
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~1
+
+MAYA:
+  ```
+
+AI ASSISTANT:
+  Did you actually run the ALTER TABLE command? Check your schema:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ohh i put it in a file but never ran it lol. how do i run migrations properly
+
+AI ASSISTANT:
+  For now, just run it manually:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  k ran it and it works now. difficulty scores look reasonable. should i show this in the ui or keep it backend only for now
+
+AI ASSISTANT:
+  Show it! Users will want to see it. Add a simple badge:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  perfect. ok last thing - should i backfill difficulty for existing recipes or just calculate going forward
+
+AI ASSISTANT:
+  Backfill them! Otherwise old recipes won't be filterable. Quick script:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  done! worked great. thanks this was super helpful
+
+AI ASSISTANT:
+  Nice work! You've got difficulty scoring, filtering, and a solid foundation to extend later with ingredient complexity. Ship it and see how users respond. Let me know if you hit any issues!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

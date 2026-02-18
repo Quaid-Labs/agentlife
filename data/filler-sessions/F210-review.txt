@@ -1,0 +1,149 @@
+================================================================================
+FILLER SESSION F210 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F210 (Filler — Recipe App Micro)
+Date: 2026-04-23 10:55
+Topic: i'm getting CORS errors when i call the API from the frontend
+Turn Count: 14
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F210
+  Track: filler
+  Timestamp: 2026-04-23 10:55:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~31
+
+MAYA:
+  hey getting this cors error when i try to hit my recipe api from the frontend - "Access to fetch at 'http://localhost:3001/api/recipes' from origin 'http://localhost:3000' has been blocked by CORS policy"
+
+AI ASSISTANT:
+  This is a classic CORS issue - your Express backend isn't configured to accept requests from your React frontend on a different port. You need to add the CORS middleware to your Express app.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  cool that fixed it! now i need to add user auth - was thinking jwt tokens. should i use passport or just roll my own?
+
+AI ASSISTANT:
+  For a recipe app, I'd recommend rolling your own JWT auth - it's simpler than Passport and you'll understand exactly what's happening. Passport adds overhead you don't need for basic token auth.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  nice! what about the db schema - need to set up users table properly
+
+AI ASSISTANT:
+  Here's the complete database schema with proper foreign key constraints and indexes. I'll include a migration script to set everything up:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  got it working! now need tests - what's the best way to test these auth endpoints?
+
+AI ASSISTANT:
+  You'll want to use Jest with supertest for integration testing your API endpoints. Here's a comprehensive test suite for your auth:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  perfect! last thing - how do i handle token refresh? don't want users logging out after 7 days automatically
+
+AI ASSISTANT:
+  Good thinking - you'll want to implement a refresh token system. Here's a dual-token approach with short-lived access tokens and long-lived refresh tokens:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  this is great but kinda worried about security - what about rate limiting and stuff?
+
+AI ASSISTANT:
+  Great instinct! You definitely need rate limiting, especially on auth endpoints. Here's a comprehensive security setup using express-rate-limit and helmet:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  ok one more thing lol - how do i deploy this? was thinking railway or render
+
+AI ASSISTANT:
+  Railway is easier for this setup - better free tier and simpler SQLite handling. Here's the complete deployment guide:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  awesome! what about handling db migrations when i update the schema later?
+
+AI ASSISTANT:
+  Great question - you'll need a proper migration system. Here's a lightweight solution using plain SQL files and a migrations table:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  nice! ok last q - how do i test the protected routes? getting 401s in my tests even with valid tokens
+
+AI ASSISTANT:
+  The issue is that your test tokens are being verified against your production JWT_SECRET from .env, but your test environment might not have access to it. Here's how to properly test authenticated routes:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  perfect thanks! gonna deploy this and test it out
+
+AI ASSISTANT:
+  Awesome! Before you deploy, here's a quick pre-flight checklist to make sure everything's production-ready:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  all deployed and working! thanks so much for all the help
+
+AI ASSISTANT:
+  That's awesome! Glad everything's up and running smoothly. You've built a solid foundation here - JWT auth with refresh tokens, proper rate limiting, security middleware, database migrations, comprehensive tests, and a clean deployment setup. That's production-grade stuff.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

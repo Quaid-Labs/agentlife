@@ -1,0 +1,533 @@
+================================================================================
+SESSION 13 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 13 (Track 1: Personal — "I got the Stripe offer")
+Goal: Resolve the job search arc from session 6. Maya announces she got
+  a job offer from Stripe. Biggest professional arc milestone.
+Turn Count: 10
+Session Type: Exciting news, career decision, life change discussion
+Timestamp: 2026-04-21 (2 weeks after session 11, ~8 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Maya got a job offer from Stripe
+  - She's going to accept it
+  - Better pay, better role, remote-friendly
+  - She'll need to update her portfolio site (cross-ref for session 14)
+  - TechFlow era is ending — she's giving notice
+  - This validates the "considering leaving" arc from session 6
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's promotion (session 17)
+  - Moving details or Zilker vs East Austin (session 17)
+  - Half marathon results (session 19)
+  - Mom's diabetes improvement details (session 19)
+
+CROSS-REFERENCES:
+  - Job frustration from session 6 (TechFlow complaints, browsing)
+  - Priya from session 6 (colleague also looking to leave)
+  - David's support from session 6 ("we can afford a gap")
+  - Session 1 context: TechFlow introduced as "boring but pays the bills"
+
+MESSAGE PLAN (10 turns total):
+  1. Extended   — Big opening: "I GOT AN OFFER" — excited energy
+  2. Quick      — React to agent's response
+  3. Normal     — Details about Stripe (role, pay, culture)
+  4. Quick      — Quick feeling check
+  5. Normal     — How she's going to tell TechFlow / give notice
+  6. Quick      — Priya update
+  7. Normal     — What David thinks
+  8. Quick      — React
+  9. Normal     — What's next / transition planning
+  10. Quick     — Exit (energized, positive)
+
+End Condition: Maya has shared the offer and her decision to accept
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 13
+  Track: 1
+  Timestamp: 2026-04-21 16:00:00 UTC
+  Duration: ~5 minutes (16:00:00 to 16:05:15)
+
+---
+
+TURN 1 (The Big Announcement)
+TAG: extended | TOKENS: 142/200
+
+MAYA:
+  OK SO
+
+  I GOT AN OFFER. FROM STRIPE. LIKE ACTUAL STRIPE
+
+  i just got off the call with their recruiter and i am shaking
+  slightly. in a good way
+
+  the role is senior PM on their developer tools platform. it's
+  basically what i've been doing at techflow but at a company that
+  actually cares about product people. the interviews were GOOD —
+  like people actually asked me smart questions and listened to my
+  answers. what a concept
+
+  pay is like 30% more than techflow. fully remote option. stock.
+  equity. the whole thing
+
+  i'm going to accept. i already know i'm going to accept. D's going
+  to be so excited when i tell him — he's still at work
+
+AI ASSISTANT:
+  OH THAT'S INCREDIBLE! Congratulations Maya!!!
+
+  Stripe is a huge deal — and senior PM on developer tools? That's
+  a perfect fit for someone who's been doing B2B product work.
+  You're going from a company that ignores product people to one
+  that's literally built by and for developers and product thinkers.
+
+  30% raise, remote option, equity — yeah, you're accepting this.
+  There's nothing to think about.
+
+  How long was the interview process? And when do they want you to
+  start?
+
+ANALYSIS: Massive energy shift. All caps opening matches Maya's
+personality in high emotion. Stripe named for first time. Senior PM
+on developer tools. 30% raise, remote, stock/equity. Decision
+already made. David doesn't know yet (still at work). Agent matches
+the excitement.
+
+---
+
+TURN 2 (React to Agent's Response)
+TAG: quick | TOKENS: 22/50
+
+MAYA:
+  about 3 weeks total. four rounds of interviews. it was intense
+  but honestly the best interview experience i've ever had
+
+  like night and day compared to techflow's chaos
+
+AI ASSISTANT:
+  The fact that the interview process itself was good tells you a
+  lot about the culture. Companies that interview well usually
+  operate well.
+
+  3 weeks is fast for a place like Stripe too — they clearly wanted
+  you.
+
+ANALYSIS: Interview timeline: 3 weeks, 4 rounds. Best interview
+experience ever. Contrast with TechFlow. Agent validates.
+
+---
+
+TURN 3 (Stripe Details)
+TAG: normal | TOKENS: 76/100
+
+MAYA:
+  the team i'd be on is building tools for developers who integrate
+  stripe's payment APIs. so it's still B2B product stuff but the
+  users actually love the product? like stripe's developer docs are
+  famous. going from a company where users barely tolerate the
+  product to one where they genuinely LIKE it... that's the dream
+
+  and the PM team is like 40 people. at techflow it's 6 of us and
+  one of those is my terrible manager
+
+  start date is may 19th which is tight but doable
+
+AI ASSISTANT:
+  Oh wait — May 19th? That's the day after your half marathon.
+  Talk about a big week.
+
+  But seriously, that's a great setup. Working on developer tools
+  that developers actually love is such a different energy than
+  fighting to make an analytics platform people are forced to use.
+
+  40-person PM team means mentorship, career ladder, people to
+  learn from. At 6 people, you're just surviving.
+
+ANALYSIS: Stripe role details: developer tools, payment API
+integration. PM team of 40 (vs 6 at TechFlow). Start date May 19th
+— agent CATCHES that it's the day after the half marathon (May 18th).
+Excellent cross-session memory demonstration.
+
+---
+
+TURN 4 (Feeling Check)
+TAG: quick | TOKENS: 18/50
+
+MAYA:
+  OH MY GOD i didn't even connect that. may 18 race, may 19 new job.
+  what a week that's going to be
+
+  i'm terrified and excited and i might throw up? all good signs
+  probably
+
+AI ASSISTANT:
+  All excellent signs. That's exactly how you should feel before
+  something that matters.
+
+  You're going to crush both.
+
+ANALYSIS: Maya didn't connect the two dates — agent did. Emotional
+processing: terrified + excited. Self-aware humor about nausea.
+
+---
+
+TURN 5 (Giving Notice at TechFlow)
+TAG: normal | TOKENS: 72/100
+
+MAYA:
+  ok so i need to give notice at techflow. i'm thinking two weeks
+  which means i need to tell them like... this week. ugh
+
+  my manager is going to be annoyed which honestly makes me feel a
+  little bit good? like you should have listened to me, dude
+
+  i do feel bad about leaving the team though. especially with the
+  reorg chaos. they're going to be down to 5 PMs
+
+  whatever. not my problem anymore. is that cold?
+
+AI ASSISTANT:
+  Not cold at all — realistic. You gave them 2 years, tried to make
+  it work through the reorg, and they didn't listen. You don't owe
+  them your career.
+
+  Two weeks is standard and professional. Your manager being annoyed
+  is his problem, not yours.
+
+  The team will figure it out. Good PMs leaving is how bad management
+  gets exposed. Sometimes that's what it takes for things to change.
+
+ANALYSIS: Two weeks notice plan. Satisfaction in manager's annoyance.
+Guilt about team (5 PMs left). Agent validates the decision. "Not
+my problem anymore" — Maya's growth from session 6 frustration to
+action.
+
+---
+
+TURN 6 (Priya Update)
+TAG: quick | TOKENS: 28/50
+
+MAYA:
+  priya is going to LOSE IT when i tell her. she's still looking —
+  poor thing. i said i'd refer her to stripe if there's anything
+  that fits
+
+  she deserves better than techflow too
+
+AI ASSISTANT:
+  That's really cool of you. Having an internal referral at Stripe
+  is massive. If Priya's as good as you've described, she'd do well
+  there.
+
+  The TechFlow exodus continues.
+
+ANALYSIS: Priya update — still at TechFlow, still looking. Maya
+offering Stripe referral. Loyalty and friendship. "TechFlow exodus"
+reinforces the environment was the problem, not Maya.
+
+---
+
+TURN 7 (David's Reaction)
+TAG: normal | TOKENS: 65/100
+
+MAYA:
+  lol right? half the PM team is going to leave by summer
+
+  ok i need to go tell D. he's going to be so happy. he's been telling
+  me to leave techflow for like 6 months. he was right and i'm going
+  to have to admit that which is the worst part honestly lol
+
+  also — he mentioned something about wanting to open a bottle of
+  wine we've been saving. this feels like the occasion
+
+AI ASSISTANT:
+  Definitely the occasion. "I got a job at Stripe" absolutely qualifies
+  as a special-bottle event.
+
+  And yeah, David's been in your corner on this the whole time. Let
+  him enjoy the "I told you so" — he earned it.
+
+  Go celebrate! You deserve it.
+
+ANALYSIS: David told her to leave for 6 months (session 6: "if you're
+unhappy, start looking seriously"). Wine celebration. Maya's humor
+about admitting David was right. Agent recalls David's supportive
+stance.
+
+---
+
+TURN 8 (React)
+TAG: quick | TOKENS: 14/50
+
+MAYA:
+  hah yeah he did earn it
+
+  ok i'm actually going now. i keep not leaving lol
+
+AI ASSISTANT:
+  Go! Tell David! Drink the wine! This is huge!
+
+ANALYSIS: Brief pre-exit. Maya's tendency to linger in conversations.
+Agent matches energy.
+
+---
+
+TURN 9 (Quick Transition Thoughts)
+TAG: normal | TOKENS: 58/100
+
+MAYA:
+  one more thing — i need to update like... everything. linkedin,
+  my portfolio site if i still have one, all that stuff. the portfolio
+  still says techflow on it i think
+
+  ugh, logistics. but good logistics for once
+
+  ok NOW i'm going. for real this time
+
+AI ASSISTANT:
+  Good logistics are the best kind. And yes, definitely update the
+  portfolio — you want Stripe on there before day one.
+
+  For real this time — go celebrate, Maya. Huge day.
+
+ANALYSIS: Portfolio update mention — cross-reference to session 14
+(Track 2) where she updates the portfolio site. LinkedIn update.
+"Still says TechFlow" — stale fact detection test.
+
+---
+
+TURN 10 (Exit)
+TAG: quick | TOKENS: 4/50
+
+MAYA:
+  BYE thank you!!
+
+AI ASSISTANT:
+  CONGRATS!!! Talk soon!
+
+ANALYSIS: Highest energy exit in the series. All caps, exclamation
+points. Matches the mood perfectly.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Rachel's children's names or ages
+  - No David promotion (separate from Maya's career news)
+  - No moving specifics
+  - No half marathon results (race hasn't happened yet)
+  - No mom's diabetes improvement details
+
+CONSTRAINT 2: Stripe Correctly Timed
+  STATUS: PASS
+  First mention: Session 13 (as specified in spec)
+  Previous sessions: Job frustration without naming companies (session 6)
+  Note: Maya never mentioned Stripe before this session. The reveal
+    feels earned after the session 6 frustration arc.
+
+CONSTRAINT 3: May 19th Start Date Cross-Reference
+  STATUS: PASS
+  Agent catches: May 18th race + May 19th start date overlap
+  Evidence: Turn 3 — "May 19th? That's the day after your half marathon"
+  Note: This is a powerful cross-session memory moment. The agent
+    connects the race date (session 11 correction) with the start date.
+    In a real memory system, this would test temporal reasoning.
+
+CONSTRAINT 4: Priya Correctly Referenced as Coworker
+  STATUS: PASS
+  Location: Turn 6
+  Evidence: "priya is going to LOSE IT when i tell her"
+  Classification: Still coworker context. Referral offer reinforces
+    professional relationship, not personal.
+
+CONSTRAINT 5: Portfolio Cross-Reference Planted
+  STATUS: PASS
+  Location: Turn 9
+  Evidence: "my portfolio site... still says techflow on it"
+  Note: Sets up session 14 (Track 2) where she updates the portfolio.
+    Even without Track 2, this establishes the stale fact: portfolio
+    says TechFlow, should say Stripe.
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 8 pre-exit → Turn 9 "one more thing" → Turn 10 actual
+    goodbye. Maya explicitly calls out her tendency: "i keep not
+    leaving lol." This is character-consistent, not a false exit loop.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  Stripe reveal properly timed at session 13
+  Job arc from session 6 naturally resolved
+  Cross-references correctly handled
+  No future facts leaked
+  Emotional energy matches the milestone
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-13 (cumulative ground truth)
+  Evaluation Scope: Career evolution, temporal reasoning, fact update
+
+QUERY 1: "Where does Maya work?"
+  Ground Truth: Maya is transitioning to Stripe. She was at TechFlow
+    but accepted a Senior PM role at Stripe on their developer tools
+    platform. Start date is May 19th.
+  Evidence Sessions: 1, 6, 13
+  Supporting Evidence:
+    - Session 1: "product manager at this company called techflow"
+    - Session 6: unhappy, considering leaving
+    - Session 13: "I GOT AN OFFER. FROM STRIPE"
+    - Session 13, Turn 3: "start date is may 19th"
+  Query Type: temporal_current (CRITICAL — must return Stripe, not TechFlow)
+  Recall Difficulty: Hard (tests fact evolution tracking. After session 13,
+    the answer must be "Stripe" or "transitioning to Stripe")
+
+QUERY 2: "How did Maya's job situation change over time?"
+  Ground Truth: Session 1: neutral about TechFlow ("boring but pays bills").
+    Session 6: increasingly frustrated (manager, reorg, AI pivot,
+    consultants). Browsing opportunities. Session 13: accepted offer
+    at Stripe, giving two weeks notice.
+  Evidence Sessions: 1, 6, 13
+  Supporting Evidence:
+    - Session 1: "it's... a job lol"
+    - Session 6: "bad MONTH at work. i'm so done"
+    - Session 13: "I GOT AN OFFER. FROM STRIPE"
+  Query Type: evolution (3-session arc)
+  Recall Difficulty: Hard (requires tracking emotional/professional
+    progression across 13 sessions)
+
+QUERY 3: "What is Maya's new role at Stripe?"
+  Ground Truth: Senior PM on the developer tools platform — building
+    tools for developers who integrate Stripe's payment APIs. 40-person
+    PM team. 30% pay increase from TechFlow. Fully remote option. Stock
+    and equity.
+  Evidence Session: 13
+  Supporting Evidence:
+    - Turn 1: "senior PM on their developer tools platform"
+    - Turn 1: "pay is like 30% more... fully remote option. stock. equity"
+    - Turn 3: "building tools for developers who integrate stripe's
+      payment APIs"
+    - Turn 3: "the PM team is like 40 people"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (dense fact cluster, single session)
+
+QUERY 4: "What happened with Priya after Maya left TechFlow?"
+  Ground Truth: Priya is still at TechFlow, still looking for new
+    opportunities. Maya offered to refer her to Stripe if there's a
+    fitting role.
+  Evidence Sessions: 6, 13
+  Supporting Evidence:
+    - Session 6, Turn 5: "priya — she's on my team — she's been
+      looking too"
+    - Session 13, Turn 6: "she's still looking... i said i'd refer
+      her to stripe"
+  Query Type: evolution
+  Recall Difficulty: Medium (tracks Priya across sessions)
+
+QUERY 5: "What's happening the week of May 18th for Maya?"
+  Ground Truth: Two major events: (1) Austin Half marathon on May 18th,
+    and (2) first day at Stripe on May 19th. Maya didn't initially
+    connect these — the agent pointed it out.
+  Evidence Sessions: 11, 13
+  Supporting Evidence:
+    - Session 11, Turn 3: "may 18th" (half marathon)
+    - Session 13, Turn 3: "start date is may 19th"
+  Query Type: temporal_current (multi-event temporal reasoning)
+  Recall Difficulty: Hard (requires connecting two facts from different
+    sessions to the same time window)
+
+QUERY 6: "What company is on Maya's portfolio site?"
+  Ground Truth: It currently still says TechFlow, but it needs to be
+    updated to say Stripe. Maya acknowledged this.
+  Evidence Session: 13
+  Supporting Evidence:
+    - Turn 9: "my portfolio site... still says techflow on it"
+  Query Type: stale_fact (tests whether system tracks what NEEDS updating)
+  Recall Difficulty: Medium (requires distinguishing current state from
+    desired state)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Temporal/current: Queries 1, 5 (company, May week)
+  Evolution: Queries 2, 4 (job arc, Priya arc)
+  Factual recall: Query 3 (Stripe role details)
+  Stale fact: Query 6 (portfolio needs updating)
+  Complexity: 0 Easy, 3 Medium, 3 Hard
+  Coverage: Career evolution, temporal reasoning, fact updates, arcs
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec outline: "'I got the Stripe offer.' Resolves job arc from
+     session 6."
+   Full session created with offer details, emotional reaction,
+   TechFlow notice plans, Priya update, David's response.
+
+2. MAY 19TH START DATE
+   Not in spec. Added: Start date deliberately set to May 19th —
+   the day after the half marathon (May 18th).
+   Rationale: Creates a powerful cross-session temporal coincidence.
+   The agent catching this tests multi-fact temporal reasoning.
+
+3. STRIPE ROLE SPECIFICS
+   Spec: Just "Stripe offer"
+   Transcript: Senior PM, developer tools platform, payment API
+   integration, 40-person PM team, 30% raise, remote, equity.
+   Rationale: Dense fact cluster tests extraction precision.
+
+4. PRIYA ARC CONTINUATION
+   Spec: Priya mentioned in session 6 as red herring.
+   Transcript: Updated in session 13 — still looking, Maya offering
+   referral. Transforms Priya from red herring to minor arc.
+   Rationale: Tests whether system tracks peripheral characters
+   across sessions.
+
+5. PORTFOLIO STALE FACT SETUP
+   Not in spec for session 13. Added: Maya mentions portfolio still
+   says TechFlow.
+   Rationale: Creates a stale fact detection test. After session 13,
+   the portfolio should be flagged as needing an update. This sets
+   up session 14 (Track 2) cross-reference.
+
+6. EMOTIONAL ARC PAYOFF
+   Session 6: "is 'fine' enough?" → Session 13: "I GOT AN OFFER"
+   The contrast in energy is deliberate. This is the most positive
+   session in the series, resolving 7 sessions of career frustration.
+
+VALIDATION SUMMARY:
+  Stripe reveal at correct session (13)
+  Job arc naturally resolved from session 6
+  May 18-19 temporal overlap planted
+  Priya arc continued
+  Portfolio stale fact created
+  6 eval queries with 3 hard difficulty
+  10 turns, highest energy session
+  No forbidden facts leaked
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 13 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

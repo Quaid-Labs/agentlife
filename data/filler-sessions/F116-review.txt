@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F116 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 8 and 10
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F116 (Filler — Work Session)
+Date: 2026-03-17 17:17
+Topic: help me create a runbook for our deployment process
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F116
+  Track: filler
+  Timestamp: 2026-03-17 17:17:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  hey can you help me write a runbook for our deployment process? we keep messing things up and i need something the team can actually follow
+
+AI ASSISTANT:
+  I'll help you build that. Let's start with the basics - what does your current deployment look like? Are you deploying to staging first, then prod? And what's the main thing people keep messing up?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  yeah staging then prod. main issue is people forget to run migrations before deploying the new code and then everything breaks lol
+
+AI ASSISTANT:
+  Classic. Okay, let's build this step-by-step. First, who needs to be involved in deployments? Just engineering or do you need PM/design sign-off too?
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  just eng but we should notify the team channel when we deploy. also QA needs to test staging before we go to prod
+
+AI ASSISTANT:
+  Got it. Here's a draft structure:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  yeah thats good. can you add rollback steps too? last time something broke we had no idea how to revert
+
+AI ASSISTANT:
+  Absolutely. Adding a rollback section:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yes good idea. like if error rate spikes above 5% or if core payment flow is broken. anything else?
+
+AI ASSISTANT:
+  Those are the critical ones. I'd add:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  perfect. can you also add the actual terminal commands? like the full thing so people can just copy paste
+
+AI ASSISTANT:
+  Sure, here's the commands section:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  yes and add the slack notification commands too if thats possible
+
+AI ASSISTANT:
+  Here's the prod section with Slack:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  yeah add datadog and maybe checking the admin panel to make sure things look normal
+
+AI ASSISTANT:
+  Adding monitoring section:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  good but what about database backups? should we snapshot before migrations?
+
+AI ASSISTANT:
+  100%. Adding that to the migration step:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  yeah that would be helpful. also who has access to run these commands? should i add that
+
+AI ASSISTANT:
+  Great idea. Here's the restore procedure and access control:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  nah this is great. can you put it all together in one doc i can share with the team?
+
+AI ASSISTANT:
+  Here's the complete runbook:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  can you send it as a markdown file? ill put it in our docs repo
+
+AI ASSISTANT:
+  I can't directly create files, but I can give you the exact content to copy. Just create a new file called `deployment-runbook.md` in your docs repo and paste everything I just shared above.
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  nah its perfect thanks! gonna send this to D and rach now
+
+AI ASSISTANT:
+  Awesome! Hope it saves you from the next deployment fire. Let me know if the team has feedback after using it a few times - runbooks always get better with real-world testing.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

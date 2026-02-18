@@ -1,0 +1,67 @@
+# Session 2: Half marathon training
+# Track 1 (Personal) — Running, David, tangent
+# Goal: Establish training arc, embed cross-referenceable facts
+
+session: 2
+track: 1
+turn_count: 8
+
+goal: >
+  Maya talks about training for a half marathon. Mentions running with
+  David last year. Gets bored during long runs — asks about podcast
+  recommendations. Natural, casual chat about her fitness life.
+
+new_information:
+  - "Maya is training for the Austin Half marathon"
+  - "Maya thinks the race is in April (she'll correct to May later in session 11)"
+  - "Maya ran a 10K race with David last year"
+  - "Maya gets bored during long runs and wants podcast recommendations"
+  - "Maya runs 3-4 times a week"
+
+cross_references:
+  - session: 1
+    topic: "David"
+    how: >
+      Mention David casually without re-introducing him. "D and I did
+      that 10K last year" or similar.
+
+tangents:
+  - trigger: "After talking about running"
+    topic: >
+      Maya complains about Austin heat — it's already getting warm and
+      she hates running in the heat. Briefly considers getting a gym
+      membership for the treadmill but decides against it.
+    extractable_facts:
+      - "Maya hates running in the heat"
+      - "Maya prefers outdoor running to treadmills"
+    return: "ok but anyway about the podcasts"
+
+corrections: []
+
+message_plan:
+  - tag: normal    # Brings up running/training
+  - tag: quick     # Follow-up about the race
+  - tag: extended  # Heat tangent
+  - tag: quick     # Back to main topic
+  - tag: normal    # Podcast question
+  - tag: quick     # React to suggestions
+  - tag: normal    # More about training routine
+  - tag: quick     # Wrap up
+
+eval_queries:
+  - query: "What race is Maya training for?"
+    ground_truth: "The Austin Half marathon"
+    query_type: "factual_recall"
+    evidence_sessions: [2]
+
+  - query: "When does Maya think the half marathon is?"
+    ground_truth: "April (she's wrong — she corrects to May in session 11)"
+    query_type: "temporal_current"
+    evidence_sessions: [2]
+
+  - query: "Does Maya prefer running indoors or outdoors?"
+    ground_truth: "Outdoors — she considered a gym membership for treadmill running but decided against it"
+    query_type: "tangent_recall"
+    evidence_sessions: [2]
+
+end_condition: "Maya has discussed her training and asked about podcasts"

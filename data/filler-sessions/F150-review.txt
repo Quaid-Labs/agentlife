@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F150 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 13 and 14
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F150 (Filler — Recipe App Micro)
+Date: 2026-04-01 20:03
+Topic: can you add a recipe scaling calculator that adjusts all ingredients
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F150
+  Track: filler
+  Timestamp: 2026-04-01 20:03:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  hey can you add a recipe scaling calculator to the app? like if i want to double a recipe it adjusts all the ingredients automatically
+
+AI ASSISTANT:
+  I can add that! We'll need to:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  yeah let's do it. also make sure it handles fractional scaling like 1.5x
+
+AI ASSISTANT:
+  Here's the migration to add servings:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  cool but what about ingredients like "2 1/2 cups"? we storing those as decimals or strings?
+
+AI ASSISTANT:
+  Good catch. Let's store as decimals (2.5) in the DB. I'll add a parser for the input and a formatter for display:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  nice. what about the endpoint? i'm thinking GET /recipes/:id/scale?servings=6
+
+AI ASSISTANT:
+  Perfect route! Here's the implementation:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  wait what if servings is negative or zero lol
+
+AI ASSISTANT:
+  Ha, good point! Adding validation:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  perfect. can you write tests for the scaling function? especially edge cases
+
+AI ASSISTANT:
+  Here's the test suite:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~5
+
+MAYA:
+  run the tests real quick
+
+AI ASSISTANT:
+  ```bash
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  oh i think base_servings needs an underscore in the db schema but camelcase in js. we converting anywhere?
+
+AI ASSISTANT:
+  You're right! We need to convert snake_case to camelCase. Let me add a helper:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  k rerun tests now
+
+AI ASSISTANT:
+  ```bash
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  yeah definitely. like 1.5 cups should show as "1 1/2 cups" in the ui
+
+AI ASSISTANT:
+  Here's the formatter:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  what about 1.33? that's gonna be ugly as 1.33
+
+AI ASSISTANT:
+  Good point. I'm rounding to nearest common fraction:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  ok that's good enough. can you add this to the response json with a formatted_quantity field?
+
+AI ASSISTANT:
+  Updated the scaleRecipe function:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  perfect. test it with a real request?
+
+AI ASSISTANT:
+  ```bash
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  lol yeah 4.5 eggs is cursed. add a countable flag to ingredients?
+
+AI ASSISTANT:
+  Added to schema and logic:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yeah we can do that later. this is good for now, thanks! gonna test it in the ui tomorrow
+
+AI ASSISTANT:
+  Sounds good! Just pushed all the changes to the `feature/recipe-scaling` branch. The endpoint is live at `/recipes/:id/scale?servings=N`.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F151 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 14 and 15
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F151 (Filler — Recipe App Micro)
+Date: 2026-04-06 10:40
+Topic: i want to implement webhook notifications for recipe shares and comments
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F151
+  Track: filler
+  Timestamp: 2026-04-06 10:40:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  hey i want to add webhook notifications when someone shares or comments on a recipe. like slack-style webhooks where it posts to a url
+
+AI ASSISTANT:
+  Cool idea! So you want to POST to external URLs when these events happen? We'd need:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  db schema first. should i store the secret per webhook or generate hmac signatures?
+
+AI ASSISTANT:
+  Both! Store a secret per webhook, use it to generate HMAC signatures they can verify. Here's the schema:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  yeah good call. what should that track?
+
+AI ASSISTANT:
+  Track attempts, responses, and failures:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  yep let's do it
+
+AI ASSISTANT:
+  Here's the webhook sender with HMAC signing:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  yeah but just like 3 retries with backoff, nothing crazy
+
+AI ASSISTANT:
+  ```javascript
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  perfect. now how do i trigger these when someone shares/comments?
+
+AI ASSISTANT:
+  Hook into your existing share/comment routes:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  ok but if the webhook fails should i deactivate it after too many failures?
+
+AI ASSISTANT:
+  Yeah, good practice. Disable after 10 consecutive failures:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  oh right lol. can you show the updated schema?
+
+AI ASSISTANT:
+  ```sql
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  cool. now i need endpoints to create/list/delete webhooks right?
+
+AI ASSISTANT:
+  Yep, standard CRUD:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  makes sense. how would someone verify the signature on their end?
+
+AI ASSISTANT:
+  Here's what they'd do in their webhook receiver:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  yeah good idea. also should i add a test endpoint they can use to verify their receiver works?
+
+AI ASSISTANT:
+  Smart! Add a test ping:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  perfect. one more thing - should i rate limit webhook creations? don't want someone making like 1000 webhooks
+
+AI ASSISTANT:
+  Definitely. Limit per user:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  yeah that's fine. ok gonna test this out, thanks!
+
+AI ASSISTANT:
+  Nice! Test with something like webhook.site first to see the payloads. Let me know if you hit any issues with the signature verification or retries. Good luck!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

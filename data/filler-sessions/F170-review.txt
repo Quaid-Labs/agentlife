@@ -1,0 +1,61 @@
+================================================================================
+FILLER SESSION F170 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F170 (Filler — Quick Question)
+Date: 2026-04-17 09:25
+Topic: how to make cold brew coffee at home
+Turn Count: 3
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F170
+  Track: filler
+  Timestamp: 2026-04-17 09:25:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  hey quick question - whats the easiest way to make cold brew at home? been spending too much at cafes lol
+
+AI ASSISTANT:
+  Super easy! Coarse ground coffee + cold water in a jar (1:4 ratio), let it sit in the fridge 12-24 hours, then strain. Way cheaper than buying it.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ok but like do i need a special thing to strain it or can i just use what i have
+
+AI ASSISTANT:
+  Nah, no special gear needed. A regular coffee filter or even a fine mesh strainer works fine. Just strain it into another container and you're good to go.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  perfect thx! gonna try this weekend, training runs have me chugging so much coffee rn
+
+AI ASSISTANT:
+  Nice! It'll keep in the fridge for about 2 weeks too, so you can make a big batch. Good luck with the marathon training!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

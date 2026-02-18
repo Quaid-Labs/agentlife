@@ -1,0 +1,50 @@
+================================================================================
+FILLER SESSION F045 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 15 and 16
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F045 (Filler — Quick Question)
+Date: 2026-04-08 08:49
+Topic: how to make cold brew coffee at home
+Turn Count: 2
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F045
+  Track: filler
+  Timestamp: 2026-04-08 08:49:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  hey whats the easiest way to make cold brew at home? like do i need special equipment
+
+AI ASSISTANT:
+  Nope! Just need coarse ground coffee, water, and any jar/pitcher. Mix 1:4 ratio (coffee:water), let it sit in the fridge 12-24 hours, then strain through a coffee filter or cheesecloth. That's it!
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  oh nice lol so i can literally just use a mason jar? how much coffee would i need for like a big batch
+
+AI ASSISTANT:
+  Yeah totally! For a quart mason jar (32oz), use about 3/4 cup coarse grounds + 3 cups cold water. Makes a concentrate you can dilute 1:1 with water or milk when you drink it. Lasts about a week in the fridge.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

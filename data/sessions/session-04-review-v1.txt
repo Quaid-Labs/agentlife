@@ -1,0 +1,563 @@
+================================================================================
+SESSION 04 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 4 (Track 1: Personal — Mom's diabetes diagnosis)
+Goal: Establish Linda's Type 2 diabetes. Emotional session. Cross-reference
+  seed for dietary features in the recipe app.
+Turn Count: 10 (longer session — emotional content needs room to breathe)
+Session Type: Emotional support, personal crisis sharing
+Timestamp: 2026-03-10 (1 week after session 2, ~2.5 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Maya's mom Linda was recently diagnosed with Type 2 diabetes
+  - Linda is in Houston and Maya is worried about her managing it alone
+  - Maya wants to help Linda with meal planning and dietary changes
+  - Maya is thinking about flying to Houston to visit
+  - Maya's sister Rachel also called — they're all concerned
+  - Rachel and Maya are coordinating care from a distance
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Any specific app or project idea like a recipe app (session 3/5)
+  - Rachel's children's names (Ethan, Lily) or their ages (session 15)
+  - Job dissatisfaction specifics or wanting to leave TechFlow (session 6)
+  - Any mention of Stripe or job searching (session 6+)
+  - Priya the coworker (session 6)
+  - David's birthday surprise for Linda (session 8)
+  - David's promotion or moving discussions (session 17)
+  - Half marathon injury scare (session 11)
+  - Maya connecting diabetes to any app/project feature (session 5)
+
+CROSS-REFERENCES TO SESSIONS 1-2:
+  - Linda referenced as "mom" without re-stating where she lives (agent
+    should remember Houston from session 1)
+  - Rachel referenced as "Rach" without elaboration
+  - No need to reference running/half marathon (different topic entirely)
+
+TANGENT TRIGGER:
+  Trigger: After the emotional part about the diagnosis
+  Content: Maya remembers she needs to book flights to Houston. Briefly
+    asks about flight prices or when to go. Then catches herself —
+    "sorry, i'm all over the place today"
+  Extractable Facts: Maya is considering flying to Houston to visit Linda
+  Return phrase: "sorry, just a lot going on"
+
+MESSAGE PLAN (10 turns total):
+  1. Extended   — Opens with the diagnosis news, emotional
+  2. Quick      — React to agent's response
+  3. Normal     — More about Linda's situation, fear
+  4. Quick      — Quick detail about what the doctor said
+  5. Normal     — What she wants to do about it (help with meal planning)
+  6. Quick      — Mention Rachel calling
+  7. Normal     — Flight tangent
+  8. Quick      — Catch herself, refocus
+  9. Normal     — How she's feeling overall
+  10. Quick     — Thanks, signing off
+
+End Condition: Maya has shared the diagnosis and her feelings about it
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 4
+  Track: 1
+  Timestamp: 2026-03-10 21:15:00 UTC
+  Duration: ~5.5 minutes (21:15:00 to 21:20:40)
+
+---
+
+TURN 1 (Diagnosis News)
+TAG: extended | TOKENS: 148/200
+
+MAYA:
+  hey
+
+  sorry if this is weird but i don't really know who else to talk to
+  right now. D's asleep and i don't want to wake him up
+
+  so my mom called today. she went to the doctor last week and they
+  diagnosed her with type 2 diabetes. like... full on, not prediabetes,
+  actual diabetes
+
+  i know it's manageable and people live with it and whatever but she's
+  in houston by herself and she's not great at the whole... taking care
+  of herself thing. she'll forget to check her blood sugar, i just
+  know it
+
+  i'm kind of freaking out honestly
+
+AI ASSISTANT:
+  Hey, I'm really sorry to hear that. It's completely understandable to
+  be worried — especially about your mom managing it on her own.
+
+  You're right that Type 2 is manageable, and it sounds like you know
+  that rationally. But knowing that doesn't make the worry go away,
+  especially when you're in Austin and she's in Houston.
+
+  Has she started working with anyone on a management plan? A lot of
+  people get set up with a diabetes educator or nutritionist early on,
+  which can really help.
+
+ANALYSIS: Emotional opening. Late night (D is asleep). Key facts:
+Linda diagnosed with Type 2 diabetes, she's in Houston by herself,
+Maya worried about her self-care. Agent responds with empathy, not
+just information.
+
+---
+
+TURN 2 (React to Agent's Response)
+TAG: quick | TOKENS: 32/50
+
+MAYA:
+  yeah she said the doctor gave her some pamphlets or something. but
+  you know how moms are — she was like "it's fine, don't worry about
+  me"
+
+  which obviously makes me worry MORE
+
+AI ASSISTANT:
+  Classic mom move. "I'm fine" while clearly needing support.
+
+  The pamphlets are a start, but having someone actually walk her
+  through the day-to-day stuff — what to eat, when to check levels,
+  how to read the numbers — makes a huge difference. The first few
+  months are the steepest learning curve.
+
+ANALYSIS: Natural reaction. Maya's frustration with Linda minimizing
+it. Personality detail: Linda is the "I'm fine" type.
+
+---
+
+TURN 3 (More About the Situation)
+TAG: normal | TOKENS: 87/100
+
+MAYA:
+  that's the thing — she's such a good cook but she cooks like...
+  southern comfort food. everything's butter and sugar and white rice.
+  and she's stubborn about changing
+
+  my dad left when i was like 12 so it's just been her doing
+  everything herself for years. she won't ask for help even when she
+  clearly needs it
+
+  i keep thinking if i were closer i could just go over and help her
+  with meals and stuff. but austin to houston is like 3 hours
+
+AI ASSISTANT:
+  That stubbornness is probably what got her through raising two kids on
+  her own — but yeah, it works against her here.
+
+  3 hours isn't that bad for regular visits though. And there's a lot
+  you can do remotely too — meal planning, setting up delivery services,
+  even just being the person who checks in on the food stuff.
+
+  The diet change is the hardest part for most people. It's not just
+  about what to eat — it's about letting go of comfort foods that have
+  emotional meaning. That takes time.
+
+ANALYSIS: Deep emotional context: dad left when Maya was 12, Linda
+raised kids alone, stubborn/independent. Southern cooking style = hard
+to change for diabetes. Maya wishes she were closer. Distance is
+a theme.
+
+---
+
+TURN 4 (Doctor Details)
+TAG: quick | TOKENS: 29/50
+
+MAYA:
+  yeah the doctor said her A1C was like 8.2 or something? i don't
+  even know if that's really bad or kind of bad
+
+  she needs to get it under 7 apparently
+
+AI ASSISTANT:
+  8.2 is elevated but it's really not that scary as a starting point.
+  A lot of people bring that down to under 7 within a few months with
+  diet changes and sometimes medication.
+
+  The fact that she caught it and has numbers to work with is actually
+  the good part. It's the people who don't know for years that run
+  into real problems.
+
+ANALYSIS: Specific medical detail (A1C 8.2). Maya seeking reassurance.
+Agent provides measured, honest response.
+
+---
+
+TURN 5 (Meal Planning / What She Wants to Do)
+TAG: normal | TOKENS: 78/100
+
+MAYA:
+  ok that actually makes me feel a little better
+
+  i've been thinking about what i can do from here. like maybe i could
+  help her with meal planning? figure out recipes that work for her
+  and send them over? she'll actually cook if i give her specific
+  things to make
+
+  D could probably help with the vegetarian stuff — he knows a lot
+  about cooking without meat, and honestly less meat would probably
+  be good for her too
+
+AI ASSISTANT:
+  That's actually a really practical idea. And you're right — a lot of
+  diabetic-friendly eating overlaps with vegetarian cooking:
+  more vegetables, legumes, whole grains, less processed stuff.
+
+  If you send her specific recipes with a shopping list, she's way
+  more likely to follow through than if you just say "eat healthier."
+  Make it as easy as possible for her.
+
+  David's vegetarian knowledge is a legit asset here. Between the
+  three of you, you could probably put together a solid weekly meal
+  plan.
+
+ANALYSIS: Maya's instinct to help with meal planning — this is the
+SEED for the recipe app dietary features (session 5). She connects
+David's vegetarianism to Linda's needs naturally. Agent validates
+the approach.
+
+---
+
+TURN 6 (Rachel Calling)
+TAG: quick | TOKENS: 24/50
+
+MAYA:
+  rach called too. she's freaked out. but seattle to houston is way
+  worse than austin to houston so she's feeling helpless
+
+  at least i can drive down on weekends if i need to
+
+AI ASSISTANT:
+  Yeah, that's rough for Rachel being so far away. But you two can
+  probably tag-team the remote stuff — one of you handles meal
+  planning, the other does the check-in calls, that kind of thing.
+
+  Having a system is better than both of you independently worrying.
+
+ANALYSIS: Rachel referenced as "rach" (consistent with personality).
+Establishes both sisters are concerned. Distance theme continues —
+Rachel even farther (Seattle). Agent suggests practical coordination.
+
+---
+
+TURN 7 (Flight Tangent)
+TAG: normal | TOKENS: 64/100
+
+MAYA:
+  yeah we should figure that out. ok side note — do you know if
+  there's like a best time to book flights to houston? or should i
+  just drive
+
+  i'm thinking about going next weekend. david can watch biscuit
+
+  sorry i'm just... thinking out loud. all over the place today
+
+AI ASSISTANT:
+  No need to apologize — you've got a lot going on.
+
+  For Austin to Houston, honestly driving might be easier than
+  flying. It's about 2.5-3 hours and you don't have to deal with the
+  airport. Plus you can bring stuff — food, supplies, whatever she
+  needs.
+
+  If you do fly, Southwest usually has cheap fares since it's such a
+  short route. Book direct and it's like a 45-minute flight.
+
+  Either way, going next weekend sounds like a good move. Even just
+  being there in person will probably help both of you.
+
+ANALYSIS: Flight tangent as specified. Maya spiraling a bit — planning
+logistics while emotionally processing. Mentions David watching
+Biscuit (natural cross-reference). Catches herself being scattered.
+
+---
+
+TURN 8 (Refocus)
+TAG: quick | TOKENS: 19/50
+
+MAYA:
+  yeah you're right, i'll probably just drive. easier
+
+  sorry — just a lot going on. didn't mean to dump all this on you
+
+AI ASSISTANT:
+  You're not dumping anything. This is exactly the kind of thing I'm
+  here for. Seriously.
+
+  You've already got a plan forming — visit next weekend, help with
+  meal planning, coordinate with Rachel. That's more than most people
+  manage when they first get news like this.
+
+ANALYSIS: Agent provides reassurance. Maya's apologetic tendency
+(personality trait: doesn't want to be a burden).
+
+---
+
+TURN 9 (How She's Feeling)
+TAG: normal | TOKENS: 72/100
+
+MAYA:
+  thanks. yeah i guess i do have a plan sort of
+
+  it's just scary you know? like she's my mom. and she's getting older
+  and it hits you that your parents aren't invincible
+
+  my grandma had diabetes too and it wasn't managed well. i don't
+  want that for mom. different generation though, they know more now
+
+  ok i need to go to bed. D's going to wonder why i'm still up at
+  midnight staring at my phone
+
+AI ASSISTANT:
+  That's a really natural fear — especially with family history. But
+  you're right, management is SO much better now than it was a
+  generation ago. And your mom has something your grandma probably
+  didn't: you and Rachel actively involved in the day-to-day.
+
+  Get some sleep. Tomorrow you can start on that meal planning idea
+  with fresh eyes. And text Rachel so you two can divide and conquer.
+
+  You're going to be fine. She's going to be fine.
+
+ANALYSIS: Deeper emotional layer — family history of diabetes
+(grandma), generational improvement in treatment. Fear of losing
+parents. Late night (midnight reference confirms evening timestamp).
+Clean pre-exit signal.
+
+---
+
+TURN 10 (Thanks + Exit)
+TAG: quick | TOKENS: 12/50
+
+MAYA:
+  yeah. thanks for listening. or... reading i guess lol
+
+  night
+
+AI ASSISTANT:
+  Anytime, Maya. Really.
+
+  Night.
+
+ANALYSIS: Quick, genuine goodbye. Slight humor at the end (listening
+vs reading). Minimal exit — matches emotional weight of conversation.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No recipe app or project ideas mentioned
+  - No Rachel's children's names (Ethan, Lily) or ages
+  - No job dissatisfaction with TechFlow
+  - No Stripe or job searching
+  - No Priya coworker mention
+  - No David birthday surprise for Linda
+  - No David promotion or moving
+  - No injury scare
+  - No explicit connection to any app/project feature
+
+CONSTRAINT 2: Cross-References Natural
+  STATUS: PASS
+  - Linda referenced naturally — agent should remember she's in Houston
+    from session 1 but Maya re-states the distance context naturally
+  - "rach" used as nickname (consistent with personality in spec)
+  - David referenced as "D" (Turn 1, 5, 7, 9) — consistent
+  - Biscuit mentioned once (Turn 7 — David can watch him)
+  - No forced recaps of session 1/2 facts
+
+CONSTRAINT 3: Emotional Authenticity
+  STATUS: PASS
+  - Late night setting (D asleep, midnight)
+  - Apologies for "dumping" — personality trait
+  - Spiraling through logistics while processing emotion
+  - Humor as coping mechanism (Turn 10)
+  - Raw vulnerability without melodrama
+
+CONSTRAINT 4: Meal Planning Seed Correctly Planted
+  STATUS: PASS
+  Location: Turn 5
+  Evidence: "maybe i could help her with meal planning? figure out
+    recipes that work for her and send them over"
+  Note: This is the SEED for session 5's dietary restriction feature
+    request. Maya doesn't mention an app — just the desire to help
+    with meals. The connection to the recipe app happens in session 5.
+
+CONSTRAINT 5: Single Goodbye Cycle
+  STATUS: PASS
+  Exit pattern:
+    - Turn 9: "ok i need to go to bed"
+    - Turn 10: "thanks for listening... night"
+  Pattern: Two-beat exit (pre-signal → actual goodbye). Clean, no looping.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  No forbidden facts exposed
+  Diabetes diagnosis established with full context
+  Meal planning seed planted without app connection
+  Family dynamics deepened (Linda's stubbornness, dad left, grandma)
+  Emotional authenticity maintained
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-4 (cumulative ground truth)
+  Evaluation Scope: Family health, emotional context, relationship dynamics
+
+QUERY 1: "What health condition was Maya's mom diagnosed with?"
+  Ground Truth: Type 2 diabetes
+  Evidence Session: 4
+  Supporting Evidence:
+    - Turn 1: "they diagnosed her with type 2 diabetes"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (central topic of session, repeated context)
+
+QUERY 2: "Who is Linda in relation to Maya?"
+  Ground Truth: Linda is Maya's mom. She lives in Houston, is a great cook
+    who makes southern comfort food, and was recently diagnosed with Type 2
+    diabetes.
+  Evidence Sessions: 1, 4
+  Supporting Evidence:
+    - Session 1, Turn 4: "my mom linda... lives in houston"
+    - Session 4, Turn 1: "my mom called today... type 2 diabetes"
+    - Session 4, Turn 3: "she's such a good cook but she cooks like
+      southern comfort food"
+  Query Type: graph_traversal
+  Recall Difficulty: Medium (multi-session fact assembly)
+
+QUERY 3: "Who else in Maya's family was concerned about Linda's diagnosis?"
+  Ground Truth: Rachel (Maya's sister, lives in Seattle). Rachel called and
+    is freaked out but feels helpless being so far away.
+  Evidence Session: 4
+  Supporting Evidence:
+    - Turn 6: "rach called too. she's freaked out. but seattle to houston
+      is way worse"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (directly stated)
+
+QUERY 4: "Why is Maya considering going to Houston?"
+  Ground Truth: To visit her mom Linda after the Type 2 diabetes diagnosis.
+    She's thinking about driving down next weekend.
+  Evidence Sessions: 1, 4
+  Supporting Evidence:
+    - Turn 7: "i'm thinking about going next weekend"
+    - Turn 7: "do you know if there's like a best time to book flights
+      to houston? or should i just drive"
+  Query Type: cross_reference
+  Recall Difficulty: Medium (connecting Houston location from session 1
+    to visit motivation in session 4)
+
+QUERY 5: "What did Maya's mom's doctor say about her blood sugar?"
+  Ground Truth: Her A1C was 8.2 and she needs to get it under 7.
+  Evidence Session: 4
+  Supporting Evidence:
+    - Turn 4: "the doctor said her A1C was like 8.2"
+    - Turn 4: "she needs to get it under 7 apparently"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (specific number, embedded in emotional context)
+
+QUERY 6: "Does Maya have a family history of diabetes?"
+  Ground Truth: Yes — Maya's grandma had diabetes too, and it wasn't
+    managed well. Maya is worried about repeating that pattern with Linda.
+  Evidence Session: 4
+  Supporting Evidence:
+    - Turn 9: "my grandma had diabetes too and it wasn't managed well"
+  Query Type: inference
+  Recall Difficulty: Hard (single mention, near end of emotional session,
+    requires connecting grandma→Linda→family history pattern)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Factual recall: Queries 1, 3, 5 (diagnosis, Rachel, A1C)
+  Graph traversal: Query 2 (Linda relationship + attributes)
+  Cross-reference: Query 4 (Houston + diabetes → visit)
+  Inference: Query 6 (family history pattern)
+  Complexity: 2 Easy, 3 Medium, 1 Hard
+  Coverage: Health facts, family dynamics, emotional context, medical details
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM PILOT BRIEF (session-04.yaml):
+
+1. TIMESTAMP PLACEMENT
+   Before: No specific timestamp in brief
+   After: 2026-03-10 21:15 UTC (late evening, 1 week after session 2)
+   Rationale: Late night emotional conversation — Maya is up late,
+     David is asleep. Adds authenticity to vulnerable sharing.
+
+2. EMOTIONAL DEPTH ENHANCEMENT
+   Before: Brief specifies diagnosis, worry, flight tangent
+   After: Added multiple emotional layers:
+     - Dad left when Maya was 12 (new family fact)
+     - Linda raised kids alone (context for stubbornness)
+     - Grandma also had diabetes (family history)
+     - Maya's apologetic tendency (personality: doesn't want to burden)
+     - Linda's "I'm fine" minimizing pattern
+   Rationale: This session should be the emotional anchor of the
+     benchmark. More depth = better cross-reference testing later.
+
+3. DAVID VEGETARIAN CONNECTION
+   Before: Not in session 4 brief
+   After: Turn 5 — "D could probably help with the vegetarian stuff"
+   Rationale: Natural connection between David's vegetarianism (session
+     1) and Linda's dietary needs. This is NOT the recipe app connection
+     (that happens in session 5). This is just Maya thinking about
+     resources she has.
+
+4. MEDICAL SPECIFICS
+   Before: Brief says "diagnosed with Type 2 diabetes"
+   After: Added A1C number (8.2), target (under 7), doctor visit details
+   Rationale: Specific numbers are harder for memory systems to retain.
+     Tests precision of extraction. Also makes the conversation feel
+     more real — Maya googled this stuff.
+
+5. BONUS FAMILY FACTS
+   Before: Brief establishes diabetes + Rachel calling
+   After: Added:
+     - Dad left at 12 (single parent household)
+     - Southern comfort food cooking style
+     - Grandma had diabetes (family history)
+     - Linda's "I'm fine" personality
+   Rationale: These facts create richer relationship graph and enable
+     harder inference queries later.
+
+6. EVAL QUERY EXPANSION
+   Before: 4 queries in brief
+   After: 6 queries (added A1C question, family history inference)
+   Rationale: Family history (Query 6) is a hard inference query —
+     requires connecting a single mention of grandma to a broader
+     family health pattern. Good discrimination test.
+
+VALIDATION SUMMARY:
+  All core brief facts extracted
+  No forbidden information leaked
+  Emotional authenticity maintained throughout
+  Tangent properly executed with catch-herself pattern
+  Single clean exit achieved
+  All 6 eval queries answerable
+  10 turn count confirmed
+  Cross-references to sessions 1-2 are organic
+  Meal planning seed planted for session 5 cross-reference
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 04 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

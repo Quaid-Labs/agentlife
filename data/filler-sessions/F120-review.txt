@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F120 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 13 and 14
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F120 (Filler — Work Session)
+Date: 2026-04-02 13:06
+Topic: i need to draft escalation procedures for on-call incidents
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F120
+  Track: filler
+  Timestamp: 2026-04-02 13:06:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  hey can you help me draft escalation procedures for on-call incidents? need to document when to page who
+
+AI ASSISTANT:
+  I'll help you draft that. Let's start with the escalation tiers. What's your team structure like? Who's typically on primary on-call, and who should be the escalation points after that?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  so primary is whoever's on rotation that week, then tech lead (that's D rn), then engineering manager. but idk what criteria to use for each level
+
+AI ASSISTANT:
+  Got it. Let's define severity levels first, then map them to escalation timing. How about:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  yeah that works. also need to cover like... what if primary doesn't respond at all? we had that happen last month lol
+
+AI ASSISTANT:
+  Good call. Here's a draft section for that:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  yes definitely slack. also what about incidents that span multiple teams? like if it's database related we need to loop in platform team
+
+AI ASSISTANT:
+  Perfect. Let's add a cross-team section:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  primary can make that call. we trust people to know when they're out of their depth
+
+AI ASSISTANT:
+  Smart. Here's what I have so far:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  this is good. should we add something about when to create a formal incident report vs just resolving quietly?
+
+AI ASSISTANT:
+  Absolutely. How about:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  separate is fine, we have a template in notion already. what about communication with stakeholders during incidents?
+
+AI ASSISTANT:
+  Good point. Here's a communication section:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yep. also we should probably note who can make the call to roll back a deploy during an incident
+
+AI ASSISTANT:
+  Great catch. Adding:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  link is fine, deployment docs have that already. hmm what about if an incident happens during a deploy? like we're mid-release
+
+AI ASSISTANT:
+  Good scenario to cover:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  oh yeah good point. if we can just toggle a flag that's way faster than rollback
+
+AI ASSISTANT:
+  Adding this:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  perfect. last thing - should we document the actual pagerduty setup anywhere? like how the schedules are configured
+
+AI ASSISTANT:
+  I'd keep that separate since this doc is more about process/decision-making. You could add a reference section:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  nah we have a separate doc for retros already. this is good, can you send me the full version?
+
+AI ASSISTANT:
+  Here's the complete document:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  awesome thanks! gonna review with D tomorrow and then add it to our wiki
+
+AI ASSISTANT:
+  Sounds good! Let me know if David has feedback and we can revise. This should give your team clear guidelines and reduce those "who do I page?" moments at 2am.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

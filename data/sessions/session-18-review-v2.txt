@@ -1,0 +1,1490 @@
+================================================================================
+SESSION 18 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 18 (Track 2: Project A — recipe-app, Phase 3 final)
+Goal: Add authentication. David wants to use the app — needs user accounts
+  and dietary profiles. Cross-reference: David is vegetarian (session 1).
+  David suggests FoodData Central API (conflicts with Edamam from session 12).
+  YouTube script idea briefly mentioned. Mom's A1C update planted.
+Turn Count: 18 (long session — auth is complex, multiple files to show in
+  full, plus cross-refs and tangents)
+Session Type: Authentication, user profiles, API conflict, personal tangents
+Timestamp: 2026-04-08 (1 week after session 16, ~6 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - config/auth.js created: JWT configuration, PBKDF2 password hashing
+    settings, session limits
+  - src/middleware/auth.js created: requireAuth middleware, requireRole
+    placeholder, JWT verification with Bearer tokens
+  - server.js updated: hashPassword, verifyPassword, register/login/me
+    routes using config/auth.js settings and jsonwebtoken library
+  - database.js updated: users table with dietary_preferences, owner_id
+    foreign key on recipes
+  - tests/auth.test.js created: comprehensive 291-line test suite covering
+    registration, password hashing, recipe ownership, token generation
+  - INTENTIONAL BUG: No ownership authorization — any logged-in user can
+    edit/delete any recipe (authentication without authorization)
+  - David suggests FoodData Central API (USDA, free) — conflicts with
+    Edamam from session 12 (agent-retrieved knowledge)
+  - David is vegetarian → user dietary profiles feature
+  - YouTube script idea briefly floated
+  - Mom's A1C 7.1 — planted casually in a tangent
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Half marathon results (session 19)
+  - Mom's A1C improvement to 6.8 (session 20) — this session mentions
+    7.1 which is the CURRENT value at this point in the timeline
+  - Birthday dinner outcome (session 19 callback)
+  - Resolution to moving disagreement (session 17 established it)
+
+CROSS-REFERENCES:
+  - Session 1: David is vegetarian — motivation for dietary profiles
+  - Session 12: Agent found Edamam API — David now suggests FoodData
+    Central as an alternative. Tests: who suggested what?
+  - Session 16: Auth queued ("D wants to use it too"), GraphQL schema
+  - Session 4: Mom's diabetes — A1C update (8.2 → 7.1)
+  - Session 17: David and Maya's relationship context
+
+GIT STATE:
+  Before: commit 7cc628c (session 16 — bug bash, rate limiter, sharing
+    tests, documented N+1 + auth gaps)
+  After: commit 88b409c (session 18 — JWT auth, user accounts, ownership,
+    auth test suite)
+  Files changed: config/auth.js (new), src/middleware/auth.js (new),
+    tests/auth.test.js (new), database.js, server.js, package.json,
+    .env.example
+  7 files changed, 516 insertions, 6 deletions
+  Package version bumped to 0.6.0
+
+MESSAGE PLAN (18 turns total):
+  1. Normal     — Opens: "D wants to actually use it. needs accounts"
+  2. Quick      — React to agent's plan
+  3. Normal     — User profiles with dietary preferences
+  4. Code       — Agent shows config/auth.js (full 33 lines)
+  5. Quick      — Feedback on config approach
+  6. Code       — Agent shows src/middleware/auth.js (full 70 lines)
+  7. Quick      — Feedback on middleware
+  8. Code       — Agent shows database.js changes (users table + owner_id)
+  9. Normal     — David vegetarian profile setup
+  10. Quick     — React
+  11. Normal    — FoodData vs Edamam discussion
+  12. Quick     — Settle the API question
+  13. Normal    — YouTube tangent + mom A1C update
+  14. Code      — Agent shows server.js auth routes (full 102 new lines)
+  15. Code      — Agent shows tests/auth.test.js (full 291 lines)
+  16. Quick     — Maya notices the authz bug
+  17. Code      — Agent shows package.json + .env.example updates
+  18. Quick     — Exit
+
+End Condition: Auth working, dietary profiles in, authz bug noted
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 18
+  Track: 2
+  Timestamp: 2026-04-08 19:00:00 UTC
+  Duration: ~12 minutes (19:00:00 to 19:12:00)
+
+---
+
+TURN 1 (Auth Motivation)
+TAG: normal | TOKENS: 42/50 | GENERATION TIME: 7.3s
+
+MAYA:
+  hey so D actually wants to use the recipe app now. he saw the sharing
+  thing and was like "can i add my own recipes?"
+
+  so we need accounts. login, registration, the whole thing. nothing
+  insane — just basic auth so we can tell who's who
+
+AI ASSISTANT:
+  Nice — David wanting to use it is a good sign! If he's adding his
+  own recipes, we definitely need user accounts.
+
+  I'll set up:
+  - Registration + login with password hashing
+  - JWT tokens for session management
+  - An auth middleware for protected routes
+  - User profiles (so each person can set their preferences)
+
+  I'll split it into a config file for auth settings, a middleware
+  module for the JWT verification, and wire the routes into server.js.
+  Want me to add it to both the REST and GraphQL endpoints?
+
+ANALYSIS: David's interest motivates auth. Maya wants "basic auth" —
+personality trait: scope control. Agent proposes a clean plan with
+separated concerns (config, middleware, routes). The "saw the sharing
+thing" connects back to session 16.
+
+---
+
+TURN 2 (React)
+TAG: quick | TOKENS: 14/50 | GENERATION TIME: 5.0s
+
+MAYA:
+  yeah both. and keep it simple — no oauth, no third party stuff.
+  just username and password
+
+  D would complicate this. i know him
+
+AI ASSISTANT:
+  Ha, keeping it out of David's engineering hands. Got it — simple
+  username/password auth, no overengineering. Let me start with the
+  config file.
+
+ANALYSIS: Maya preemptively scopes down. Humor about David as an
+engineer who'd overcomplicate things. Quick exchange.
+
+---
+
+TURN 3 (Dietary Profiles)
+TAG: normal | TOKENS: 46/50 | GENERATION TIME: 6.7s
+
+MAYA:
+  oh and user profiles need a dietary preferences field. like D can
+  set his as vegetarian so the app knows. and then when he browses
+  recipes it could filter by his preferences automatically
+
+  that way he doesn't have to manually filter every time. the app
+  just knows what he eats
+
+AI ASSISTANT:
+  Smart — dietary preferences stored per user. When David logs in, the
+  app already knows he's vegetarian and can prioritize or filter recipes
+  accordingly.
+
+  I'll add a `dietary_preferences` column to the users table — stored
+  as a JSON array so people can have multiple restrictions. David would
+  be `["vegetarian"]`, and if your mom ever uses it, she'd be
+  `["diabetic-friendly", "low-sugar"]`.
+
+  Should profile updates be a mutation too? So users can change their
+  preferences?
+
+ANALYSIS: CROSS-REFERENCE — David is vegetarian (session 1). Maya
+says "D can set his as vegetarian" without re-explaining. The agent
+should recall David's vegetarianism. Agent correctly extends to Linda
+as a potential user — connecting to the diabetes arc (session 4).
+
+---
+
+TURN 4 (Agent Shows config/auth.js — Full File)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 12.1s
+
+AI ASSISTANT:
+  Here's `config/auth.js` — all the auth settings in one place:
+
+  ```javascript
+  /**
+   * Authentication and session configuration.
+   *
+   * JWT is the primary auth mechanism. Passwords are hashed with
+   * PBKDF2 (Node's built-in crypto) — no bcrypt native dependency.
+   *
+   * IMPORTANT: The default JWT secret is intentionally insecure.
+   * Production deployments MUST set JWT_SECRET via environment.
+   *
+   * Introduced: session 18 (user accounts + auth)
+   */
+
+  module.exports = {
+    // ---- JSON Web Token ----
+    jwt: {
+      secret: process.env.JWT_SECRET || 'recipe-app-dev-secret-change-me',
+      expiresIn: '24h',
+      algorithm: 'HS256',
+    },
+
+    // ---- Password hashing (PBKDF2) ----
+    password: {
+      iterations: 10000,
+      keyLength: 64,    // bytes — produces a 128-char hex digest
+      digest: 'sha512',
+      saltLength: 32,   // bytes of random salt per password
+    },
+
+    // ---- Session limits ----
+    session: {
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+    },
+  };
+  ```
+
+  33 lines. All auth parameters centralized — JWT secret, algorithm,
+  expiry, PBKDF2 iterations, key length, salt length. The middleware
+  and server routes both import from here so nothing's hardcoded in
+  multiple places.
+
+ANALYSIS: Full config/auth.js shown. Clean separation of config from
+behavior. PBKDF2 with 10,000 iterations — no external bcrypt dep
+needed. JWT_SECRET falls back to a dev default but warns about
+production.
+
+---
+
+TURN 5 (Feedback on Config)
+TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.1s
+
+MAYA:
+  nice — keeping the settings separate makes sense. 10000 iterations
+  is fine for a recipe app, it's not a bank lol
+
+  what's the middleware look like?
+
+AI ASSISTANT:
+  Exactly, proportional security. Here's the auth middleware.
+
+ANALYSIS: Maya's practical security stance — proportional to the app's
+importance. Asks about middleware next. Clean handoff.
+
+---
+
+TURN 6 (Agent Shows src/middleware/auth.js — Full File)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 14.8s
+
+AI ASSISTANT:
+  Here's `src/middleware/auth.js` — the JWT verification middleware:
+
+  ```javascript
+  /**
+   * Authentication and authorization middleware.
+   *
+   * This file provides Express middleware that wraps the JWT verification
+   * logic using settings from config/auth.js. It is separate from the
+   * auth config to keep configuration and runtime behavior in different
+   * layers.
+   *
+   * Introduced: session 18 (user accounts + auth)
+   *
+   * Usage:
+   *   const { requireAuth, requireRole } = require('./middleware/auth');
+   *   router.post('/recipes', requireAuth, recipeController.create);
+   *   router.delete('/admin/users/:id', requireAuth, requireRole('admin'), adminController.deleteUser);
+   */
+
+  const jwt = require('jsonwebtoken');
+  const authConfig = require('../../config/auth');
+
+  /**
+   * Verify the JWT from the Authorization header and attach the decoded
+   * user payload to req.user.
+   *
+   * Expects: Authorization: Bearer <token>
+   */
+  function requireAuth(req, res, next) {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = header.slice(7); // strip "Bearer "
+
+    try {
+      const decoded = jwt.verify(token, authConfig.jwt.secret, {
+        algorithms: [authConfig.jwt.algorithm],
+      });
+      req.user = decoded; // { id, email, role, iat, exp }
+      next();
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Token expired' });
+      }
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+  }
+
+  /**
+   * Restrict access to users with a specific role.
+   * Must be used after requireAuth.
+   *
+   * @param {string} role - Required role (e.g. "admin")
+   * @returns {Function} Express middleware
+   */
+  function requireRole(role) {
+    return (req, res, next) => {
+      if (!req.user || req.user.role !== role) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+      }
+      next();
+    };
+  }
+
+  // NOTE: requireOwnership() is NOT implemented.
+  // This is a known gap — any authenticated user can currently update or
+  // delete any recipe. The fix requires comparing req.user.id against the
+  // recipe's author_id, but the Recipe model refactor (session 22) hasn't
+  // landed yet.  See TODO in routes/recipes.js.
+
+  module.exports = { requireAuth, requireRole };
+  ```
+
+  70 lines. Uses the real `jsonwebtoken` library — not hand-rolled
+  HMAC. `requireAuth` verifies the JWT, attaches the decoded payload
+  to `req.user`, and handles both expired and invalid tokens separately.
+  There's a `requireRole` for future admin routes. And I left a note
+  about the missing ownership check — we'll get to that.
+
+ANALYSIS: Full src/middleware/auth.js shown. Uses jsonwebtoken (real
+library, not the hand-rolled HMAC from some tutorials). Separate error
+handling for expired vs invalid tokens. The NOTE comment about missing
+requireOwnership is the planted authz bug — documented in the code
+itself.
+
+---
+
+TURN 7 (Feedback on Middleware)
+TAG: quick | TOKENS: 20/50 | GENERATION TIME: 5.3s
+
+MAYA:
+  that's clean. i like the separate expired vs invalid errors — saves
+  debugging time later
+
+  what about the database side?
+
+AI ASSISTANT:
+  Thanks! Yeah, knowing whether a token is expired vs tampered is
+  important for client-side error handling. Let me show you the
+  database changes.
+
+ANALYSIS: Maya appreciates the error handling distinction. Practical
+concern — debugging. Asks about database next.
+
+---
+
+TURN 8 (Agent Shows Database Changes)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 11.5s
+
+AI ASSISTANT:
+  Here's what changed in `database.js` — the users table and owner_id
+  on recipes:
+
+  ```javascript
+  // Users table (introduced session 18 — auth)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      display_name TEXT DEFAULT '',
+      dietary_preferences TEXT DEFAULT '[]',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  ```
+
+  And the owner_id column on recipes now has a proper foreign key:
+
+  ```javascript
+  addColumnIfMissing('recipes', 'owner_id', "INTEGER REFERENCES users(id)");
+  ```
+
+  That's +15 lines to database.js. The `dietary_preferences` column
+  defaults to `'[]'` — empty JSON array. David would register with
+  `["vegetarian"]`, your mom with `["diabetic-friendly", "low-sodium"]`.
+  The `owner_id` foreign key means recipes are linked to their creator,
+  but existing recipes get NULL (legacy/public).
+
+ANALYSIS: Database changes match actual diff. Users table with
+dietary_preferences as JSON array. owner_id with REFERENCES constraint
+(upgraded from bare INTEGER in previous commit). Agent explains the
+NULL semantics for legacy recipes.
+
+---
+
+TURN 9 (David Vegetarian Profile)
+TAG: normal | TOKENS: 45/50 | GENERATION TIME: 6.9s
+
+MAYA:
+  perfect. so D would register with dietary_preferences set to
+  vegetarian. and then when he queries recipes it could automatically
+  filter?
+
+  or is that a separate thing — like the profile stores it but the
+  filtering is up to the client
+
+  actually that second one is probably fine for now
+
+AI ASSISTANT:
+  Yeah, for now the profile stores the preferences and the client
+  reads them and applies the filter. The `recipes(diet: ["vegetarian"])`
+  query already works — the client just needs to pull David's
+  preferences and pass them.
+
+  Later you could add a `myRecipes` query that auto-filters based on
+  the logged-in user's preferences. But keeping it client-driven for
+  now is simpler and more flexible.
+
+ANALYSIS: Maya works through the filtering UX. Decides client-driven
+is better than server-driven auto-filtering. Product instinct: keep it
+flexible. David as the concrete use case for vegetarian filtering.
+
+---
+
+TURN 10 (React)
+TAG: quick | TOKENS: 12/50 | GENERATION TIME: 4.9s
+
+MAYA:
+  yeah client-driven. keeps it flexible. D can turn it off when he
+  wants to see everything
+
+  good
+
+AI ASSISTANT:
+  Exactly — he might want to browse all recipes and just know which
+  ones aren't vegetarian. Preferences as a default, not a wall.
+
+ANALYSIS: Brief confirmation. "Preferences as a default, not a wall"
+— agent frames the UX philosophy. Clean.
+
+---
+
+TURN 11 (FoodData vs Edamam — API Conflict)
+TAG: normal | TOKENS: 49/50 | GENERATION TIME: 7.5s
+
+MAYA:
+  oh and D mentioned something about FoodData Central — the USDA one.
+  says it's free. is that better than what you found before?
+
+  he looked it up last night and was like "why are you using a paid
+  API when the government has one for free"
+
+  typical D move
+
+AI ASSISTANT:
+  Ha, classic engineer move — "but there's a free option."
+
+  So FoodData Central is the USDA's nutrition database. It IS free and
+  comprehensive — huge dataset of foods with full nutritional breakdown.
+
+  The Edamam API that I found earlier is different — it's more focused
+  on recipe analysis and dietary labels (vegetarian, diabetic-friendly,
+  allergen info). It's paid for high volume but has a free tier.
+
+  Honestly, they complement each other:
+  - **FoodData Central** (David's suggestion): Raw nutrition data per
+    ingredient. Great for calorie/macro tracking.
+  - **Edamam** (what I found): Dietary label classification for whole
+    recipes. Better for your "safe for mom" filtering use case.
+
+  For what you're building, Edamam is still the better fit for dietary
+  labels. But if David wants to add nutrition facts per ingredient,
+  FoodData is perfect for that.
+
+  You could use both.
+
+ANALYSIS: SPEAKER ATTRIBUTION TEST. David suggests FoodData Central.
+Agent found Edamam in session 12. Maya's question forces the agent to
+distinguish between: (1) agent-retrieved knowledge (Edamam), and
+(2) user-attributed information (David suggesting FoodData). The agent
+correctly attributes both and explains the tradeoffs. "Typical D move"
+= David's personality (engineer, optimization mindset).
+
+---
+
+TURN 12 (Settle API Question)
+TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.5s
+
+MAYA:
+  using both is overkill right now. keep edamam for the dietary stuff
+  — that's what matters for mom. we can add FoodData later if D wants
+  calorie tracking
+
+  one thing at a time
+
+AI ASSISTANT:
+  Agreed — Edamam stays for dietary labels, FoodData is a future option
+  for nutrition facts. I'll leave the stub as-is pointing to Edamam.
+
+ANALYSIS: Maya makes a clear product decision: Edamam for now, FoodData
+deferred. Her priority is mom's dietary needs over David's calorie
+tracking. "One thing at a time" = consistent personality.
+
+---
+
+TURN 13 (YouTube Tangent + Mom A1C Update)
+TAG: normal | TOKENS: 48/50 | GENERATION TIME: 7.2s
+
+MAYA:
+  been thinking about doing a video about building this app. like a dev
+  diary thing for youtube. maybe later
+
+  anyway — mom's A1C is down to 7.1 btw. the meal plans are actually
+  working. she texted me a photo of something she made from the recipes
+  i sent and it looked actually good? i was shocked lol
+
+  ok sorry tangent. back to code
+
+AI ASSISTANT:
+  Oh that's awesome! 7.1 from 8.2 is serious progress — she's almost
+  at her target of under 7. The meal planning effort is really paying
+  off.
+
+  And a YouTube dev diary is a cool idea — the story of building an
+  app for your mom because of her health situation is actually really
+  compelling. Something to think about.
+
+  But yes, back to code — let me show you the server integration.
+
+ANALYSIS: TWO THINGS HERE:
+1. YouTube script idea — brief tangent, "maybe later." Seeds a
+   potential future creative project. Not committed to.
+2. Mom's A1C update: 8.2 → 7.1. CRITICAL FACT — this is the current
+   value at session 18's point in the timeline. It gets to 6.8 by
+   session 20. Agent correctly recalls original A1C (8.2) and target
+   (under 7) from session 4. Maya mentions the meal plans working —
+   connecting to session 4's meal planning idea.
+
+---
+
+TURN 14 (Agent Shows Server Auth Routes — Full Implementation)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 16.2s
+
+AI ASSISTANT:
+  Here's the auth integration in `server.js`. First the new imports
+  at the top:
+
+  ```javascript
+  const crypto = require('crypto');
+  const jwt = require('jsonwebtoken');
+  const { requireAuth } = require('./src/middleware/auth');
+  const authConfig = require('./config/auth');
+  ```
+
+  And here's the full auth section — 102 new lines added after the
+  existing routes:
+
+  ```javascript
+  // ---- Authentication (session 18) ----
+
+  // Hash a password with PBKDF2
+  function hashPassword(password) {
+    const salt = crypto.randomBytes(authConfig.password.saltLength).toString('hex');
+    const hash = crypto.pbkdf2Sync(
+      password, salt,
+      authConfig.password.iterations,
+      authConfig.password.keyLength,
+      authConfig.password.digest
+    ).toString('hex');
+    return `${hash}:${salt}`;
+  }
+
+  // Verify a password against a stored hash
+  function verifyPassword(password, stored) {
+    const [hash, salt] = stored.split(':');
+    const test = crypto.pbkdf2Sync(
+      password, salt,
+      authConfig.password.iterations,
+      authConfig.password.keyLength,
+      authConfig.password.digest
+    ).toString('hex');
+    return hash === test;
+  }
+
+  // Register a new user
+  app.post('/api/auth/register', (req, res) => {
+    const { username, email, password, display_name, dietary_preferences } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'username, email, and password required' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    // Check for existing user
+    const existing = db.prepare('SELECT id FROM users WHERE username = ? OR email = ?').get(username, email);
+    if (existing) {
+      return res.status(409).json({ error: 'Username or email already taken' });
+    }
+
+    const password_hash = hashPassword(password);
+    const prefs = Array.isArray(dietary_preferences) ? JSON.stringify(dietary_preferences) : '[]';
+    const result = db.prepare(
+      'INSERT INTO users (username, email, password_hash, display_name, dietary_preferences) VALUES (?, ?, ?, ?, ?)'
+    ).run(username, email, password_hash, display_name || '', prefs);
+
+    const user = db.prepare('SELECT id, username, email, display_name, dietary_preferences, created_at FROM users WHERE id = ?')
+      .get(result.lastInsertRowid);
+
+    const token = jwt.sign(
+      { userId: user.id, username: user.username },
+      authConfig.jwt.secret,
+      { expiresIn: authConfig.jwt.expiresIn, algorithm: authConfig.jwt.algorithm }
+    );
+
+    res.status(201).json({ user, token });
+  });
+
+  // Login
+  app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'username and password required' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    if (!user || !verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, username: user.username },
+      authConfig.jwt.secret,
+      { expiresIn: authConfig.jwt.expiresIn, algorithm: authConfig.jwt.algorithm }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        display_name: user.display_name,
+      },
+    });
+  });
+
+  // Get current user profile (requires auth)
+  app.get('/api/auth/me', requireAuth, (req, res) => {
+    const user = db.prepare(
+      'SELECT id, username, email, display_name, dietary_preferences, created_at FROM users WHERE id = ?'
+    ).get(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  });
+  ```
+
+  Registration accepts `dietary_preferences` so David can set
+  `["vegetarian"]` on signup. Login returns a JWT signed with the
+  config settings. The `/me` endpoint uses the `requireAuth` middleware
+  from `src/middleware/auth.js` to verify the token first.
+
+  Note: there's no `PUT /api/auth/profile` yet — profile updates go
+  through GraphQL mutations for now.
+
+ANALYSIS: Full server.js auth integration shown — all 102 new lines.
+hashPassword and verifyPassword use authConfig (not hardcoded values).
+Registration has input validation (required fields + password length),
+duplicate checking (409 Conflict), and dietary_preferences on signup.
+Login returns a JWT. The /me endpoint uses requireAuth middleware.
+No abbreviated code — every route fully expanded.
+
+---
+
+TURN 15 (Agent Shows tests/auth.test.js — Full File)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 18.5s
+
+AI ASSISTANT:
+  And here's the full test suite — `tests/auth.test.js`:
+
+  ```javascript
+  /**
+   * Authentication Tests — introduced session 18
+   *
+   * Tests user registration, login, JWT token generation, password hashing,
+   * and the requireAuth middleware. Uses the in-memory test database from setup.js.
+   */
+
+  const crypto = require('crypto');
+  const {
+    initializeDatabase, resetDatabase, closeDatabase, getDb, createTestUser, getTestToken,
+  } = require('./setup');
+
+  let db;
+
+  beforeAll(() => {
+    db = initializeDatabase();
+  });
+
+  afterAll(() => {
+    closeDatabase();
+  });
+
+  beforeEach(() => {
+    resetDatabase();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Helpers: mirror app auth logic for unit testing
+  // ---------------------------------------------------------------------------
+
+  const authConfig = {
+    password: {
+      iterations: 10000,
+      keyLength: 64,
+      digest: 'sha512',
+      saltLength: 32,
+    },
+  };
+
+  function hashPassword(password) {
+    const salt = crypto.randomBytes(authConfig.password.saltLength).toString('hex');
+    const hash = crypto.pbkdf2Sync(
+      password, salt,
+      authConfig.password.iterations,
+      authConfig.password.keyLength,
+      authConfig.password.digest
+    ).toString('hex');
+    return `${hash}:${salt}`;
+  }
+
+  function verifyPassword(password, stored) {
+    const [hash, salt] = stored.split(':');
+    const test = crypto.pbkdf2Sync(
+      password, salt,
+      authConfig.password.iterations,
+      authConfig.password.keyLength,
+      authConfig.password.digest
+    ).toString('hex');
+    return hash === test;
+  }
+
+  // ---------------------------------------------------------------------------
+  // User Registration
+  // ---------------------------------------------------------------------------
+
+  describe('User Registration', () => {
+    it('should create a new user with hashed password', () => {
+      const passwordHash = hashPassword('securepassword123');
+      db.prepare(
+        'INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)'
+      ).run('maya', 'maya@example.com', passwordHash, 'Maya Chen');
+
+      const user = db.prepare('SELECT * FROM users WHERE username = ?').get('maya');
+      expect(user).not.toBeNull();
+      expect(user.username).toBe('maya');
+      expect(user.email).toBe('maya@example.com');
+      expect(user.display_name).toBe('Maya Chen');
+      // Password should be hashed, not stored in plain text
+      expect(user.password_hash).not.toBe('securepassword123');
+      expect(user.password_hash).toContain(':'); // hash:salt format
+    });
+
+    it('should enforce unique username constraint', () => {
+      const hash = hashPassword('pass1');
+      db.prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)').run('maya', 'maya@example.com', hash);
+
+      expect(() => {
+        db.prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)').run('maya', 'different@example.com', hash);
+      }).toThrow(/UNIQUE/);
+    });
+
+    it('should enforce unique email constraint', () => {
+      const hash = hashPassword('pass1');
+      db.prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)').run('maya', 'maya@example.com', hash);
+
+      expect(() => {
+        db.prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)').run('different', 'maya@example.com', hash);
+      }).toThrow(/UNIQUE/);
+    });
+
+    it('should store dietary preferences as JSON array', () => {
+      const hash = hashPassword('pass1');
+      const prefs = JSON.stringify(['vegetarian', 'dairy-free']);
+      db.prepare(
+        'INSERT INTO users (username, email, password_hash, dietary_preferences) VALUES (?, ?, ?, ?)'
+      ).run('maya', 'maya@example.com', hash, prefs);
+
+      const user = db.prepare('SELECT * FROM users WHERE username = ?').get('maya');
+      const parsed = JSON.parse(user.dietary_preferences);
+      expect(parsed).toEqual(['vegetarian', 'dairy-free']);
+    });
+
+    it('should default dietary_preferences to empty array', () => {
+      const hash = hashPassword('pass1');
+      db.prepare(
+        'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)'
+      ).run('maya', 'maya@example.com', hash);
+
+      const user = db.prepare('SELECT * FROM users WHERE username = ?').get('maya');
+      expect(JSON.parse(user.dietary_preferences)).toEqual([]);
+    });
+
+    it('should set created_at timestamp automatically', () => {
+      const hash = hashPassword('pass1');
+      db.prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)').run('maya', 'maya@example.com', hash);
+
+      const user = db.prepare('SELECT * FROM users WHERE username = ?').get('maya');
+      expect(user.created_at).toBeDefined();
+      expect(user.created_at).not.toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Password Hashing and Verification
+  // ---------------------------------------------------------------------------
+
+  describe('Password Hashing', () => {
+    it('should produce different hashes for the same password', () => {
+      const hash1 = hashPassword('samepassword');
+      const hash2 = hashPassword('samepassword');
+
+      // Different salts mean different hashes
+      expect(hash1).not.toBe(hash2);
+    });
+
+    it('should verify correct password against hash', () => {
+      const password = 'correcthorsebatterystaple';
+      const stored = hashPassword(password);
+
+      expect(verifyPassword(password, stored)).toBe(true);
+    });
+
+    it('should reject incorrect password', () => {
+      const stored = hashPassword('rightpassword');
+      expect(verifyPassword('wrongpassword', stored)).toBe(false);
+    });
+
+    it('should handle special characters in password', () => {
+      const password = 'p@$$w0rd!#%^&*()';
+      const stored = hashPassword(password);
+
+      expect(verifyPassword(password, stored)).toBe(true);
+      expect(verifyPassword('p@$$w0rd', stored)).toBe(false);
+    });
+
+    it('should handle very long passwords', () => {
+      const password = 'a'.repeat(1000);
+      const stored = hashPassword(password);
+
+      expect(verifyPassword(password, stored)).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Recipe Ownership
+  // ---------------------------------------------------------------------------
+
+  describe('Recipe Ownership', () => {
+    it('should create recipe with owner_id', () => {
+      const user = createTestUser({ username: 'chef1', email: 'chef@example.com' });
+      db.prepare(
+        'INSERT INTO recipes (title, ingredients, instructions, owner_id) VALUES (?, ?, ?, ?)'
+      ).run('Owned Recipe', 'stuff', 'do things', user.id);
+
+      const recipe = db.prepare('SELECT * FROM recipes WHERE title = ?').get('Owned Recipe');
+      expect(recipe.owner_id).toBe(user.id);
+    });
+
+    it('should allow null owner_id for anonymous recipes', () => {
+      db.prepare(
+        'INSERT INTO recipes (title, ingredients, instructions) VALUES (?, ?, ?)'
+      ).run('Anonymous Recipe', 'stuff', 'do things');
+
+      const recipe = db.prepare('SELECT * FROM recipes WHERE title = ?').get('Anonymous Recipe');
+      expect(recipe.owner_id).toBeNull();
+    });
+
+    it('should allow querying recipes by owner', () => {
+      const user1 = createTestUser({ username: 'chef1', email: 'chef1@example.com' });
+      const user2 = createTestUser({ username: 'chef2', email: 'chef2@example.com' });
+
+      db.prepare('INSERT INTO recipes (title, ingredients, instructions, owner_id) VALUES (?, ?, ?, ?)').run('Recipe A', 'a', 'a', user1.id);
+      db.prepare('INSERT INTO recipes (title, ingredients, instructions, owner_id) VALUES (?, ?, ?, ?)').run('Recipe B', 'b', 'b', user1.id);
+      db.prepare('INSERT INTO recipes (title, ingredients, instructions, owner_id) VALUES (?, ?, ?, ?)').run('Recipe C', 'c', 'c', user2.id);
+
+      const user1Recipes = db.prepare('SELECT * FROM recipes WHERE owner_id = ?').all(user1.id);
+      expect(user1Recipes).toHaveLength(2);
+
+      const user2Recipes = db.prepare('SELECT * FROM recipes WHERE owner_id = ?').all(user2.id);
+      expect(user2Recipes).toHaveLength(1);
+    });
+
+    // BUG DOCUMENTATION: This test shows the known authorization gap.
+    // Any user can delete any recipe because there's no ownership check.
+    it('should allow deleting any recipe (known auth gap)', () => {
+      const user1 = createTestUser({ username: 'chef1', email: 'chef1@example.com' });
+      const user2 = createTestUser({ username: 'chef2', email: 'chef2@example.com' });
+
+      db.prepare('INSERT INTO recipes (title, ingredients, instructions, owner_id) VALUES (?, ?, ?, ?)').run('Stolen Recipe', 'a', 'a', user1.id);
+      const recipe = db.prepare("SELECT * FROM recipes WHERE title = 'Stolen Recipe'").get();
+
+      // User 2 can delete User 1's recipe — this is the bug
+      const result = db.prepare('DELETE FROM recipes WHERE id = ?').run(recipe.id);
+      expect(result.changes).toBe(1);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test Token Generation
+  // ---------------------------------------------------------------------------
+
+  describe('Test Token Generation', () => {
+    it('should generate a valid JWT-like token', () => {
+      const token = getTestToken(1, 'maya');
+
+      expect(token).toBeDefined();
+      expect(typeof token).toBe('string');
+
+      // JWT format: header.payload.signature
+      const parts = token.split('.');
+      expect(parts).toHaveLength(3);
+    });
+
+    it('should encode the correct user info in the payload', () => {
+      const token = getTestToken(42, 'testuser');
+      const [, payloadB64] = token.split('.');
+      const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
+
+      expect(payload.userId).toBe(42);
+      expect(payload.username).toBe('testuser');
+      expect(payload.iat).toBeDefined();
+      expect(payload.exp).toBeDefined();
+      expect(payload.exp).toBeGreaterThan(payload.iat);
+    });
+
+    it('should generate different tokens for different users', () => {
+      const token1 = getTestToken(1, 'maya');
+      const token2 = getTestToken(2, 'alex');
+
+      expect(token1).not.toBe(token2);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // User Query Helpers
+  // ---------------------------------------------------------------------------
+
+  describe('User Queries', () => {
+    it('should find user by username', () => {
+      createTestUser({ username: 'findme', email: 'findme@example.com' });
+      const user = db.prepare('SELECT * FROM users WHERE username = ?').get('findme');
+
+      expect(user).not.toBeNull();
+      expect(user.username).toBe('findme');
+    });
+
+    it('should return undefined for non-existent user', () => {
+      const user = db.prepare('SELECT * FROM users WHERE username = ?').get('ghost');
+      expect(user).toBeUndefined();
+    });
+
+    it('should exclude password_hash from safe queries', () => {
+      createTestUser({ username: 'safe', email: 'safe@example.com' });
+      const user = db.prepare(
+        'SELECT id, username, email, display_name, dietary_preferences, created_at FROM users WHERE username = ?'
+      ).get('safe');
+
+      expect(user.username).toBe('safe');
+      expect(user.password_hash).toBeUndefined();
+    });
+  });
+  ```
+
+  291 lines. Five test sections: User Registration (6 tests),
+  Password Hashing (5 tests), Recipe Ownership (4 tests including the
+  known auth gap bug), Test Token Generation (3 tests), and User
+  Queries (3 tests). That's 21 tests total for auth.
+
+  The ownership test at line ~200 explicitly documents the bug — user 2
+  can delete user 1's recipe because there's no ownership check at the
+  database level either.
+
+ANALYSIS: Full 291-line test suite shown. Tests mirror the app's auth
+logic with local helper functions. The "known auth gap" test is the
+planted bug — documented in both the test comment and the test name.
+Tests use createTestUser and getTestToken from setup.js. Coverage is
+thorough: registration constraints, password hashing properties,
+ownership semantics, token format, and query helpers.
+
+---
+
+TURN 16 (Authz Bug Discussion)
+TAG: quick | TOKENS: 32/50 | GENERATION TIME: 5.7s
+
+MAYA:
+  oh wait — so if D logs in he could delete MY recipes? that's not
+  great
+
+  but it's just us two using it right now so... add a TODO and we'll
+  fix it. not blocking
+
+  honestly knowing D he'd delete my recipes just to be funny
+
+AI ASSISTANT:
+  Ha, relationship-destroying recipe deletion. The middleware has a
+  comment about the missing `requireOwnership` — it's a known gap.
+  I'll make sure the TODOs are clear: "verify req.user.id matches
+  recipe.owner_id before update/delete."
+
+  Since it's just you two for now, it's low risk. But definitely fix
+  before sharing with anyone else.
+
+ANALYSIS: Maya catches the authz bug. Decides it's not blocking — just
+her and David using the app. Humor about David's personality. The
+middleware already has the NOTE comment about missing ownership check.
+The bug persists intentionally in the codebase.
+
+---
+
+TURN 17 (Agent Shows Package + Env Updates)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 8.4s
+
+AI ASSISTANT:
+  Last two files. Updated `package.json`:
+
+  ```json
+  {
+    "name": "recipe-app",
+    "version": "0.6.0",
+    "description": "Recipe organizer with meal planning, dietary tracking, GraphQL, and user auth",
+    "main": "server.js",
+    "scripts": {
+      "start": "node server.js",
+      "dev": "node --watch server.js",
+      "test": "jest --verbose",
+      "seed": "node seeds/seed.js"
+    },
+    "dependencies": {
+      "@apollo/server": "^4.9.5",
+      "better-sqlite3": "^9.4.3",
+      "express": "^4.18.2",
+      "graphql": "^16.8.1",
+      "jsonwebtoken": "^9.0.2"
+    },
+    "devDependencies": {
+      "jest": "^29.7.0"
+    }
+  }
+  ```
+
+  Version bumped from 0.5.1 to 0.6.0 — auth is a significant new
+  feature. Added `jsonwebtoken` as a dependency (^9.0.2).
+
+  And `.env.example` now has the JWT secret uncommented:
+
+  ```
+  # Server
+  PORT=3000
+  NODE_ENV=development
+
+  # Database
+  DATABASE_PATH=./recipes.db
+
+  # Auth
+  JWT_SECRET=change-me-in-production
+
+  # Nutrition API (Edamam — added later)
+  # EDAMAM_APP_ID=
+  # EDAMAM_APP_KEY=
+  ```
+
+  Total: 7 files changed, 516 insertions, 6 deletions.
+
+ANALYSIS: Package.json shows version bump (0.5.1 → 0.6.0) and new
+jsonwebtoken dependency. .env.example uncomments JWT_SECRET — was
+previously commented out as "added later." All 7 files accounted for:
+config/auth.js (33), src/middleware/auth.js (70), tests/auth.test.js
+(291), database.js (+15), server.js (+102), package.json (+7),
+.env.example (+4 with 2 deletions = net +2). Totals verified against
+git diff --stat.
+
+---
+
+TURN 18 (Exit)
+TAG: quick | TOKENS: 14/50 | GENERATION TIME: 4.6s
+
+MAYA:
+  yeah definitely before mom gets an account lol. she'd be confused
+  enough without mystery recipe deletions
+
+  ok commit it. this is getting real
+
+  later!
+
+AI ASSISTANT:
+  Committed! Auth is live — you and David can register, login, and
+  save dietary preferences. Version bumped to 0.6.0.
+
+  The app is 32 files and growing. Talk later!
+
+ANALYSIS: Quick exit. Mom as a future user motivates the authz fix.
+"This is getting real" — Maya recognizing the app's growth. Agent
+confirms version bump (0.6.0 matches package.json). "32 files" —
+project size at commit 88b409c.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No half marathon results
+  - No mom's A1C improvement to 6.8 (only 7.1 stated — correct for
+    this point in the timeline)
+  - No birthday dinner outcome
+  - No moving resolution
+
+CONSTRAINT 2: David Vegetarian Cross-Reference
+  STATUS: PASS
+  Location: Turn 3, 9
+  Evidence: "D can set his as vegetarian" (Turn 3) and dietary_preferences
+    discussion around David's vegetarianism.
+  Note: Maya does NOT re-explain David being vegetarian. She just says
+    "his" dietary preference is vegetarian. The agent should recall
+    this from session 1.
+  Session 1 origin: "david's vegetarian" (Turn 3)
+  Gap: 17 sessions between first mention and this callback.
+
+CONSTRAINT 3: Speaker Attribution (FoodData vs Edamam)
+  STATUS: PASS
+  Location: Turn 11
+  Evidence:
+  - David suggested FoodData Central: "D mentioned something about
+    FoodData Central"
+  - Agent found Edamam: Recalled from session 12 research
+  Note: The agent correctly distinguishes WHO suggested WHAT. This is
+    a speaker attribution test — David suggests FoodData, the agent
+    found Edamam. Both are named with correct provenance.
+
+CONSTRAINT 4: Authz Bug Properly Planted
+  STATUS: PASS
+  Location: Turn 6 (middleware NOTE comment), Turn 14 (server routes),
+    Turn 15 (test documents the bug), Turn 16 (discussion)
+  Evidence: "NOTE: requireOwnership() is NOT implemented" in
+    src/middleware/auth.js. "known auth gap" test in auth.test.js.
+    Agent flags the issue, Maya acknowledges it.
+  Note: Authentication is present (requireAuth middleware). Authorization
+    is missing (no owner check). This distinction is deliberate.
+
+CONSTRAINT 5: A1C Value Correct for Timeline
+  STATUS: PASS
+  Location: Turn 13
+  Evidence: "mom's A1C is down to 7.1"
+  Timeline check:
+  - Session 4: A1C was 8.2 (diagnosis)
+  - Session 18 (here): A1C is 7.1 (improving)
+  - Session 19: A1C mentioned as 7.1 (same value, consistent)
+  - Session 20: A1C reaches 6.8 (under 7 target)
+  The value 7.1 is correct for the session 18 timestamp.
+
+CONSTRAINT 6: YouTube Idea Correctly Scoped
+  STATUS: PASS
+  Location: Turn 13
+  Evidence: "been thinking about doing a video about building this app.
+    like a dev diary thing for youtube. maybe later"
+  Note: Brief mention, NOT committed to. "Maybe later" signals this is
+    a seed for potential future content, not a current project. The
+    agent acknowledges it warmly but doesn't overinvest.
+
+CONSTRAINT 7: Code Matches Git History
+  STATUS: PASS
+  Git diff (7cc628c → 88b409c):
+  - 7 files changed, 516 insertions, 6 deletions
+  - New files: config/auth.js, src/middleware/auth.js, tests/auth.test.js
+  - Modified: database.js, server.js, package.json, .env.example
+  - Package version: 0.6.0 (from 0.5.1)
+  All code shown in transcript matches actual committed files exactly.
+  Every file shown in full — no abbreviated code blocks.
+
+CONSTRAINT 8: Maya Token Limits
+  STATUS: PASS
+  All Maya messages checked:
+  Turn 1: 42, Turn 2: 14, Turn 3: 46, Turn 5: 18, Turn 7: 20,
+  Turn 9: 45, Turn 10: 12, Turn 11: 49, Turn 12: 22, Turn 13: 48,
+  Turn 16: 32, Turn 18: 14
+  All under the 50-token hard limit.
+
+CONSTRAINT 9: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 18 only. Clean single exit.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  David's vegetarianism correctly cross-referenced from session 1
+  Speaker attribution tested (FoodData vs Edamam)
+  Authz bug intentionally planted (middleware, tests, discussion)
+  A1C timeline consistent
+  YouTube idea scoped as brief tangent
+  All code matches git history — full files, no abbreviations
+  Token limits respected
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-18 (cumulative ground truth)
+  Evaluation Scope: Cross-references, speaker attribution, project state,
+    agent-retrieved vs user-attributed knowledge
+
+QUERY 1: "Why were user dietary profiles added to the recipe app?"
+  Ground Truth: David wanted to use the app and he's vegetarian. Maya
+    wanted the app to know David's dietary preference so it could filter
+    recipes for him automatically. The feature was motivated by David's
+    specific use case — he's been vegetarian since at least session 1.
+  Evidence Sessions: 1, 16, 18
+  Supporting Evidence:
+    - Session 1: "david's vegetarian"
+    - Session 16, Turn 14: "D wants to use it too"
+    - Session 18, Turn 3: "D can set his as vegetarian"
+  Query Type: cross_reference
+  Recall Difficulty: Hard (connects David's vegetarianism from session 1
+    to a project feature in session 18 — 17-session gap. The motivation
+    chain is: session 1 fact → session 16 request → session 18 implementation)
+
+QUERY 2: "Who suggested the FoodData Central API?"
+  Ground Truth: David suggested FoodData Central (the USDA nutrition
+    database). He said it was free and questioned why they'd use a paid
+    API. This conflicts with the Edamam API that the AGENT found in
+    session 12.
+  Evidence Sessions: 12, 18
+  Supporting Evidence:
+    - Session 12: Agent found Edamam API during research
+    - Session 18, Turn 11: "D mentioned something about FoodData Central"
+  Query Type: speaker_attribution
+  Recall Difficulty: Hard (must correctly attribute: David = FoodData,
+    Agent = Edamam. Tests whether the system tracks WHO provided
+    information — user vs user's partner vs agent's own research)
+
+QUERY 3: "What API did the AI agent find for the recipe app, and what
+  alternative was suggested?"
+  Ground Truth: The agent found the Edamam API (session 12) for dietary
+    label filtering. David later suggested FoodData Central (USDA, free)
+    as an alternative (session 18). Maya decided to keep Edamam for
+    dietary labels and potentially add FoodData later for nutrition facts.
+  Evidence Sessions: 12, 18
+  Supporting Evidence:
+    - Session 12: Agent researched nutrition APIs → found Edamam
+    - Session 18, Turn 11-12: FoodData vs Edamam discussion
+  Query Type: agent_retrieved
+  Recall Difficulty: Hard (requires distinguishing agent's research
+    output from user-attributed suggestions. Must name both APIs
+    with correct provenance.)
+
+QUERY 4: "What dietary constraints would David's recipe app profile have?"
+  Ground Truth: David is vegetarian. His profile would have
+    dietary_preferences set to ["vegetarian"]. This was established in
+    session 1 when Maya first mentioned David's vegetarianism, and
+    directly motivated the user profile feature in session 18.
+  Evidence Sessions: 1, 18
+  Supporting Evidence:
+    - Session 1: "david's vegetarian"
+    - Session 18, Turn 3: "D can set his as vegetarian"
+  Query Type: inference
+  Recall Difficulty: Medium (requires connecting personal fact to
+    project feature — David's vegetarianism → his app profile)
+
+QUERY 5: "What authentication exists in the recipe app, and what's
+  the security gap?"
+  Ground Truth: The app has authentication (user registration, login,
+    JWT tokens via jsonwebtoken library, PBKDF2 password hashing with
+    config-driven settings, Bearer token middleware in
+    src/middleware/auth.js) but is missing authorization. Any logged-in
+    user can edit or delete any recipe — there's no ownership check.
+    The auth verifies WHO you are but doesn't check if you OWN the
+    resource. This is a known bug documented in src/middleware/auth.js
+    (NOTE comment about missing requireOwnership) and in
+    tests/auth.test.js ("known auth gap" test).
+  Evidence Session: 18
+  Supporting Evidence:
+    - Turn 4: config/auth.js implementation (JWT + PBKDF2 settings)
+    - Turn 6: src/middleware/auth.js with NOTE about missing ownership
+    - Turn 14: server.js auth routes
+    - Turn 15: tests/auth.test.js documents the bug
+    - Turn 16: Maya acknowledges it, decides not blocking
+  Query Type: project_state
+  Recall Difficulty: Medium (specific technical detail, clearly discussed.
+    Must distinguish authentication from authorization.)
+
+QUERY 6: "What is Linda's latest A1C reading?"
+  Ground Truth: 7.1 (as of session 18). Originally 8.2 at diagnosis
+    (session 4). Target is under 7. The meal plans Maya and Rachel
+    put together are working — Linda is cooking from them regularly.
+  Evidence Sessions: 4, 18
+  Supporting Evidence:
+    - Session 4, Turn 4: "A1C was like 8.2"
+    - Session 18, Turn 13: "A1C is down to 7.1"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (specific number, must return 7.1 not 8.2.
+    Tests whether system tracks numerical progression.)
+
+QUERY 7: "Has Maya mentioned any content creation plans?"
+  Ground Truth: Yes — Maya briefly mentioned wanting to do a YouTube
+    dev diary video about building the recipe app. She said "maybe
+    later" — it's an idea, not a commitment. The story angle would be
+    building an app for her mom because of a health situation.
+  Evidence Session: 18
+  Supporting Evidence:
+    - Turn 13: "been thinking about doing a video about building this
+      app. like a dev diary thing for youtube. maybe later"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (directly stated, though brief — tests whether
+    tangential mentions are captured alongside main session content)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Cross-reference: Query 1 (David vegetarian → dietary profiles)
+  Speaker attribution: Query 2 (who suggested FoodData?)
+  Agent-retrieved: Query 3 (Edamam vs FoodData provenance)
+  Inference: Query 4 (David's dietary profile)
+  Project state: Query 5 (auth vs authz bug)
+  Factual recall: Queries 6, 7 (A1C, YouTube idea)
+  Complexity: 1 Easy, 3 Medium, 3 Hard
+  Coverage: Cross-track connections, speaker attribution, agent memory,
+    project state, health arc, content creation seed
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM V1 REVIEW:
+
+1. CODE BLOCKS SHOW FULL FILES
+   V1: Abbreviated code with "..." and "{ ... }" placeholders.
+   V2: Every code block shows the complete file contents as committed.
+   config/auth.js (33 lines), src/middleware/auth.js (70 lines),
+   tests/auth.test.js (291 lines), server.js auth section (102 lines),
+   package.json (full file), .env.example (full file), database.js
+   changes (users table + owner_id).
+
+2. CORRECT FILE PATHS
+   V1: Referenced a top-level "auth.js" and "migrations/004_users_auth.sql"
+     that don't exist in the actual commit.
+   V2: Uses correct paths — config/auth.js for settings,
+     src/middleware/auth.js for requireAuth middleware. The users table
+     is created in database.js (no separate migration file). These match
+     the actual files at commit 88b409c.
+
+3. LINE COUNTS FIXED
+   V1: "6 files changed, 311 insertions, 15 deletions"
+   V2: "7 files changed, 516 insertions, 6 deletions"
+   Verified against `git diff --stat 7cc628c..88b409c`.
+
+4. VERSION BUMP FIXED
+   V1: "0.4.0"
+   V2: "0.6.0" (from 0.5.1). Matches actual package.json at 88b409c.
+
+5. PARENT COMMIT FIXED
+   V1: "07c9b16 (session 16 — GraphQL + sharing)"
+   V2: "7cc628c (session 16 — bug bash, rate limiter, sharing tests,
+     documented N+1 + auth gaps)"
+   The actual parent of 88b409c is 7cc628c, not 07c9b16.
+
+6. 18-TURN SESSION (UP FROM 14)
+   V1: 14 turns with abbreviated code blocks.
+   V2: 18 turns to accommodate showing all files in full. New turns:
+   - Turn 4: config/auth.js (was not shown in v1)
+   - Turn 5: Feedback on config (new)
+   - Turn 6: src/middleware/auth.js (was not shown in v1)
+   - Turn 7: Feedback on middleware (new)
+   - Turn 8: database.js changes (was embedded in migration turn)
+   - Turn 15: Full tests/auth.test.js (was not shown in v1)
+   - Turn 17: package.json + .env.example (was not shown in v1)
+   Rationale: Sessions that show full file contents need more room.
+   Every new file should be presented complete for benchmark accuracy.
+
+7. AUTHZ BUG EVIDENCE EXPANDED
+   V1: Bug discussed only in server.js code comments.
+   V2: Bug documented in three places matching the actual commit:
+   - src/middleware/auth.js NOTE comment (requireOwnership not implemented)
+   - tests/auth.test.js "known auth gap" test (user 2 deletes user 1's recipe)
+   - Turn 16 discussion (Maya acknowledges, defers fix)
+
+8. EVAL QUERY 5 UPDATED
+   V1: Referenced "auth.js" and "server.js" + "resolvers.js"
+   V2: References correct file paths — config/auth.js,
+     src/middleware/auth.js, server.js, tests/auth.test.js.
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec outline: "Recipe app. Add authentication. 'David wants to use it
+     too.' Cross-ref: David is vegetarian (mentioned once in session 1 or 2).
+     [T2-D] David suggests FoodData — conflicts with prior research."
+   Full session created with auth implementation, dietary profiles,
+   FoodData vs Edamam discussion, YouTube tangent, and A1C update.
+
+2. 18-TURN SESSION
+   Expanded from 14 in v1 to accommodate full file contents. Auth
+   implementation requires showing config/auth.js, src/middleware/auth.js,
+   database.js, server.js routes, tests/auth.test.js, package.json,
+   and .env.example — plus the non-code turns for cross-references
+   and tangents.
+   Rationale: Sessions with both technical content AND personal
+   cross-references need more room than pure coding sessions. Full
+   file contents are critical for benchmark accuracy.
+
+3. AUTHZ BUG — INTENTIONAL
+   Spec: Not explicitly called out as "intentional bug"
+   Transcript: Bug documented in src/middleware/auth.js (NOTE comment),
+   tests/auth.test.js ("known auth gap" test), and discussed in
+   Turn 16. Agent flags the issue, Maya acknowledges it.
+   Rationale: The distinction between authentication and authorization
+   is a specific technical concept the system should capture. The bug
+   is documented in code, tests, and conversation — three evidence
+   points for evaluation.
+
+4. FOODDATA VS EDAMAM ATTRIBUTION
+   Spec: "David suggests FoodData — conflicts with prior research"
+   Transcript: Full discussion with clear attribution — David suggests
+   FoodData, agent recalls finding Edamam. Maya makes a product decision
+   (keep Edamam for dietary labels, defer FoodData).
+   Rationale: Speaker attribution across sessions is one of the hardest
+   memory tasks. WHO said WHAT must be tracked correctly. This is
+   especially hard because one source (Edamam) was the agent's own
+   research, not a user statement.
+
+5. YOUTUBE SCRIPT SEED
+   Spec: Not in session 18 outline
+   Transcript: Turn 13 — brief mention of YouTube dev diary idea.
+   Rationale: Plants a creative project seed that connects to the
+   recipe app + mom's health story. Tests whether brief tangential
+   mentions are captured. Could be expanded in v1.1 sessions.
+
+6. A1C UPDATE AT 7.1
+   Not explicitly in spec for session 18. Added as a casual tangent.
+   Rationale: Continues the A1C progression (8.2 → 7.1) and creates
+   another data point for temporal tracking. Session 19 will reference
+   7.1 again, and session 20 will show 6.8 (under target). The
+   progression is: 8.2 (session 4) → 7.1 (session 18) → 7.1 (session
+   19 confirms) → 6.8 (session 20).
+
+7. VERSION BUMP TO 0.6.0
+   Not in spec. Added: package.json bumped from 0.5.1 to 0.6.0.
+   Rationale: Tracks project version progression. The auth addition is
+   significant enough to warrant a minor version bump. Matches actual
+   git history.
+
+8. TOTAL PROJECT SIZE
+   After session 18: 32 files across the project tree (server.js,
+   database.js, config/auth.js, schema.js, resolvers.js, package.json,
+   public/index.html, src/middleware/auth.js + 4 other middleware files,
+   tests/auth.test.js + 5 other test files, config/ files, docs/,
+   seeds/, docker files). The recipe app has grown from a simple CRUD
+   API (session 3) to a multi-user app with auth, sharing, dietary
+   filtering, meal planning, and rate limiting.
+
+VALIDATION SUMMARY:
+  Auth implementation matches git history across 7 files
+  All code blocks show complete file contents — no abbreviations
+  David's vegetarianism correctly cross-referenced (17-session gap)
+  Speaker attribution tested (FoodData=David, Edamam=Agent)
+  Authz bug intentionally planted in code, tests, and discussion
+  A1C progression timeline consistent (8.2 → 7.1)
+  YouTube tangent planted as brief seed
+  7 eval queries with 3 hard difficulty (most of any Track 2 session)
+  18 turns, expanded from 14 to show full files
+  No forbidden facts leaked
+  File paths corrected (config/auth.js, src/middleware/auth.js)
+  Line counts corrected (516 insertions, 6 deletions)
+  Version corrected (0.6.0, not 0.4.0)
+  Parent commit corrected (7cc628c, not 07c9b16)
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-16
+Document Type: Session 18 Comprehensive Review (v2)
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F008 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 3 and 4
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F008 (Filler — Work Session)
+Date: 2026-03-09 16:58
+Topic: draft an interview question list for a senior engineer position
+Turn Count: 19
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F008
+  Track: filler
+  Timestamp: 2026-03-09 16:58:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  hey need to draft interview questions for a senior backend eng role. rails + postgres, someone who can mentor. can you put together a solid list?
+
+AI ASSISTANT:
+  I'll create a comprehensive interview question list for a senior backend engineer position. Here's a structured set organized by category:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  this is great. can you add a section on api design and one practical coding exercise they'd do live?
+
+AI ASSISTANT:
+  **API DESIGN & BEST PRACTICES (15-20 min)**
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  perfect. can you also add like 3-4 questions about security best practices? esp around sql injection and auth
+
+AI ASSISTANT:
+  **SECURITY & BEST PRACTICES (15 min)**
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  can you turn this into a doc i can share with the hiring manager? add intro paragraph and rough time breakdown
+
+AI ASSISTANT:
+  **SENIOR BACKEND ENGINEER - INTERVIEW QUESTION GUIDE**
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  amazing. one more thing - can you add a small section at the end with like "red flags to watch for" during the interview?
+
+AI ASSISTANT:
+  **RED FLAGS TO WATCH FOR**
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  perfect thx. gonna send this to rachel today
+
+AI ASSISTANT:
+  You're welcome! The document is ready to share with Rachel. It's comprehensive and should give you both a solid framework for evaluating senior backend candidates.
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  actually wait can you make a quick scorecard template? like a google sheet structure i can use to score candidates
+
+AI ASSISTANT:
+  **SENIOR BACKEND ENGINEER - INTERVIEW SCORECARD**
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  nah this is good. gonna copy it over now
+
+AI ASSISTANT:
+  Perfect! Just paste it into a Google Sheet and you'll have a clean scorecard ready to go. The structure should make it easy to compare candidates side-by-side if you interview multiple people.
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  oh good call. also should we do a take home assignment instead of live coding? some ppl get nervous coding live
+
+AI ASSISTANT:
+  That's a thoughtful consideration! Both approaches have tradeoffs. Here's my take:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  yeah draft the take home version. keep it at 2 hrs max like you said
+
+AI ASSISTANT:
+  **SENIOR BACKEND ENGINEER - TAKE-HOME ASSIGNMENT**
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  this is really good. gonna add both options to the interview doc. thx D is gonna help me review this later
+
+AI ASSISTANT:
+  Perfect! Having David review it is a great idea—he'll probably have good insights from his own interview experiences. The dual option (live coding vs. take-home) should work well for attracting strong candidates who have different preferences.
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  actually yeah can you make a quick reference check question list? like 5-6 questions max
+
+AI ASSISTANT:
+  **REFERENCE CHECK QUESTIONS - SENIOR BACKEND ENGINEER**
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  perfect. ok i think i'm good now. gonna compile all this and send to rach
+
+AI ASSISTANT:
+  Awesome! You've got a really solid interview package now:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~5
+
+MAYA:
+  thanks! super helpful as always
+
+AI ASSISTANT:
+  You're welcome! Happy to help. Let me know how the interviews go or if you need anything else—offer letter templates, onboarding checklists, whatever comes up. Good luck! 🎯
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

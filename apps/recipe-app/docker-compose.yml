@@ -1,0 +1,35 @@
+# =============================================================================
+# Docker Compose for Recipe App
+#
+# Single-service setup with SQLite persistence via a mounted volume.
+# No external database container needed — SQLite runs in-process.
+#
+# Usage:
+#   docker-compose up -d        # start in background
+#   docker-compose logs -f app  # stream logs
+#   docker-compose down         # stop and remove container
+#
+# Introduced: session 12
+# =============================================================================
+
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      # Persist the SQLite database outside the container
+      - ./data:/app/data
+      # Mount .env for runtime configuration
+      - ./.env:/app/.env:ro
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/recipes.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

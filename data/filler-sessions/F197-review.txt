@@ -1,0 +1,127 @@
+================================================================================
+FILLER SESSION F197 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F197 (Filler — Recipe App Micro)
+Date: 2026-04-21 08:31
+Topic: the dietary filter is returning vegetarian recipes when i search for vegan
+Turn Count: 12
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F197
+  Track: filler
+  Timestamp: 2026-04-21 08:31:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  hey the dietary filter is returning vegetarian recipes when i search for vegan... like i'm getting stuff with eggs and cheese lol
+
+AI ASSISTANT:
+  I can help you fix that! The issue is likely that your filter logic is treating "vegan" and "vegetarian" as interchangeable, or checking if the recipe contains the word "vegan" anywhere rather than strictly enforcing vegan requirements.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  oh damn yeah that makes sense. can you show the migration script to move existing data over?
+
+AI ASSISTANT:
+  Absolutely! Here's a migration script that'll move your existing comma-separated dietary_tags column data into the proper relational structure:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  running it now... got an error "SQLITE_ERROR: no such column: dietary_tags" - i think we never had that column, tags were in a json field called `tags`
+
+AI ASSISTANT:
+  Ah got it! Let me adjust for a JSON column instead:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  it's nested - `{ "dietary": ["vegan"], "cuisine": ["italian", "comfort"], "difficulty": "easy" }` - running the updated script now
+
+AI ASSISTANT:
+  Perfect! That format is covered in the script. While it runs, here's a test suite to verify the migration worked correctly and that your vegan/vegetarian filtering is now accurate:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  migration worked! shows "Migrated: 147 tag associations" - tests passing except the case-insensitive one, getting 0 results for uppercase VEGAN
+
+AI ASSISTANT:
+  Good catch! The route needs to lowercase the query param. Here's the fix:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~29
+
+MAYA:
+  perfect, all tests green now. one more thing - when creating a new recipe, how do i handle adding the dietary tags? current POST just inserts into recipes table
+
+AI ASSISTANT:
+  Great question! Here's the POST endpoint updated to handle dietary tags:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  sweet! one last thing - can you add validation so someone can't accidentally tag a recipe as both vegan AND vegetarian? that doesn't make sense
+
+AI ASSISTANT:
+  Great thinking! Here's validation logic to prevent conflicting dietary tags:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  this is perfect! gonna test it out. btw should i add tests for this validation logic?
+
+AI ASSISTANT:
+  Absolutely! Here's a comprehensive test suite for the dietary validation:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  awesome, 18/18 passing. deploying this now, thanks so much!
+
+AI ASSISTANT:
+  Congrats on getting this shipped! Just to recap what we fixed:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

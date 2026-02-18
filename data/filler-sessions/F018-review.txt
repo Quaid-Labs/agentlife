@@ -1,0 +1,50 @@
+================================================================================
+FILLER SESSION F018 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 10 and 11
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F018 (Filler — Quick Question)
+Date: 2026-03-18 14:05
+Topic: how long does cooked rice last in the fridge
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F018
+  Track: filler
+  Timestamp: 2026-03-18 14:05:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  hey quick q - how long does cooked rice last in the fridge? made a ton yesterday lol
+
+AI ASSISTANT:
+  Cooked rice stays good for 3-4 days in the fridge if you store it in an airtight container. Just make sure to cool it down quickly after cooking to avoid bacteria growth.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  wait really? i thought it was like a week. that's kinda short tbh
+
+AI ASSISTANT:
+  Yeah, rice is actually one of the riskier leftovers because of a bacteria called Bacillus cereus that can survive cooking. After 4 days the risk goes up. You can freeze it for up to 6 months though if you want to keep it longer!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

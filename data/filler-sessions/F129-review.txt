@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F129 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 3 and 4
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F129 (Filler — Work Session)
+Date: 2026-03-06 09:54
+Topic: help me create a load testing plan with jmeter scenarios
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F129
+  Track: filler
+  Timestamp: 2026-03-06 09:54:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  need to load test the recipe app before we scale up. thinking jmeter but idk where to start tbh. what scenarios should i even test?
+
+AI ASSISTANT:
+  For a recipe app, I'd focus on these core scenarios:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  maybe like 1000 concurrent users? idk if thats realistic lol. also need to think about the image loading since recipes have pics
+
+AI ASSISTANT:
+  1000 concurrent is a solid target. For images, definitely test that separately since they're usually the bottleneck.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  yeah that mix makes sense. can you draft the actual jmeter test plan? like what thread groups and samplers i need
+
+AI ASSISTANT:
+  Sure! Here's a basic JMeter structure:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  yes pls. also what assertions should i add? just response codes or something more?
+
+AI ASSISTANT:
+  Here's what I'd add:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  nah thats good. what about the image loading test? should that be separate or part of the viewer group?
+
+AI ASSISTANT:
+  I'd make it separate for better visibility into what's breaking:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  k that makes sense. how do i set up the test data? like i need actual recipe ids and stuff right
+
+AI ASSISTANT:
+  Yeah, you'll need realistic data. Here's the setup:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yeah gimme the image one. also should i test with my staging db or create a separate test db?
+
+AI ASSISTANT:
+  Separate test DB for sure - you don't want load tests messing with staging data.
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ok cool. what listeners should i add to track results? i want like response times and error rates
+
+AI ASSISTANT:
+  Here's the listener setup I'd use:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  lol good to know. what metrics should i actually care about? like whats a pass vs fail
+
+AI ASSISTANT:
+  Here's your success criteria:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  makes sense. should i run this on my laptop or need a separate machine?
+
+AI ASSISTANT:
+  Definitely separate machine - running JMeter locally will skew results (your laptop becomes the bottleneck).
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  oh damn didnt know about non-gui mode. what flags should i use for the full run?
+
+AI ASSISTANT:
+  Here's the full command:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  perfect. one more thing - should i monitor the server side too or just rely on jmeter metrics?
+
+AI ASSISTANT:
+  Definitely monitor server-side! JMeter only shows client perspective.
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  awesome this is super helpful. gonna set this up today. should i test the diabetes filtering feature too or keep it simple for now?
+
+AI ASSISTANT:
+  Keep it simple for the first test - just core CRUD and browsing. Get your baseline performance first.
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  nah im good for now. gonna run the basic one first and see what breaks lol. thanks D!
+
+AI ASSISTANT:
+  Haha sounds good! Run the 100-user test first so you're not debugging a dumpster fire at 1000 😄
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

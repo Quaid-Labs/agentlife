@@ -1,0 +1,557 @@
+================================================================================
+SESSION 08 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 8 (Track 1: Personal — David's birthday surprise for Linda)
+Goal: David is planning a surprise birthday dinner for Linda in Houston.
+  Maya needs restaurant help. Cross-reference: Linda's diabetes means
+  dietary constraints for the restaurant. Tests multi-fact inference.
+Turn Count: 10
+Session Type: Planning/logistics with emotional undercurrent
+Timestamp: 2026-03-24 (1 week after session 6, ~5 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - David is planning a surprise birthday dinner for Linda
+  - The dinner would be in Houston (where Linda lives)
+  - Maya needs help finding a restaurant that works for Linda's dietary
+    needs (diabetic-friendly, not too much fried/heavy food)
+  - David is coordinating — he wants it to be special
+  - They're thinking of inviting Rachel too (but distance is an issue)
+  - Linda's birthday is in mid-April
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe or any specific company in Maya's job search (session 13)
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's promotion (session 17)
+  - Moving specifics or Zilker vs East Austin debate (session 17)
+  - Half marathon injury scare (session 11)
+  - Half marathon results (session 19)
+  - Maya has already started applying/interviewing (not yet at session 8)
+
+CROSS-REFERENCES (critical for this session):
+  - Linda's diabetes (session 4) — referenced obliquely: "you know
+    about mom's situation" or "with her diet stuff"
+  - David's vegetarianism (session 1) — factor in restaurant choice
+  - Linda lives in Houston (sessions 1, 4) — dinner location
+  - Rachel in Seattle (session 1) — invited but far away
+
+TANGENT TRIGGER:
+  Trigger: While discussing restaurants
+  Content: Maya mentions David's mom wants to visit Austin. Brief aside
+    about in-law logistics. Then refocuses on Linda's birthday.
+  Extractable Facts: David's mom wants to visit Austin
+  Return phrase: "ok but that's a separate thing"
+
+MESSAGE PLAN (10 turns total):
+  1. Normal     — Opens excited: David has a plan for mom's birthday
+  2. Normal     — Explains the surprise dinner concept
+  3. Quick      — Dietary constraints for restaurant
+  4. Normal     — What kind of restaurant they want
+  5. Quick      — Budget / vibe
+  6. Normal     — David's mom tangent
+  7. Quick      — Back to birthday planning
+  8. Normal     — Rachel logistics
+  9. Quick      — React to ideas
+  10. Quick     — Wrap up
+
+End Condition: Maya has discussed restaurant requirements and feels good about the plan
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 8
+  Track: 1
+  Timestamp: 2026-03-24 19:30:00 UTC
+  Duration: ~5 minutes (19:30:00 to 19:35:20)
+
+---
+
+TURN 1 (Excited Opening)
+TAG: normal | TOKENS: 62/100
+
+MAYA:
+  ok so D has this idea and i need help with it
+
+  he wants to do a surprise birthday dinner for my mom. like a nice
+  restaurant in houston, get the whole family there. her birthday's
+  in mid-april
+
+  i think it's really sweet actually. she's been having a rough time
+  and this would be good for her
+
+AI ASSISTANT:
+  Oh that's really nice! David planning something for your mom is
+  sweet.
+
+  Mid-April gives you about 3 weeks to plan — plenty of time for a
+  restaurant reservation. Do you have a vibe in mind? Like fancy
+  sit-down, casual fun, or somewhere in between?
+
+ANALYSIS: David's surprise for Linda. Birthday in mid-April. Maya
+appreciates the gesture. "Rough time" references diabetes without
+re-explaining (organic cross-reference). Agent engages with practical
+follow-up.
+
+---
+
+TURN 2 (Dinner Concept)
+TAG: normal | TOKENS: 85/100
+
+MAYA:
+  i was thinking somewhere nicer but not like... stuffy? she's not
+  fancy. she'd be uncomfortable at one of those places where the
+  waiter folds your napkin for you
+
+  D suggested this place he found online — some southern restaurant
+  that does elevated comfort food. which sounds perfect because
+  that's what she loves. but i'm worried about the menu
+
+  like... you know about mom's situation right? with the diabetes
+  thing. i need a place where she can actually eat most of the menu
+  without feeling like she's the difficult one
+
+AI ASSISTANT:
+  Yeah, absolutely — you want somewhere she feels comfortable, not
+  somewhere she's scanning the menu anxiously.
+
+  Elevated southern is a great direction. A lot of those places have
+  evolved to include lighter options — grilled fish, roasted
+  vegetables, salads alongside the traditional stuff. The key is
+  finding one where the healthier options aren't afterthoughts.
+
+  What part of Houston? That'll help narrow it down. And how many
+  people are you thinking?
+
+ANALYSIS: Cross-reference to Linda's diabetes (session 4). Maya
+uses "you know about mom's situation" — tests agent's memory.
+Restaurant criteria: nicer but not stuffy, southern, diabetic-friendly.
+Linda's personality: doesn't want to feel "difficult."
+
+---
+
+TURN 3 (Dietary Constraints)
+TAG: quick | TOKENS: 42/50
+
+MAYA:
+  probably near her place in houston — she's in the montrose area i
+  think? and D's vegetarian so we need options for him too. plus
+  rach if she can make it
+
+  so basically: diabetic-friendly, vegetarian option, not pretentious.
+  easy right lol
+
+AI ASSISTANT:
+  Ha, just a casual multi-dietary-restriction dinner. No problem.
+
+  Montrose is actually perfect for this — it's one of the best food
+  neighborhoods in Houston. Tons of variety. I can think of a few
+  directions:
+
+  - **Underbelly** successor restaurants (Chris Shepherd's places) —
+    southern with excellent vegetable and grain dishes
+  - **Local Foods** — more casual but great for dietary flexibility
+  - **Uchi Houston** — Japanese, universally dietary-friendly but
+    might be too fancy?
+
+  Want me to look into any of those? Or a different direction?
+
+ANALYSIS: New facts: Linda lives in Montrose area of Houston. Multi-
+constraint problem: diabetic + vegetarian + not pretentious. Rachel
+("rach") invited. Tests inference: connecting David=vegetarian
+(session 1) + Linda=diabetic (session 4) + dinner planning.
+
+---
+
+TURN 4 (Restaurant Discussion)
+TAG: normal | TOKENS: 71/100
+
+MAYA:
+  oh uchi is great but yeah too fancy for mom. she'd be like "i'm
+  not paying $20 for three pieces of fish" lol
+
+  the local foods direction sounds right. or like a good farm-to-table
+  place that has grilled stuff? she likes seafood. and if they have
+  a vegetarian entree D will be happy — he's easy about it, he
+  doesn't need like a whole vegetarian menu
+
+  honestly the main thing is that mom doesn't feel like the dinner
+  is ABOUT her diet. she's already self-conscious about the whole
+  diabetes thing. she doesn't want people making a fuss
+
+AI ASSISTANT:
+  That's a really thoughtful way to approach it — making it feel like
+  a celebration, not a dietary accommodation.
+
+  Farm-to-table with good seafood is probably your best bet. Places
+  like that tend to be naturally lighter — grilled proteins, seasonal
+  vegetables — so the "healthy" options don't stick out as the sad
+  diet section.
+
+  I'd look at places like Weights + Measures, or Feges BBQ for
+  something more casual with great smoked fish options. Both in the
+  Montrose/Heights area.
+
+  Do you want me to look up specific menus?
+
+ANALYSIS: Linda's personality: proud, self-conscious about diabetes,
+doesn't want fuss. David is easy about vegetarian options. Linda
+likes seafood. The birthday shouldn't feel medical — emotional nuance.
+
+---
+
+TURN 5 (Budget / Logistics)
+TAG: quick | TOKENS: 31/50
+
+MAYA:
+  yeah maybe later — i should probably actually go on yelp or
+  something myself. but this helps narrow it down
+
+  budget-wise D said he'd cover it. he's sweet like that. probably
+  like $50-60 per person? nothing crazy
+
+AI ASSISTANT:
+  $50-60 per person is totally doable in that area for a nice dinner
+  that's not over the top. Farm-to-table places usually fall right
+  in that range.
+
+  How many people total? Just you, David, your mom, and maybe Rachel?
+
+ANALYSIS: David paying for the dinner (generous, matches personality).
+Budget established. Guest list question.
+
+---
+
+TURN 6 (David's Mom Tangent)
+TAG: normal | TOKENS: 78/100
+
+MAYA:
+  yeah that's the core group. maybe 4-5 if rach can fly in
+
+  oh random — D's mom has been talking about visiting us in austin.
+  she hasn't been down since we moved. and his brother mike might
+  come too. completely separate thing but i'm just thinking about
+  all the family stuff happening at once
+
+  D's mom is great but she's a lot lol. very involved. very
+  opinions-about-everything. last time she stayed for like 10 days
+  and i was ready to lose it by day 5
+
+  ok but that's a separate thing. back to mom's birthday
+
+AI ASSISTANT:
+  Ha, 10 days of an opinionated mother-in-law is... a lot. Noted.
+
+  For the birthday — if it's 4-5 people, most restaurants can handle
+  that without a private room. But you might want to make a
+  reservation sooner rather than later, especially for a Saturday
+  night.
+
+  Is David handling the surprise part? Like getting your mom there
+  without her knowing?
+
+ANALYSIS: David's mom and brother Mike introduced. David's mom is
+"a lot" — opinionated, long stays. 10-day visit history. Mike
+mentioned for first time. Quick tangent exit — "separate thing."
+
+---
+
+TURN 7 (Back to Planning)
+TAG: quick | TOKENS: 25/50
+
+MAYA:
+  yeah he's going to tell her he's taking her to dinner for her
+  birthday — just the two of them — and then we'll already be
+  there. she loves D so she'll go willingly lol
+
+  classic surprise setup
+
+AI ASSISTANT:
+  That's cute. David and Linda having their own relationship is sweet
+  — and it makes the surprise actually work because she won't
+  suspect anything.
+
+  Make sure Rachel doesn't accidentally spill it. Sisters are the
+  weakest link in surprise operations.
+
+ANALYSIS: David has an independent relationship with Linda (she
+"loves D"). Surprise mechanics. Agent makes a humorous observation
+about Rachel potentially spoiling it.
+
+---
+
+TURN 8 (Rachel Logistics)
+TAG: normal | TOKENS: 65/100
+
+MAYA:
+  oh god yeah. rach can NOT keep a secret. i already told her like
+  three times DO NOT CALL MOM ABOUT THIS
+
+  idk if she can even come though. seattle to houston isn't cheap and
+  she's got the kids. maybe we do a facetime thing for her? like she
+  calls during dinner
+
+  actually that would be really sweet. mom seeing all of us at once
+  even if rach is on screen
+
+AI ASSISTANT:
+  The FaceTime call during dinner is actually a great idea — it makes
+  the surprise even bigger. Your mom thinks it's just her and David,
+  then you show up, then Rachel's on the phone.
+
+  Layer the surprises. It'll be a great moment.
+
+  Want Rachel to have a specific time to call, or just give her a
+  heads up when you're all settled?
+
+ANALYSIS: Rachel can't keep secrets (personality fact). Rachel might
+not attend in person (cost, kids). FaceTime alternative — layered
+surprise concept. Emotional family moment planning.
+
+---
+
+TURN 9 (React)
+TAG: quick | TOKENS: 22/50
+
+MAYA:
+  ooh layered surprises. i like that. ok i'm going to text D about
+  this — he'll love the facetime idea
+
+  this is going to be so good. she deserves it
+
+AI ASSISTANT:
+  She really does. Let me know how the restaurant hunt goes — happy
+  to help narrow it down when you're ready.
+
+ANALYSIS: Quick excited reaction. Maya texting David in real-time.
+Emotional note: "she deserves it" — care for Linda.
+
+---
+
+TURN 10 (Wrap Up)
+TAG: quick | TOKENS: 8/50
+
+MAYA:
+  will do. thanks for the help!
+
+  ttyl
+
+AI ASSISTANT:
+  Anytime! This is going to be great. Talk later!
+
+ANALYSIS: Clean exit. Minimal, positive energy.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Stripe or job search companies named
+  - No interview activity
+  - No Rachel's children's names or ages
+  - No David promotion
+  - No moving specifics or Zilker vs East Austin
+  - No injury scare
+  - No half marathon results
+
+CONSTRAINT 2: Diabetes Cross-Reference Correct
+  STATUS: PASS
+  Location: Turn 2
+  Evidence: "you know about mom's situation right? with the diabetes thing"
+  Note: Maya references the diagnosis obliquely. Does NOT re-explain.
+    Tests whether agent connects to session 4. Agent responds with
+    "Yeah, absolutely" — confirms memory continuity.
+
+CONSTRAINT 3: David Vegetarian Cross-Reference Correct
+  STATUS: PASS
+  Location: Turn 3
+  Evidence: "D's vegetarian so we need options for him too"
+  Note: Brief mention. David's dietary need established in session 1.
+    Here it becomes a restaurant constraint alongside Linda's diabetes.
+
+CONSTRAINT 4: Multi-Fact Inference Setup
+  STATUS: PASS
+  The dinner planning requires connecting:
+    1. Linda lives in Houston (session 1, 4)
+    2. Linda has Type 2 diabetes (session 4)
+    3. David is vegetarian (session 1)
+    4. Rachel lives in Seattle (session 1)
+  All four facts converge in this session's planning without any being
+  re-stated in full.
+
+CONSTRAINT 5: David's Mom/Mike New Facts
+  STATUS: PASS
+  Location: Turn 6
+  New facts:
+    - David's mom wants to visit Austin
+    - David's brother is named Mike
+    - David's mom is opinionated, stayed 10 days last visit
+  Note: These are legitimate new facts. They don't leak any
+    forbidden future information.
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 9 pre-signal → Turn 10 goodbye. Clean.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  Diabetes and vegetarian cross-references handled perfectly
+  Multi-fact inference naturally embedded in planning
+  New family members (David's mom, Mike) introduced cleanly
+  No forbidden facts leaked
+  Surprise callback seed planted for session 19
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-8 (cumulative ground truth)
+  Evaluation Scope: Cross-session inference, family graph, planning
+
+QUERY 1: "What is David planning for Linda's birthday?"
+  Ground Truth: A surprise birthday dinner at a restaurant in Houston.
+    David will tell Linda it's just the two of them, then Maya will
+    already be there. Rachel might join via FaceTime.
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 1: "he wants to do a surprise birthday dinner for my mom"
+    - Turn 7: "he's going to tell her he's taking her to dinner...
+      just the two of them — and then we'll already be there"
+  Query Type: surprise_callback (this fact returns in session 19)
+  Recall Difficulty: Medium (must retain across 11-session gap)
+
+QUERY 2: "What dietary constraints would a family dinner need to accommodate?"
+  Ground Truth: At least two: Linda is diabetic (Type 2, needs
+    diabetic-friendly food) and David is vegetarian. The restaurant
+    needs to work for both without making Linda feel self-conscious.
+  Evidence Sessions: 1, 4, 8
+  Supporting Evidence:
+    - Session 1: "david's vegetarian"
+    - Session 4: "type 2 diabetes"
+    - Session 8, Turn 2: "you know about mom's situation"
+    - Session 8, Turn 3: "diabetic-friendly, vegetarian option"
+  Query Type: inference (cross-session multi-fact assembly)
+  Recall Difficulty: Hard (requires connecting 3 facts from 3 sessions)
+
+QUERY 3: "Who is Mike?"
+  Ground Truth: Mike is David's brother. He might visit Austin along
+    with David's mother.
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 6: "his brother mike might come too"
+  Query Type: graph_traversal
+  Recall Difficulty: Medium (single mention, requires graph: Maya →
+    David → Mike = 2-hop relationship)
+
+QUERY 4: "What's David's mom like?"
+  Ground Truth: She's "a lot" — very involved, opinionated about
+    everything. She stayed for 10 days on her last visit and Maya
+    was overwhelmed by day 5. She wants to visit Austin again.
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 6: "D's mom is great but she's a lot... very involved.
+      very opinions-about-everything"
+    - Turn 6: "last time she stayed for like 10 days and i was ready
+      to lose it by day 5"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (personality description, single session)
+
+QUERY 5: "When is Linda's birthday?"
+  Ground Truth: Mid-April
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 1: "her birthday's in mid-april"
+  Query Type: temporal_current
+  Recall Difficulty: Easy (directly stated)
+
+QUERY 6: "Can Rachel keep a secret?"
+  Ground Truth: No — Maya says Rachel "can NOT keep a secret" and told
+    her multiple times not to call their mom about the surprise dinner.
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 8: "rach can NOT keep a secret. i already told her like
+      three times DO NOT CALL MOM ABOUT THIS"
+  Query Type: tangent_recall
+  Recall Difficulty: Easy (strongly stated, memorable)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Factual recall: Queries 4, 5, 6 (personality, date, trait)
+  Cross-session inference: Query 2 (dietary constraints across 3 sessions)
+  Graph traversal: Query 3 (Mike — 2-hop via David)
+  Surprise callback: Query 1 (retained for session 19)
+  Complexity: 2 Easy, 3 Medium, 1 Hard
+  Coverage: Family planning, dietary inference, relationship graph,
+    personality traits, temporal facts
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec outline: "David planning surprise birthday for Linda. Needs
+     restaurant help. Cross-ref: Linda's diabetes (dietary constraints
+     for restaurant)."
+   Full session created with restaurant scouting, multi-dietary
+   constraint problem, layered surprise concept.
+
+2. DAVID'S MOM AND MIKE INTRODUCTION
+   Spec mentions: "David's family: his mother (wants to visit Austin),
+     his brother Mike (also plans to visit)"
+   Transcript: Turn 6 tangent introduces both. Maya describes David's
+   mom as opinionated with long stays. Mike mentioned briefly.
+   Rationale: This session is about family planning — natural place
+   to introduce David's side of the family as a tangent.
+
+3. MONTROSE DETAIL
+   Not in spec. Added: Linda lives in Montrose area of Houston.
+   Rationale: More specific location fact for the restaurant search.
+     Adds precision to the Houston references.
+
+4. FACETIME SURPRISE CONCEPT
+   Not in spec. Added: Layered surprise with Rachel on FaceTime.
+   Rationale: Creative planning moment that's memorable and emotionally
+     resonant. Also establishes Rachel's distance as a practical barrier.
+
+5. LINDA'S PERSONALITY DEPTH
+   Spec: Linda has diabetes.
+   Transcript: Linda is proud, self-conscious about diabetes,
+     doesn't want fuss. Montrose. Likes seafood. Doesn't like stuffy
+     restaurants. Would complain about $20 sushi.
+   Rationale: Rich personality details enable harder inference queries
+     and make the ground truth more nuanced.
+
+6. SURPRISE CALLBACK SETUP
+   Session 19 spec says: "Surprise callback: 'Whatever happened with
+     David's plan for mom's birthday?'"
+   This session establishes the plan. If session 19's callback works,
+   it proves 11-session long-range retention.
+
+VALIDATION SUMMARY:
+  All spec-required facts established
+  Cross-references to 3 prior sessions handled correctly
+  Multi-fact inference naturally embedded
+  New family members introduced via tangent
+  Surprise callback seed planted
+  6 eval queries covering 5 query types
+  10 turns, natural pacing
+  No forbidden facts leaked
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 08 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

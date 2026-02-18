@@ -1,0 +1,61 @@
+================================================================================
+FILLER SESSION F022 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 10 and 11
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F022 (Filler — Quick Question)
+Date: 2026-03-20 20:08
+Topic: how do i add a cron job on mac
+Turn Count: 3
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F022
+  Track: filler
+  Timestamp: 2026-03-20 20:08:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  yo how do i add a cron job on mac? need to run a script daily
+
+AI ASSISTANT:
+  You'll use `crontab -e` to edit your cron schedule. Opens in vim by default. The format is: `minute hour day month weekday command`
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  ok yeah like 6am every day, and does it need full path to the script?
+
+AI ASSISTANT:
+  Yep, always use the full path in cron jobs since they don't run in your normal shell environment.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  perfect thx, exactly what i needed
+
+AI ASSISTANT:
+  No problem! Let me know if it doesn't trigger tomorrow morning and we can troubleshoot 👍
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

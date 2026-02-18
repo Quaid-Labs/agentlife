@@ -1,0 +1,149 @@
+================================================================================
+FILLER SESSION F090 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 19 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F090 (Filler — Recipe App Micro)
+Date: 2026-04-30 20:31
+Topic: the tests are failing after i added the new migration
+Turn Count: 13
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F090
+  Track: filler
+  Timestamp: 2026-04-30 20:31:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  ugh tests are failing after i added the migration for user_id in recipes table. getting foreign key constraint errors
+
+AI ASSISTANT:
+  I can help you debug those foreign key constraint errors. These typically happen when the migration order is wrong or existing data conflicts with the new constraint.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  oh yeah that makes sense. my test setup creates a fresh db each time but maybe the migrations run in wrong order?
+
+AI ASSISTANT:
+  Exactly! Migration order is critical. You need to ensure migrations run in numbered sequence. Here's a solid test setup that guarantees proper ordering:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  omg no i don't have that pragma line anywhere. also my migrations are just named like "create_users.js" not numbered
+
+AI ASSISTANT:
+  That's your problem! Without numbered prefixes, the migrations could run in any order (alphabetical, which is unpredictable). And without `foreign_keys = ON`, SQLite silently ignores your constraints.
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yes please, and also can you show what the recipe routes should look like now that we have user_id?
+
+AI ASSISTANT:
+  Absolutely! Here's the complete updated routes file with authentication middleware:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  perfect. running the tests now... still getting an error tho. "Cannot find module '../middleware/auth'"
+
+AI ASSISTANT:
+  Right, we need to create that authentication middleware! Here's the complete auth middleware file:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  nice. tests are passing now! but i'm getting a weird error when i actually try to create a recipe in the app. says "SQLITE_CONSTRAINT: FOREIGN KEY constraint failed"
+
+AI ASSISTANT:
+  That error means you're trying to insert a recipe with a `user_id` that doesn't exist in the users table. This usually happens when the JWT token has a user ID that's not in the database (maybe from a different database instance, or the DB was reset).
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~36
+
+MAYA:
+  oh lol yeah i was using a token from my test db. logged in again and it works now. one more thing - how do i make sure recipes get deleted when a user is deleted?
+
+AI ASSISTANT:
+  Good catch! That's already handled by the `ON DELETE CASCADE` in your foreign key constraint from the migration I showed earlier. Let me show you why it works and add a test to verify:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  perfect! tests all pass. gonna deploy this tomorrow. thanks!
+
+AI ASSISTANT:
+  Awesome! Before you deploy, here's a quick pre-deployment checklist to avoid common issues:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  wait actually one issue - if i delete my account and then register again with same email, i can't see my old recipes. shouldn't they come back?
+
+AI ASSISTANT:
+  No, that's actually the correct behavior! When you delete your account with `ON DELETE CASCADE`, all your recipes are permanently deleted from the database. This is the expected flow for account deletion - it's a destructive operation.
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  nah hard delete is fine for now, it's just for me and D anyway lol. gonna add that warning tho
+
+AI ASSISTANT:
+  Perfect! Here's a simple frontend confirmation you can add. This works whether you're using React, vanilla JS, or whatever:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  sweet, that's perfect. deploying now, thanks so much for the help!
+
+AI ASSISTANT:
+  You're welcome! Glad we got everything working. Just a quick deployment sanity check before you go:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

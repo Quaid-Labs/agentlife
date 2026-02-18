@@ -1,0 +1,83 @@
+================================================================================
+FILLER SESSION F103 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F103 (Filler — Recipe App Micro)
+Date: 2026-03-26 10:06
+Topic: the prep_time field allows negative numbers
+Turn Count: 6
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F103
+  Track: filler
+  Timestamp: 2026-03-26 10:06:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  hey so i found a bug... you can submit negative prep times lol. like -30 minutes. should probably validate that right
+
+AI ASSISTANT:
+  Yeah definitely! You'll want to add validation both in the database schema and the API route. Here's the fix:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  tried the ALTER TABLE thing but getting "Cannot add a CHECK constraint to an existing table" :/
+
+AI ASSISTANT:
+  Ah right, SQLite doesn't support adding CHECK constraints after table creation. You'll need to recreate the table. Here's a migration script:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ok that worked but now all my tests are failing lol. bunch of "SQLITE_CONSTRAINT: CHECK constraint failed: prep_time >= 0"
+
+AI ASSISTANT:
+  Your test fixtures probably have placeholder negative values or zeros. Update your test data:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  tests pass now thx. should i also validate on the frontend or is backend enough?
+
+AI ASSISTANT:
+  Definitely do both! Backend validation is your safety net, but frontend gives better UX:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  perfect. also added max="999" bc nobody's prepping for 16 hours lmao
+
+AI ASSISTANT:
+  lol smart, that's a good sanity check. You could also add it to your backend validation:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

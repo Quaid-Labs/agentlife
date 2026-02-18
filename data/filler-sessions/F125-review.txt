@@ -1,0 +1,160 @@
+================================================================================
+FILLER SESSION F125 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F125 (Filler — Work Session)
+Date: 2026-04-21 21:40
+Topic: i need to create a database migration plan for our schema changes
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F125
+  Track: filler
+  Timestamp: 2026-04-21 21:40:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  hey can you help me draft a migration plan for the new user tables? need to present it tomorrow and i'm blanking on the rollback strategy
+
+AI ASSISTANT:
+  Sure! Let me help you structure this. Are we talking about the auth schema changes for the recipe app? What's the current state - is this adding new tables or modifying existing ones?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~29
+
+MAYA:
+  adding new tables for oauth + user profiles. current setup is just firebase auth but we're moving to our own user management. worried about data loss during the switch
+
+AI ASSISTANT:
+  Got it. For the migration plan, we should cover: 1) dual-write period where we write to both systems, 2) backfill existing users, 3) verification phase, 4) cutover. Want me to draft the full doc with rollback steps?
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  yes please. also need to include timeline estimates and what monitoring we'll need during each phase
+
+AI ASSISTANT:
+  Here's a migration plan draft:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  this is good but can you add the actual sql for the schema? my lead will want to see the table definitions
+
+AI ASSISTANT:
+  ```sql
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  perfect. now what about the rollback scenarios? like if we're in phase 4 and see 10% data mismatches, what's the exact procedure
+
+AI ASSISTANT:
+  Good question. Here's the rollback decision tree:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  yeah what about phase 5? that's the scary one where we actually switch reads over
+
+AI ASSISTANT:
+  **Phase 5 Rollback Procedure (Cutover)**
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  ok this is really helpful. can you add a section on what success metrics we're tracking? like how do we know each phase actually worked
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  this is great. one more thing - what's the actual backfill script look like? just the pseudocode is fine, i can write the real thing
+
+AI ASSISTANT:
+  ```python
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  perfect. last thing i swear lol - what's the timeline look like? my PM is gonna ask how long this takes total
+
+AI ASSISTANT:
+  **Migration Timeline**
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  yes add it. and then can you write a quick email i can send my lead tonight with the summary? just the key points and timeline
+
+AI ASSISTANT:
+  ```
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  yeah perfect. actually wait, should i mention that we'll need DBA review on the indexes? or is that implied
+
+AI ASSISTANT:
+  Definitely add it - better to be explicit. Add this paragraph after "Risk mitigation":
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  good call. ok i think i'm set. gonna send this and then actually enjoy my evening lol. thanks for the help
+
+AI ASSISTANT:
+  You're all set! The plan looks solid - good safety measures and clear rollback paths. Your lead should be happy with this level of detail. Enjoy your evening! 🎉
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

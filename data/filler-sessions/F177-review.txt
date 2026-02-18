@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F177 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F177 (Filler — Work Session)
+Date: 2026-04-18 16:48
+Topic: what metrics should i track for user onboarding
+Turn Count: 19
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F177
+  Track: filler
+  Timestamp: 2026-04-18 16:48:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  hey need help thinking through onboarding metrics for the recipe app. what should i actually be tracking here?
+
+AI ASSISTANT:
+  Great question! For a recipe app with authentication, you'll want to track metrics across the full funnel from signup to activation. Here's a comprehensive framework:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  yeah can you write the sql for a dashboard? we're on postgres, users table has id/created_at/auth_method, then recipe_views and saved_recipes tables
+
+AI ASSISTANT:
+  Here's a complete SQL dashboard query set for Postgres:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  this is sick. what would good benchmarks be for each of these? like what retention rate should i be aiming for
+
+AI ASSISTANT:
+  Here are realistic benchmarks based on consumer app standards and recipe/content apps specifically:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  yeah let's do auth method first. what experiment would you run there?
+
+AI ASSISTANT:
+  Here's a complete experiment plan for auth method optimization:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~30
+
+MAYA:
+  nah this is perfect. one question tho - how do i make sure the retention difference is real and not just that google users are different people than email users?
+
+AI ASSISTANT:
+  Excellent question — that's a classic selection bias problem. Here's how to separate causation from correlation:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  ok yeah that makes sense. switching gears - should i be doing cohort analysis weekly or monthly for this kind of app?
+
+AI ASSISTANT:
+  **Weekly cohorts, reported monthly.** Here's why:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  nah weekly makes sense. ok last thing - should i track these metrics in postgres or move to like mixpanel or amplitude?
+
+AI ASSISTANT:
+  **Start in Postgres, migrate to an event tool when it hurts.** Here's the breakdown:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  yeah perfect. ok gonna implement the sql dashboards first then see how it goes. thanks!
+
+AI ASSISTANT:
+  Awesome! Here's a quick implementation checklist to keep you on track:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  actually wait - for the events table, should i partition it by month or just let it grow? gonna have a lot of recipe_viewed events
+
+AI ASSISTANT:
+  **Partition by month, 100%.** Recipe views will dominate your event volume and you'll regret not partitioning within 6 months. Here's the setup:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  ok cool. one more thing lol - should the events table reference users with a foreign key or just store user_id as an int?
+
+AI ASSISTANT:
+  **No foreign key.** Store `user_id` as an integer without the FK constraint. Here's why:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  perfect that makes sense. ok i think i'm good to start building this out now, thanks for all the help!
+
+AI ASSISTANT:
+  You got it! Here's your implementation checklist consolidated:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  will do, appreciate it!
+
+AI ASSISTANT:
+  Anytime! One last thing — when you run that first auth experiment and get results, do a quick writeup (even just bullet points) documenting:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  haha will do. gonna go write some sql now, talk later
+
+AI ASSISTANT:
+  Perfect! Just remember to test those partition indexes once you've got some data in there — run an EXPLAIN ANALYZE on your retention query to make sure Postgres is actually using partition pruning. Should see "Partitions scanned: 1" or similar in the query plan, not scanning all partitions.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

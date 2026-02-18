@@ -1,0 +1,149 @@
+================================================================================
+FILLER SESSION F218 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F218 (Filler — Recipe App Micro)
+Date: 2026-04-24 08:58
+Topic: the search is too slow when there's a lot of recipes
+Turn Count: 15
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F218
+  Track: filler
+  Timestamp: 2026-04-24 08:58:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~33
+
+MAYA:
+  hey the search is getting really slow now that i have like 200 recipes in the db... takes like 3-4 seconds sometimes. using sqlite full-text search but idk if i'm doing it right
+
+AI ASSISTANT:
+  The slowness is likely because you're not using FTS5 (Full-Text Search) properly, or you haven't created the FTS table at all. Let me show you how to set up proper full-text search with indexing.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~33
+
+MAYA:
+  oh damn i don't even have that fts table lol. ran the migration and it's way faster now! but when i search "chicken" it also shows "chick peas" recipes which is kinda annoying
+
+AI ASSISTANT:
+  That's because of the `|| '*'` prefix matching I added. It's great for autocomplete but can give false matches. You can make it stricter by using phrase queries and removing the wildcard for exact words.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  perfect! that fixed it. but now i'm getting this error sometimes when people type weird stuff like "pasta & cheese" - says "fts5: syntax error near &"
+
+AI ASSISTANT:
+  Yeah, FTS5 has special characters that break queries (`&`, `OR`, `AND`, `NOT`, `*`, `"`, etc.). You need to sanitize user input before passing it to the MATCH operator.
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~39
+
+MAYA:
+  nice that works! one more thing - can i boost results that match the title more than just ingredients? like if i search "pasta" i want recipes named "pasta carbonara" before ones that just have pasta in the ingredients
+
+AI ASSISTANT:
+  Absolutely! FTS5 lets you assign column weights to boost specific fields. Title matches should definitely rank higher than ingredient matches.
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  awesome! works great. quick q - should i add an index on user_id in the recipes table? i'm joining on it in every search query
+
+AI ASSISTANT:
+  Yes, definitely! You're filtering by `user_id` on every query, so an index will speed up that JOIN significantly. Even with FTS doing the heavy lifting, SQLite still has to filter by user_id on the recipes table.
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~30
+
+MAYA:
+  ran it, definitely faster! ok last thing i swear lol - what if someone has like 5000 recipes? should i add pagination to the search or is LIMIT 50 enough
+
+AI ASSISTANT:
+  LIMIT 50 is fine for display, but you should absolutely add pagination. Users with huge recipe collections will want to browse beyond the first page, and returning metadata about total results is good UX.
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  perfect! tested with a bunch of fake data and it's smooth. btw should i cache search results on the backend or is that overengineering?
+
+AI ASSISTANT:
+  For 200-5000 recipes, caching is probably overkill since your FTS5 queries are already sub-100ms. But if you're seeing repeated searches (like autocomplete hammering the same query), a lightweight in-memory cache can help.
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~32
+
+MAYA:
+  yeah you're right, gonna skip caching for now. searches are like 20-40ms so prob not worth it. thanks! this fts5 stuff is way better than the LIKE queries i had before lol
+
+AI ASSISTANT:
+  Haha yeah, `LIKE '%query%'` doesn't scale at all — you made the right call switching to FTS5. Glad the search is fast now!
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~30
+
+MAYA:
+  ooh good call on the pragmas, added those. one last thing for real - should i add tests for the search endpoint? haven't written any yet and feeling guilty lol
+
+AI ASSISTANT:
+  Yes! Search is core functionality, definitely worth testing. You don't need exhaustive coverage, but test the happy path, edge cases, and performance. Here's a solid test suite:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  perfect! all tests passing except the performance one is like 120ms in CI but whatever close enough lol. thanks so much, search is way better now
+
+AI ASSISTANT:
+  Nice work! Yeah, CI environments are slower (shared CPU, network I/O), so 120ms is totally fine. You could bump the threshold to 150ms for CI or skip performance tests in CI altogether with `test.skip()` if it becomes flaky.
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  haha yeah definitely a huge improvement. gonna call it here, appreciate all the help!
+
+AI ASSISTANT:
+  Anytime! You built a really solid search system. Here's a quick recap of what you implemented:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

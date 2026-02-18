@@ -1,0 +1,72 @@
+================================================================================
+FILLER SESSION F073 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F073 (Filler — Recipe App Micro)
+Date: 2026-04-24 14:12
+Topic: how do i log API requests without it being noisy
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F073
+  Track: filler
+  Timestamp: 2026-04-24 14:12:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  how do i log API requests without it being noisy
+
+AI ASSISTANT:
+  Use morgan middleware with a custom format that skips static assets and health checks:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  ok but that still logs every single recipe fetch which is like 90% of requests lol
+
+AI ASSISTANT:
+  Fair point. Filter by method or add a route-level logger instead:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  ohh yeah method filtering makes sense. what about errors tho, do i need separate error logging?
+
+AI ASSISTANT:
+  Yep, morgan won't catch errors thrown in your handlers. Add an error middleware after your routes:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  perfect ty, gonna add that now before D gets home and i gotta leave for my run
+
+AI ASSISTANT:
+  Nice! Quick tip - if you're using async route handlers, make sure to catch promise rejections or they won't hit your error middleware:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

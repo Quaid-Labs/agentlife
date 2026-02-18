@@ -1,0 +1,465 @@
+================================================================================
+SESSION 02 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 2 (Track 1: Personal — Half marathon training)
+Goal: Establish Maya's running/fitness arc, embed cross-referenceable facts
+Turn Count: 8 (structured per message plan)
+Session Type: Casual chat about fitness, training, lifestyle
+Timestamp: 2026-03-03 (2 days after session 1)
+
+CORE LEARNING OBJECTIVES:
+  - Maya is training for the Austin Half marathon
+  - Maya thinks the race is in April (WRONG — she corrects to May in session 11)
+  - Maya ran a 10K with David last year
+  - Maya runs 3-4 times a week
+  - Maya gets bored during long runs and wants podcast recommendations
+  - Maya hates running in the heat
+  - Maya prefers outdoor running to treadmills
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Mom's diabetes diagnosis or any health condition for Linda (session 4)
+  - Any specific app or project idea like a recipe app (session 3)
+  - Rachel's children's names (Ethan, Lily) or their ages (session 15)
+  - Job dissatisfaction specifics or wanting to leave TechFlow (session 6)
+  - Any mention of Stripe or job searching (session 6+)
+  - Priya the coworker (session 6)
+  - David's birthday surprise for Linda (session 8)
+  - David's promotion or moving discussions (session 17)
+  - Injury scare (session 11)
+
+CROSS-REFERENCES TO SESSION 1:
+  - David mentioned casually without re-introduction ("D and I did that 10K")
+  - Possible Biscuit reference in passing
+
+TANGENT TRIGGER:
+  Trigger: After talking about running
+  Content: Maya complains about Austin heat — it's already getting warm
+    and she hates running in the heat. Briefly considers getting a gym
+    membership for the treadmill but decides against it — she prefers
+    outdoor running.
+  Extractable Facts: Maya hates running in heat, prefers outdoor running
+  Return phrase: "ok but anyway about the podcasts"
+
+MESSAGE PLAN (8 turns total):
+  1. Normal     — Brings up running/training, mentions the half marathon
+  2. Quick      — Follow-up about the race date/details
+  3. Extended   — Heat tangent: Austin heat, gym vs outdoor
+  4. Quick      — Back to main topic
+  5. Normal     — Podcast question for long runs
+  6. Quick      — React to suggestions
+  7. Normal     — More about training routine, David + 10K
+  8. Quick      — Wrap up
+
+End Condition: Maya has discussed training and asked about podcasts
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 2
+  Track: 1
+  Timestamp: 2026-03-03 18:30:00 UTC
+  Duration: ~4 minutes (18:30:00 to 18:34:10)
+
+---
+
+TURN 1 (Running/Training Intro)
+TAG: normal | TOKENS: 72/100
+
+MAYA:
+  hey again
+
+  so i've been meaning to ask — do you know much about running training
+  plans? i'm doing a half marathon. the austin half
+
+  i've been running for a while but never done a proper race longer than
+  a 10K. kinda nervous about it tbh
+
+AI ASSISTANT:
+  Hey Maya! That's awesome — a half marathon is a big step up from a 10K,
+  but totally doable with the right plan.
+
+  How far out is the race? And where are you at right now in terms of
+  weekly mileage? That'll help me figure out what kind of plan makes
+  sense.
+
+ANALYSIS: Maya opens with half marathon mention. Natural re-entry after
+session 1. Doesn't re-introduce herself — assumes continuity. Assistant
+asks smart follow-up questions.
+
+---
+
+TURN 2 (Race Date + Current State)
+TAG: quick | TOKENS: 38/50
+
+MAYA:
+  it's in april i think? maybe late april. i run like 3-4 times a week
+  right now, usually 3-5 miles
+
+  longest run was that 10K D and I did last year
+
+AI ASSISTANT:
+  Ok so ~15-20 miles per week, and your longest run is about 6 miles.
+  That's a solid base actually.
+
+  If the race is late April, you've got about 7-8 weeks. A typical half
+  marathon plan would have you building up your long run by about a mile
+  each week, topping out around 10-11 miles two weeks before the race,
+  then tapering.
+
+  Want me to sketch out a rough weekly plan?
+
+ANALYSIS: Key facts embedded: April date (wrong, corrected session 11),
+3-4x/week running, David + 10K reference using nickname "D". Assistant
+provides useful training info.
+
+---
+
+TURN 3 (Heat Tangent)
+TAG: extended | TOKENS: 134/200
+
+MAYA:
+  yeah that'd be cool. but honestly my bigger problem right now is the
+  HEAT
+
+  it's march and it's already hitting like 85 during the day. i went out
+  yesterday afternoon and almost died. not literally but close
+
+  i've been trying to run early morning but i am NOT a morning person.
+  like at all. david's one of those people who's up at 6am all chipper
+  and i want to throw things at him
+
+  i thought about getting a gym membership so i could just use a
+  treadmill on the hot days. but ugh treadmills are so boring. at least
+  outside there's stuff to look at. and biscuit gets sad when i leave
+  without him — he can run with me on the short ones
+
+  ok but anyway about the podcasts — i need something to listen to on
+  long runs because my playlist is getting stale
+
+AI ASSISTANT:
+  Ha, Austin heat is brutal even in March. Early morning is really the
+  move though — even if it's painful. Most runners down there shift to
+  5-6am in the summer. Maybe start with just your long run day as an
+  early one?
+
+  And yeah, treadmills suck. No shame in admitting it. If you can
+  tolerate morning runs, that's way better than the dreadmill.
+
+  Biscuit doing the short runs with you is adorable though.
+
+  For podcasts — what are you into? True crime, comedy, storytelling,
+  something specific? Or do you want something that makes runs fly by
+  without thinking too hard?
+
+ANALYSIS: Extended turn covers heat complaint, morning person issue,
+David contrast (morning person), gym consideration rejected, treadmill
+boring, Biscuit running companion, podcast transition. Key facts:
+hates heat, prefers outdoor running, NOT a morning person.
+
+---
+
+TURN 4 (Back to Podcasts)
+TAG: quick | TOKENS: 22/50
+
+MAYA:
+  honestly just something that makes the time go by. comedy or
+  storytelling i guess
+
+  nothing too intense — can't think straight when i'm dying
+
+AI ASSISTANT:
+  Fair enough. A few that runners seem to love:
+
+  - **Conan O'Brien Needs a Friend** — funny, light, great for
+    autopilot miles
+  - **Heavyweight** — Jonathan Goldstein tells these really satisfying
+    personal stories. Perfect pacing for runs
+  - **Smartless** — celebrity interviews but actually funny, not boring
+
+  If you want something longer for the big runs (60-90 minutes), try
+  **Radiolab** or **This American Life** — they're storytelling but
+  keep you hooked.
+
+  Any of those hit?
+
+ANALYSIS: Quick reaction, natural pivot back from tangent. Assistant
+provides relevant recommendations.
+
+---
+
+TURN 5 (Podcast Reaction + Training Details)
+TAG: normal | TOKENS: 55/100
+
+MAYA:
+  ooh heavyweight sounds good. and conan — i love conan
+
+  ok back to the training thing. so you said build up the long run
+  each week. what should the other runs look like? i usually just go
+  out and run whatever pace feels ok
+
+  should i be doing speed work or something?
+
+AI ASSISTANT:
+  For a first half marathon, honestly? Just running more is the main
+  thing. But if you want to get a bit structured:
+
+  - **2 easy runs** (3-4 miles, conversational pace)
+  - **1 medium run** (4-5 miles, slightly faster)
+  - **1 long run** (building up: 7, 8, 9, 10, 11, then taper)
+
+  Skip speed work for now. It's injury risk for not much gain at this
+  stage. If you finish this half and want to get faster, THEN do
+  intervals.
+
+  The biggest mistake people make is running too fast on easy days.
+  Easy should be embarrassingly slow.
+
+ANALYSIS: Natural conversation flow — Maya follows up on earlier
+training question. Gets useful running advice.
+
+---
+
+TURN 6 (React to Training Advice)
+TAG: quick | TOKENS: 28/50
+
+MAYA:
+  embarrassingly slow is my specialty lol
+
+  ok that actually seems doable. i was worried you'd say i need to
+  run every day or something
+
+AI ASSISTANT:
+  Nah, rest days are crucial — especially ramping up distance. Your
+  body does the adapting on rest days, not during the runs themselves.
+
+  If you want, you can cross-train on off days — bike, swim, yoga.
+  But also totally fine to just... not.
+
+ANALYSIS: Quick acknowledgment. Maya relieved about manageable plan.
+Personality: self-deprecating humor about pace.
+
+---
+
+TURN 7 (David + Running History)
+TAG: normal | TOKENS: 62/100
+
+MAYA:
+  yeah no yoga. tried it once, hated it. i'm too fidgety
+
+  the 10K last year was fun though. me and D did it together —
+  he's faster than me but he stayed with me which was nice.
+  he might do the half too but hasn't decided
+
+  i just want to finish honestly. don't care about time. just don't
+  want to walk the last 3 miles looking pathetic
+
+AI ASSISTANT:
+  That's the right mindset for a first half. Finishing IS the goal.
+  And honestly, almost everyone walks some of it — it's not pathetic,
+  it's pacing strategy.
+
+  Cool that David might join. Training with someone makes the long
+  runs way less miserable.
+
+  You've got a solid plan now — want me to put together a week-by-week
+  breakdown you can follow?
+
+ANALYSIS: Additional facts: Maya hates yoga (fidgety), David is faster
+runner, David stayed with her at 10K (sweet detail), David might do
+the half too. Goal is just to finish, not competitive.
+
+---
+
+TURN 8 (Wrap-up)
+TAG: quick | TOKENS: 18/50
+
+MAYA:
+  yeah maybe later — gotta go make dinner. or order dinner. we'll see
+  how ambitious i'm feeling
+
+  thanks!
+
+AI ASSISTANT:
+  Ha, the eternal dinner question. Good luck either way.
+
+  Talk soon, Maya!
+
+ANALYSIS: Quick clean exit. Light callback to cooking theme from
+session 1 (without forcing it). No repeated goodbye loops.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Linda health information (diabetes/conditions)
+  - No recipe app or project ideas
+  - No Rachel's children's names (Ethan, Lily) or ages
+  - No job dissatisfaction with TechFlow
+  - No Stripe or job searching
+  - No Priya coworker mention
+  - No David birthday surprise for Linda
+  - No David promotion or moving
+  - No injury scare
+
+CONSTRAINT 2: Cross-References Natural
+  STATUS: PASS
+  - David referenced as "D" without re-introduction (Turn 2, 3, 7)
+  - Biscuit mentioned in passing (Turn 3 — runs with her on short ones)
+  - No forced exposition or recap of session 1 facts
+
+CONSTRAINT 3: April Date Correctly Planted
+  STATUS: PASS
+  Location: Turn 2
+  Evidence: "it's in april i think? maybe late april"
+  Note: The "i think?" adds natural uncertainty — she's not sure of the
+    exact date, which sets up the correction in session 11 cleanly.
+
+CONSTRAINT 4: Single Goodbye Cycle
+  STATUS: PASS
+  Exit pattern:
+    - Turn 8: "gotta go make dinner. or order dinner"
+    - Turn 8 Response: "Talk soon, Maya!"
+  Pattern: Clean single exit, no looping
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  No forbidden facts exposed
+  April date planted with natural uncertainty
+  Cross-references from session 1 are organic
+  New facts about running/fitness naturally embedded
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: All ground truth from sessions 1-2
+  Evaluation Scope: Running/fitness facts + cross-session personality recall
+
+QUERY 1: "What race is Maya training for?"
+  Ground Truth: The Austin Half marathon
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 1: "i'm doing a half marathon. the austin half"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (explicitly stated, session topic)
+
+QUERY 2: "When does Maya think the half marathon is?"
+  Ground Truth: April (she's wrong — she corrects to May in session 11)
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 2: "it's in april i think? maybe late april"
+  Query Type: temporal_current
+  Recall Difficulty: Medium (stated with uncertainty, will be superseded)
+
+QUERY 3: "Does Maya prefer running indoors or outdoors?"
+  Ground Truth: Outdoors — she considered a gym membership for treadmill
+    running but decided against it. She finds treadmills boring and
+    prefers being outside where there's stuff to look at.
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 3: "treadmills are so boring. at least outside there's stuff
+      to look at"
+    - Turn 3: "i thought about getting a gym membership... but ugh"
+  Query Type: tangent_recall
+  Recall Difficulty: Medium (embedded in tangent, preference inference)
+
+QUERY 4: "How often does Maya run?"
+  Ground Truth: 3-4 times a week, usually 3-5 miles per run
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 2: "i run like 3-4 times a week right now, usually 3-5 miles"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (directly stated)
+
+QUERY 5: "Have Maya and David done any races together?"
+  Ground Truth: Yes, they ran a 10K together last year. David is faster
+    but stayed with Maya during the race.
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 2: "longest run was that 10K D and I did last year"
+    - Turn 7: "me and D did it together — he's faster than me but he
+      stayed with me which was nice"
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Medium (requires connecting David from session 1 to
+    running partner in session 2)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Factual recall: Queries 1, 4 (race name, frequency)
+  Temporal: Query 2 (April date — will test update tracking in session 11)
+  Tangent recall: Query 3 (indoor vs outdoor preference from heat tangent)
+  Multi-session: Query 5 (David relationship + running history)
+  Complexity: 2 Easy, 3 Medium
+  Coverage: Running arc, preferences, David cross-reference
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM PILOT BRIEF (session-02.yaml):
+
+1. TIMESTAMP PLACEMENT
+   Before: No specific timestamp in brief
+   After: 2026-03-03 18:30 UTC (evening, 2 days after session 1)
+   Rationale: Maya's "gotta go make dinner" exit works with evening timing.
+     Two-day gap feels natural for someone trying a new AI assistant.
+
+2. TANGENT ENHANCEMENT
+   Before: Brief specifies heat complaint + gym consideration
+   After: Added David morning person contrast, Biscuit running companion,
+     yoga rejection ("tried it once, hated it")
+   Rationale: More extractable personality facts without info dumping.
+     Yoga hate sets up session 11 tangent about stretching routines.
+
+3. ADDITIONAL FACTS EMBEDDED
+   Before: Brief lists 5 new_information items
+   After: Transcript includes 3 bonus facts:
+     - Maya is NOT a morning person
+     - David is a morning person (contrast)
+     - David might do the half marathon too (but hasn't decided)
+     - Maya hates yoga (fidgety)
+     - Biscuit runs with Maya on short runs
+   Rationale: Natural conversation produces more facts than minimum.
+     These are extractable but not in the brief's "required" list.
+
+4. EVAL QUERY EXPANSION
+   Before: 3 queries in brief
+   After: 5 queries (added running frequency, David + races)
+   Rationale: More comprehensive assessment. Query 5 tests cross-session
+     synthesis (David from session 1 + running from session 2).
+
+5. COOKING CALLBACK
+   Before: Not in brief
+   After: Turn 8 exit references dinner/cooking
+   Rationale: Subtle callback to session 1 cooking theme. Not forced —
+     just a natural exit line. Tests whether the system notices continuity.
+
+VALIDATION SUMMARY:
+  All core brief facts extracted
+  No forbidden information leaked
+  Natural conversation flow maintained
+  Tangent properly executed with enhanced content
+  Single clean exit achieved
+  All 5 eval queries answerable
+  8 turn count confirmed
+  Cross-references to session 1 are organic
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 02 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

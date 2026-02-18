@@ -1,0 +1,61 @@
+================================================================================
+FILLER SESSION F186 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F186 (Filler — Quick Question)
+Date: 2026-04-19 10:11
+Topic: how do i undo a git commit
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F186
+  Track: filler
+  Timestamp: 2026-04-19 10:11:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  how do i undo a git commit without losing my changes
+
+AI ASSISTANT:
+  Use `git reset --soft HEAD~1` — this undoes the commit but keeps all your changes staged and ready to re-commit.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  wait what if i already pushed it
+
+AI ASSISTANT:
+  If you've pushed, you'll need `git revert <commit-hash>` instead — it creates a new commit that undoes the changes. Or if no one else has pulled, you can force push with `git push --force`, but that's risky on shared branches.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  nah haven't pushed yet, just realized i committed to wrong branch lol
+
+AI ASSISTANT:
+  Perfect, then do `git reset --soft HEAD~1` to undo the commit, then `git checkout <correct-branch>` and commit there. Your changes will move with you since they're still staged.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,138 @@
+================================================================================
+FILLER SESSION F021 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 10 and 11
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F021 (Filler — Recipe App Micro)
+Date: 2026-03-20 10:20
+Topic: can you refactor the database queries into a separate module
+Turn Count: 13
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F021
+  Track: filler
+  Timestamp: 2026-03-20 10:20:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  hey can you refactor the database queries into a separate module? they're all over the place in routes.js rn and it's getting messy
+
+AI ASSISTANT:
+  I'll help you refactor the database queries into a clean data access layer. This will separate your business logic from data access and make testing much easier.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  nice! but what about the connection module? should i make that too or just require sqlite3 directly in queries.js
+
+AI ASSISTANT:
+  Definitely create a separate connection module! It's a best practice for managing database lifecycle and configuration. Here's a clean setup:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  good thinking with the env var for testing. speaking of which how do i write tests for these query methods?
+
+AI ASSISTANT:
+  Great question! You'll want to use an in-memory SQLite database for tests to keep them fast and isolated. Here's a complete test setup:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  perfect. one issue though - when i run the tests i'm getting "Error: SQLITE_CONSTRAINT: NOT NULL constraint failed: recipes.ingredients"
+
+AI ASSISTANT:
+  That's happening because you're storing ingredients as a JSON string, but the test isn't serializing them. The `createRecipe` method does `JSON.stringify(ingredients)`, but your test data in some places is already passing an array directly without all required fields.
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  cool that fixed it. now how do i test the routes separately from the queries? don't want to hit the real db in route tests
+
+AI ASSISTANT:
+  Great thinking! You'll want to mock the `RecipeQueries` module in your route tests. Here's how to set that up with Jest:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  awesome. btw should i add input validation middleware? like check if ingredients is an array before it hits the query layer
+
+AI ASSISTANT:
+  Yes, absolutely! Input validation at the route layer prevents bad data from even reaching your database. Here's a clean validation setup using express-validator:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ok but now my route tests are failing because of the validation. do i need to update those?
+
+AI ASSISTANT:
+  Yes! Your route tests need to account for the validation middleware now. Here's how to update them:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  great. one more thing - should the queries module handle the json stringification or should routes do that before calling createRecipe?
+
+AI ASSISTANT:
+  Good architectural question! The queries module should handle it. Here's why and how to clean it up:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  perfect. last q - should i add an index on the name column for the search queries? seems like it could get slow with lots of recipes
+
+AI ASSISTANT:
+  Great instinct! Yes, adding a full-text search index will help, but there's a better approach than a simple column index for text search. SQLite supports FTS5 (Full-Text Search), which is much more powerful for LIKE queries.
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  whoa that's slick. ok i think we're good here, gonna test everything out. thanks!
+
+AI ASSISTANT:
+  You're welcome! You've got a really solid architecture now:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

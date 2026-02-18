@@ -1,0 +1,94 @@
+================================================================================
+FILLER SESSION F100 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F100 (Filler — Recipe App Micro)
+Date: 2026-03-13 15:40
+Topic: can you refactor the database queries into a separate module
+Turn Count: 7
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F100
+  Track: filler
+  Timestamp: 2026-03-13 15:40:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  hey can you refactor all the database queries into a separate module? getting messy in routes.js
+
+AI ASSISTANT:
+  Yeah, let's pull those out. I'll create `db/queries.js` for all the recipe queries.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  yeah do update and delete too
+
+AI ASSISTANT:
+  Added those:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  cool. can you write tests for the queries module?
+
+AI ASSISTANT:
+  Sure, here's a test suite:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  getting this error when i run tests:
+
+AI ASSISTANT:
+  Ah, you need to mock the database in tests. Update your test setup:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~5
+
+MAYA:
+  perfect, all passing now thx
+
+AI ASSISTANT:
+  Nice! Your code's way cleaner now. All the database logic is isolated, easier to test, and your routes just handle HTTP stuff. Let me know if you want to add any other query methods.
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  nah this is good for now. gonna take a break and go for a run lol
+
+AI ASSISTANT:
+  Good call, enjoy the run! The refactor's solid—everything's tested and ready to go.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

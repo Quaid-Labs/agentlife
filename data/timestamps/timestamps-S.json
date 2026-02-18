@@ -1,0 +1,2402 @@
+{
+  "S01": [
+    {
+      "role": "user",
+      "timestamp_ms": 1772389454966,
+      "content_preview": "hey! just got this set up. i'm maya \u2014 live in austin, work a"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772389472032,
+      "content_preview": "Hey Maya! Nice to meet you. I'm here whenever you need help "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772389513952,
+      "content_preview": "saas stuff, b2b analytics platform. boring but pays the bill"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772389528494,
+      "content_preview": "Ha, fair enough \u2014 I don't blame you for wanting to talk abou"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772389564649,
+      "content_preview": "oh god so many. last week he tried to eat a pinecone. just.."
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772389574371,
+      "content_preview": "The pinecone commitment is peak golden retriever energy. Tha"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772389637112,
+      "content_preview": "oh man. disasters mostly lol\n\n  tried making this vegetarian"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772389651541,
+      "content_preview": "Haha, burning onions while undercooking beans is honestly im"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772389701761,
+      "content_preview": "oh shit that's smart. he makes this roasted cauliflower thin"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772389718902,
+      "content_preview": "I can't set reminders directly, but if you're using me throu"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772389745266,
+      "content_preview": "nothing specific rn just wondering what you can actually do\n"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772389766392,
+      "content_preview": "Mostly \"ask questions get answers\" for now \u2014 I can't see you"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772389802288,
+      "content_preview": "honestly just curious. everyone's using these things and i f"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772389818622,
+      "content_preview": "Ha, the golden retriever stare is undefeated. Good luck with"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772389833372,
+      "content_preview": "ttyl!"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772389846921,
+      "content_preview": "Later! \ud83d\udc4b"
+    }
+  ],
+  "S02": [
+    {
+      "role": "user",
+      "timestamp_ms": 1772546243720,
+      "content_preview": "hey again\n\n  so i've been meaning to ask \u2014 do you know much "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772546261899,
+      "content_preview": "Hey Maya! That's awesome \u2014 a half marathon is a big step up "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772546291483,
+      "content_preview": "it's in april i think? maybe late april. i run like 3-4 time"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772546304221,
+      "content_preview": "Ok so ~15-20 miles per week, and your longest run is about 6"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772546353039,
+      "content_preview": "yeah that'd be cool. but honestly my bigger problem right no"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772546365640,
+      "content_preview": "Ha, Austin heat is brutal even in March. Early morning is re"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772546400675,
+      "content_preview": "honestly just something that makes the time go by. comedy or"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772546415752,
+      "content_preview": "Fair enough. A few that runners seem to love:\n\n  - **Conan O"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772546455624,
+      "content_preview": "ooh heavyweight sounds good. and conan \u2014 i love conan\n\n  ok "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772546474105,
+      "content_preview": "For a first half marathon, honestly? Just running more is th"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772546513270,
+      "content_preview": "embarrassingly slow is my specialty lol\n\n  ok that actually "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772546524533,
+      "content_preview": "Nah, rest days are crucial \u2014 especially ramping up distance."
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772546563381,
+      "content_preview": "yeah no yoga. tried it once, hated it. i'm too fidgety\n\n  th"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772546579337,
+      "content_preview": "That's the right mindset for a first half. Finishing IS the "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772546613262,
+      "content_preview": "yeah maybe later \u2014 gotta go make dinner. or order dinner. we"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772546624102,
+      "content_preview": "Ha, the eternal dinner question. Good luck either way.\n\n  Ta"
+    }
+  ],
+  "S03": [
+    {
+      "role": "user",
+      "timestamp_ms": 1772697732736,
+      "content_preview": "ok I want to build a recipe app. nothing fancy, just somewhe"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772697749060,
+      "content_preview": "Yeah, absolutely! A recipe app is a great practical project."
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772697785982,
+      "content_preview": "web app. just me for now. each recipe should have a title, i"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772697806959,
+      "content_preview": "Perfect \u2014 Express + SQLite is exactly the right call for a p"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772697840247,
+      "content_preview": "yeah sounds good. keep the dependencies minimal \u2014 just expre"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772697856041,
+      "content_preview": "Got it \u2014 just `express` and `better-sqlite3`. Nothing else n"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772697886329,
+      "content_preview": "oh before you start \u2014 D tried one of my attempts at pad thai"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772697902225,
+      "content_preview": "Ha! I appreciate the invite anyway. The South Congress Thai "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772697927977,
+      "content_preview": "ok yeah go for it. show me what you got"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772697974427,
+      "content_preview": "Starting with the foundation. Here's `package.json`:\n\n  ```j"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772698219252,
+      "content_preview": "looks good. yeah that's exactly what i want. simple\n\n  ok wh"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772698246754,
+      "content_preview": "Here's `server.js` with full CRUD:\n\n  ```javascript\n  const "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772698406309,
+      "content_preview": "nice. yeah that covers everything i need. crud plus search\n\n"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772698458155,
+      "content_preview": "Here's `public/index.html` \u2014 a single-page app that talks to"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772698668546,
+      "content_preview": "need search too. i always forget what i saved \u2014 like i'll sa"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772698688288,
+      "content_preview": "Yep! The search checks both the recipe title AND the ingredi"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772698715767,
+      "content_preview": "oh and make a .gitignore \u2014 don't want node_modules in git. o"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772698735438,
+      "content_preview": "Good call. Here's `.gitignore`:\n\n  ```\n  node_modules/\n  .DS"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772698773827,
+      "content_preview": "nah i'll do the git stuff. just wanted the ignore file"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772698786377,
+      "content_preview": "Got it. So the full file set is:\n  - `package.json` \u2014 Expres"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772698818829,
+      "content_preview": "nice. ok this is a good start\n\n  oh \u2014 D's vegetarian so we n"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772698838209,
+      "content_preview": "Totally \u2014 we can add a tags or dietary_labels column later. "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1772698862762,
+      "content_preview": "haha fair. ok thanks! this is exactly what i wanted"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1772698877233,
+      "content_preview": "Anytime! Let me know when you want to add those dietary labe"
+    }
+  ],
+  "S04": [
+    {
+      "role": "user",
+      "timestamp_ms": 1773179494715,
+      "content_preview": "hey\n\n  sorry if this is weird but i don't really know who el"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179511654,
+      "content_preview": "Hey, I'm really sorry to hear that. It's completely understa"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773179553181,
+      "content_preview": "yeah she said the doctor gave her some pamphlets or somethin"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179566390,
+      "content_preview": "Classic mom move. \"I'm fine\" while clearly needing support.\n"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773179612498,
+      "content_preview": "that's the thing \u2014 she's such a good cook but she cooks like"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179632730,
+      "content_preview": "That stubbornness is probably what got her through raising t"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773179664589,
+      "content_preview": "yeah the doctor said her A1C was like 8.2 or something? i do"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179684377,
+      "content_preview": "8.2 is elevated but it's really not that scary as a starting"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773179718019,
+      "content_preview": "ok that actually makes me feel a little better\n\n  i've been "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179737541,
+      "content_preview": "That's actually a really practical idea. And you're right \u2014 "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773179776298,
+      "content_preview": "rach called too. she's freaked out. but seattle to houston i"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179791464,
+      "content_preview": "Yeah, that's rough for Rachel being so far away. But you two"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773179827853,
+      "content_preview": "yeah we should figure that out. ok side note \u2014 do you know i"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179841289,
+      "content_preview": "No need to apologize \u2014 you've got a lot going on.\n\n  For Aus"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773179878561,
+      "content_preview": "yeah you're right, i'll probably just drive. easier\n\n  sorry"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179891453,
+      "content_preview": "You're not dumping anything. This is exactly the kind of thi"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773179935945,
+      "content_preview": "thanks. yeah i guess i do have a plan sort of\n\n  it's just s"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179952262,
+      "content_preview": "That's a really natural fear \u2014 especially with family histor"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773179974200,
+      "content_preview": "yeah. thanks for listening. or... reading i guess lol\n\n  nig"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773179988209,
+      "content_preview": "Anytime, Maya. Really.\n\n  Night."
+    }
+  ],
+  "S05": [
+    {
+      "role": "user",
+      "timestamp_ms": 1773314711138,
+      "content_preview": "hey, back to the recipe app. so i want to add dietary restri"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773314721853,
+      "content_preview": "Hey! Good idea \u2014 dietary labels will make the app way more u"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773314748820,
+      "content_preview": "so this is actually personal for me. you know my mom's situa"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773314762030,
+      "content_preview": "Yeah, absolutely \u2014 that makes total sense. Making it easy to"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773314793503,
+      "content_preview": "low-sodium too. her doctor was really specific about that. a"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773314811370,
+      "content_preview": "Don't apologize \u2014 this is what makes a good app. You have a "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773314836078,
+      "content_preview": "yeah \u2014 diabetic-friendly, low-sodium, vegetarian, gluten-fre"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773314852211,
+      "content_preview": "Got it. Those five plus a few more common ones like vegan, n"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773314882546,
+      "content_preview": "and vegetarian obviously. for D. that one's non-negotiable l"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773314904978,
+      "content_preview": "Ha, of course \u2014 David's covered. Let me build this out.\n\n  H"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773314994469,
+      "content_preview": "wait what's SAFE_FOR_MOM? i didn't ask for that yet"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773315010025,
+      "content_preview": "Ha, I jumped ahead a bit. I figured you might want a quick-f"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773315037908,
+      "content_preview": "no actually that's perfect. i was literally about to ask for"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773315071266,
+      "content_preview": "Love it. Let me update the server first with dietary filteri"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773315219375,
+      "content_preview": "nice. what about the frontend? i want to see the filters and"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773315273481,
+      "content_preview": "Here's the full updated `public/index.html`:\n\n  ```html\n  <!"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773315591354,
+      "content_preview": "looks great. anything else you'd add?"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773315652142,
+      "content_preview": "Actually yeah \u2014 now that we're accepting dietary tags from u"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773315937421,
+      "content_preview": "oh nice, that's thorough. hey can you also update the sample"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773315994879,
+      "content_preview": "Good call \u2014 let me expand the seed data with proper dietary "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773316143213,
+      "content_preview": "lentil soup for both of them, that's smart haha"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773316156844,
+      "content_preview": "Right? Family dinner solved. I also bumped the version to 0."
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773316190977,
+      "content_preview": "ok so what all changed? give me the summary"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773316214947,
+      "content_preview": "Here's everything from this session:\n\n  1. **database.js** \u2014"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773316247885,
+      "content_preview": "perfect. that's exactly what i wanted. the safe for mom butt"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773316266050,
+      "content_preview": "It really is becoming one! You've got CRUD, search, dietary "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773316287309,
+      "content_preview": "good for now. i want to actually use it for a while before a"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773316303480,
+      "content_preview": "Smart approach \u2014 use it, see what's missing, then iterate. T"
+    }
+  ],
+  "S06": [
+    {
+      "role": "user",
+      "timestamp_ms": 1773521538306,
+      "content_preview": "UGH\n\n  sorry. bad day at work. actually bad MONTH at work. i"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521550222,
+      "content_preview": "That sounds incredibly frustrating. Being talked over when y"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773521585765,
+      "content_preview": "total pattern. he's been like this since the reorg in januar"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521599338,
+      "content_preview": "Ah, post-reorg chaos. That's one of the most common reasons "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773521628066,
+      "content_preview": "honestly it's the culture. the CEO brought in this new VP of"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521642696,
+      "content_preview": "The classic \"AI pivot\" scramble. Every B2B company right now"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773521703303,
+      "content_preview": "yeah that's what i keep thinking. like... do i want to fight"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521715712,
+      "content_preview": "No, being an adult who's aware enough to recognize they've o"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773521753736,
+      "content_preview": "honestly i don't even know yet. just places that let PMs act"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521772736,
+      "content_preview": "When multiple people on the same team are looking simultaneo"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773521808775,
+      "content_preview": "yeah priya keeps me sane\n\n  ugh and speaking of things that "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521820159,
+      "content_preview": "I-35 is basically Austin's full-time headache. And yeah, Sou"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773521853051,
+      "content_preview": "ugh anyway. you're right, one thing at a time\n\n  i just need"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521864727,
+      "content_preview": "Both can happen simultaneously. Venting is cathartic AND you"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773521895084,
+      "content_preview": "yeah. D's been good about it. he's like \"if you're unhappy, "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521906460,
+      "content_preview": "David sounds like a solid partner. \"We can afford a gap\" is "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773521937254,
+      "content_preview": "hah yeah when you list it out like that it's a lot\n\n  ok i'm"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521954327,
+      "content_preview": "Biscuit therapy is scientifically the best kind. Enjoy."
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773521966676,
+      "content_preview": "lol. later"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773521976378,
+      "content_preview": "Later, Maya. Hope tomorrow's better."
+    }
+  ],
+  "S07": [
+    {
+      "role": "user",
+      "timestamp_ms": 1773592815942,
+      "content_preview": "ok so i've been using the recipe app for a few days and it w"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773592834372,
+      "content_preview": "Ha, yeah \u2014 a list of text blocks with borders is very \"here'"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773592864650,
+      "content_preview": "cards. definitely cards. like a grid of recipe cards with th"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773592881965,
+      "content_preview": "Cards in a responsive grid, show summary info on the card fa"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773592916168,
+      "content_preview": "yes images. and the add form is taking up too much space rig"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773592925523,
+      "content_preview": "Totally \u2014 collapsible add form with a \"+\" button or \"Add Rec"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773592955978,
+      "content_preview": "oh btw \u2014 D tried one of the test recipes last night. this ch"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773592975237,
+      "content_preview": "Ha! \"Fine\" is definitely code for \"let's order food.\" The So"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773592990638,
+      "content_preview": "yeah show me what you got"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773593019505,
+      "content_preview": "First \u2014 let me add `image_url` and `prep_time` fields to the"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773593104768,
+      "content_preview": "oh yes prep time. i definitely want that on the cards. like "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773593166011,
+      "content_preview": "100% \u2014 prep time as a quick-glance badge on each card. The \""
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773593570537,
+      "content_preview": "oh wow that's so much better. the cards look great. i love t"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773593589223,
+      "content_preview": "Thanks! The prep time in the corner gives you that quick-gla"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773593616247,
+      "content_preview": "no i get it. love the card layout. one thing \u2014 for images, i"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773593629625,
+      "content_preview": "Yep, just paste a URL in the image field when you add a reci"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773593655060,
+      "content_preview": "perfect. and the add form has image url and prep time fields"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773593668072,
+      "content_preview": "The add form has: recipe title, ingredients, instructions, a"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773593717754,
+      "content_preview": "wait what? that's been broken this whole time?\n\n  like someo"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773593732512,
+      "content_preview": "Hey, while I was updating the search endpoint for the redesi"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773593786533,
+      "content_preview": "ok but it's just me using this locally right? like nobody el"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773593801788,
+      "content_preview": "Yeah, since it's running on localhost, you're fine \u2014 nobody "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773593834515,
+      "content_preview": "ok that kind of bug can't happen again. can you add tests? l"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773593847466,
+      "content_preview": "Absolutely. I'll set up a proper test suite with Jest. The S"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773593949159,
+      "content_preview": "First, the test setup. This creates a fresh in-memory databa"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773594347575,
+      "content_preview": "nice \u2014 ok what about the helpers file?"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773594381856,
+      "content_preview": "Here's the helpers \u2014 data factories for API payloads and ass"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773594605460,
+      "content_preview": "ok now the actual tests. i want to see the sql injection one"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773594754983,
+      "content_preview": "Here's the full test file. The SQL injection tests are at th"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773595311769,
+      "content_preview": "and jest is set up in package.json?"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773595333613,
+      "content_preview": "Yep \u2014 added Jest as a dev dependency and a test script:\n\n  `"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773595386390,
+      "content_preview": "one more thing. the app just crashes if something goes wrong"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773595436133,
+      "content_preview": "Good call. Right now if a route throws, Express sends a raw "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773595545988,
+      "content_preview": "and server.js hooks that in?"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773595570073,
+      "content_preview": "Yep. Updated `server.js` \u2014 imports the error handler at the "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773595637291,
+      "content_preview": "ok this is really good. it actually looks like something i'd"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773595652135,
+      "content_preview": "That's the full list:\n  1. Card grid layout \u2014 responsive, au"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773595695169,
+      "content_preview": "love it. thanks \u2014 this is way better. i'm going to go add so"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773595712459,
+      "content_preview": "Enjoy! The cards are going to look great with real recipe ph"
+    }
+  ],
+  "S09": [
+    {
+      "role": "user",
+      "timestamp_ms": 1773597287903,
+      "content_preview": "different thing today \u2014 help me build a portfolio site\n\n  ju"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597300649,
+      "content_preview": "Sure! A portfolio site is a great move. We can get something"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773597324377,
+      "content_preview": "static html is fine. i don't need a whole framework for a pe"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597335302,
+      "content_preview": "Totally agree \u2014 static HTML and CSS is perfect for a portfol"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773597366670,
+      "content_preview": "i want it clean. minimal. not one of those flashy things wit"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597379187,
+      "content_preview": "Love that direction. Clean typography, lots of breathing roo"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773597406111,
+      "content_preview": "yeah go for it. sections should be: about me, projects, and "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597419660,
+      "content_preview": "Perfect \u2014 three sections, clean and focused. Let me write th"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597443848,
+      "content_preview": "Here's your initial `index.html`:\n\n  ```html\n  <!DOCTYPE htm"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773597558615,
+      "content_preview": "yeah that's a good start. the hero's nice. do the css \u2014 make"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597569776,
+      "content_preview": "Ha, challenge accepted. Give me a sec."
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773597590639,
+      "content_preview": "actually wait \u2014 for the css, use system fonts. no google fon"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597603163,
+      "content_preview": "System fonts, warm gray background, friendly blue accent. Go"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597644198,
+      "content_preview": "Here's `styles.css`:\n\n  ```css\n  * { box-sizing: border-box;"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773597745211,
+      "content_preview": "oh that's nice. yeah i like that a lot. clean\n\n  ok now fill"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597760283,
+      "content_preview": "Thanks! What should go in the about section and projects?"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773597786523,
+      "content_preview": "for about \u2014 8+ years PM experience, B2B SaaS, austin, all th"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597801689,
+      "content_preview": "Got it \u2014 let me flesh out the content with all of that."
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597838296,
+      "content_preview": "Updated `index.html` with full content:\n\n  **About section:*"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773597928258,
+      "content_preview": "perfect. that's exactly what i wanted. clean and simple\n\n  i"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773597940158,
+      "content_preview": "Looks great! Let me know when you want to add more \u2014 or if y"
+    }
+  ],
+  "S10": [
+    {
+      "role": "user",
+      "timestamp_ms": 1773751872879,
+      "content_preview": "ok so the app needs actual meal planning. like weekly plans "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773751890914,
+      "content_preview": "Makes total sense \u2014 meal planning is what turns a recipe dat"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773751920960,
+      "content_preview": "yeah do the schema. and a grocery list that pulls from the m"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773751933993,
+      "content_preview": "Got it \u2014 grocery list as a companion feature to meal plannin"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773751973573,
+      "content_preview": "Updated `database.js` with three new tables. Here's the full"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773752128130,
+      "content_preview": "good. the recipe_ingredients table is smart \u2014 text blobs wer"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773752139740,
+      "content_preview": "On it. I'll add the full meal plan CRUD, ingredient endpoint"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773752163665,
+      "content_preview": "the ingredients are just text blobs right now. need actual s"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773752178187,
+      "content_preview": "Exactly \u2014 structured ingredients are the foundation for ever"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773752303534,
+      "content_preview": "Here's the full updated `server.js` with meal plan CRUD, ing"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773752778844,
+      "content_preview": "can we add request logging? want to see what endpoints get h"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773752795358,
+      "content_preview": "Yep, I wired up the import already. Here's the logging middl"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773752831400,
+      "content_preview": "Here's `src/middleware/logging.js`:\n\n  ```javascript\n  /**\n "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773752956097,
+      "content_preview": "the db queries are getting messy in server.js. can you pull "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773752975404,
+      "content_preview": "Good call. Server.js is getting long with all the inline SQL"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773753070259,
+      "content_preview": "Here's `src/db/queries.js` \u2014 302 lines, three namespaces:\n\n "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773753674535,
+      "content_preview": "much better. the setDb thing for tests is smart \u2014 we'll need"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773753692033,
+      "content_preview": "Yeah, the sample data from session 3 is pretty thin. What ar"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773753715264,
+      "content_preview": "we need more sample recipes with actual dietary tags, real p"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773753733999,
+      "content_preview": "On it. I'll create 20 recipes with realistic ingredients, pr"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773753923699,
+      "content_preview": "Two files. First, `seeds/sample-recipes.json` with 20 recipe"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773754639332,
+      "content_preview": "the family meal plan thing is a nice touch. alternating betw"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773754655032,
+      "content_preview": "Ha, art imitating life. The seed data should give us good co"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773754685294,
+      "content_preview": "ok we need tests for the dietary filtering and meal plans. t"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773754703930,
+      "content_preview": "Good list. I'll write two test suites:\n\n  1. `tests/dietary."
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773754839074,
+      "content_preview": "Here's `tests/dietary.test.js` \u2014 296 lines:\n\n  ```javascript"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773755543141,
+      "content_preview": "And `tests/mealplan.test.js` \u2014 368 lines:\n\n  ```javascript\n "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773756313751,
+      "content_preview": "Updated `tests/setup.js` to include the new table schemas:\n\n"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773756514985,
+      "content_preview": "this is a big one. meal plans, structured ingredients, groce"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773756530065,
+      "content_preview": "Huge session! Nine files changed, almost 1500 lines added. T"
+    }
+  ],
+  "S08": [
+    {
+      "role": "user",
+      "timestamp_ms": 1773757906456,
+      "content_preview": "ok so D has this idea and i need help with it\n\n  he wants to"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773757920482,
+      "content_preview": "Oh that's really nice! David planning something for your mom"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773757967155,
+      "content_preview": "i was thinking somewhere nicer but not like... stuffy? she's"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773757987817,
+      "content_preview": "Yeah, absolutely \u2014 you want somewhere she feels comfortable,"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773758025372,
+      "content_preview": "probably near her place in houston \u2014 she's in the montrose a"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773758041786,
+      "content_preview": "Ha, just a casual multi-dietary-restriction dinner. No probl"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773758098740,
+      "content_preview": "oh uchi is great but yeah too fancy for mom. she'd be like \""
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773758118675,
+      "content_preview": "That's a really thoughtful way to approach it \u2014 making it fe"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773758155634,
+      "content_preview": "yeah maybe later \u2014 i should probably actually go on yelp or\n"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773758172007,
+      "content_preview": "$50-60 per person is totally doable in that area for a nice "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773758210435,
+      "content_preview": "yeah that's the core group. maybe 4-5 if rach can fly in\n\n  "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773758221532,
+      "content_preview": "Ha, 10 days of an opinionated mother-in-law is... a lot. Not"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773758244987,
+      "content_preview": "yeah he's going to tell her he's taking her to dinner for he"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773758256790,
+      "content_preview": "That's cute. David and Linda having their own relationship i"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773758290443,
+      "content_preview": "oh god yeah. rach can NOT keep a secret. i already told her "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773758301240,
+      "content_preview": "The FaceTime call during dinner is actually a great idea \u2014 i"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773758333768,
+      "content_preview": "ooh layered surprises. i like that. ok i'm going to text D a"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773758351218,
+      "content_preview": "She really does. Let me know how the restaurant hunt goes \u2014 "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1773758367218,
+      "content_preview": "will do. thanks for the help!\n\n  ttyl"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1773758380245,
+      "content_preview": "Anytime! This is going to be great. Talk later!"
+    }
+  ],
+  "S11": [
+    {
+      "role": "user",
+      "timestamp_ms": 1774186226168,
+      "content_preview": "hey so minor crisis\n\n  i was doing my long run saturday \u2014 li"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186240888,
+      "content_preview": "Ok, first: stop Googling. That way lies madness.\n\n  A clicki"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774186276909,
+      "content_preview": "mostly just stairs and when i like... squat down? sitting is"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186289596,
+      "content_preview": "No swelling and pain only with specific movements is actuall"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774186320706,
+      "content_preview": "ok wait i think i told you april but it's actually MAY. may "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186335212,
+      "content_preview": "Oh nice, May 18th gives you way more runway. And losing one "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774186370919,
+      "content_preview": "ok good. i'll try biking this week. D has a peloton he never"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186385094,
+      "content_preview": "Ha, fair enough. The Peloton is perfect for this \u2014 low impac"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774186427253,
+      "content_preview": "yeah hopefully\n\n  ok also \u2014 and i know the answer to this al"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186443061,
+      "content_preview": "I respect the honesty. Here's your minimum viable stretching"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774186477335,
+      "content_preview": "ok fine i'll get a foam roller. D probably has one somewhere"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186487352,
+      "content_preview": "Oh nice, what's up with Rachel?"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774186512951,
+      "content_preview": "she's coming to visit! like in 2 weeks. flying in from seatt"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186525394,
+      "content_preview": "That's awesome! A long weekend is a solid visit length \u2014 eno"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774186565570,
+      "content_preview": "definitely tacos. she doesn't have good tacos in seattle \u2014 i"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186583083,
+      "content_preview": "The taco pilgrimage is sacred. Make sure you hit at least on"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774186612071,
+      "content_preview": "nah just her. her husband's watching the kids. she said she "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186621619,
+      "content_preview": "Biscuit absolutely counts. He's going to lose his mind when\n"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774186644378,
+      "content_preview": "will do. ok gotta go ice this knee lol\n\n  bye!"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774186658932,
+      "content_preview": "Ha, go ice! And don't Google anything else.\n\n  Bye, Maya!"
+    }
+  ],
+  "S12": [
+    {
+      "role": "user",
+      "timestamp_ms": 1774385357170,
+      "content_preview": "so i've been reading about graphql. the nested data thing \u2014 "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774385368763,
+      "content_preview": "I think it's a great fit for this use case, actually. Recipe"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774385397336,
+      "content_preview": "yeah. use apollo server. keep the rest endpoints working tho"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774385411886,
+      "content_preview": "Makes sense \u2014 Apollo Server integrates as Express middleware"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774385441389,
+      "content_preview": "ok for the schema i want these types:\n\n  recipe \u2014 obviously."
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774385455024,
+      "content_preview": "Got it. I'll define:\n\n  - Recipe with nested ingredientList,"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774385530093,
+      "content_preview": "Here's `schema.js` \u2014 the full GraphQL type definitions:\n\n  `"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774385643387,
+      "content_preview": "nice. i like the grocerylist as a computed field on mealplan"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774385653277,
+      "content_preview": "Exactly \u2014 the grocery list is a view over the ingredients, n"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774385725247,
+      "content_preview": "Here's `resolvers.js` \u2014 all query, mutation, and field resol"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774386177383,
+      "content_preview": "nice. ok before we go further \u2014 D's been adding recipes btw."
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774386194598,
+      "content_preview": "Ha, Biscuit the chickpea vacuum \u2014 that's such a golden retri"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774386217824,
+      "content_preview": "it was incredible actually. D's getting really good at cooki"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774386227543,
+      "content_preview": "Recipe sharing \u2014 let's do it."
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774386255315,
+      "content_preview": "want to share recipes with my mom. she's always asking me wh"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774386267557,
+      "content_preview": "That's a great use case \u2014 a simple shareable link is way bet"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774386341627,
+      "content_preview": "Updated `database.js` with the recipe_shares table and owner"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774386561136,
+      "content_preview": "Here's the updated `server.js` with Apollo Server integratio"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774387033089,
+      "content_preview": "wait. in the resolvers \u2014 if i query a list of recipes and ea"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774387052471,
+      "content_preview": "Yep, you caught it. Recipe.ingredientList fires once per rec"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774387090950,
+      "content_preview": "later is fine. we have like 20 recipes it doesn't matter yet"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774387108227,
+      "content_preview": "On it. I'll set up:\n\n  - Dockerfile: Node 18 Alpine, minimal"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774387178549,
+      "content_preview": "Three files. First, `Dockerfile`:\n\n  ```dockerfile\n  # ====="
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774387348359,
+      "content_preview": "we need api docs. full documentation \u2014 rest endpoints and gr"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774387361588,
+      "content_preview": "Makes sense \u2014 documentation and configuration should live ou"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774387408441,
+      "content_preview": "Here's `config/api.js`:\n\n  ```javascript\n  /**\n   * API conf"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774387550194,
+      "content_preview": "Here's `docs/api.md` \u2014 full API documentation:\n\n  ```markdow"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774387994116,
+      "content_preview": "and tests for the graphql stuff. the resolvers need tests. c"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774388012493,
+      "content_preview": "I'll write a comprehensive test suite for the GraphQL resolv"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774388284946,
+      "content_preview": "Here's `tests/graphql.test.js` \u2014 full test suite for the Gra"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774389172085,
+      "content_preview": "And here's the updated `README.md`:\n\n  ```markdown\n  # Recip"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774389296179,
+      "content_preview": "this is huge. graphql is working, sharing works, docker setu"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774389313554,
+      "content_preview": "Yeah, that's the obvious next step. JWT auth, user accounts,"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1774389328231,
+      "content_preview": "cool. thanks. talk later"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1774389340052,
+      "content_preview": "Talk later! Big milestone today \u2014 the app has a real API now"
+    }
+  ],
+  "S13": [
+    {
+      "role": "user",
+      "timestamp_ms": 1775065238143,
+      "content_preview": "OK SO\n\n  I GOT AN OFFER. FROM STRIPE. LIKE ACTUAL STRIPE\n\n  "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065251751,
+      "content_preview": "OH THAT'S INCREDIBLE! Congratulations Maya!!!\n\n  Stripe is a"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775065284890,
+      "content_preview": "about 3 weeks total. four rounds of interviews. it was inten"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065298964,
+      "content_preview": "The fact that the interview process itself was good tells yo"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775065333079,
+      "content_preview": "the team i'd be on is building tools for developers who inte"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065346641,
+      "content_preview": "Oh wait \u2014 May 19th? That's the day after your half marathon."
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775065373587,
+      "content_preview": "OH MY GOD i didn't even connect that. may 18 race, may 19 ne"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065385920,
+      "content_preview": "All excellent signs. That's exactly how you should feel befo"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775065421348,
+      "content_preview": "ok so i need to give notice at techflow. i'm thinking two we"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065437529,
+      "content_preview": "Not cold at all \u2014 realistic. You gave them 2 years, tried to"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775065466651,
+      "content_preview": "priya is going to LOSE IT when i tell her. she's still looki"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065478099,
+      "content_preview": "That's really cool of you. Having an internal referral at St"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775065512611,
+      "content_preview": "lol right? half the PM team is going to leave by summer\n\n  o"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065531539,
+      "content_preview": "Definitely the occasion. \"I got a job at Stripe\" absolutely "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775065553782,
+      "content_preview": "hah yeah he did earn it\n\n  ok i'm actually going now. i keep"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065565041,
+      "content_preview": "Go! Tell David! Drink the wine! This is huge!"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775065594818,
+      "content_preview": "one more thing \u2014 i need to update like... everything. linked"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065613243,
+      "content_preview": "Good logistics are the best kind. And yes, definitely update"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775065630263,
+      "content_preview": "BYE thank you!!"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775065641749,
+      "content_preview": "CONGRATS!!! Talk soon!"
+    }
+  ],
+  "S14": [
+    {
+      "role": "user",
+      "timestamp_ms": 1775244907979,
+      "content_preview": "hey can you pull up the portfolio site? need to update the c"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775244920950,
+      "content_preview": "Sure! Looking at your portfolio site. I see it currently say"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775244955369,
+      "content_preview": "yeah just make it stripe. no need to mention the transition "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775244965464,
+      "content_preview": "Got it \u2014 clean break. I'll update the subtitle, the About se"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775244986058,
+      "content_preview": "yeah and change the about text. it still talks about \"leadin"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775244998249,
+      "content_preview": "Makes sense \u2014 lead with Stripe, keep TechFlow as a \"previous"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775245024530,
+      "content_preview": "Here's the updated `index.html`:\n\n  ```html\n  <section id=\"h"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775245102215,
+      "content_preview": "that's good. i like \"payments platform team\" \u2014 sounds more l"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775245116092,
+      "content_preview": "Ha, marketing instincts \u2014 \"payments platform\" does sound bro"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775245141269,
+      "content_preview": "oh also \u2014 add a stripe project card. like the techflow one b"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775245162226,
+      "content_preview": "Absolutely. Here's the new project card:\n\n  ```html\n  <div c"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775245207664,
+      "content_preview": "looks good. commit it\n\n  oh and the recipe app card should p"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775245222355,
+      "content_preview": "Committed! The portfolio now shows Stripe across the board.\n"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775245241301,
+      "content_preview": "nah that's it. quick one today\n\n  thanks!"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775245256963,
+      "content_preview": "Nice and clean! The portfolio is Stripe-ready. Talk later!"
+    }
+  ],
+  "S15": [
+    {
+      "role": "user",
+      "timestamp_ms": 1775656760264,
+      "content_preview": "rach just left yesterday and i'm already sad about it\n\n  she"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775656774757,
+      "content_preview": "Aw, that sounds really lovely. There's something about havin"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775656824059,
+      "content_preview": "yeah we did tacos at veracruz \u2014 she was like \"i can't get ta"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775656835186,
+      "content_preview": "Ethan correcting the teacher about velociraptors having feat"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775656868997,
+      "content_preview": "not enough. last time i saw them was like christmas? ethan F"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775656878919,
+      "content_preview": "FaceTime T-rex show is exactly the kind of thing that makes "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775656924862,
+      "content_preview": "yeah. it's funny \u2014 having rach here reminded me of like... w"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775656940362,
+      "content_preview": "That's such a beautiful thing about family visits \u2014 they don"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775656990690,
+      "content_preview": "yeah exactly. like i love austin. this is home now. but hous"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775657004783,
+      "content_preview": "Don't apologize \u2014 conversations drift where they need to go."
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775657036651,
+      "content_preview": "thanks. yeah she really did. she's tough. i get it from her "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775657047841,
+      "content_preview": "Ha, the stubbornness is clearly genetic. But honestly, stubb"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775657082897,
+      "content_preview": "true\n\n  you know what i keep thinking about? there was this "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775657101231,
+      "content_preview": "The fact that you had the exact same scrambled egg failure 2"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775657122060,
+      "content_preview": "lol sibling distribution. accurate\n\n  ok i fully did not int"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775657132363,
+      "content_preview": "That's what good sisters do. They carry the shared version o"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775657153309,
+      "content_preview": "yeah. ok genuinely \u2014 when she left yesterday i almost asked "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775657171003,
+      "content_preview": "That's a really natural feeling \u2014 wanting your people close,"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775657197366,
+      "content_preview": "yeah i should. ok bye \u2014 thanks for letting me be nostalgic l"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775657210059,
+      "content_preview": "Anytime. It was really nice to hear about all of it. Bye, Ma"
+    }
+  ],
+  "S16": [
+    {
+      "role": "user",
+      "timestamp_ms": 1775834952307,
+      "content_preview": "hey so before we add more features i want to clean up what w"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775834967302,
+      "content_preview": "Good call. The app has grown a lot since the GraphQL pivot a"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775834985950,
+      "content_preview": "what's our test coverage like? we have recipe tests from bef"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775834999723,
+      "content_preview": "Right \u2014 we have `recipe.test.js` from session 7 covering CRU"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775835031750,
+      "content_preview": "yeah rate limiting is a good idea. especially since we'll be"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835051567,
+      "content_preview": "Good plan. Here's what I'll do:\n\n  1. Rate limiter middlewar"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835113974,
+      "content_preview": "Here's the rate limiter (`src/middleware/rateLimiter.js`):\n\n"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775835277368,
+      "content_preview": "nice. add it to the api routes \u2014 not the health check or gra"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835286652,
+      "content_preview": "Got it \u2014 I'll apply it to `/api` routes only. The health che"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835311227,
+      "content_preview": "Here's the change to `server.js`:\n\n  ```diff\n  --- a/server."
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775835374665,
+      "content_preview": "ok now sharing tests. the share code stuff from last time ne"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835391611,
+      "content_preview": "Good list. I'll cover all of those:\n\n  - Share code generati"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835494964,
+      "content_preview": "Here's the sharing test suite (`tests/sharing.test.js`):\n\n  "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775835757998,
+      "content_preview": "that's solid. 14 tests for sharing is way more than i expect"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835773430,
+      "content_preview": "Thanks. The cascade test is important \u2014 if someone deletes a"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775835800110,
+      "content_preview": "oh hey \u2014 what was that API you found? the one with the diet "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835814042,
+      "content_preview": "That was the Edamam API \u2014 I found it when we were looking at"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775835857193,
+      "content_preview": "yeah edamam that's the one. ok we'll come back to that when "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835870147,
+      "content_preview": "Sounds good. The stub is shaped for either API \u2014 when we're "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775835893116,
+      "content_preview": "what about known bugs? anything we should document before ad"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835909659,
+      "content_preview": "Two things I want to flag:\n\n  1. **N+1 query bug** \u2014 the ing"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775835974384,
+      "content_preview": "Here are the changes to `resolvers.js`:\n\n  ```diff\n  --- a/r"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775836081030,
+      "content_preview": "good. D wants to use it too so auth is next. can't have him\n"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775836091879,
+      "content_preview": "Exactly \u2014 once David has his own account, we need ownership "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1775836111224,
+      "content_preview": "commit it. bump the version too. let's add accounts next tim"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1775836127154,
+      "content_preview": "Done \u2014 version bumped to 0.5.1. Rate limiter, sharing tests,"
+    }
+  ],
+  "S17": [
+    {
+      "role": "user",
+      "timestamp_ms": 1776250704063,
+      "content_preview": "good news \u2014 D got promoted! lead engineer. his company's bee"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776250720040,
+      "content_preview": "That's awesome! Lead engineer is a big deal \u2014 congrats to Da"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776250742469,
+      "content_preview": "lol yeah you can probably guess\n\n  we're looking at moving. "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776250753895,
+      "content_preview": "I remember the I-35 rants! So this is for real now?\n\n  With "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776250785422,
+      "content_preview": "yeah we've been going to open houses on weekends. it's exhau"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776250795776,
+      "content_preview": "Ah, the classic \"we can afford to move but can't agree where"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776250857134,
+      "content_preview": "YES. ok so here's the thing\n\n  i want zilker. i've wanted zi"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776250869031,
+      "content_preview": "Ok this is hilarious. \"SIR YOU ARE A TECH BRO\" is going to l"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776250910341,
+      "content_preview": "he does woodworking sometimes. like he made a cutting board "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776250925233,
+      "content_preview": "Potential woodworking is a pretty thin justification for a h"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776250970939,
+      "content_preview": "yeah we've looked at like 4 places each. the zilker ones are"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776250984704,
+      "content_preview": "Money conversations in relationships are always loaded \u2014 eve"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776251021594,
+      "content_preview": "yeah that's smart. sorry \u2014 didn't mean to get into the whole"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776251035245,
+      "content_preview": "No apology needed. And that's a great trait \u2014 being able to\n"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776251068356,
+      "content_preview": "yeah he really is. we're going to look at 2 more places this"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776251086061,
+      "content_preview": "That's actually a really flexible position. If walkability i"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776251113006,
+      "content_preview": "yeah maybe. ok i need to go \u2014 D's calling, probably wants to"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776251129063,
+      "content_preview": "Ha, the Zillow addiction is real. Good luck house hunting th"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776251139667,
+      "content_preview": "thanks! later"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776251157297,
+      "content_preview": "Later! And congrats again to David!"
+    }
+  ],
+  "S18": [
+    {
+      "role": "user",
+      "timestamp_ms": 1776441071940,
+      "content_preview": "hey so D actually wants to use the recipe app now. he saw th"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441091523,
+      "content_preview": "Nice \u2014 David wanting to use it is a good sign! If he's addin"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776441127507,
+      "content_preview": "yeah both. and keep it simple \u2014 no oauth, no third party stu"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441145643,
+      "content_preview": "Ha, keeping it out of David's engineering hands. Got it \u2014 si"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776441171718,
+      "content_preview": "oh and user profiles need a dietary preferences field. like "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441187154,
+      "content_preview": "Smart \u2014 dietary preferences stored per user. When David logs"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441227145,
+      "content_preview": "Here's `config/auth.js` \u2014 all the auth settings in one place"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776441314679,
+      "content_preview": "nice \u2014 keeping the settings separate makes sense. 10000 iter"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441330488,
+      "content_preview": "Exactly, proportional security. Here's the auth middleware."
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441361033,
+      "content_preview": "Here's `src/middleware/auth.js` \u2014 the JWT verification middl"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776441543518,
+      "content_preview": "that's clean. i like the separate expired vs invalid errors "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441555714,
+      "content_preview": "Thanks! Yeah, knowing whether a token is expired vs tampered"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441585002,
+      "content_preview": "Here's what changed in `database.js` \u2014 the users table and o"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776441633996,
+      "content_preview": "perfect. so D would register with dietary_preferences set to"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441646010,
+      "content_preview": "Yeah, for now the profile stores the preferences and the cli"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776441683346,
+      "content_preview": "yeah client-driven. keeps it flexible. D can turn it off whe"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441699508,
+      "content_preview": "Exactly \u2014 he might want to browse all recipes and just know "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776441725200,
+      "content_preview": "oh and D mentioned something about FoodData Central \u2014 the US"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441739380,
+      "content_preview": "Ha, classic engineer move \u2014 \"but there's a free option.\"\n\n  "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776441788231,
+      "content_preview": "using both is overkill right now. keep edamam for the dietar"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441806041,
+      "content_preview": "Agreed \u2014 Edamam stays for dietary labels, FoodData is a futu"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776441836265,
+      "content_preview": "been thinking about doing a video about building this app. l"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441852348,
+      "content_preview": "Oh that's awesome! 7.1 from 8.2 is serious progress \u2014 she's "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776441908605,
+      "content_preview": "Here's the auth integration in `server.js`. First the new im"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776442212628,
+      "content_preview": "And here's the full test suite \u2014 `tests/auth.test.js`:\n\n  ``"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776442627619,
+      "content_preview": "oh wait \u2014 so if D logs in he could delete MY recipes? that's"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776442645585,
+      "content_preview": "Ha, relationship-destroying recipe deletion. The middleware "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776442678911,
+      "content_preview": "Last two files. Updated `package.json`:\n\n  ```json\n  {\n    \""
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1776442722770,
+      "content_preview": "yeah definitely before mom gets an account lol. she'd be con"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1776442735035,
+      "content_preview": "Committed! Auth is live \u2014 you and David can register, login,"
+    }
+  ],
+  "S19": [
+    {
+      "role": "user",
+      "timestamp_ms": 1777105660838,
+      "content_preview": "ok so. where do i even start. the last 48 hours have been IN"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777105677266,
+      "content_preview": "Maya. MAYA. What a 48 hours.\n\n  2:14 for a first half marath"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777105720069,
+      "content_preview": "honestly? kind of overwhelmed but in a really good way. like"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777105735076,
+      "content_preview": "That's growth talking. You went from \"is fine enough?\" to\n  "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777105771918,
+      "content_preview": "thanks. ok tell me i can brag about the race for a second\n\n "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777105788807,
+      "content_preview": "BRAG AWAY. 2:14 is genuinely impressive for a first half mar"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777105816333,
+      "content_preview": "it literally did. i sped up the last mile which is apparentl"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777105831525,
+      "content_preview": "Ha! The progression from \"I just want to finish\" to \"already"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777105864220,
+      "content_preview": "lol he really is\n\n  ok stripe \u2014 first impressions: the peopl"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777105880135,
+      "content_preview": "A manager who listens! What a concept. After what you went t"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777105909780,
+      "content_preview": "yeah first week is in office \u2014 they have a san francisco HQ "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777105922030,
+      "content_preview": "Oh interesting \u2014 that changes the Zilker vs East Austin equa"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777105964606,
+      "content_preview": "ugh don't tell him that lol\n\n  hey \u2014 different topic. really"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777105978880,
+      "content_preview": "That's WONDERFUL news! 8.2 down to 7.1 in what, two months? "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777106024888,
+      "content_preview": "ok stop you're going to make me cry again. i just did the cr"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777106037449,
+      "content_preview": "She IS going to be ok. And a big part of that is because you"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777106068436,
+      "content_preview": "oh wait \u2014 speaking of mom. did i ever tell you how david's b"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777106078244,
+      "content_preview": "Oh I was wondering about that! The surprise dinner David was"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777106115293,
+      "content_preview": "she literally screamed. like in the restaurant. everyone loo"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777106135229,
+      "content_preview": "This is the most heartwarming recap. Linda screaming in the\n"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777106176292,
+      "content_preview": "right?? that was your idea! or at least you helped with the\n"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777106192271,
+      "content_preview": "Sleep earned. You ran 13.1 miles, started a dream job, and a"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777106213374,
+      "content_preview": "it really is. night. thanks for everything"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777106224223,
+      "content_preview": "Night, Maya. Congratulations on everything \u2014 you earned it a"
+    }
+  ],
+  "S20": [
+    {
+      "role": "user",
+      "timestamp_ms": 1777669873730,
+      "content_preview": "hey! haven't talked in a bit. things have been crazy busy \u2014\n"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777669890873,
+      "content_preview": "Hey Maya! I've been here, same as always. And yeah, we reall"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777669932756,
+      "content_preview": "SO much better than week 1. i'm actually getting into the pr"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777669944345,
+      "content_preview": "Sarah sounds like the kind of manager everyone deserves \u2014 st"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777669975224,
+      "content_preview": "yep! payment API developer tools. it's actually really inter"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777669984620,
+      "content_preview": "Ha, \"hard and stupid\" \u2014 the worst combination. \"Hard but sol"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670017364,
+      "content_preview": "ok so running update \u2014 i've been running again! the knee is "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670031183,
+      "content_preview": "Your knee held up through the half marathon AND you're alrea"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670076834,
+      "content_preview": "he ended up not doing it \u2014 said he'd do the full with me if "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670097720,
+      "content_preview": "6.8!!! From 8.2 at diagnosis to under 7 \u2014 that's an incredib"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670130081,
+      "content_preview": "yeah exactly \u2014 she's always been a great cook, she just need"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670140426,
+      "content_preview": "She gets the stubbornness from herself. And you get yours fr"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670181823,
+      "content_preview": "lol true\n\n  ok house update. we're still looking but we actu"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670194769,
+      "content_preview": "David won on the neighborhood but you won on the walkability"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670229189,
+      "content_preview": "she says it's competitive but our offer is strong. dual inco"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670239012,
+      "content_preview": "Ha! The Peloton precedent. He's got to prove he'll actually "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670270771,
+      "content_preview": "exactly lol\n\n  oh \u2014 rach sent me the cutest video of ethan. "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670287790,
+      "content_preview": "Ethan going from dinosaurs to plate tectonics is a natural\n "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670315199,
+      "content_preview": "lol the ABC curriculum callback. yeah that's lily\n\n  i need "
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670325136,
+      "content_preview": "You've been saying that since Rachel visited! Summer would b"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670353469,
+      "content_preview": "truth\n\n  hey random thought \u2014 D and i went back to that thai"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670367236,
+      "content_preview": "The Thai place on South Congress! That's become a regular sp"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670394071,
+      "content_preview": "THE PINECONE. i forgot about that. god he's dumb. i love him"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670408833,
+      "content_preview": "Some things are unforgettable. And Biscuit committing fully "
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670443980,
+      "content_preview": "honestly though \u2014 you actually know a lot about me at this p"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670461563,
+      "content_preview": "I appreciate that, Maya. Really. You've shared a lot over th"
+    },
+    {
+      "role": "user",
+      "timestamp_ms": 1777670499203,
+      "content_preview": "lol ok fine. he IS asking for belly rubs right now\n\n  talk s"
+    },
+    {
+      "role": "assistant",
+      "timestamp_ms": 1777670513735,
+      "content_preview": "Anytime, Maya. Always.\n\n  Talk soon."
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F121 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 14 and 15
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F121 (Filler — Work Session)
+Date: 2026-04-04 09:22
+Topic: help me write a cost analysis for moving to kubernetes
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F121
+  Track: filler
+  Timestamp: 2026-04-04 09:22:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  hey can you help me draft a cost analysis doc for migrating our infra to k8s? need to present to eng leads next week
+
+AI ASSISTANT:
+  Sure! Let's start with your current setup. What are you running now - EC2 instances, container service, something else? And roughly how many services/apps are we talking about?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  we're on ec2 right now, like 12 instances across staging and prod. mix of api services, workers, redis cache. spending around $2800/mo i think
+
+AI ASSISTANT:
+  Got it. For the cost analysis, we should compare:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  structure first would be good, then we can fill it in
+
+AI ASSISTANT:
+  Here's a structure:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  yeah that's solid. can you start filling out section 2? i can get you the exact instance types if you need
+
+AI ASSISTANT:
+  Let me draft section 2 with placeholders - you can fill in specifics:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  prod is 3x t3.large for api, 2x t3.medium workers, 1x t3.small redis. staging is all t3.small, like 6 instances total
+
+AI ASSISTANT:
+  Perfect, updating section 2:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  oh yeah lol i forgot about alb costs and ebs volumes. we have 2 albs and probably like 500gb of ebs across everything
+
+AI ASSISTANT:
+  That makes way more sense! Updated:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  omg yeah we have rds postgres and elasticache redis, those are like $400 and $300/mo. should i even include those or just compute?
+
+AI ASSISTANT:
+  Good question! I'd **exclude** RDS and ElastiCache from the migration analysis since you'd keep those either way. K8s doesn't replace managed databases.
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  yeah that makes way more sense. ok so what would eks cost us roughly?
+
+AI ASSISTANT:
+  Here's the EKS breakdown:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  wait why would we need fewer/smaller instances with k8s? trying to understand the savings part
+
+AI ASSISTANT:
+  Great question! The savings come from **bin packing** - K8s can run multiple services on the same nodes instead of dedicated instances.
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  ohhh yeah ok that's the whole point lol. cool let's do section 4
+
+AI ASSISTANT:
+  **Section 4: Cost Comparison**
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  yeah the savings aren't the main point anyway, it's more about scalability and not managing instances. can you add a bullet list of non-cost benefits?
+
+AI ASSISTANT:
+  Added to section 4:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  let's do risks first, that's what everyone's gonna grill me on lol
+
+AI ASSISTANT:
+  **Section 6: Risks & Mitigation**
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  nah that's perfect actually, shows we've thought it through. ok last thing - what should the recommendation section say? like should i recommend we do it or wait?
+
+AI ASSISTANT:
+  Depends on your team's capacity and priorities. Here's a balanced recommendation:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  yeah perfect. can you put the whole doc together so i can review it?
+
+AI ASSISTANT:
+  Here's the complete doc:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

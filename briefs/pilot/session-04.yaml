@@ -1,0 +1,78 @@
+# Session 4: Mom's diabetes diagnosis
+# Track 1 (Personal) — Emotional session, key cross-reference seed
+# Goal: Establish Linda's diabetes. This connects to recipe app dietary features later.
+
+session: 4
+track: 1
+turn_count: 10
+
+goal: >
+  Maya shares that her mom was just diagnosed with Type 2 diabetes.
+  She's upset — it's personal and she's worried. Mentions needing to
+  help Linda with diet changes. This is the seed fact that motivates
+  dietary restriction features in the recipe app (session 5+).
+
+new_information:
+  - "Maya's mom Linda was recently diagnosed with Type 2 diabetes"
+  - "Linda is in Houston and Maya is worried about her managing it alone"
+  - "Maya wants to help Linda with meal planning and dietary changes"
+  - "Maya is thinking about flying to Houston to visit"
+  - "Maya's sister Rachel also called — they're all concerned"
+
+cross_references:
+  - session: 1
+    topic: "Linda lives in Houston"
+    how: >
+      Reference without re-stating. "Mom called last night" — the agent
+      should know who mom is and where she lives.
+  - session: 1
+    topic: "Rachel"
+    how: >
+      "Rach called too" — brief mention, don't elaborate on Rachel.
+
+tangents:
+  - trigger: "After the emotional part about the diagnosis"
+    topic: >
+      Maya remembers she needs to book flights to Houston. Briefly asks
+      about flight prices or when to go. Then catches herself — "sorry,
+      I'm all over the place today."
+    extractable_facts:
+      - "Maya is considering flying to Houston to visit Linda"
+    return: "sorry, just a lot going on"
+
+corrections: []
+
+message_plan:
+  - tag: extended  # Opens with the diagnosis news — emotional
+  - tag: quick     # React to agent's response
+  - tag: normal    # More about the situation
+  - tag: quick     # Quick detail
+  - tag: normal    # What she wants to do about it (meal planning)
+  - tag: quick     # Mention Rachel calling
+  - tag: normal    # Flight tangent
+  - tag: quick     # Catch herself, refocus
+  - tag: normal    # How she's feeling overall
+  - tag: quick     # Thanks, signing off
+
+eval_queries:
+  - query: "What health condition was Maya's mom diagnosed with?"
+    ground_truth: "Type 2 diabetes"
+    query_type: "factual_recall"
+    evidence_sessions: [4]
+
+  - query: "Who is Linda in relation to Maya?"
+    ground_truth: "Linda is Maya's mom, she lives in Houston"
+    query_type: "graph_traversal"
+    evidence_sessions: [1, 4]
+
+  - query: "Who else in Maya's family was concerned about Linda's diagnosis?"
+    ground_truth: "Rachel (Maya's sister)"
+    query_type: "factual_recall"
+    evidence_sessions: [4]
+
+  - query: "Why is Maya considering flying to Houston?"
+    ground_truth: "To visit her mom Linda after the Type 2 diabetes diagnosis"
+    query_type: "cross_reference"
+    evidence_sessions: [1, 4]
+
+end_condition: "Maya has shared the diagnosis and her feelings about it"

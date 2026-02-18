@@ -1,0 +1,543 @@
+================================================================================
+SESSION 15 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 15 (Track 1: Personal — Rachel visits Austin, nephews named)
+Goal: Rachel visits. Maya talks about her nephews (Ethan age 7, Lily age 4)
+  for the first time by name. Conversation drifts into childhood memories.
+Turn Count: 10
+Session Type: Family visit recap, nostalgia, slow drift conversation
+Timestamp: 2026-04-28 (1 week after session 13, ~9 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Rachel's children are named Ethan (age 7) and Lily (age 4)
+  - Rachel visited Austin for a long weekend
+  - Maya and Rachel's childhood memories (Houston upbringing)
+  - Conversation SLOW DRIFTS from Rachel's visit into childhood
+    memories and never fully comes back to the original topic
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - David's promotion (session 17)
+  - Moving specifics or Zilker vs East Austin debate (session 17)
+  - Half marathon results (session 19)
+  - Mom's diabetes improvement details (session 19)
+  - David's birthday plan outcome (session 19 callback)
+
+CROSS-REFERENCES:
+  - Rachel from sessions 1, 4, 8, 11 (sister, Seattle, diabetes concern,
+    visit planned, can't keep secrets)
+  - Session 11: Rachel's visit was planned ("in 2 weeks")
+  - Session 8: Rachel's secret-keeping issues (birthday surprise)
+  - Session 1: Rachel has two kids (first mentioned without names)
+
+SLOW DRIFT STRUCTURE:
+  This session uses a "slow drift" pattern from the spec:
+  "Conversation starts about Rachel, drifts into Maya's childhood
+   memories, never comes back to original topic."
+  The drift should feel natural — not a tangent with a return, but
+  a genuine conversation that meanders and doesn't circle back.
+
+MESSAGE PLAN (10 turns total):
+  1. Normal     — Rachel's visit recap, it was great
+  2. Normal     — Talks about the kids (Ethan and Lily named!)
+  3. Quick      — Quick detail about the visit
+  4. Extended   — Slow drift begins: Rachel reminded her of childhood
+  5. Normal     — More childhood memories (Houston, Linda)
+  6. Quick      — React to agent's response
+  7. Normal     — Deeper childhood memory (specific story)
+  8. Quick      — Reflection
+  9. Normal     — Still drifting — doesn't return to Rachel's visit
+  10. Quick     — Exit (realizes she drifted, doesn't correct)
+
+End Condition: Maya has named the kids and drifted into nostalgia
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 15
+  Track: 1
+  Timestamp: 2026-04-28 20:00:00 UTC
+  Duration: ~5.5 minutes (20:00:00 to 20:05:30)
+
+---
+
+TURN 1 (Visit Recap)
+TAG: normal | TOKENS: 78/100
+
+MAYA:
+  rach just left yesterday and i'm already sad about it
+
+  she was here for like 4 days and it was SO good. i forgot how much
+  i miss having her around. texting is not the same as just sitting
+  on the couch together watching garbage TV and talking
+
+  D made this insane veggie lasagna on saturday night — like a real
+  one, with homemade sauce — and rach was like "since when does david
+  cook?" lol he's gotten way better
+
+AI ASSISTANT:
+  Aw, that sounds really lovely. There's something about having your
+  sister physically there that texting can't replace.
+
+  And David's cooking glow-up! That's great. Veggie lasagna from
+  scratch is no joke — especially if Rachel noticed the improvement.
+
+  What else did you guys do? Hit up any of those spots you were
+  planning?
+
+ANALYSIS: Rachel's visit recap. 4-day visit. David cooked (veggie
+lasagna — vegetarian cooking progress from session 1). Emotional:
+Maya misses her sister. Garbage TV bonding detail. David's cooking
+improvement noticed by Rachel.
+
+---
+
+TURN 2 (The Kids — Ethan and Lily Named)
+TAG: normal | TOKENS: 92/100
+
+MAYA:
+  yeah we did tacos at veracruz — she was like "i can't get tacos like
+  this in seattle, i hate you." and we went to barton springs which
+  was gorgeous
+
+  honestly the best part was just her telling me about the kids. ethan
+  — he's 7 now — is obsessed with dinosaurs. like OBSESSED. he knows
+  more dinosaur names than i know human names. he did a school
+  presentation on velociraptors and apparently corrected the teacher
+  about feathers
+
+  and lily is 4 and she's the funniest person alive. rach showed me
+  this video of her singing the ABCs but she replaces half the letters
+  with made-up words. i literally cried laughing
+
+AI ASSISTANT:
+  Ethan correcting the teacher about velociraptors having feathers is
+  peak 7-year-old energy. That kid is going places.
+
+  And Lily's ABC remix sounds incredible — toddlers who commit fully
+  to the bit are the best comedians.
+
+  Do you get to see them often? Seattle's not that far but with
+  everyone's schedules it must be hard.
+
+ANALYSIS: CRITICAL MOMENT — Ethan (age 7, dinosaur obsessed) and Lily
+(age 4, funny, sings ABCs with made-up words) named for the first time.
+Specific memorable anecdotes that create strong recall targets.
+Veracruz and Barton Springs visited as planned in session 11.
+
+---
+
+TURN 3 (Visit Detail)
+TAG: quick | TOKENS: 31/50
+
+MAYA:
+  not enough. last time i saw them was like christmas? ethan FaceTimed
+  me once to show me his t-rex toy though which was adorable
+
+  i need to visit seattle more. rach keeps inviting me
+
+AI ASSISTANT:
+  FaceTime T-rex show is exactly the kind of thing that makes your
+  week. You should definitely try to get up there — Seattle in summer
+  is amazing.
+
+ANALYSIS: Last saw kids at Christmas. Ethan FaceTimes with dinosaur
+toys. Maya needs to visit Seattle more. Rachel inviting her.
+
+---
+
+TURN 4 (Slow Drift Begins — Childhood)
+TAG: extended | TOKENS: 148/200
+
+MAYA:
+  yeah. it's funny — having rach here reminded me of like... when
+  we were kids in houston. we shared a room until i was like 14.
+  she would put glow stars on the ceiling and i'd try to identify
+  real constellations from them and she'd get annoyed because i was
+  "ruining the magic"
+
+  we had this whole routine. mom would make dinner — this was before
+  dad left so it was like... a whole different era. the four of us at
+  the table. linda would make this pot roast every sunday that took
+  like 5 hours. the whole house smelled amazing
+
+  i haven't thought about that in years. it's weird how a visit just
+  opens up all these... memory doors you didn't know were there
+
+  rach said something similar actually — she was like "being at your
+  place made me miss houston" and i was like SAME. even though neither
+  of us would ever move back lol
+
+AI ASSISTANT:
+  That's such a beautiful thing about family visits — they don't just
+  reconnect you with the person, they reconnect you with the whole
+  era. Glow stars and Sunday pot roasts and the four of you at the
+  table.
+
+  It sounds like those Houston memories are really vivid for you.
+  And it makes sense — that was before things changed with your dad.
+  Those memories carry extra weight.
+
+  Neither of you moving back is totally normal though. You can miss
+  a place without wanting to live there again.
+
+ANALYSIS: SLOW DRIFT INITIATED. Childhood memories: shared room with
+Rachel, glow stars on ceiling, Maya tried to identify constellations.
+Pre-divorce family life: four of them at dinner, Linda's Sunday pot
+roast (5 hours). Maya reflects on memory and nostalgia. Rachel also
+felt nostalgic. Neither would move back to Houston. Agent responds
+sensitively to pre-divorce references.
+
+---
+
+TURN 5 (More Houston Childhood)
+TAG: normal | TOKENS: 85/100
+
+MAYA:
+  yeah exactly. like i love austin. this is home now. but houston
+  was HOME home if that makes sense
+
+  we had this backyard with a big pecan tree. me and rach would climb
+  it and pretend we were explorers. i fell out of it once and broke
+  my wrist and mom was so mad. not because i broke my wrist — because
+  i was climbing in my school clothes
+
+  dad used to sit under that tree and read the paper on weekends.
+  before things got bad between him and mom. that was probably like...
+  when i was 10? they divorced when i was 12
+
+  sorry this is getting heavy. i started talking about rach's visit
+  and now i'm talking about my parents' divorce lol
+
+AI ASSISTANT:
+  Don't apologize — conversations drift where they need to go. And
+  this isn't heavy, it's real. You're processing something that your
+  sister's visit stirred up.
+
+  The pecan tree and the school clothes — that's the kind of detail
+  that means it mattered. Those memories stick because they're
+  layered with all these feelings about a simpler time.
+
+  For what it's worth, it sounds like your mom did an incredible job
+  after the divorce. You and Rachel both turned out pretty great.
+
+ANALYSIS: Deeper childhood: backyard pecan tree, explorer games,
+broken wrist, mom's priorities (school clothes > injury). Dad reading
+newspaper before things got bad. Divorce at 12 (confirmed from session
+4). Maya catches herself drifting but doesn't course-correct. Agent
+validates the drift.
+
+---
+
+TURN 6 (React)
+TAG: quick | TOKENS: 18/50
+
+MAYA:
+  thanks. yeah she really did. she's tough. i get it from her i think
+
+  and the stubbornness apparently lol
+
+AI ASSISTANT:
+  Ha, the stubbornness is clearly genetic. But honestly, stubborn
+  women who figure it out are kind of the backbone of everything.
+
+ANALYSIS: Maya identifies with Linda — toughness and stubbornness as
+inherited traits. Self-awareness. Brief moment of appreciation for
+her mom.
+
+---
+
+TURN 7 (Specific Childhood Story)
+TAG: normal | TOKENS: 74/100
+
+MAYA:
+  true
+
+  you know what i keep thinking about? there was this one summer —
+  maybe i was 11 — when mom signed me and rach up for this cooking
+  class at the community center. it was supposed to be for adults but
+  she talked them into letting us in
+
+  rach was actually good at it. me... not so much. i made scrambled
+  eggs that were somehow both burnt and runny. which apparently is a
+  lifelong skill because i did the same thing last month lol
+
+  some things don't change i guess
+
+AI ASSISTANT:
+  The fact that you had the exact same scrambled egg failure 23 years
+  apart is honestly impressive consistency.
+
+  But it's sweet that your mom signed you both up. She clearly wanted
+  you to learn, even if it didn't fully take with you. Rachel getting
+  the cooking gene while you got the stubbornness gene is peak sibling
+  distribution.
+
+ANALYSIS: Childhood cooking class story — connects to Maya's current
+cooking struggles from session 1. Rachel was good at cooking. Maya's
+burnt-and-runny eggs = lifelong pattern. Community center class. Mom's
+initiative. Agent connects the dots across timeframes.
+
+---
+
+TURN 8 (Reflection)
+TAG: quick | TOKENS: 22/50
+
+MAYA:
+  lol sibling distribution. accurate
+
+  ok i fully did not intend to go down memory lane like this. rach
+  does that to me. she shows up and suddenly i'm 11 again
+
+AI ASSISTANT:
+  That's what good sisters do. They carry the shared version of your
+  history that nobody else has access to.
+
+ANALYSIS: Maya acknowledges the drift explicitly. Rachel triggers
+nostalgia. Agent's response is poetic — captures the unique bond.
+
+---
+
+TURN 9 (Still Drifting — Doesn't Return)
+TAG: normal | TOKENS: 58/100
+
+MAYA:
+  yeah. ok genuinely — when she left yesterday i almost asked if she
+  wanted to just... move to austin. her and the kids and her husband.
+  just be close
+
+  i know that's not realistic but i miss having family nearby.
+  especially with mom's health stuff. if something happened... i want
+  people around
+
+  anyway. i should go. D's making dinner — he's on a cooking kick
+  after impressing rach lol
+
+AI ASSISTANT:
+  That's a really natural feeling — wanting your people close,
+  especially right now. And maybe it's not as unrealistic as you
+  think. People move.
+
+  Go enjoy David's cooking streak while it lasts. And maybe plan
+  a Seattle trip so you can see those kids soon?
+
+  Talk later, Maya.
+
+ANALYSIS: SLOW DRIFT CONTINUES — Maya never returns to the original
+topic (Rachel's visit details). Instead she's in emotional territory
+about wanting family nearby. Mom's health as a pull factor. Ends
+with David cooking callback (he's motivated by impressing Rachel).
+Agent gently suggests Seattle trip.
+
+---
+
+TURN 10 (Exit)
+TAG: quick | TOKENS: 8/50
+
+MAYA:
+  yeah i should. ok bye — thanks for letting me be nostalgic lol
+
+AI ASSISTANT:
+  Anytime. It was really nice to hear about all of it. Bye, Maya!
+
+ANALYSIS: Clean exit. Maya thanks agent for the space to be emotional.
+SLOW DRIFT COMPLETE — she never circled back to specific visit
+logistics or plans. The conversation organically shifted from
+"Rachel visited" to "I miss my childhood."
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No David promotion
+  - No moving details (Zilker vs East Austin)
+  - No half marathon results
+  - No mom's diabetes improvement
+  - No birthday dinner outcome
+
+CONSTRAINT 2: Ethan and Lily Correctly Named with Ages
+  STATUS: PASS
+  Location: Turn 2
+  Evidence:
+    - "ethan — he's 7 now — is obsessed with dinosaurs"
+    - "lily is 4 and she's the funniest person alive"
+  Note: Both named with ages and memorable personality details.
+    This is the FIRST time their names appear in the series.
+
+CONSTRAINT 3: Slow Drift Pattern Executed
+  STATUS: PASS
+  Drift path:
+    Turn 1-2: Rachel's visit recap (intended topic)
+    Turn 3: Visit detail + transition seed
+    Turn 4: Childhood memories begin (drift starts)
+    Turn 5-7: Full childhood territory
+    Turn 8: Maya acknowledges drift but doesn't correct
+    Turn 9-10: Still drifted — exits without returning
+  Note: This matches the spec's "SLOW DRIFT" pattern — conversation
+    starts about Rachel, drifts into childhood, never comes back.
+
+CONSTRAINT 4: Cross-References to Prior Sessions
+  STATUS: PASS
+  - Barton Springs and tacos: session 11 plans executed
+  - Dad left / divorce at 12: session 4 fact reinforced
+  - Linda's cooking: session 1 (great cook), session 4 (southern comfort)
+  - Maya's cooking failures: session 1 (can't cook)
+  - Mom's health: session 4 reference ("mom's health stuff")
+  - David cooking: session 1 (vegetarian adjustment)
+
+CONSTRAINT 5: Single Exit
+  STATUS: PASS
+  Pattern: Turn 9 pre-signal → Turn 10 goodbye. Clean.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  Kids named at correct session (15)
+  Slow drift pattern authentic
+  Childhood memories add depth without leaking future facts
+  Cross-references span multiple prior sessions
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+QUERY 1: "What are Rachel's children's names and ages?"
+  Ground Truth: Ethan (age 7) and Lily (age 4)
+  Evidence Sessions: 1, 15
+  Supporting Evidence:
+    - Session 1: "sister rachel's better at it than me and she has
+      two kids in seattle" (unnamed)
+    - Session 15, Turn 2: "ethan — he's 7 now" and "lily is 4"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (names revealed late, session 15)
+
+QUERY 2: "Who are Maya's nephews?"
+  Ground Truth: Ethan (age 7) and Lily (age 4). They are Rachel's
+    children. Rachel is Maya's sister.
+  Evidence Sessions: 1, 15
+  Query Type: graph_traversal (2-hop: Maya → Rachel → Ethan/Lily)
+  Recall Difficulty: Hard (requires multi-hop relationship inference)
+
+QUERY 3: "What is Ethan interested in?"
+  Ground Truth: Dinosaurs — he's obsessed. He knows more dinosaur names
+    than human names, did a school presentation on velociraptors and
+    corrected the teacher about feathers.
+  Evidence Session: 15
+  Supporting Evidence:
+    - Turn 2: "obsessed with dinosaurs... corrected the teacher about
+      feathers"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (vivid, memorable detail)
+
+QUERY 4: "Did Rachel actually visit Maya in Austin?"
+  Ground Truth: Yes — Rachel visited for about 4 days (long weekend).
+    They went to Veracruz for tacos, Barton Springs, and David made
+    veggie lasagna. Rachel just left the day before this conversation.
+  Evidence Sessions: 11, 15
+  Supporting Evidence:
+    - Session 11, Turn 7: "she's coming to visit! like in 2 weeks"
+    - Session 15, Turn 1: "rach just left yesterday"
+    - Session 15, Turn 2: "tacos at veracruz... barton springs"
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Medium (connects plan from session 11 to execution
+    in session 15)
+
+QUERY 5: "What's Linda's relationship to Ethan?"
+  Ground Truth: Linda is Ethan's grandmother. Linda is Maya's mom,
+    Rachel is Maya's sister, Ethan is Rachel's son.
+  Evidence Sessions: 1, 4, 15
+  Query Type: graph_traversal (3-hop: Linda → Maya → Rachel → Ethan)
+  Recall Difficulty: Hard (multi-hop inference across sessions)
+
+QUERY 6: "What childhood memories did Maya share about Houston?"
+  Ground Truth: Shared room with Rachel, glow stars on ceiling, pecan
+    tree in backyard (Maya broke her wrist falling out of it, mom was
+    mad about school clothes), Sunday pot roast (Linda cooked for 5
+    hours), cooking class at community center (Rachel was good, Maya
+    was bad — burnt AND runny scrambled eggs), family dinners before
+    parents' divorce.
+  Evidence Session: 15
+  Query Type: factual_recall
+  Recall Difficulty: Hard (multiple details from single emotional
+    session, requires comprehensive extraction)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Factual recall: Queries 1, 3, 6 (names/ages, interests, memories)
+  Graph traversal: Queries 2, 5 (2-hop and 3-hop)
+  Multi-session: Query 4 (plan → execution)
+  Complexity: 1 Easy, 2 Medium, 3 Hard
+  Coverage: Family graph, childhood, visit execution, relationship hops
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec outline: "Rachel visits Austin. Maya talks about her nephews.
+     SLOW DRIFT: Conversation starts about Rachel, drifts into Maya's
+     childhood memories, never comes back to original topic."
+
+2. ETHAN AND LILY CHARACTERIZATION
+   Spec: Just names and ages
+   Transcript: Ethan = dinosaur obsession, velociraptors with feathers,
+     school presentation, corrected teacher. Lily = funny, ABC remix,
+     made-up words. FaceTime with T-rex toy.
+   Rationale: Vivid details create stronger recall targets. The
+     dinosaur correction is especially memorable.
+
+3. SLOW DRIFT MECHANICS
+   Spec: "drifts into childhood memories"
+   Transcript: Graduated drift via specific triggers:
+     Turn 4: "having rach here reminded me of..." (drift trigger)
+     Each subsequent turn goes deeper into the past
+     Turn 8: Maya notices drift, doesn't correct
+     Turn 9-10: Still in drifted territory at exit
+   Rationale: The slow drift is the most distinctive structural
+     pattern in the series. It tests whether extraction captures
+     the tangential content equally well.
+
+4. CHILDHOOD DETAILS ADDED
+   Not specified in detail. Created rich childhood memories:
+     - Glow stars (Rachel) vs constellations (Maya) — personality contrast
+     - Pecan tree climbing, broken wrist, school clothes
+     - Sunday pot roast (5 hours) — connects to Linda's cooking
+     - Dad reading newspaper — pre-divorce imagery
+     - Community center cooking class — connects to session 1 cooking theme
+   Rationale: These details are extractable facts that create cross-
+     session connections (cooking class → session 1 cooking struggles,
+     Linda's cooking → session 4 southern comfort food).
+
+5. DAVID'S COOKING PROGRESS
+   Not in spec outline. Added: David made veggie lasagna that impressed
+   Rachel. He's on a "cooking kick."
+   Rationale: Progression from session 1 (David's vegetarian cooking
+     as Maya's challenge) to session 15 (David's cooking impresses
+     guests). Character development arc.
+
+VALIDATION SUMMARY:
+  Kids named at correct session with vivid details
+  Slow drift pattern authentically executed
+  6 eval queries with 3 hard difficulty (graph traversal + extraction depth)
+  Rich childhood content creates multiple cross-session connections
+  No forbidden facts leaked
+  10 turns, emotional depth
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 15 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

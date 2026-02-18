@@ -1,0 +1,50 @@
+================================================================================
+FILLER SESSION F020 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 10 and 11
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F020 (Filler — Quick Question)
+Date: 2026-03-19 09:51
+Topic: what's a good substitute for butter in baking
+Turn Count: 2
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F020
+  Track: filler
+  Timestamp: 2026-03-19 09:51:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  hey what can i use instead of butter in cookies? ran out lol
+
+AI ASSISTANT:
+  You can use coconut oil (same amount), vegetable oil (3/4 the amount), or applesauce for a lower-fat option. Coconut oil gives the best texture!
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  perfect thx, gonna try the coconut oil
+
+AI ASSISTANT:
+  Nice! Just make sure it's melted and cooled a bit before mixing. Your cookies should turn out great.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

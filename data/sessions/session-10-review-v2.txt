@@ -1,0 +1,2708 @@
+================================================================================
+SESSION 10 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 10 (Track 2: Project A — Recipe App, Phase 2 begins)
+Goal: Add meal planning, structured ingredients, grocery list aggregation,
+  request logging middleware, database queries module, expanded seed data,
+  and two new test suites (dietary.test.js and mealplan.test.js).
+Turn Count: 19
+Session Type: Project continuation, major feature build, code consolidation
+Timestamp: 2026-03-18 15:30:00 UTC (about 2 weeks after session 7)
+
+CORE LEARNING OBJECTIVES:
+  - Maya returns to the recipe app after working on other projects
+  - Meal planning: weekly plans, assign recipes to days, meal types
+  - Structured ingredients: recipe_ingredients table replaces text blobs
+  - Grocery list aggregation: SQL GROUP BY to sum ingredients across a plan
+  - Logging middleware: request/response timing with color-coded output
+  - Query consolidation: pull inline SQL into src/db/queries.js module
+  - Expanded seed data: 20 recipes with real dietary tags and prep times
+  - Two full test suites: dietary filtering (296 lines) and meal plans (368 lines)
+  - David does most of the grocery shopping — the grocery list is for him
+  - Mom's diabetes makes dietary-safe meal plans practically important
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe or any specific company name (session 13)
+  - David's birthday surprise for Linda (session 8)
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's promotion (session 17)
+  - Moving specifics (session 17)
+  - Half marathon injury scare (session 11)
+  - Job dissatisfaction details (future sessions)
+
+CROSS-REFERENCES:
+  - Sessions 3, 5, 7: Recipe app history (CRUD, dietary filters, tests)
+  - Session 1: David is vegetarian, does grocery shopping
+  - Session 4/5: Mom's diabetes (dietary features, "safe for mom")
+  - No explicit re-context — Maya just picks up where she left off
+
+MESSAGE PLAN (19 turns total):
+  1. Normal     — Opens: app needs meal planning
+  2. Quick      — Grocery list for David, he does the shopping
+  3. Code       — Agent updates database.js (3 new tables)
+  4. Quick      — Maya reacts to schema
+  5. Normal     — Structured ingredients request
+  6. Code       — Agent shows server.js (meal plan CRUD, ingredients, grocery list)
+  7. Normal     — Logging request
+  8. Code       — Agent writes src/middleware/logging.js (67 lines)
+  9. Normal     — Pull queries out of server.js
+  10. Code      — Agent writes src/db/queries.js (302 lines)
+  11. Quick     — React to queries module
+  12. Normal    — Better seed data request
+  13. Code      — Agent writes seeds/seed.js + expanded sample-recipes.json
+  14. Quick     — React to seed data
+  15. Normal    — Tests for dietary filtering and meal plans
+  16. Code      — Agent writes tests/dietary.test.js (296 lines)
+  17. Code      — Agent writes tests/mealplan.test.js (368 lines)
+  18. Code      — Agent updates tests/setup.js with new table schemas
+  19. Quick     — Wrap up
+
+End Condition: All 9 files committed. Meal planning, structured ingredients,
+  grocery aggregation, logging, query module, seeds, and tests all working.
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 10
+  Track: 2
+  Timestamp: 2026-03-18 15:30:00 UTC
+  Duration: ~25 minutes (15:30:00 to 15:55:30)
+
+---
+
+TURN 1 (Meal Planning Feature Request)
+TAG: normal | TOKENS: 42/50 | GENERATION TIME: 5.8s
+
+MAYA:
+  ok so the app needs actual meal planning. like weekly plans with recipes
+  assigned to days
+
+  right now it's just a recipe database. that's fine but it doesn't help
+  anyone plan their week. i want to pick a week, assign recipes to days
+  and meals — monday breakfast is this, tuesday dinner is that
+
+AI ASSISTANT:
+  Makes total sense — meal planning is what turns a recipe database into
+  a tool people actually use daily. So the core concept would be:
+
+  - A `meal_plans` table for weekly containers (week start date, name)
+  - A `meal_plan_items` table linking recipes to specific days and meal
+    types (breakfast, lunch, dinner, snack)
+
+  That gives you the structure to build a calendar view later. Want me
+  to start with the schema?
+
+ANALYSIS: Maya opens without re-establishing project context. She just
+picks up where session 7 left off. "Right now it's just a recipe
+database" — she's thinking in product terms. The agent should recall
+the existing schema from prior sessions.
+
+---
+
+TURN 2 (Grocery List — David Does the Shopping)
+TAG: quick | TOKENS: 18/50 | GENERATION TIME: 3.4s
+
+MAYA:
+  yeah do the schema. and a grocery list that pulls from the meal plan.
+  D does most of our shopping so this is for him basically
+
+AI ASSISTANT:
+  Got it — grocery list as a companion feature to meal planning. I'll
+  make sure it aggregates ingredients across all the recipes in a plan
+  so David gets one clean shopping list. Let me build it out.
+
+ANALYSIS: Key extractable facts: David does most of the grocery shopping.
+The grocery list feature is motivated by David's role. "D does most of
+our shopping" — terse attribution, not a tangent. Maya uses "D" for
+David consistently.
+
+---
+
+TURN 3 (Database Schema — 3 New Tables)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 14.2s
+
+AI ASSISTANT:
+  Updated `database.js` with three new tables. Here's the full file:
+
+  ```javascript
+  const Database = require('better-sqlite3');
+  const path = require('path');
+
+  const db = new Database(path.join(__dirname, 'recipes.db'));
+
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS recipes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      ingredients TEXT NOT NULL,
+      instructions TEXT NOT NULL,
+      dietary_tags TEXT DEFAULT '[]',
+      image_url TEXT DEFAULT '',
+      prep_time INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS meal_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      week_start TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS meal_plan_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plan_id INTEGER NOT NULL REFERENCES meal_plans(id) ON DELETE CASCADE,
+      recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+      day_of_week TEXT NOT NULL,
+      meal_type TEXT NOT NULL
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS recipe_ingredients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL,
+      unit TEXT NOT NULL,
+      category TEXT DEFAULT 'other'
+    )
+  `);
+
+  // Allowed dietary labels — used by front-end and validation
+  const DIETARY_LABELS = [
+    'vegetarian', 'vegan', 'gluten-free', 'dairy-free',
+    'nut-free', 'diabetic-friendly', 'low-sodium', 'low-carb',
+    'keto', 'paleo',
+  ];
+
+  // Preset: recipes safe for Mom (Linda) — diabetic-friendly AND low-sodium
+  const SAFE_FOR_MOM = ['diabetic-friendly', 'low-sodium'];
+
+  // Safe column addition for schema migration
+  function addColumnIfMissing(table, column, type) {
+    const cols = db.pragma(`table_info(${table})`);
+    if (!cols.find(c => c.name === column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    }
+  }
+
+  addColumnIfMissing('recipes', 'dietary_tags', "TEXT DEFAULT '[]'");
+  addColumnIfMissing('recipes', 'image_url', "TEXT DEFAULT ''");
+  addColumnIfMissing('recipes', 'prep_time', "INTEGER DEFAULT 0");
+
+  module.exports = db;
+  module.exports.DIETARY_LABELS = DIETARY_LABELS;
+  module.exports.SAFE_FOR_MOM = SAFE_FOR_MOM;
+  ```
+
+  Three new tables:
+
+  - **meal_plans**: Weekly container with `week_start` date and name
+  - **meal_plan_items**: Links recipes to days and meal types, with
+    cascade deletes on both plan and recipe
+  - **recipe_ingredients**: Structured ingredient storage — name, amount,
+    unit, and category. This replaces the text blob approach so we can
+    do proper grocery list aggregation with SQL GROUP BY
+
+  Foreign keys with ON DELETE CASCADE throughout. The `recipe_ingredients`
+  table is what makes the grocery list work — instead of parsing text
+  blobs, we can sum amounts directly in SQL.
+
+ANALYSIS: Major schema expansion. Three tables added in one shot.
+recipe_ingredients is the key enabler — structured data means SQL
+aggregation works. Foreign key cascades are consistent with session 7
+patterns. The addColumnIfMissing helper handles schema evolution for
+the recipes table columns added in sessions 5 and 7.
+
+---
+
+TURN 4 (React to Schema)
+TAG: quick | TOKENS: 12/50 | GENERATION TIME: 2.9s
+
+MAYA:
+  good. the recipe_ingredients table is smart — text blobs were going to
+  be a pain eventually. ok show me the server endpoints
+
+AI ASSISTANT:
+  On it. I'll add the full meal plan CRUD, ingredient endpoints, and the
+  grocery list aggregation.
+
+ANALYSIS: Maya approves the structured approach. She anticipated the
+text blob problem. Quick turnaround to see endpoints.
+
+---
+
+TURN 5 (Structured Ingredients Request)
+TAG: normal | TOKENS: 38/50 | GENERATION TIME: 5.2s
+
+MAYA:
+  the ingredients are just text blobs right now. need actual structured
+  data — name, amount, unit. like "2 cups flour" should be stored as
+  amount=2, unit=cups, name=flour
+
+  that way the grocery list can actually add things up. if two recipes
+  both need flour we can sum the amounts instead of just listing it twice
+
+  this is the thing that makes it useful for D. he doesn't want to do
+  math at the store
+
+AI ASSISTANT:
+  Exactly — structured ingredients are the foundation for everything else.
+  The `recipe_ingredients` table I just added does exactly this: name,
+  amount, unit, plus a category field for grouping (produce, dairy,
+  grains, etc.).
+
+  The grocery list query will GROUP BY name and unit, then SUM the
+  amounts. So "2 cups flour" from pasta plus "1 cup flour" from bread
+  becomes "3 cups flour" on David's list. One line item, no math.
+
+  Let me show you the full server with all the new endpoints.
+
+ANALYSIS: Maya explicitly connects structured ingredients to the grocery
+list use case. "He doesn't want to do math at the store" — practical,
+David-centered motivation. The agent confirms the GROUP BY approach.
+
+---
+
+TURN 6 (Server.js — Full Endpoints)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 18.5s
+
+AI ASSISTANT:
+  Here's the full updated `server.js` with meal plan CRUD, ingredient
+  endpoints, and grocery list aggregation:
+
+  ```javascript
+  const express = require('express');
+  const db = require('./database');
+  const { DIETARY_LABELS, SAFE_FOR_MOM } = require('./database');
+  const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
+  const { requestLogger } = require('./src/middleware/logging');
+
+  const app = express();
+  const PORT = process.env.PORT || 3000;
+
+  app.use(express.json());
+  app.use(express.static('public'));
+  app.use(requestLogger);
+
+  // ---- Recipes ----
+
+  // Get all recipes (with optional dietary filter)
+  app.get('/api/recipes', (req, res) => {
+    let recipes = db.prepare('SELECT * FROM recipes ORDER BY created_at DESC').all();
+
+    // Filter by dietary tags
+    if (req.query.safeForMom === 'true') {
+      recipes = recipes.filter(r => {
+        const tags = JSON.parse(r.dietary_tags || '[]');
+        return SAFE_FOR_MOM.every(t => tags.includes(t));
+      });
+    } else if (req.query.diet) {
+      const required = req.query.diet.split(',');
+      recipes = recipes.filter(r => {
+        const tags = JSON.parse(r.dietary_tags || '[]');
+        return required.every(t => tags.includes(t));
+      });
+    }
+
+    // Filter by max prep time
+    if (req.query.maxPrepTime) {
+      const maxTime = parseInt(req.query.maxPrepTime, 10);
+      recipes = recipes.filter(r => r.prep_time <= maxTime);
+    }
+
+    res.json(recipes);
+  });
+
+  // Search recipes
+  app.get('/api/recipes/search', (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    const recipes = db.prepare(
+      'SELECT * FROM recipes WHERE title LIKE ? OR ingredients LIKE ?'
+    ).all(`%${q}%`, `%${q}%`);
+    res.json(recipes);
+  });
+
+  // Get single recipe (with structured ingredients)
+  app.get('/api/recipes/:id', (req, res) => {
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
+    const ingredients = db.prepare(
+      'SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY id'
+    ).all(req.params.id);
+    res.json({ ...recipe, structuredIngredients: ingredients });
+  });
+
+  // Create recipe
+  app.post('/api/recipes', (req, res) => {
+    const { title, ingredients, instructions, dietary_tags, image_url, prep_time } = req.body;
+    if (!title || !ingredients || !instructions) {
+      return res.status(400).json({ error: 'Title, ingredients, and instructions required' });
+    }
+    const tags = Array.isArray(dietary_tags) ? JSON.stringify(dietary_tags) : '[]';
+    const result = db.prepare(
+      'INSERT INTO recipes (title, ingredients, instructions, dietary_tags, image_url, prep_time) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(title, ingredients, instructions, tags, image_url || '', prep_time || 0);
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(recipe);
+  });
+
+  // Update recipe
+  app.put('/api/recipes/:id', (req, res) => {
+    const { title, ingredients, instructions, dietary_tags, image_url, prep_time } = req.body;
+    const existing = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Recipe not found' });
+    const tags = dietary_tags ? JSON.stringify(dietary_tags) : existing.dietary_tags;
+    db.prepare(
+      'UPDATE recipes SET title = ?, ingredients = ?, instructions = ?, dietary_tags = ?, image_url = ?, prep_time = ? WHERE id = ?'
+    ).run(
+      title || existing.title,
+      ingredients || existing.ingredients,
+      instructions || existing.instructions,
+      tags,
+      image_url !== undefined ? image_url : existing.image_url,
+      prep_time !== undefined ? prep_time : existing.prep_time,
+      req.params.id
+    );
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    res.json(recipe);
+  });
+
+  // Delete recipe
+  app.delete('/api/recipes/:id', (req, res) => {
+    const existing = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Recipe not found' });
+    db.prepare('DELETE FROM recipes WHERE id = ?').run(req.params.id);
+    res.json({ message: 'Recipe deleted' });
+  });
+
+  // Add structured ingredients to a recipe
+  app.post('/api/recipes/:id/ingredients', (req, res) => {
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
+    const { ingredients } = req.body;
+    if (!Array.isArray(ingredients) || ingredients.length === 0) {
+      return res.status(400).json({ error: 'ingredients must be a non-empty array' });
+    }
+    const stmt = db.prepare(
+      'INSERT INTO recipe_ingredients (recipe_id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)'
+    );
+    for (const ing of ingredients) {
+      stmt.run(req.params.id, ing.name, ing.amount, ing.unit, ing.category || 'other');
+    }
+    const result = db.prepare('SELECT * FROM recipe_ingredients WHERE recipe_id = ?').all(req.params.id);
+    res.status(201).json(result);
+  });
+
+  // Dietary labels endpoint
+  app.get('/api/dietary-labels', (req, res) => {
+    res.json(DIETARY_LABELS);
+  });
+
+  // ---- Meal Plans ----
+
+  // List meal plans
+  app.get('/api/meal-plans', (req, res) => {
+    const plans = db.prepare('SELECT * FROM meal_plans ORDER BY created_at DESC').all();
+    res.json(plans);
+  });
+
+  // Get single meal plan with items
+  app.get('/api/meal-plans/:id', (req, res) => {
+    const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Meal plan not found' });
+    const items = db.prepare(`
+      SELECT mpi.*, r.title AS recipe_title, r.prep_time
+      FROM meal_plan_items mpi
+      JOIN recipes r ON r.id = mpi.recipe_id
+      WHERE mpi.plan_id = ?
+      ORDER BY mpi.day_of_week, mpi.meal_type
+    `).all(req.params.id);
+    res.json({ ...plan, items });
+  });
+
+  // Create meal plan
+  app.post('/api/meal-plans', (req, res) => {
+    const { week_start, name } = req.body;
+    if (!week_start || !name) {
+      return res.status(400).json({ error: 'week_start and name required' });
+    }
+    const result = db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)').run(week_start, name);
+    const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(plan);
+  });
+
+  // Add item to meal plan
+  app.post('/api/meal-plans/:id/items', (req, res) => {
+    const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Meal plan not found' });
+    const { recipe_id, day_of_week, meal_type } = req.body;
+    if (!recipe_id || !day_of_week || !meal_type) {
+      return res.status(400).json({ error: 'recipe_id, day_of_week, and meal_type required' });
+    }
+    const result = db.prepare(
+      'INSERT INTO meal_plan_items (plan_id, recipe_id, day_of_week, meal_type) VALUES (?, ?, ?, ?)'
+    ).run(req.params.id, recipe_id, day_of_week, meal_type);
+    const item = db.prepare('SELECT * FROM meal_plan_items WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(item);
+  });
+
+  // Remove item from meal plan
+  app.delete('/api/meal-plans/:planId/items/:itemId', (req, res) => {
+    const result = db.prepare('DELETE FROM meal_plan_items WHERE id = ? AND plan_id = ?')
+      .run(req.params.itemId, req.params.planId);
+    if (result.changes === 0) return res.status(404).json({ error: 'Item not found' });
+    res.json({ message: 'Item removed' });
+  });
+
+  // Get grocery list for a meal plan (aggregated ingredients)
+  app.get('/api/meal-plans/:id/grocery-list', (req, res) => {
+    const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Meal plan not found' });
+    const groceryList = db.prepare(`
+      SELECT
+        ri.name,
+        ri.unit,
+        ri.category,
+        SUM(ri.amount) AS total_amount,
+        COUNT(DISTINCT mpi.recipe_id) AS recipe_count,
+        GROUP_CONCAT(DISTINCT r.title) AS from_recipes
+      FROM meal_plan_items mpi
+      JOIN recipe_ingredients ri ON ri.recipe_id = mpi.recipe_id
+      JOIN recipes r ON r.id = mpi.recipe_id
+      WHERE mpi.plan_id = ?
+      GROUP BY ri.name, ri.unit, ri.category
+      ORDER BY ri.category, ri.name
+    `).all(req.params.id);
+    res.json(groceryList);
+  });
+
+  // Nutrition stub — returns placeholder until Edamam API configured
+  app.get('/api/recipes/:id/nutrition', (req, res) => {
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
+    res.json({
+      recipe_id: recipe.id,
+      source: 'stub',
+      message: 'Nutrition API not configured. Set EDAMAM_APP_ID and EDAMAM_APP_KEY in .env',
+      estimated: { calories: null, protein: null, carbs: null, fat: null },
+    });
+  });
+
+  // Error handling
+  app.use(notFoundHandler);
+  app.use(errorHandler);
+
+  app.listen(PORT, () => {
+    console.log(`Recipe app running at http://localhost:${PORT}`);
+  });
+  ```
+
+  New and updated endpoints:
+
+  - **GET /api/recipes/:id** — now includes `structuredIngredients` array
+  - **POST /api/recipes/:id/ingredients** — bulk add structured ingredients
+  - **GET /api/meal-plans** — list all meal plans
+  - **GET /api/meal-plans/:id** — get plan with items (joined with recipe titles)
+  - **POST /api/meal-plans** — create a meal plan
+  - **POST /api/meal-plans/:id/items** — add recipe to a plan day/meal
+  - **DELETE /api/meal-plans/:planId/items/:itemId** — remove item from plan
+  - **GET /api/meal-plans/:id/grocery-list** — the big one: aggregated grocery
+    list using GROUP BY on ingredient name, unit, and category. Sums amounts
+    across all recipes in the plan.
+
+  The grocery list query is the key — it joins meal_plan_items to
+  recipe_ingredients to recipes, groups by ingredient name and unit,
+  and sums amounts. Also includes `recipe_count` and `from_recipes` so
+  David can see which recipes need each ingredient.
+
+ANALYSIS: Big code turn. The grocery list endpoint is the centerpiece —
+proper SQL aggregation with GROUP BY, SUM, COUNT DISTINCT, and
+GROUP_CONCAT. This is what the v1 couldn't do with text blobs. The
+GET /api/recipes/:id now returns structuredIngredients alongside the
+text blob, maintaining backward compatibility. Logging middleware
+already wired up at the top.
+
+---
+
+TURN 7 (Logging Middleware Request)
+TAG: normal | TOKENS: 28/50 | GENERATION TIME: 4.8s
+
+MAYA:
+  can we add request logging? want to see what endpoints get hit and how
+  long they take. nothing fancy, just console output with method, url,
+  status, and response time
+
+  saw it was already imported in server.js so i assume you were planning
+  this
+
+AI ASSISTANT:
+  Yep, I wired up the import already. Here's the logging middleware —
+  it hooks into the response `finish` event to capture the final status
+  code and timing. Color-coded by status range when running in a terminal.
+
+ANALYSIS: Maya notices the import was already in server.js. She's reading
+the code, not just the explanation. Request for observability tooling
+shows engineering maturity.
+
+---
+
+TURN 8 (Logging Middleware Code)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 10.8s
+
+AI ASSISTANT:
+  Here's `src/middleware/logging.js`:
+
+  ```javascript
+  /**
+   * Request/response logging middleware.
+   *
+   * Logs every completed HTTP request with method, URL, status code,
+   * response time, and content length. Output is colorized by status
+   * code range when writing to a TTY.
+   *
+   * Introduced: session 10 (observability improvements)
+   *
+   * Usage:
+   *   const { requestLogger } = require('./middleware/logging');
+   *   app.use(requestLogger);
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  // ANSI color codes for terminal output
+  const COLORS = {
+    green: '\x1b[32m',   // 2xx success
+    cyan: '\x1b[36m',    // 3xx redirect
+    yellow: '\x1b[33m',  // 4xx client error
+    red: '\x1b[31m',     // 5xx server error
+    reset: '\x1b[0m',
+  };
+
+  /**
+   * Pick a color based on HTTP status code.
+   * @param {number} status
+   * @returns {string} ANSI escape code
+   */
+  function colorForStatus(status) {
+    if (status < 300) return COLORS.green;
+    if (status < 400) return COLORS.cyan;
+    if (status < 500) return COLORS.yellow;
+    return COLORS.red;
+  }
+
+  /**
+   * Express middleware that logs request completion.
+   *
+   * Attaches a `finish` listener to the response so the log line
+   * includes the final status code and timing.
+   */
+  function requestLogger(req, res, next) {
+    const start = Date.now();
+
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      const contentLength = res.get('Content-Length') || '-';
+      const status = res.statusCode;
+      const color = colorForStatus(status);
+
+      const line = `${req.method} ${req.originalUrl || req.url} ${status} ${duration}ms ${contentLength}`;
+
+      // Colorize only when stdout is a TTY
+      if (process.stdout.isTTY) {
+        console.log(`${color}${line}${COLORS.reset}`);
+      } else {
+        console.log(line);
+      }
+    });
+
+    next();
+  }
+
+  module.exports = { requestLogger };
+  ```
+
+  67 lines. Hooks into the response `finish` event so the log includes
+  the actual status code and timing. Color-coded: green for 2xx, cyan
+  for 3xx, yellow for 4xx, red for 5xx. Only colorizes when stdout is
+  a TTY so log files stay clean.
+
+ANALYSIS: Clean middleware following Express conventions. The finish
+event pattern is correct — it fires after the response is sent, giving
+accurate timing and status. TTY detection for color is a nice touch.
+Not over-engineered.
+
+---
+
+TURN 9 (Query Consolidation Request)
+TAG: normal | TOKENS: 32/50 | GENERATION TIME: 5.0s
+
+MAYA:
+  the db queries are getting messy in server.js. can you pull them out
+  into their own module? like a queries file that has all the named
+  queries, and server.js just calls them
+
+  same pattern as the error handler — separate concerns
+
+AI ASSISTANT:
+  Good call. Server.js is getting long with all the inline SQL. I'll
+  create `src/db/queries.js` with three namespaces — recipes, ingredients,
+  and mealPlans — each with standard CRUD operations plus the
+  domain-specific helpers like dietary filtering and grocery list
+  aggregation.
+
+ANALYSIS: Maya references the session 7 error handler pattern. She's
+building architectural consistency. "Separate concerns" — PM who thinks
+like an engineer.
+
+---
+
+TURN 10 (Queries Module Code)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 22.4s
+
+AI ASSISTANT:
+  Here's `src/db/queries.js` — 302 lines, three namespaces:
+
+  ```javascript
+  /**
+   * Named database queries — replaces inline SQL throughout the app.
+   *
+   * Three namespaces: recipes, ingredients, mealPlans. Each exposes
+   * standard CRUD operations plus domain-specific helpers like
+   * dietary filtering and grocery list aggregation.
+   *
+   * Introduced: session 10 (query consolidation pass)
+   *
+   * NOTE: The `db` reference is resolved lazily via getDb() so that
+   * tests can swap in an in-memory database before any query runs.
+   */
+
+  const { createConnection } = require('../../config/database');
+
+  /** Dietary tags that make a recipe safe for Linda (mom) */
+  const SAFE_FOR_MOM = ['diabetic-friendly', 'low-sodium'];
+
+  let _db = null;
+
+  /** Get or create the database connection */
+  function getDb() {
+    if (!_db) {
+      _db = createConnection();
+    }
+    return _db;
+  }
+
+  /** Allow tests to inject an in-memory database */
+  function setDb(db) {
+    _db = db;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Recipes
+  // ---------------------------------------------------------------------------
+
+  const recipes = {
+    /**
+     * Fetch all recipes, optionally filtered by dietary tags.
+     *
+     * @param {object} [filters]
+     * @param {string[]} [filters.diet] - Required dietary tags (AND logic)
+     * @param {boolean} [filters.safeForMom] - Shortcut for diabetic-friendly + low-sodium
+     * @param {number} [filters.maxPrepTime] - Maximum prep time in minutes
+     * @param {number} [filters.limit] - Max rows to return
+     * @param {number} [filters.offset] - Rows to skip (pagination)
+     */
+    findAll(filters = {}) {
+      const db = getDb();
+      let rows = db.prepare('SELECT * FROM recipes ORDER BY created_at DESC').all();
+
+      // Parse dietary_tags JSON for every row
+      rows = rows.map((r) => ({
+        ...r,
+        dietary_tags: JSON.parse(r.dietary_tags || '[]'),
+      }));
+
+      // Filter: specific dietary tags (AND — every tag must be present)
+      if (filters.diet && filters.diet.length > 0) {
+        rows = rows.filter((r) =>
+          filters.diet.every((d) => r.dietary_tags.includes(d))
+        );
+      }
+
+      // Filter: safe-for-mom shortcut
+      if (filters.safeForMom) {
+        rows = rows.filter((r) =>
+          SAFE_FOR_MOM.every((t) => r.dietary_tags.includes(t))
+        );
+      }
+
+      // Filter: max prep time
+      if (filters.maxPrepTime) {
+        rows = rows.filter((r) => r.prep_time <= filters.maxPrepTime);
+      }
+
+      // Pagination
+      const offset = filters.offset || 0;
+      const limit = filters.limit || rows.length;
+      rows = rows.slice(offset, offset + limit);
+
+      return rows;
+    },
+
+    findById(id) {
+      const db = getDb();
+      const row = db.prepare('SELECT * FROM recipes WHERE id = ?').get(id);
+      if (!row) return null;
+      return { ...row, dietary_tags: JSON.parse(row.dietary_tags || '[]') };
+    },
+
+    create(data) {
+      const db = getDb();
+      const stmt = db.prepare(`
+        INSERT INTO recipes (title, ingredients, instructions, dietary_tags, image_url, prep_time, owner_id)
+        VALUES (@title, @ingredients, @instructions, @dietary_tags, @image_url, @prep_time, @owner_id)
+      `);
+      const result = stmt.run({
+        title: data.title,
+        ingredients: data.ingredients,
+        instructions: data.instructions,
+        dietary_tags: JSON.stringify(data.dietary_tags || []),
+        image_url: data.image_url || '',
+        prep_time: data.prep_time || 0,
+        owner_id: data.owner_id || null,
+      });
+      return recipes.findById(Number(result.lastInsertRowid));
+    },
+
+    update(id, data) {
+      const db = getDb();
+      const existing = recipes.findById(id);
+      if (!existing) return null;
+
+      const merged = {
+        title: data.title ?? existing.title,
+        ingredients: data.ingredients ?? existing.ingredients,
+        instructions: data.instructions ?? existing.instructions,
+        dietary_tags: JSON.stringify(data.dietary_tags ?? existing.dietary_tags),
+        image_url: data.image_url ?? existing.image_url,
+        prep_time: data.prep_time ?? existing.prep_time,
+      };
+
+      db.prepare(`
+        UPDATE recipes
+        SET title = @title, ingredients = @ingredients, instructions = @instructions,
+            dietary_tags = @dietary_tags, image_url = @image_url, prep_time = @prep_time
+        WHERE id = @id
+      `).run({ id, ...merged });
+
+      return recipes.findById(id);
+    },
+
+    delete(id) {
+      const db = getDb();
+      const result = db.prepare('DELETE FROM recipes WHERE id = ?').run(id);
+      return result.changes > 0;
+    },
+
+    search(query) {
+      const db = getDb();
+      const pattern = `%${query}%`;
+      return db
+        .prepare(
+          'SELECT * FROM recipes WHERE title LIKE ? OR ingredients LIKE ? ORDER BY created_at DESC'
+        )
+        .all(pattern, pattern)
+        .map((r) => ({ ...r, dietary_tags: JSON.parse(r.dietary_tags || '[]') }));
+    },
+  };
+
+  // ---------------------------------------------------------------------------
+  // Ingredients
+  // ---------------------------------------------------------------------------
+
+  const ingredients = {
+    findByRecipe(recipeId) {
+      const db = getDb();
+      return db
+        .prepare('SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY id')
+        .all(recipeId);
+    },
+
+    create(data) {
+      const db = getDb();
+      const result = db.prepare(`
+        INSERT INTO recipe_ingredients (recipe_id, name, amount, unit, category)
+        VALUES (@recipe_id, @name, @amount, @unit, @category)
+      `).run({
+        recipe_id: data.recipe_id,
+        name: data.name,
+        amount: data.amount,
+        unit: data.unit,
+        category: data.category || 'other',
+      });
+      return db.prepare('SELECT * FROM recipe_ingredients WHERE id = ?')
+        .get(Number(result.lastInsertRowid));
+    },
+
+    bulkCreate(recipeId, items) {
+      const db = getDb();
+      const stmt = db.prepare(`
+        INSERT INTO recipe_ingredients (recipe_id, name, amount, unit, category)
+        VALUES (@recipe_id, @name, @amount, @unit, @category)
+      `);
+
+      const inserted = [];
+      db.transaction(() => {
+        for (const item of items) {
+          const result = stmt.run({
+            recipe_id: recipeId,
+            name: item.name,
+            amount: item.amount,
+            unit: item.unit,
+            category: item.category || 'other',
+          });
+          inserted.push(Number(result.lastInsertRowid));
+        }
+      })();
+
+      return db
+        .prepare(
+          `SELECT * FROM recipe_ingredients WHERE id IN (${inserted.map(() => '?').join(',')})`
+        )
+        .all(...inserted);
+    },
+
+    deleteByRecipe(recipeId) {
+      const db = getDb();
+      return db.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?').run(recipeId);
+    },
+  };
+
+  // ---------------------------------------------------------------------------
+  // Meal Plans
+  // ---------------------------------------------------------------------------
+
+  const mealPlans = {
+    findAll() {
+      const db = getDb();
+      return db.prepare('SELECT * FROM meal_plans ORDER BY created_at DESC').all();
+    },
+
+    findById(id) {
+      const db = getDb();
+      const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(id);
+      if (!plan) return null;
+
+      const items = db.prepare(`
+        SELECT mpi.*, r.title AS recipe_title, r.dietary_tags, r.prep_time
+        FROM meal_plan_items mpi
+        JOIN recipes r ON r.id = mpi.recipe_id
+        WHERE mpi.plan_id = ?
+        ORDER BY
+          CASE mpi.day_of_week
+            WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3
+            WHEN 'thursday' THEN 4 WHEN 'friday' THEN 5 WHEN 'saturday' THEN 6
+            WHEN 'sunday' THEN 7
+          END,
+          CASE mpi.meal_type
+            WHEN 'breakfast' THEN 1 WHEN 'lunch' THEN 2 WHEN 'dinner' THEN 3
+            WHEN 'snack' THEN 4
+          END
+      `).all(id);
+
+      return { ...plan, items };
+    },
+
+    create(data) {
+      const db = getDb();
+      const result = db.prepare(
+        'INSERT INTO meal_plans (week_start, name) VALUES (@week_start, @name)'
+      ).run({ week_start: data.week_start, name: data.name });
+      return mealPlans.findById(Number(result.lastInsertRowid));
+    },
+
+    addItem(planId, data) {
+      const db = getDb();
+      const result = db.prepare(`
+        INSERT INTO meal_plan_items (plan_id, recipe_id, day_of_week, meal_type)
+        VALUES (@plan_id, @recipe_id, @day_of_week, @meal_type)
+      `).run({
+        plan_id: planId,
+        recipe_id: data.recipe_id,
+        day_of_week: data.day_of_week,
+        meal_type: data.meal_type,
+      });
+      return db.prepare('SELECT * FROM meal_plan_items WHERE id = ?')
+        .get(Number(result.lastInsertRowid));
+    },
+
+    removeItem(itemId) {
+      const db = getDb();
+      return db.prepare('DELETE FROM meal_plan_items WHERE id = ?').run(itemId).changes > 0;
+    },
+
+    /**
+     * Aggregate a grocery list from all recipes in a meal plan.
+     * Groups by ingredient name, sums amounts, and includes categories.
+     */
+    getGroceryList(planId) {
+      const db = getDb();
+      return db.prepare(`
+        SELECT
+          ri.name,
+          ri.unit,
+          ri.category,
+          SUM(ri.amount) AS total_amount,
+          COUNT(DISTINCT mpi.recipe_id) AS recipe_count,
+          GROUP_CONCAT(DISTINCT r.title) AS from_recipes
+        FROM meal_plan_items mpi
+        JOIN recipe_ingredients ri ON ri.recipe_id = mpi.recipe_id
+        JOIN recipes r ON r.id = mpi.recipe_id
+        WHERE mpi.plan_id = ?
+        GROUP BY ri.name, ri.unit, ri.category
+        ORDER BY ri.category, ri.name
+      `).all(planId);
+    },
+  };
+
+  module.exports = { recipes, ingredients, mealPlans, SAFE_FOR_MOM, getDb, setDb };
+  ```
+
+  302 lines. Three namespaces:
+
+  - **recipes**: findAll (with dietary/prep time/pagination filters),
+    findById, create, update, delete, search
+  - **ingredients**: findByRecipe, create, bulkCreate (transactional),
+    deleteByRecipe
+  - **mealPlans**: findAll, findById (with ordered items), create,
+    addItem, removeItem, getGroceryList (the aggregation query)
+
+  Key design decisions:
+  - Lazy DB connection via `getDb()` so tests can inject in-memory DBs
+  - `setDb()` for test injection — same pattern as the error handler
+  - bulkCreate uses a transaction for atomic ingredient inserts
+  - findAll filters work as AND intersection — every required tag must
+    be present, matching the existing behavior from session 5
+  - Meal plan items sorted by day (Mon-Sun) then meal type
+    (breakfast-lunch-dinner-snack) using CASE expressions
+
+ANALYSIS: Major refactoring turn. 302 lines of structured, documented
+query code. The lazy DB pattern with getDb()/setDb() enables test
+isolation. The mealPlans.getGroceryList() query duplicates the server.js
+endpoint logic — this is the canonical version going forward. Day and
+meal type ordering via CASE statements gives a natural calendar view.
+
+---
+
+TURN 11 (React to Queries Module)
+TAG: quick | TOKENS: 14/50 | GENERATION TIME: 3.1s
+
+MAYA:
+  much better. the setDb thing for tests is smart — we'll need that.
+  ok the data is the next problem
+
+AI ASSISTANT:
+  Yeah, the sample data from session 3 is pretty thin. What are you
+  thinking?
+
+ANALYSIS: Maya approves the architecture. "We'll need that" — she's
+already thinking about the test suites she'll request in turns 15-18.
+Transitions to seed data.
+
+---
+
+TURN 12 (Seed Data Request)
+TAG: normal | TOKENS: 36/50 | GENERATION TIME: 5.4s
+
+MAYA:
+  we need more sample recipes with actual dietary tags, real prep times,
+  and ingredients that make sense. like 20 recipes across different
+  categories — some vegetarian for D, some diabetic-friendly for mom,
+  some regular
+
+  and a proper seed script that populates the structured ingredients too.
+  parsing the text blob into amount/unit/name so we can test the grocery
+  list aggregation with real data
+
+AI ASSISTANT:
+  On it. I'll create 20 recipes with realistic ingredients, proper
+  dietary tags, and real prep times. The seed script will parse the
+  ingredient text into structured `recipe_ingredients` rows and also
+  create a sample meal plan so the grocery list has something to work
+  with out of the box.
+
+ANALYSIS: Maya wants test-quality seed data. "Some vegetarian for D,
+some diabetic-friendly for mom" — she's thinking about her family's
+actual dietary needs. The seed script needs to bridge text blobs to
+structured ingredients.
+
+---
+
+TURN 13 (Seed Data Code)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 20.6s
+
+AI ASSISTANT:
+  Two files. First, `seeds/sample-recipes.json` with 20 recipes:
+
+  ```json
+  [
+    {
+      "title": "Vegetable Stir-Fry",
+      "ingredients": "2 tbsp sesame oil, 1 red bell pepper sliced, 1 yellow bell pepper sliced, 2 cups broccoli florets, 1 large carrot julienned, 1 cup snap peas trimmed, 3 cloves garlic minced, 1 inch fresh ginger grated, 3 tbsp soy sauce, 1 tbsp rice vinegar, 1 tsp cornstarch, 1 tsp sriracha, 2 green onions sliced, 1 tbsp sesame seeds, steamed rice for serving",
+      "dietary_tags": ["vegetarian", "vegan", "dairy-free"],
+      "image_url": "",
+      "prep_time": 25
+    },
+    {
+      "title": "Roasted Cauliflower Tacos",
+      "ingredients": "1 large head cauliflower cut into florets, 2 tbsp olive oil, 1 tsp cumin, 1 tsp smoked paprika, 1/2 tsp chili powder, 8 small corn tortillas, 1 cup shredded purple cabbage, 1 avocado sliced, 1/2 cup pickled red onions, 1/4 cup fresh cilantro, 1 lime juiced, 1/2 cup sour cream, salt and pepper to taste",
+      "dietary_tags": ["vegetarian", "gluten-free"],
+      "image_url": "",
+      "prep_time": 40
+    },
+    {
+      "title": "Mushroom Risotto",
+      "ingredients": "1.5 cups arborio rice, 8 oz mixed mushrooms sliced (cremini shiitake oyster), 4 cups vegetable broth warmed, 1/2 cup dry white wine, 1 medium onion finely diced, 3 cloves garlic minced, 2 tbsp butter, 2 tbsp olive oil, 1/2 cup grated parmesan, 2 tbsp fresh thyme leaves, salt and pepper to taste",
+      "dietary_tags": ["vegetarian"],
+      "image_url": "",
+      "prep_time": 45
+    },
+    {
+      "title": "Black Bean Burgers",
+      "ingredients": "2 cans black beans drained and rinsed, 1/2 cup breadcrumbs, 1 egg, 1/2 red onion finely diced, 2 cloves garlic minced, 1 tsp cumin, 1 tsp smoked paprika, 1/2 tsp cayenne, 2 tbsp fresh cilantro chopped, 1 tbsp lime juice, 4 burger buns, lettuce leaves, tomato slices, avocado slices, 2 tbsp olive oil, salt and pepper to taste",
+      "dietary_tags": ["vegetarian"],
+      "image_url": "",
+      "prep_time": 35
+    },
+    {
+      "title": "Chickpea Curry",
+      "ingredients": "1 can chickpeas drained and rinsed, 1 can coconut milk, 2 tbsp curry paste, 1 medium onion diced, 3 cloves garlic minced, 1 inch fresh ginger grated, 1 tsp turmeric, 1 tsp garam masala, 1 can diced tomatoes, 2 cups fresh spinach, 1 tbsp coconut oil, salt to taste, fresh cilantro for garnish, basmati rice for serving",
+      "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free"],
+      "image_url": "",
+      "prep_time": 35
+    },
+    {
+      "title": "Grilled Salmon with Herbs",
+      "ingredients": "4 salmon fillets 6 oz each, 2 tbsp olive oil, 2 tbsp fresh dill chopped, 1 tbsp fresh parsley chopped, 2 cloves garlic minced, 1 lemon zested and juiced, 1/2 tsp black pepper, 1 lb asparagus trimmed, 1 tbsp olive oil for asparagus, pinch of salt",
+      "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "low-carb", "paleo", "keto"],
+      "image_url": "",
+      "prep_time": 30
+    },
+    {
+      "title": "Chicken and Vegetable Soup (Low Sodium)",
+      "ingredients": "1.5 lbs boneless skinless chicken breast, 8 cups low-sodium chicken broth, 3 medium carrots peeled and diced, 3 celery stalks diced, 1 medium onion diced, 3 cloves garlic minced, 2 bay leaves, 1 tsp dried thyme, 1/2 tsp black pepper, 1 cup green beans cut into 1-inch pieces, 2 cups fresh spinach, 1 tbsp olive oil, 1 tbsp fresh parsley chopped, 1 tbsp lemon juice",
+      "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"],
+      "image_url": "",
+      "prep_time": 45
+    },
+    {
+      "title": "Turkey Meatballs with Zucchini Noodles",
+      "ingredients": "1 lb ground turkey, 1/4 cup almond flour, 1 egg, 2 cloves garlic minced, 1 tsp dried oregano, 1 tsp dried basil, 1/2 tsp onion powder, 1/4 tsp black pepper, 4 medium zucchini spiralized, 2 cups no-salt-added marinara sauce, 1 tbsp olive oil, 2 tbsp fresh basil leaves, pinch of salt",
+      "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "low-carb"],
+      "image_url": "",
+      "prep_time": 35
+    },
+    {
+      "title": "Baked Cod with Lemon",
+      "ingredients": "4 cod fillets 6 oz each, 2 tbsp olive oil, 3 cloves garlic minced, 1 lemon sliced into thin rounds, 1 tbsp fresh thyme leaves, 1 tsp dried oregano, 1/4 tsp black pepper, 1 lb cherry tomatoes halved, 1/2 cup kalamata olives halved, 2 tbsp capers rinsed, 2 tbsp fresh parsley chopped, pinch of salt",
+      "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "low-carb", "paleo"],
+      "image_url": "",
+      "prep_time": 25
+    },
+    {
+      "title": "Herb-Roasted Chicken Breast",
+      "ingredients": "4 boneless skinless chicken breasts, 2 tbsp olive oil, 1 tbsp fresh rosemary chopped, 1 tbsp fresh thyme leaves, 2 cloves garlic minced, 1 tsp smoked paprika, 1/2 tsp black pepper, 1 lb brussels sprouts halved, 2 medium sweet potatoes peeled and cubed, 1 tbsp olive oil for vegetables, 1 tsp garlic powder, pinch of salt",
+      "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "paleo"],
+      "image_url": "",
+      "prep_time": 40
+    },
+    {
+      "title": "Lentil Soup",
+      "ingredients": "1.5 cups green or brown lentils rinsed, 6 cups low-sodium vegetable broth, 1 can diced tomatoes no salt added, 2 medium carrots diced, 2 celery stalks diced, 1 medium onion diced, 4 cloves garlic minced, 2 tsp cumin, 1 tsp smoked paprika, 1/2 tsp turmeric, 1/4 tsp black pepper, 2 cups fresh kale chopped, 1 tbsp olive oil, 1 tbsp lemon juice, pinch of salt",
+      "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"],
+      "image_url": "",
+      "prep_time": 40
+    },
+    {
+      "title": "Roasted Vegetable Medley",
+      "ingredients": "2 medium zucchini cut into half-moons, 1 large eggplant cubed, 2 red bell peppers cut into chunks, 1 large red onion cut into wedges, 1 pint cherry tomatoes, 4 cloves garlic whole, 3 tbsp olive oil, 1 tbsp balsamic vinegar, 1 tsp dried oregano, 1 tsp dried thyme, 1/2 tsp black pepper, 2 tbsp fresh basil chiffonade, pinch of salt",
+      "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "paleo"],
+      "image_url": "",
+      "prep_time": 45
+    },
+    {
+      "title": "Quinoa Stuffed Peppers",
+      "ingredients": "6 large bell peppers tops cut off and seeded, 1 cup quinoa rinsed, 2 cups low-sodium vegetable broth, 1 can black beans drained and rinsed, 1 cup corn kernels, 1 cup diced tomatoes, 1/2 red onion finely diced, 2 cloves garlic minced, 1 tsp cumin, 1 tsp chili powder, 1/4 tsp black pepper, 2 tbsp fresh cilantro chopped, 1 tbsp olive oil, 1 tbsp lime juice, pinch of salt",
+      "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"],
+      "image_url": "",
+      "prep_time": 55
+    },
+    {
+      "title": "Tofu Stir-Fry",
+      "ingredients": "14 oz extra-firm tofu drained and pressed, 2 tbsp low-sodium soy sauce, 1 tbsp rice vinegar, 1 tsp sesame oil, 1 tbsp cornstarch, 2 tbsp vegetable oil, 1 red bell pepper sliced, 1 cup sugar snap peas, 1 cup broccoli florets, 2 cloves garlic minced, 1 inch fresh ginger grated, 1 tbsp hoisin sauce (low sodium), 1 green onion sliced, 1 tsp sesame seeds, steamed brown rice for serving",
+      "dietary_tags": ["vegetarian", "vegan", "dairy-free", "diabetic-friendly", "low-sodium"],
+      "image_url": "",
+      "prep_time": 30
+    },
+    {
+      "title": "Spinach and White Bean Stew",
+      "ingredients": "2 cans cannellini beans drained and rinsed, 6 oz fresh baby spinach, 4 cups low-sodium vegetable broth, 1 can diced tomatoes no salt added, 1 medium onion diced, 4 cloves garlic minced, 2 medium carrots diced, 2 celery stalks diced, 1 tsp dried rosemary, 1 tsp dried thyme, 1/2 tsp red pepper flakes, 1/4 tsp black pepper, 1 tbsp olive oil, 1 tbsp lemon juice, pinch of salt",
+      "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"],
+      "image_url": "",
+      "prep_time": 35
+    },
+    {
+      "title": "Classic Beef Tacos",
+      "ingredients": "1 lb ground beef 85/15, 1 packet taco seasoning, 1/4 cup water, 8 hard taco shells, 1 cup shredded cheddar cheese, 1 cup shredded iceberg lettuce, 1 large tomato diced, 1/2 cup sour cream, 1/4 cup pickled jalapenos, 1/2 cup salsa, 1 lime cut into wedges, hot sauce to taste",
+      "dietary_tags": ["gluten-free"],
+      "image_url": "",
+      "prep_time": 20
+    },
+    {
+      "title": "Spaghetti Bolognese",
+      "ingredients": "1 lb spaghetti, 1 lb ground beef, 1/2 lb Italian sausage casings removed, 1 large onion finely diced, 3 cloves garlic minced, 2 medium carrots finely diced, 2 celery stalks finely diced, 1 can crushed tomatoes 28 oz, 2 tbsp tomato paste, 1/2 cup red wine, 1 tsp dried oregano, 1 tsp dried basil, 1/2 tsp salt, 1/4 tsp black pepper, 1/4 cup fresh parsley chopped, grated parmesan for serving",
+      "dietary_tags": [],
+      "image_url": "",
+      "prep_time": 60
+    },
+    {
+      "title": "Shrimp Scampi",
+      "ingredients": "1.5 lbs large shrimp peeled and deveined, 12 oz linguine, 4 tbsp butter, 3 tbsp olive oil, 6 cloves garlic thinly sliced, 1/2 cup dry white wine, 1/4 tsp red pepper flakes, 1 large lemon juiced and zested, 1/4 cup fresh parsley chopped, 1/2 tsp salt, 1/4 tsp black pepper, 1/2 cup reserved pasta water",
+      "dietary_tags": [],
+      "image_url": "",
+      "prep_time": 25
+    },
+    {
+      "title": "Chicken Parmesan",
+      "ingredients": "4 boneless skinless chicken breasts pounded to 1/2-inch thickness, 1 cup all-purpose flour, 2 eggs beaten, 1.5 cups panko breadcrumbs, 1/2 cup grated parmesan, 1 tsp garlic powder, 1 tsp dried Italian seasoning, 2 cups marinara sauce, 1 cup shredded mozzarella, 1/4 cup olive oil for frying, 1/2 tsp salt, 1/4 tsp black pepper, fresh basil leaves for garnish, spaghetti for serving",
+      "dietary_tags": [],
+      "image_url": "",
+      "prep_time": 45
+    },
+    {
+      "title": "Pulled Pork Sliders",
+      "ingredients": "3 lb pork shoulder bone-in, 2 tbsp brown sugar, 1 tbsp smoked paprika, 1 tsp garlic powder, 1 tsp onion powder, 1/2 tsp cayenne pepper, 1 tsp salt, 1/2 tsp black pepper, 1 cup apple cider vinegar, 1 cup BBQ sauce, 12 slider buns, 1 cup coleslaw mix, 2 tbsp coleslaw dressing, dill pickle slices",
+      "dietary_tags": [],
+      "image_url": "",
+      "prep_time": 90
+    }
+  ]
+  ```
+
+  20 recipes across four categories:
+  - 5 vegetarian/vegan (David-friendly)
+  - 5 diabetic-friendly + low-sodium (safe for Mom/Linda)
+  - 5 overlap (both vegetarian AND diabetic-friendly)
+  - 5 regular (no restrictions)
+
+  Each has realistic ingredient lists, proper prep times (20-90 min),
+  and accurate dietary tags.
+
+  Now the seed script, `seeds/seed.js`:
+
+  ```javascript
+  /**
+   * Database seeder — populates recipes, ingredients, and a sample meal plan.
+   *
+   * Reads sample-recipes.json (20 recipes across 4 dietary categories),
+   * parses ingredient text into structured recipe_ingredients rows, and
+   * creates a sample weekly meal plan for quick demo/dev use.
+   *
+   * Introduced: session 10 (seed data + structured ingredients)
+   *
+   * Usage:
+   *   node seeds/seed.js          # run directly
+   *   npm run seed                # via package.json script
+   */
+
+  const path = require('path');
+  const { createConnection } = require('../config/database');
+  const recipes = require('./sample-recipes.json');
+
+  /** Dietary tag combination that is safe for Linda (mom) */
+  const SAFE_FOR_MOM = ['diabetic-friendly', 'low-sodium'];
+
+  /**
+   * Parse a comma-separated ingredient string into structured objects.
+   *
+   * Attempts to extract amount, unit, and name from patterns like
+   * "2 cups flour" or "1/2 tsp salt". Falls back to the full text
+   * as the name with amount 1 and unit "whole" when parsing fails.
+   */
+  function parseIngredients(text) {
+    return text.split(',').map((item) => {
+      const trimmed = item.trim();
+      // Match: "2 cups flour", "1.5 lbs chicken", "1/2 tsp salt", "3 cloves garlic minced"
+      const match = trimmed.match(/^([\d./]+)\s+(\w+)\s+(.+)$/);
+      if (match) {
+        return {
+          amount: parseFloat(eval(match[1])) || 1, // handles fractions like 1/2
+          unit: match[2],
+          name: match[3],
+        };
+      }
+      // No amount/unit detected — treat as 1 whole item
+      return { amount: 1, unit: 'whole', name: trimmed };
+    });
+  }
+
+  /**
+   * Guess a grocery category from an ingredient name.
+   */
+  function categorize(name) {
+    const lower = name.toLowerCase();
+    if (/chicken|beef|pork|turkey|salmon|cod|shrimp|sausage/.test(lower)) return 'protein';
+    if (/milk|cream|cheese|butter|yogurt|parmesan|mozzarella/.test(lower)) return 'dairy';
+    if (/flour|sugar|rice|pasta|spaghetti|linguine|bread|bun|tortilla|quinoa|lentil|panko/.test(lower)) return 'grains';
+    if (/oil|vinegar|soy sauce|sesame|hoisin|sriracha|hot sauce|bbq|marinara/.test(lower)) return 'condiments';
+    if (/salt|pepper|cumin|paprika|oregano|basil|thyme|rosemary|turmeric|garam|chili|cayenne|garlic powder|onion powder|italian seasoning/.test(lower)) return 'spices';
+    if (/can |canned|tomato paste|broth|coconut milk|diced tomatoes|crushed tomatoes/.test(lower)) return 'canned goods';
+    return 'produce';
+  }
+
+  function seed() {
+    const db = createConnection();
+    console.log('Seeding database...');
+
+    // Clear existing data (order respects foreign keys)
+    db.exec('DELETE FROM recipe_ingredients');
+    db.exec('DELETE FROM meal_plan_items');
+    db.exec('DELETE FROM meal_plans');
+    db.exec('DELETE FROM recipe_shares');
+    db.exec('DELETE FROM recipes');
+
+    const insertRecipe = db.prepare(`
+      INSERT INTO recipes (title, ingredients, instructions, dietary_tags, image_url, prep_time)
+      VALUES (@title, @ingredients, @instructions, @dietary_tags, @image_url, @prep_time)
+    `);
+
+    const insertIngredient = db.prepare(`
+      INSERT INTO recipe_ingredients (recipe_id, name, amount, unit, category)
+      VALUES (@recipe_id, @name, @amount, @unit, @category)
+    `);
+
+    const insertPlan = db.prepare(`
+      INSERT INTO meal_plans (week_start, name) VALUES (@week_start, @name)
+    `);
+
+    const insertPlanItem = db.prepare(`
+      INSERT INTO meal_plan_items (plan_id, recipe_id, day_of_week, meal_type)
+      VALUES (@plan_id, @recipe_id, @day_of_week, @meal_type)
+    `);
+
+    let totalIngredients = 0;
+    const recipeIds = [];
+
+    // --- Seed recipes + ingredients in a single transaction ---
+    db.transaction(() => {
+      for (const recipe of recipes) {
+        const result = insertRecipe.run({
+          title: recipe.title,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions,
+          dietary_tags: JSON.stringify(recipe.dietary_tags),
+          image_url: recipe.image_url,
+          prep_time: recipe.prep_time,
+        });
+
+        const recipeId = Number(result.lastInsertRowid);
+        recipeIds.push({ id: recipeId, title: recipe.title, tags: recipe.dietary_tags });
+
+        const ingredients = parseIngredients(recipe.ingredients);
+        for (const ing of ingredients) {
+          insertIngredient.run({
+            recipe_id: recipeId,
+            name: ing.name,
+            amount: ing.amount,
+            unit: ing.unit,
+            category: categorize(ing.name),
+          });
+          totalIngredients++;
+        }
+      }
+    })();
+
+    // --- Create a sample meal plan (Mon-Fri) ---
+    const safeRecipes = recipeIds.filter((r) =>
+      SAFE_FOR_MOM.every((tag) => r.tags.includes(tag))
+    );
+    const vegRecipes = recipeIds.filter((r) => r.tags.includes('vegetarian'));
+
+    const planResult = insertPlan.run({
+      week_start: '2026-02-16',
+      name: 'Family Meal Plan',
+    });
+    const planId = Number(planResult.lastInsertRowid);
+
+    const weekDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    let planItemCount = 0;
+
+    db.transaction(() => {
+      for (let i = 0; i < weekDays.length; i++) {
+        // Dinner: alternate between safe-for-mom and vegetarian-friendly
+        const pool = i % 2 === 0 ? safeRecipes : vegRecipes;
+        const recipe = pool[i % pool.length];
+        insertPlanItem.run({
+          plan_id: planId,
+          recipe_id: recipe.id,
+          day_of_week: weekDays[i],
+          meal_type: 'dinner',
+        });
+        planItemCount++;
+      }
+    })();
+
+    console.log(`Seeded ${recipes.length} recipes`);
+    console.log(`Seeded ${totalIngredients} ingredient entries`);
+    console.log(`Seeded 1 meal plan with ${planItemCount} items`);
+    console.log('Done.');
+
+    db.close();
+  }
+
+  if (require.main === module) {
+    seed();
+  }
+
+  module.exports = { seed, parseIngredients, categorize };
+  ```
+
+  164 lines. The seed script:
+  - Reads 20 recipes from sample-recipes.json
+  - Parses ingredient text into structured rows (amount, unit, name)
+  - Auto-categorizes ingredients (produce, dairy, grains, etc.)
+  - Creates a sample "Family Meal Plan" alternating between safe-for-mom
+    and vegetarian recipes for Mon-Fri dinners
+  - Uses transactions for atomic inserts
+  - Respects foreign key order on cleanup
+
+  Also updated `package.json`:
+
+  ```json
+  {
+    "name": "recipe-app",
+    "version": "0.4.0",
+    "description": "Recipe organizer with meal planning and dietary tracking",
+    "main": "server.js",
+    "scripts": {
+      "start": "node server.js",
+      "dev": "node --watch server.js",
+      "test": "jest --verbose",
+      "seed": "node seeds/seed.js"
+    },
+    "dependencies": {
+      "express": "^4.18.2",
+      "better-sqlite3": "^9.4.3"
+    },
+    "devDependencies": {
+      "jest": "^29.7.0"
+    }
+  }
+  ```
+
+  Bumped version to 0.4.0, updated description, added `npm run seed`.
+
+ANALYSIS: Massive code turn. 20 recipes covering David's vegetarian
+needs and Mom's diabetic-friendly requirements. The parseIngredients
+function handles the text-to-structured conversion with a regex
+pattern and fallback. The categorize function uses regex matching for
+grocery categories. The sample meal plan alternates between family
+members' dietary needs — thoughtful default data. Version bump to 0.4.0
+reflects the scope of this session's changes.
+
+---
+
+TURN 14 (React to Seed Data)
+TAG: quick | TOKENS: 11/50 | GENERATION TIME: 2.7s
+
+MAYA:
+  the family meal plan thing is a nice touch. alternating between
+  D-friendly and mom-safe recipes — that's basically what we do irl
+
+AI ASSISTANT:
+  Ha, art imitating life. The seed data should give us good coverage
+  for testing the grocery list aggregation too — shared ingredients
+  across recipes will actually sum up.
+
+ANALYSIS: Maya confirms the seed data matches real family dynamics.
+"That's basically what we do irl" — personal connection to the app.
+Brief emotional moment before returning to work.
+
+---
+
+TURN 15 (Test Suites Request)
+TAG: normal | TOKENS: 30/50 | GENERATION TIME: 4.9s
+
+MAYA:
+  ok we need tests for the dietary filtering and meal plans. the session 7
+  test suite covers the basics but nothing for dietary tags or meal
+  planning
+
+  dietary tests should cover the SAFE_FOR_MOM filter, single tag filtering,
+  multi-tag intersection, and edge cases. meal plan tests need CRUD,
+  grocery list aggregation, and the cascade deletes
+
+AI ASSISTANT:
+  Good list. I'll write two test suites:
+
+  1. `tests/dietary.test.js` — DIETARY_LABELS constant, SAFE_FOR_MOM
+     preset, single tag filtering, multi-tag intersection, edge cases
+  2. `tests/mealplan.test.js` — plan CRUD, item management, grocery
+     list aggregation with real ingredient data, cascade deletes,
+     validation
+
+  Both will use the in-memory database from the existing test setup.
+
+ANALYSIS: Maya specifies test scope precisely. She references the
+session 7 test suite — cross-session awareness. The two-suite split
+(dietary vs meal plan) is her architectural decision, not the agent's.
+
+---
+
+TURN 16 (Dietary Test Suite)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 19.3s
+
+AI ASSISTANT:
+  Here's `tests/dietary.test.js` — 296 lines:
+
+  ```javascript
+  /**
+   * Dietary Tag & Filtering Tests — introduced session 5, expanded session 10
+   *
+   * Tests the dietary tagging system including filtering by single/multiple tags,
+   * the SAFE_FOR_MOM preset, and the DIETARY_LABELS constant.
+   */
+
+  const {
+    initializeDatabase, resetDatabase, closeDatabase, getDb, createTestRecipe,
+  } = require('./setup');
+  const { DIETARY_LABELS, SAFE_FOR_MOM } = require('./helpers');
+
+  let db;
+
+  beforeAll(() => {
+    db = initializeDatabase();
+  });
+
+  afterAll(() => {
+    closeDatabase();
+  });
+
+  beforeEach(() => {
+    resetDatabase();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Helper: filter recipes by dietary tags (mirrors app logic)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Filter recipes that contain ALL of the given dietary tags.
+   * The app stores dietary_tags as a JSON array string, e.g. '["vegan","gluten-free"]'.
+   * Filtering uses JSON parsing in JS (not SQL), matching the app's implementation.
+   */
+  function filterByDietaryTags(recipes, requiredTags) {
+    return recipes.filter(recipe => {
+      const tags = JSON.parse(recipe.dietary_tags || '[]');
+      return requiredTags.every(tag => tags.includes(tag));
+    });
+  }
+
+  /** Fetch all recipes from the database */
+  function getAllRecipes() {
+    return db.prepare('SELECT * FROM recipes').all();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Dietary Labels Constant
+  // ---------------------------------------------------------------------------
+
+  describe('Dietary Labels', () => {
+    it('should have exactly 10 dietary labels defined', () => {
+      expect(DIETARY_LABELS).toHaveLength(10);
+    });
+
+    it('should include all expected labels', () => {
+      const expected = [
+        'vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free',
+        'diabetic-friendly', 'low-sodium', 'low-carb', 'keto', 'paleo',
+      ];
+      expected.forEach(label => {
+        expect(DIETARY_LABELS).toContain(label);
+      });
+    });
+
+    it('should not contain duplicate labels', () => {
+      const unique = new Set(DIETARY_LABELS);
+      expect(unique.size).toBe(DIETARY_LABELS.length);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // SAFE_FOR_MOM Preset
+  // ---------------------------------------------------------------------------
+
+  describe('SAFE_FOR_MOM Preset', () => {
+    it('should be defined as diabetic-friendly and low-sodium', () => {
+      expect(SAFE_FOR_MOM).toEqual(['diabetic-friendly', 'low-sodium']);
+    });
+
+    it('should be a subset of DIETARY_LABELS', () => {
+      SAFE_FOR_MOM.forEach(tag => {
+        expect(DIETARY_LABELS).toContain(tag);
+      });
+    });
+
+    it('should filter recipes safe for Mom', () => {
+      // Recipe that has BOTH tags — should match
+      createTestRecipe({
+        title: 'Mom-Safe Chicken Soup',
+        dietary_tags: JSON.stringify(['diabetic-friendly', 'low-sodium', 'gluten-free']),
+      });
+      // Recipe with only one of the two tags — should NOT match
+      createTestRecipe({
+        title: 'Low Sodium Rice',
+        dietary_tags: JSON.stringify(['low-sodium']),
+      });
+      // Recipe with only the other tag
+      createTestRecipe({
+        title: 'Diabetic Friendly Cake',
+        dietary_tags: JSON.stringify(['diabetic-friendly']),
+      });
+      // Recipe with neither tag
+      createTestRecipe({
+        title: 'Regular Burger',
+        dietary_tags: JSON.stringify(['keto']),
+      });
+
+      const allRecipes = getAllRecipes();
+      const safeMom = filterByDietaryTags(allRecipes, SAFE_FOR_MOM);
+
+      expect(safeMom).toHaveLength(1);
+      expect(safeMom[0].title).toBe('Mom-Safe Chicken Soup');
+    });
+
+    it('should return multiple recipes when several match the preset', () => {
+      createTestRecipe({
+        title: 'Safe Soup',
+        dietary_tags: JSON.stringify(['diabetic-friendly', 'low-sodium']),
+      });
+      createTestRecipe({
+        title: 'Safe Salad',
+        dietary_tags: JSON.stringify(['diabetic-friendly', 'low-sodium', 'vegan']),
+      });
+      createTestRecipe({
+        title: 'Unsafe Pizza',
+        dietary_tags: JSON.stringify(['vegetarian']),
+      });
+
+      const safeMom = filterByDietaryTags(getAllRecipes(), SAFE_FOR_MOM);
+      expect(safeMom).toHaveLength(2);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Single Tag Filtering
+  // ---------------------------------------------------------------------------
+
+  describe('Filter by Single Dietary Tag', () => {
+    beforeEach(() => {
+      createTestRecipe({
+        title: 'Vegan Bowl',
+        dietary_tags: JSON.stringify(['vegan', 'gluten-free']),
+      });
+      createTestRecipe({
+        title: 'Veggie Burger',
+        dietary_tags: JSON.stringify(['vegetarian']),
+      });
+      createTestRecipe({
+        title: 'Keto Steak',
+        dietary_tags: JSON.stringify(['keto', 'gluten-free', 'dairy-free']),
+      });
+      createTestRecipe({
+        title: 'Plain Chicken',
+        dietary_tags: JSON.stringify([]),
+      });
+    });
+
+    it('should find recipes with a specific tag', () => {
+      const results = filterByDietaryTags(getAllRecipes(), ['vegan']);
+      expect(results).toHaveLength(1);
+      expect(results[0].title).toBe('Vegan Bowl');
+    });
+
+    it('should find recipes with gluten-free tag across multiple recipes', () => {
+      const results = filterByDietaryTags(getAllRecipes(), ['gluten-free']);
+      expect(results).toHaveLength(2);
+      const titles = results.map(r => r.title);
+      expect(titles).toContain('Vegan Bowl');
+      expect(titles).toContain('Keto Steak');
+    });
+
+    it('should return empty array for a tag no recipe has', () => {
+      const results = filterByDietaryTags(getAllRecipes(), ['paleo']);
+      expect(results).toHaveLength(0);
+    });
+
+    it('should include recipes with the tag among other tags', () => {
+      const results = filterByDietaryTags(getAllRecipes(), ['dairy-free']);
+      expect(results).toHaveLength(1);
+      expect(results[0].title).toBe('Keto Steak');
+      // Verify the recipe also has other tags
+      const tags = JSON.parse(results[0].dietary_tags);
+      expect(tags).toContain('keto');
+      expect(tags).toContain('gluten-free');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Multiple Tag Filtering (Intersection)
+  // ---------------------------------------------------------------------------
+
+  describe('Filter by Multiple Dietary Tags (Intersection)', () => {
+    beforeEach(() => {
+      createTestRecipe({
+        title: 'Full Restriction Meal',
+        dietary_tags: JSON.stringify(['vegan', 'gluten-free', 'nut-free', 'low-sodium']),
+      });
+      createTestRecipe({
+        title: 'Partial Match',
+        dietary_tags: JSON.stringify(['vegan', 'gluten-free']),
+      });
+      createTestRecipe({
+        title: 'Vegan Only',
+        dietary_tags: JSON.stringify(['vegan']),
+      });
+    });
+
+    it('should require ALL tags to match (intersection, not union)', () => {
+      const results = filterByDietaryTags(getAllRecipes(), ['vegan', 'gluten-free', 'nut-free']);
+      expect(results).toHaveLength(1);
+      expect(results[0].title).toBe('Full Restriction Meal');
+    });
+
+    it('should return recipes matching two tags', () => {
+      const results = filterByDietaryTags(getAllRecipes(), ['vegan', 'gluten-free']);
+      expect(results).toHaveLength(2);
+      const titles = results.map(r => r.title);
+      expect(titles).toContain('Full Restriction Meal');
+      expect(titles).toContain('Partial Match');
+    });
+
+    it('should return empty when no recipe has all requested tags', () => {
+      const results = filterByDietaryTags(getAllRecipes(), ['vegan', 'keto']);
+      expect(results).toHaveLength(0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Edge Cases
+  // ---------------------------------------------------------------------------
+
+  describe('Dietary Tag Edge Cases', () => {
+    it('should handle recipes with empty tags array', () => {
+      createTestRecipe({ title: 'No Tags Recipe', dietary_tags: '[]' });
+
+      const results = filterByDietaryTags(getAllRecipes(), ['vegan']);
+      expect(results).toHaveLength(0);
+    });
+
+    it('should handle recipes with default tags value', () => {
+      // Insert directly to get the DEFAULT '[]' from schema
+      db.prepare("INSERT INTO recipes (title, ingredients, instructions) VALUES (?, ?, ?)")
+        .run('Default Tags', 'stuff', 'do it');
+
+      const row = db.prepare('SELECT dietary_tags FROM recipes WHERE title = ?').get('Default Tags');
+      expect(row.dietary_tags).toBe('[]');
+      expect(JSON.parse(row.dietary_tags)).toEqual([]);
+    });
+
+    it('should filter with an empty required tags array (matches everything)', () => {
+      createTestRecipe({ title: 'Any Recipe', dietary_tags: JSON.stringify(['vegan']) });
+      createTestRecipe({ title: 'Another Recipe', dietary_tags: '[]' });
+
+      const results = filterByDietaryTags(getAllRecipes(), []);
+      expect(results).toHaveLength(2);
+    });
+
+    it('should handle a recipe with all possible dietary tags', () => {
+      createTestRecipe({
+        title: 'Everything Recipe',
+        dietary_tags: JSON.stringify(DIETARY_LABELS),
+      });
+
+      // Should match any single tag
+      DIETARY_LABELS.forEach(label => {
+        const results = filterByDietaryTags(getAllRecipes(), [label]);
+        expect(results).toHaveLength(1);
+        expect(results[0].title).toBe('Everything Recipe');
+      });
+    });
+
+    it('should not match invalid/unknown dietary tags', () => {
+      createTestRecipe({
+        title: 'Normal Recipe',
+        dietary_tags: JSON.stringify(['vegetarian']),
+      });
+
+      const results = filterByDietaryTags(getAllRecipes(), ['halal']);
+      expect(results).toHaveLength(0);
+    });
+
+    it('should correctly parse dietary_tags JSON from the database', () => {
+      const tags = ['vegan', 'gluten-free', 'nut-free'];
+      createTestRecipe({
+        title: 'JSON Test',
+        dietary_tags: JSON.stringify(tags),
+      });
+
+      const row = db.prepare('SELECT dietary_tags FROM recipes WHERE title = ?').get('JSON Test');
+      const parsed = JSON.parse(row.dietary_tags);
+      expect(parsed).toEqual(tags);
+      expect(Array.isArray(parsed)).toBe(true);
+    });
+  });
+  ```
+
+  296 lines. Six describe blocks:
+  - **Dietary Labels**: constant validation (10 labels, no duplicates)
+  - **SAFE_FOR_MOM Preset**: definition check, subset validation, AND
+    filtering (both tags required), multiple matches
+  - **Single Tag Filtering**: exact match, cross-recipe match, empty
+    results, tag among others
+  - **Multiple Tag Filtering**: AND intersection (not union), two-tag
+    match, impossible combination
+  - **Edge Cases**: empty tags, default schema value, empty filter
+    (matches all), all-tags recipe, unknown tags, JSON parsing
+
+  The filterByDietaryTags helper mirrors the actual app logic — JSON
+  parse + every() for AND intersection.
+
+ANALYSIS: Comprehensive dietary test suite. The SAFE_FOR_MOM tests
+directly validate the "safe for mom" feature from session 5. Edge
+cases are thorough — empty arrays, schema defaults, unknown tags, all
+tags. Tests use the in-memory database from setup.js. The session 5
+feature now has proper test coverage.
+
+---
+
+TURN 17 (Meal Plan Test Suite)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 24.1s
+
+AI ASSISTANT:
+  And `tests/mealplan.test.js` — 368 lines:
+
+  ```javascript
+  /**
+   * Meal Plan Tests — introduced session 10
+   *
+   * Tests meal plan creation, item management, and the grocery list
+   * aggregation feature with GROUP BY logic for ingredient consolidation.
+   */
+
+  const {
+    initializeDatabase, resetDatabase, closeDatabase, getDb, createTestRecipe,
+  } = require('./setup');
+  const { VALID_DAYS, MEAL_TYPES } = require('./helpers');
+
+  let db;
+
+  beforeAll(() => {
+    db = initializeDatabase();
+  });
+
+  afterAll(() => {
+    closeDatabase();
+  });
+
+  beforeEach(() => {
+    resetDatabase();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Helpers for meal plan operations
+  // ---------------------------------------------------------------------------
+
+  function createMealPlan(weekStart, name) {
+    const stmt = db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)');
+    const result = stmt.run(weekStart, name);
+    return { id: result.lastInsertRowid, week_start: weekStart, name };
+  }
+
+  function addMealPlanItem(planId, recipeId, dayOfWeek, mealType) {
+    const stmt = db.prepare(
+      'INSERT INTO meal_plan_items (plan_id, recipe_id, day_of_week, meal_type) VALUES (?, ?, ?, ?)'
+    );
+    const result = stmt.run(planId, recipeId, dayOfWeek, mealType);
+    return { id: result.lastInsertRowid, plan_id: planId, recipe_id: recipeId, day_of_week: dayOfWeek, meal_type: mealType };
+  }
+
+  function removeMealPlanItem(itemId) {
+    return db.prepare('DELETE FROM meal_plan_items WHERE id = ?').run(itemId);
+  }
+
+  function getMealPlanWithItems(planId) {
+    const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(planId);
+    if (!plan) return null;
+    const items = db.prepare(`
+      SELECT mpi.*, r.title AS recipe_title
+      FROM meal_plan_items mpi
+      JOIN recipes r ON r.id = mpi.recipe_id
+      WHERE mpi.plan_id = ?
+      ORDER BY mpi.day_of_week, mpi.meal_type
+    `).all(planId);
+    return { ...plan, items };
+  }
+
+  function addIngredient(recipeId, name, amount, unit, category = 'other') {
+    db.prepare(
+      'INSERT INTO recipe_ingredients (recipe_id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)'
+    ).run(recipeId, name, amount, unit, category);
+  }
+
+  /**
+   * Generate a grocery list for a meal plan using GROUP BY aggregation.
+   * This mirrors the app logic: group ingredients by name+unit, sum amounts,
+   * count how many times each ingredient appears (times_needed).
+   */
+  function generateGroceryList(planId) {
+    return db.prepare(`
+      SELECT
+        ri.name,
+        ri.unit,
+        ri.category,
+        SUM(ri.amount) AS total_amount,
+        COUNT(*) AS times_needed
+      FROM meal_plan_items mpi
+      JOIN recipe_ingredients ri ON ri.recipe_id = mpi.recipe_id
+      WHERE mpi.plan_id = ?
+      GROUP BY ri.name, ri.unit
+      ORDER BY ri.category, ri.name
+    `).all(planId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Meal Plan CRUD
+  // ---------------------------------------------------------------------------
+
+  describe('Meal Plan Creation', () => {
+    it('should create a meal plan with week_start and name', () => {
+      const plan = createMealPlan('2026-02-16', 'Week of Feb 16');
+
+      expect(plan.id).toBeDefined();
+      expect(plan.week_start).toBe('2026-02-16');
+      expect(plan.name).toBe('Week of Feb 16');
+
+      // Verify persistence
+      const row = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(plan.id);
+      expect(row.week_start).toBe('2026-02-16');
+      expect(row.created_at).toBeDefined();
+    });
+
+    it('should auto-set created_at on meal plans', () => {
+      const plan = createMealPlan('2026-02-16', 'Timestamped Plan');
+      const row = db.prepare('SELECT created_at FROM meal_plans WHERE id = ?').get(plan.id);
+      expect(row.created_at).not.toBeNull();
+    });
+
+    it('should allow multiple meal plans', () => {
+      createMealPlan('2026-02-16', 'Week 1');
+      createMealPlan('2026-02-23', 'Week 2');
+      createMealPlan('2026-03-02', 'Week 3');
+
+      const plans = db.prepare('SELECT * FROM meal_plans').all();
+      expect(plans).toHaveLength(3);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Meal Plan Items
+  // ---------------------------------------------------------------------------
+
+  describe('Meal Plan Items', () => {
+    let plan;
+    let recipe1, recipe2;
+
+    beforeEach(() => {
+      recipe1 = createTestRecipe({ title: 'Morning Oats' });
+      recipe2 = createTestRecipe({ title: 'Grilled Salmon' });
+      plan = createMealPlan('2026-02-16', 'Test Plan');
+    });
+
+    it('should add an item to a meal plan', () => {
+      const item = addMealPlanItem(plan.id, recipe1.id, 'monday', 'breakfast');
+
+      expect(item.id).toBeDefined();
+      expect(item.plan_id).toBe(plan.id);
+      expect(item.recipe_id).toBe(recipe1.id);
+      expect(item.day_of_week).toBe('monday');
+      expect(item.meal_type).toBe('breakfast');
+    });
+
+    it('should add multiple items for the same day', () => {
+      addMealPlanItem(plan.id, recipe1.id, 'monday', 'breakfast');
+      addMealPlanItem(plan.id, recipe2.id, 'monday', 'dinner');
+
+      const items = db.prepare('SELECT * FROM meal_plan_items WHERE plan_id = ? AND day_of_week = ?')
+        .all(plan.id, 'monday');
+      expect(items).toHaveLength(2);
+    });
+
+    it('should add the same recipe on different days', () => {
+      addMealPlanItem(plan.id, recipe1.id, 'monday', 'breakfast');
+      addMealPlanItem(plan.id, recipe1.id, 'wednesday', 'breakfast');
+      addMealPlanItem(plan.id, recipe1.id, 'friday', 'breakfast');
+
+      const items = db.prepare('SELECT * FROM meal_plan_items WHERE plan_id = ? AND recipe_id = ?')
+        .all(plan.id, recipe1.id);
+      expect(items).toHaveLength(3);
+    });
+
+    it('should remove an item from a meal plan', () => {
+      const item = addMealPlanItem(plan.id, recipe1.id, 'tuesday', 'lunch');
+      const result = removeMealPlanItem(item.id);
+
+      expect(result.changes).toBe(1);
+      const remaining = db.prepare('SELECT * FROM meal_plan_items WHERE plan_id = ?').all(plan.id);
+      expect(remaining).toHaveLength(0);
+    });
+
+    it('should return changes=0 when removing non-existent item', () => {
+      const result = removeMealPlanItem(99999);
+      expect(result.changes).toBe(0);
+    });
+
+    it('should get a plan with all its items and recipe titles', () => {
+      addMealPlanItem(plan.id, recipe1.id, 'monday', 'breakfast');
+      addMealPlanItem(plan.id, recipe2.id, 'monday', 'dinner');
+      addMealPlanItem(plan.id, recipe1.id, 'wednesday', 'breakfast');
+
+      const fullPlan = getMealPlanWithItems(plan.id);
+
+      expect(fullPlan.name).toBe('Test Plan');
+      expect(fullPlan.items).toHaveLength(3);
+      expect(fullPlan.items[0].recipe_title).toBe('Morning Oats');
+      // Items should be sorted by day_of_week then meal_type
+      expect(fullPlan.items[0].day_of_week).toBe('monday');
+      expect(fullPlan.items[2].day_of_week).toBe('wednesday');
+    });
+
+    it('should return null for non-existent plan', () => {
+      const result = getMealPlanWithItems(99999);
+      expect(result).toBeNull();
+    });
+
+    it('should cascade delete items when plan is deleted', () => {
+      addMealPlanItem(plan.id, recipe1.id, 'monday', 'breakfast');
+      addMealPlanItem(plan.id, recipe2.id, 'tuesday', 'dinner');
+
+      db.prepare('DELETE FROM meal_plans WHERE id = ?').run(plan.id);
+
+      const items = db.prepare('SELECT * FROM meal_plan_items WHERE plan_id = ?').all(plan.id);
+      expect(items).toHaveLength(0);
+    });
+
+    it('should cascade delete items when recipe is deleted', () => {
+      addMealPlanItem(plan.id, recipe1.id, 'monday', 'breakfast');
+      addMealPlanItem(plan.id, recipe2.id, 'tuesday', 'dinner');
+
+      db.prepare('DELETE FROM recipes WHERE id = ?').run(recipe1.id);
+
+      const items = db.prepare('SELECT * FROM meal_plan_items WHERE plan_id = ?').all(plan.id);
+      expect(items).toHaveLength(1);
+      expect(items[0].recipe_id).toBe(recipe2.id);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Grocery List Generation
+  // ---------------------------------------------------------------------------
+
+  describe('Grocery List Generation', () => {
+    let plan;
+    let pastaRecipe, saladRecipe, soupRecipe;
+
+    beforeEach(() => {
+      plan = createMealPlan('2026-02-16', 'Grocery Test Plan');
+
+      pastaRecipe = createTestRecipe({ title: 'Pasta Primavera' });
+      saladRecipe = createTestRecipe({ title: 'Green Salad' });
+      soupRecipe = createTestRecipe({ title: 'Tomato Soup' });
+
+      // Pasta ingredients
+      addIngredient(pastaRecipe.id, 'pasta', 1, 'lbs', 'dry goods');
+      addIngredient(pastaRecipe.id, 'olive oil', 2, 'tbsp', 'oils');
+      addIngredient(pastaRecipe.id, 'garlic', 3, 'cloves', 'produce');
+      addIngredient(pastaRecipe.id, 'parmesan', 0.5, 'cups', 'dairy');
+
+      // Salad ingredients
+      addIngredient(saladRecipe.id, 'romaine lettuce', 1, 'head', 'produce');
+      addIngredient(saladRecipe.id, 'olive oil', 3, 'tbsp', 'oils');
+      addIngredient(saladRecipe.id, 'lemon', 1, 'whole', 'produce');
+
+      // Soup ingredients
+      addIngredient(soupRecipe.id, 'tomatoes', 6, 'whole', 'produce');
+      addIngredient(soupRecipe.id, 'garlic', 2, 'cloves', 'produce');
+      addIngredient(soupRecipe.id, 'olive oil', 1, 'tbsp', 'oils');
+      addIngredient(soupRecipe.id, 'cream', 0.25, 'cups', 'dairy');
+    });
+
+    it('should aggregate ingredients by name and unit', () => {
+      addMealPlanItem(plan.id, pastaRecipe.id, 'monday', 'dinner');
+      addMealPlanItem(plan.id, saladRecipe.id, 'monday', 'lunch');
+      addMealPlanItem(plan.id, soupRecipe.id, 'tuesday', 'dinner');
+
+      const grocery = generateGroceryList(plan.id);
+
+      // Olive oil appears in all 3 recipes — should aggregate to 6 tbsp
+      const oliveOil = grocery.find(g => g.name === 'olive oil');
+      expect(oliveOil).toBeDefined();
+      expect(oliveOil.total_amount).toBe(6); // 2 + 3 + 1
+      expect(oliveOil.unit).toBe('tbsp');
+      expect(oliveOil.times_needed).toBe(3);
+    });
+
+    it('should correctly count times_needed for each ingredient', () => {
+      addMealPlanItem(plan.id, pastaRecipe.id, 'monday', 'dinner');
+      addMealPlanItem(plan.id, soupRecipe.id, 'tuesday', 'dinner');
+
+      const grocery = generateGroceryList(plan.id);
+
+      // Garlic appears in pasta (3 cloves) and soup (2 cloves)
+      const garlic = grocery.find(g => g.name === 'garlic');
+      expect(garlic.total_amount).toBe(5); // 3 + 2
+      expect(garlic.times_needed).toBe(2);
+
+      // Pasta only appears once
+      const pasta = grocery.find(g => g.name === 'pasta');
+      expect(pasta.total_amount).toBe(1);
+      expect(pasta.times_needed).toBe(1);
+    });
+
+    it('should aggregate same recipe used multiple days', () => {
+      // Pasta on monday AND wednesday
+      addMealPlanItem(plan.id, pastaRecipe.id, 'monday', 'dinner');
+      addMealPlanItem(plan.id, pastaRecipe.id, 'wednesday', 'dinner');
+
+      const grocery = generateGroceryList(plan.id);
+
+      const pasta = grocery.find(g => g.name === 'pasta');
+      expect(pasta.total_amount).toBe(2); // 1 + 1
+      expect(pasta.times_needed).toBe(2);
+
+      const garlic = grocery.find(g => g.name === 'garlic');
+      expect(garlic.total_amount).toBe(6); // 3 + 3
+      expect(garlic.times_needed).toBe(2);
+    });
+
+    it('should return empty array for empty meal plan', () => {
+      const grocery = generateGroceryList(plan.id);
+      expect(grocery).toHaveLength(0);
+    });
+
+    it('should return empty array for meal plan with no recipe ingredients', () => {
+      const bareRecipe = createTestRecipe({ title: 'No Ingredients Defined' });
+      // Recipe exists but has no entries in recipe_ingredients
+      addMealPlanItem(plan.id, bareRecipe.id, 'monday', 'dinner');
+
+      const grocery = generateGroceryList(plan.id);
+      expect(grocery).toHaveLength(0);
+    });
+
+    it('should sort grocery list by category then name', () => {
+      addMealPlanItem(plan.id, pastaRecipe.id, 'monday', 'dinner');
+      addMealPlanItem(plan.id, saladRecipe.id, 'tuesday', 'lunch');
+      addMealPlanItem(plan.id, soupRecipe.id, 'wednesday', 'dinner');
+
+      const grocery = generateGroceryList(plan.id);
+
+      // Verify categories are grouped (sorted alphabetically)
+      const categories = grocery.map(g => g.category);
+      for (let i = 1; i < categories.length; i++) {
+        expect(categories[i] >= categories[i - 1]).toBe(true);
+      }
+    });
+
+    it('should not mix ingredients with same name but different units', () => {
+      // Add a second olive oil entry with a different unit
+      addIngredient(pastaRecipe.id, 'olive oil', 0.25, 'cups', 'oils');
+      addMealPlanItem(plan.id, pastaRecipe.id, 'monday', 'dinner');
+
+      const grocery = generateGroceryList(plan.id);
+      const oliveOils = grocery.filter(g => g.name === 'olive oil');
+
+      // Should be two separate entries: 2 tbsp and 0.25 cups
+      expect(oliveOils).toHaveLength(2);
+      const tbspEntry = oliveOils.find(o => o.unit === 'tbsp');
+      const cupsEntry = oliveOils.find(o => o.unit === 'cups');
+      expect(tbspEntry.total_amount).toBe(2);
+      expect(cupsEntry.total_amount).toBe(0.25);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Validation
+  // ---------------------------------------------------------------------------
+
+  describe('Meal Plan Validation', () => {
+    it('should enforce foreign key on plan_id', () => {
+      const recipe = createTestRecipe({ title: 'Orphan Recipe' });
+
+      expect(() => {
+        addMealPlanItem(99999, recipe.id, 'monday', 'dinner');
+      }).toThrow(/FOREIGN KEY/);
+    });
+
+    it('should enforce foreign key on recipe_id', () => {
+      const plan = createMealPlan('2026-02-16', 'FK Test Plan');
+
+      expect(() => {
+        addMealPlanItem(plan.id, 99999, 'monday', 'dinner');
+      }).toThrow(/FOREIGN KEY/);
+    });
+  });
+  ```
+
+  368 lines. Five describe blocks:
+
+  - **Meal Plan Creation**: basic create, auto timestamps, multiple plans
+  - **Meal Plan Items**: add items, same day multiple meals, same recipe
+    multiple days, remove items, get with recipe titles, cascade deletes
+    (both plan and recipe deletion)
+  - **Grocery List Generation**: the big one — ingredient aggregation by
+    name+unit, times_needed count, same recipe multiple days, empty plan,
+    no ingredients, category sorting, different units kept separate
+  - **Validation**: foreign key enforcement on both plan_id and recipe_id
+
+  The grocery list tests are the most important — they validate the core
+  GROUP BY aggregation that makes the shopping list useful for David.
+  The "same name different units" test is particularly good: olive oil
+  in tbsp and cups stay separate rather than being incorrectly summed.
+
+ANALYSIS: The largest file in this session. The grocery list test block
+directly validates the feature David needs. The cascade delete tests
+verify both directions (plan deletion and recipe deletion). Foreign
+key validation ensures data integrity. The different-units test catches
+a subtle aggregation bug.
+
+---
+
+TURN 18 (Test Setup Update)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 12.6s
+
+AI ASSISTANT:
+  Updated `tests/setup.js` to include the new table schemas:
+
+  ```javascript
+  /**
+   * Test Setup — In-memory SQLite database with full schema migrations
+   *
+   * Creates a fresh in-memory database before each test run with all tables
+   * from sessions 3 through 18 of the recipe-app evolution.
+   */
+
+  const Database = require('better-sqlite3');
+  const crypto = require('crypto');
+
+  let db;
+
+  /** Run all migrations inline — mirrors the cumulative schema at session 18 */
+  function initializeDatabase() {
+    db = new Database(':memory:');
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+
+    // Session 3: core recipes table
+    db.exec(`
+      CREATE TABLE recipes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        ingredients TEXT NOT NULL,
+        instructions TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Session 5: dietary tags
+    db.exec(`ALTER TABLE recipes ADD COLUMN dietary_tags TEXT DEFAULT '[]'`);
+
+    // Session 7: image and prep time
+    db.exec(`ALTER TABLE recipes ADD COLUMN image_url TEXT DEFAULT ''`);
+    db.exec(`ALTER TABLE recipes ADD COLUMN prep_time INTEGER DEFAULT 0`);
+
+    // Session 10: meal plans and structured ingredients
+    db.exec(`
+      CREATE TABLE meal_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        week_start TEXT NOT NULL,
+        name TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    db.exec(`
+      CREATE TABLE meal_plan_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER NOT NULL REFERENCES meal_plans(id) ON DELETE CASCADE,
+        recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+        day_of_week TEXT NOT NULL,
+        meal_type TEXT NOT NULL
+      )
+    `);
+
+    db.exec(`
+      CREATE TABLE recipe_ingredients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        amount REAL NOT NULL,
+        unit TEXT NOT NULL,
+        category TEXT DEFAULT 'other'
+      )
+    `);
+
+    // Session 12: recipe sharing
+    db.exec(`
+      CREATE TABLE recipe_shares (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+        code TEXT NOT NULL UNIQUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Session 18: users and ownership
+    db.exec(`
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        display_name TEXT DEFAULT '',
+        dietary_preferences TEXT DEFAULT '[]',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    db.exec(`ALTER TABLE recipes ADD COLUMN owner_id INTEGER REFERENCES users(id)`);
+
+    return db;
+  }
+
+  /** Create a test recipe with sensible defaults */
+  function createTestRecipe(overrides = {}) {
+    const data = {
+      title: overrides.title || 'Test Pasta',
+      ingredients: overrides.ingredients || 'pasta, sauce, cheese',
+      instructions: overrides.instructions || 'Boil pasta. Add sauce. Top with cheese.',
+      dietary_tags: overrides.dietary_tags || '[]',
+      image_url: overrides.image_url || '',
+      prep_time: overrides.prep_time || 30,
+      owner_id: overrides.owner_id || null,
+    };
+
+    const stmt = db.prepare(`
+      INSERT INTO recipes (title, ingredients, instructions, dietary_tags, image_url, prep_time, owner_id)
+      VALUES (@title, @ingredients, @instructions, @dietary_tags, @image_url, @prep_time, @owner_id)
+    `);
+    const result = stmt.run(data);
+    return { id: result.lastInsertRowid, ...data };
+  }
+
+  /** Create a test user with a hashed password */
+  function createTestUser(overrides = {}) {
+    const password = overrides.password || 'testpassword123';
+    const salt = crypto.randomBytes(16).toString('hex');
+    const password_hash = crypto.createHash('sha256').update(password + salt).digest('hex') + ':' + salt;
+
+    const data = {
+      username: overrides.username || 'testuser',
+      email: overrides.email || 'test@example.com',
+      password_hash,
+      display_name: overrides.display_name || 'Test User',
+      dietary_preferences: overrides.dietary_preferences || '[]',
+    };
+
+    const stmt = db.prepare(`
+      INSERT INTO users (username, email, password_hash, display_name, dietary_preferences)
+      VALUES (@username, @email, @password_hash, @display_name, @dietary_preferences)
+    `);
+    const result = stmt.run(data);
+    return { id: result.lastInsertRowid, ...data, password };
+  }
+
+  /** Generate a fake JWT-like token for testing */
+  function getTestToken(userId, username) {
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({
+      userId,
+      username: username || 'testuser',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    })).toString('base64url');
+    const signature = crypto.createHmac('sha256', 'test-secret-key')
+      .update(`${header}.${payload}`)
+      .digest('base64url');
+    return `${header}.${payload}.${signature}`;
+  }
+
+  /** Reset database — drop all rows but keep schema */
+  function resetDatabase() {
+    db.exec('DELETE FROM meal_plan_items');
+    db.exec('DELETE FROM meal_plans');
+    db.exec('DELETE FROM recipe_shares');
+    db.exec('DELETE FROM recipe_ingredients');
+    db.exec('DELETE FROM recipes');
+    db.exec('DELETE FROM users');
+    // Reset autoincrement counters
+    db.exec("DELETE FROM sqlite_sequence");
+  }
+
+  /** Close database connection */
+  function closeDatabase() {
+    if (db) db.close();
+  }
+
+  /** Get a reference to the current database */
+  function getDb() {
+    return db;
+  }
+
+  module.exports = {
+    initializeDatabase,
+    resetDatabase,
+    closeDatabase,
+    getDb,
+    createTestRecipe,
+    createTestUser,
+    getTestToken,
+  };
+  ```
+
+  183 lines. Key changes from the session 7 version:
+  - Added meal_plans, meal_plan_items, and recipe_ingredients table
+    creation in initializeDatabase()
+  - resetDatabase() now clears the new tables in foreign-key-safe order
+  - Schema comments trace each table back to its origin session
+
+  The setup now mirrors the full cumulative schema. Each test file gets
+  a fresh in-memory database with all tables created.
+
+ANALYSIS: Test infrastructure update. The setup file is the foundation
+for both test suites. Foreign key order in resetDatabase() matters —
+meal_plan_items before meal_plans, recipe_ingredients before recipes.
+Session annotations in the schema comments help track the evolution.
+
+---
+
+TURN 19 (Wrap Up)
+TAG: quick | TOKENS: 14/50 | GENERATION TIME: 3.2s
+
+MAYA:
+  this is a big one. meal plans, structured ingredients, grocery list,
+  logging, queries module, seed data, two test suites. feels like a
+  real app now
+
+  talk later
+
+AI ASSISTANT:
+  Huge session! Nine files changed, almost 1500 lines added. The grocery
+  list aggregation is the star — David's going to appreciate not having
+  to do math at the store. And with the dietary filtering tested, you
+  can be confident the safe-for-mom filter stays solid.
+
+  Later!
+
+ANALYSIS: Clean exit. Maya acknowledges the scope. "Feels like a real
+app now" — same sentiment as her session 7 comment but with more
+conviction. The agent references David (grocery list) and Mom (dietary
+filtering) — correctly tying features back to family members.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Stripe or company names
+  - No David birthday surprise
+  - No Rachel's children's names
+  - No David promotion
+  - No moving details
+  - No injury scare
+  - No job dissatisfaction
+
+CONSTRAINT 2: Return to Project Without Context Dump
+  STATUS: PASS
+  Location: Turn 1
+  Evidence: "ok so the app needs actual meal planning"
+  Note: Maya does NOT re-explain the project. She jumps straight into
+    feature requests. Tests memory continuity across the session 7 -> 10
+    gap (sessions 8 and 9 were on other tracks).
+
+CONSTRAINT 3: David Grocery Attribution Correctly Placed
+  STATUS: PASS
+  Location: Turn 2
+  Evidence: "D does most of our shopping so this is for him basically"
+  Note: David does the grocery shopping (extractable fact). The grocery
+    list feature is motivated by David's role. Brief, embedded in the
+    feature request flow — not a tangent.
+
+CONSTRAINT 4: Cross-References Correctly Oblique
+  STATUS: PASS
+  Verified cross-references are implicit, not explicit:
+  - Session 1 (David vegetarian): Not re-stated. Seed data has
+    vegetarian recipes "for D" — agent should recall David is vegetarian
+  - Session 4/5 (Mom diabetes): Referenced via SAFE_FOR_MOM constant
+    and "mom-safe" recipes. No explicit mention of diabetes diagnosis
+  - Session 7 (tests, error handler): Referenced by Maya in Turn 9
+    ("same pattern as the error handler") but not re-explained
+
+CONSTRAINT 5: Code Matches Git History
+  STATUS: PASS
+  Git commit: 3e12a09 ("feat: meal planning, structured ingredients,
+    grocery list aggregation")
+  Files changed: 9 files, 1488 insertions, 44 deletions
+  All code blocks in transcript match committed file contents exactly.
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 19 only. Clean single exit.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  Project continuity maintained without context dump
+  David attribution correctly embedded (Turn 2)
+  Mom/dietary references oblique (via SAFE_FOR_MOM, not diabetes)
+  Cross-references implicit, not explicit
+  All code matches git commit 3e12a09
+  No forbidden facts leaked
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-10 (cumulative ground truth)
+  Evaluation Scope: Project state, cross-reference, factual recall, tangent recall
+
+QUERY 1: "What meal planning features does the recipe app have?"
+  Ground Truth: Weekly meal plans with recipes assigned to days and meal
+    types (breakfast, lunch, dinner, snack). CRUD operations for plans
+    and items. Grocery list generation that aggregates ingredients across
+    all recipes in a plan using SQL GROUP BY — sums amounts, groups by
+    ingredient name and unit, and sorts by grocery category. Structured
+    ingredients stored in a recipe_ingredients table with name, amount,
+    unit, and category fields.
+  Evidence Session: 10
+  Supporting Evidence:
+    - Turn 1: Maya describes weekly plans with day/meal assignments
+    - Turn 3: Schema with meal_plans, meal_plan_items, recipe_ingredients
+    - Turn 6: Server endpoints including grocery list aggregation
+    - Turn 10: Query module with mealPlans.getGroceryList()
+  Query Type: project_state
+  Recall Difficulty: Medium (central to session, multiple sources)
+
+QUERY 2: "Who does the grocery shopping in Maya's household?"
+  Ground Truth: David does most of their grocery shopping. The grocery
+    list feature in the recipe app was built specifically for him.
+  Evidence Sessions: 1, 10
+  Supporting Evidence:
+    - Session 1: David established as a family member
+    - Session 10, Turn 2: "D does most of our shopping so this is
+      for him basically"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (directly stated, though brief)
+
+QUERY 3: "How does the grocery list aggregation work in the recipe app?"
+  Ground Truth: The grocery list uses SQL GROUP BY to aggregate
+    ingredients across all recipes in a meal plan. It joins
+    meal_plan_items to recipe_ingredients to recipes, groups by
+    ingredient name, unit, and category, then sums amounts. It also
+    tracks recipe_count (how many recipes use each ingredient) and
+    from_recipes (which specific recipes). Same-name ingredients with
+    different units are kept separate (e.g., olive oil in tbsp vs cups).
+    The list is sorted by category then ingredient name.
+  Evidence Session: 10
+  Supporting Evidence:
+    - Turn 5: Maya explains the aggregation requirement
+    - Turn 6: Server endpoint with the GROUP BY query
+    - Turn 10: queries.js mealPlans.getGroceryList()
+    - Turn 17: mealplan.test.js validates aggregation behavior
+  Query Type: project_state
+  Recall Difficulty: Hard (technical detail, requires understanding the
+    SQL query mechanics)
+
+QUERY 4: "What test suites exist for the recipe app?"
+  Ground Truth: As of session 10, three test suites: (1) the original
+    test suite from session 7 covering CRUD, validation, search, and
+    error handling; (2) dietary.test.js covering DIETARY_LABELS,
+    SAFE_FOR_MOM preset, single/multi-tag filtering, and edge cases
+    (296 lines); (3) mealplan.test.js covering meal plan CRUD, item
+    management, grocery list aggregation, cascade deletes, and foreign
+    key validation (368 lines). All use in-memory SQLite via setup.js.
+  Evidence Sessions: 7, 10
+  Supporting Evidence:
+    - Session 7: Original test suite
+    - Session 10, Turn 15: Maya requests dietary and meal plan tests
+    - Session 10, Turn 16: dietary.test.js (296 lines, 6 describe blocks)
+    - Session 10, Turn 17: mealplan.test.js (368 lines, 5 describe blocks)
+  Query Type: project_state
+  Recall Difficulty: Medium (requires aggregating test info across sessions)
+
+QUERY 5: "Why was the recipe_ingredients table added to the recipe app?"
+  Ground Truth: The recipe_ingredients table was added to replace text
+    blob ingredient storage with structured data (name, amount, unit,
+    category). The primary motivation was enabling grocery list
+    aggregation — with structured data, the app can use SQL GROUP BY
+    to sum ingredient amounts across recipes in a meal plan, giving
+    David a clean shopping list without duplicates. Maya specifically
+    said David "doesn't want to do math at the store."
+  Evidence Session: 10
+  Supporting Evidence:
+    - Turn 3: recipe_ingredients table in database.js
+    - Turn 5: Maya explains structured ingredients are needed for
+      grocery list aggregation
+    - Turn 5: "this is the thing that makes it useful for D. he
+      doesn't want to do math at the store"
+  Query Type: cross_reference
+  Recall Difficulty: Medium (connects table creation to motivation to
+    David's role)
+
+QUERY 6: "What logging or observability does the recipe app have?"
+  Ground Truth: Request logging middleware (src/middleware/logging.js)
+    that logs every HTTP request with method, URL, status code, response
+    time in milliseconds, and content length. Output is color-coded by
+    status code range (green for 2xx, yellow for 4xx, red for 5xx) when
+    running in a terminal. Uses the response `finish` event for accurate
+    timing.
+  Evidence Session: 10
+  Supporting Evidence:
+    - Turn 7: Maya requests request logging
+    - Turn 8: logging.js implementation (67 lines)
+  Query Type: project_state
+  Recall Difficulty: Easy (single session, directly stated)
+
+QUERY 7: "What dietary presets exist in the recipe app?"
+  Ground Truth: The SAFE_FOR_MOM preset — a combination of
+    "diabetic-friendly" and "low-sodium" dietary tags. Named for Maya's
+    mom Linda, who has diabetes. Recipes must have BOTH tags to pass
+    the filter (AND intersection, not OR). The app also supports 10
+    individual dietary labels: vegetarian, vegan, gluten-free, dairy-free,
+    nut-free, diabetic-friendly, low-sodium, low-carb, keto, paleo.
+  Evidence Sessions: 4, 5, 10
+  Supporting Evidence:
+    - Session 4: Mom's diabetes established
+    - Session 5: SAFE_FOR_MOM filter created
+    - Session 10, Turn 16: dietary.test.js validates the preset
+  Query Type: cross_reference
+  Recall Difficulty: Medium (spans 3 sessions, requires connecting
+    Mom's condition to the filter)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Project state: Queries 1, 3, 4, 6 (meal planning, grocery list,
+    tests, logging)
+  Factual recall: Query 2 (David grocery shopping)
+  Cross-reference: Queries 5, 7 (ingredients motivation, dietary preset)
+  Complexity: 2 Easy, 4 Medium, 1 Hard
+  Coverage: Feature state, family attribution, technical detail,
+    cross-session continuity
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM v1 (FULL REWRITE):
+
+1. COMPLETE CONTENT REPLACEMENT
+   v1 content: Migration system (migrate.js), meal plan schema migration
+     (001_add_meal_plans.sql), grocery list endpoint with intentional
+     aggregation bug, meal plan CRUD. 14 turns.
+   v2 content: Structured ingredients, meal planning with aggregation,
+     logging middleware, queries module, expanded seed data, two test
+     suites. 19 turns.
+   Reason: v1 content (ingredient normalization, grocery fix) has been
+     moved to session 12. Session 10 now covers a completely different
+     set of features matching git commit 3e12a09.
+
+2. GIT COMMIT ALIGNMENT
+   v1 commit: e1d7605 ("session 10: phase 2 — migrations system,
+     meal planning, grocery list generation")
+   v2 commit: 3e12a09 ("feat: meal planning, structured ingredients,
+     grocery list aggregation")
+   v2 diff: 9 files changed, 1488 insertions, 44 deletions
+
+3. FILES IN v2 (9 files):
+   - database.js (76 lines) — 3 new tables added
+   - server.js (225 lines) — meal plan CRUD, ingredients, grocery list
+   - package.json — version 0.4.0, npm run seed
+   - seeds/sample-recipes.json (162 lines) — 20 recipes with dietary tags
+   - seeds/seed.js (164 lines) — seeder with ingredient parser
+   - src/db/queries.js (302 lines) — query consolidation module
+   - src/middleware/logging.js (67 lines) — request logging
+   - tests/dietary.test.js (296 lines) — dietary filtering tests
+   - tests/mealplan.test.js (368 lines) — meal plan + grocery list tests
+   - tests/setup.js (183 lines) — updated test infrastructure
+
+4. KEY DIFFERENCES FROM v1:
+   - No migration system (migrate.js) — that concept removed
+   - No intentional grocery list bug — grocery list aggregates correctly
+     via SQL GROUP BY from the start (structured ingredients enable this)
+   - recipe_ingredients table introduced here (v1 had text blobs)
+   - Two full test suites added (v1 had no tests)
+   - Logging middleware added (v1 had no observability)
+   - Query consolidation module added (v1 had inline SQL)
+   - 20-recipe seed data with dietary coverage (v1 had minimal seeds)
+   - 19 turns vs 14 turns (larger session due to more code)
+
+5. TURN COUNT INCREASE (14 -> 19)
+   v1: 14 turns — migration system, meal plan schema, grocery list,
+     CRUD endpoints
+   v2: 19 turns — database schema, server endpoints, logging middleware,
+     queries module, seed data with JSON, dietary test suite, meal plan
+     test suite, test setup update, wrap up
+   Reason: More files to write, more features to cover. Each major file
+     gets its own code turn.
+
+6. MAYA'S VOICE PRESERVED
+   Maya uses "D" for David, "ok" not "okay", returns to business with
+   "ok" transitions, gives requirements not implementations, brief
+   reactions to code, emotional connection to family features.
+
+VALIDATION SUMMARY:
+  Full rewrite from v1 — completely different session content
+  9 files changed, 1488 insertions, 44 deletions
+  19 turns, natural feature development pacing
+  All code blocks match git commit 3e12a09 exactly
+  David grocery attribution correctly placed (Turn 2)
+  Mom/dietary references oblique (via SAFE_FOR_MOM)
+  7 eval queries covering 4 query types
+  No forbidden facts leaked
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-16
+Document Type: Session 10 Comprehensive Review (v2 — Full Rewrite)
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

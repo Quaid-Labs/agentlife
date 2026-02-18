@@ -1,0 +1,61 @@
+================================================================================
+FILLER SESSION F042 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 14 and 15
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F042 (Filler — Quick Question)
+Date: 2026-04-06 10:39
+Topic: how do i export a csv from google sheets
+Turn Count: 3
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F042
+  Track: filler
+  Timestamp: 2026-04-06 10:39:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  how do i export a csv from google sheets
+
+AI ASSISTANT:
+  File → Download → Comma Separated Values (.csv). It'll download to your default folder.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  thx! does it keep formulas or just values?
+
+AI ASSISTANT:
+  Just values — formulas get converted to their results. If you need formulas preserved, download as Excel (.xlsx) instead.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  perfect that's what i want anyway
+
+AI ASSISTANT:
+  Nice! The CSV will be clean and ready to import wherever you need it.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,204 @@
+================================================================================
+FILLER SESSION F142 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 5 and 6
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F142 (Filler — Recipe App Micro)
+Date: 2026-03-12 17:56
+Topic: i need to add full-text search with highlighting across all recipe fields
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F142
+  Track: filler
+  Timestamp: 2026-03-12 17:56:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  hey can u help me add search to the recipe app? need to search across name, ingredients, instructions, all of it. and highlight the matches
+
+AI ASSISTANT:
+  Yeah, let's add FTS5 for SQLite full-text search. First, create a virtual table that mirrors your recipes:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~5
+
+MAYA:
+  yeah show me the triggers
+
+AI ASSISTANT:
+  Here are the triggers to keep the FTS table synced:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  ok cool. now how do i actually search it? need an endpoint like /api/recipes/search?q=chicken
+
+AI ASSISTANT:
+  Add this route to your Express app:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  getting an error when i try to search - "fts5: syntax error near \"chicken\""
+
+AI ASSISTANT:
+  That's because FTS5 uses special query syntax. If someone searches "chicken soup", it needs to be `chicken AND soup` or `"chicken soup"` for a phrase.
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  hmm that works but now searching "chicken" doesn't match "chickens" - need stemming or smth
+
+AI ASSISTANT:
+  FTS5 doesn't have built-in stemming, but you can use prefix matching. Change the sanitize function:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ok but what if someone types "low carb" - that's gonna be "low* AND carb*" which is too strict right?
+
+AI ASSISTANT:
+  Good catch. You want OR for multi-word queries in this case:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  nah OR feels too loose. what if i do AND but also lower the threshold? like match at least 2 out of 3 words
+
+AI ASSISTANT:
+  FTS5 doesn't support threshold matching natively. Your options:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  what's bm25? and why is the score negative lol
+
+AI ASSISTANT:
+  BM25 is a ranking algorithm - stands for "Best Matching 25". It scores how relevant each result is based on term frequency and document length.
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  k so i went with OR. now how do i show the highlights on the frontend? the snippet function returns like 3 different fields
+
+AI ASSISTANT:
+  You have a few options:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  wait the snippet is showing "..." in weird places, like mid-sentence. can i control that?
+
+AI ASSISTANT:
+  Yeah, the 5th parameter to `snippet()` is the ellipsis token and the 6th is max tokens to show. You set it to 15 tokens.
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  getting this in production - Error: database is locked. happens when multiple searches hit at once
+
+AI ASSISTANT:
+  SQLite has a single writer lock. If you're using `better-sqlite3` with the default synchronous mode, concurrent reads should be fine, but something's holding a write lock.
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  added WAL and it's way better. but now i'm noticing search is kinda slow on big recipe sets. like 800ms for some queries
+
+AI ASSISTANT:
+  800ms is pretty slow for FTS5. Check:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  oh shit yeah i wasn't limiting. added LIMIT 20 and now it's like 50ms. way better thx
+
+AI ASSISTANT:
+  Nice! Yeah, always paginate search results. You can add offset for pagination:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  perfect. last thing - how do i test this? need to write tests for the search endpoint
+
+AI ASSISTANT:
+  Here's a Jest test with supertest:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  should i use a separate test db or just clean up after each test?
+
+AI ASSISTANT:
+  Separate test DB is cleaner. Set it up in your test config:
+
+---
+
+TURN 16 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  dope. tests passing. gonna ship this tmrw. thanks!
+
+AI ASSISTANT:
+  Nice work! Just remember to rebuild the FTS index if you have existing recipes:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

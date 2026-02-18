@@ -1,0 +1,450 @@
+================================================================================
+SESSION 14 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 14 (Track 2: Project B — portfolio-site, Phase 2)
+Goal: Update the portfolio site for Stripe. Maya got the offer in session 13
+  and needs the site updated. Cross-reference: Maya says "update the company
+  stuff" without re-explaining the Stripe offer — tests agent recall.
+Turn Count: 8 (quick session — straightforward update)
+Session Type: Project coding, stale fact resolution
+Timestamp: 2026-03-29 (1 week after session 13, ~5 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Portfolio site subtitle: "Senior Product Manager at TechFlow" → "at Stripe"
+  - About section updated: Currently at Stripe, previously at TechFlow
+  - New project card added: Stripe Payments Platform
+  - Cross-reference test: Maya doesn't re-explain the Stripe offer
+  - Agent must recall session 13 context from "update the company stuff"
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's promotion (session 17)
+  - Moving specifics or Zilker vs East Austin (session 17)
+  - Half marathon results (session 19)
+  - Mom's diabetes improvement details (session 19)
+
+CROSS-REFERENCES:
+  - Session 13: Maya got the Stripe offer, senior PM on developer tools
+  - Session 9: Portfolio site originally created with TechFlow references
+  - Session 1: TechFlow first mentioned as "boring but pays the bills"
+  - Session 6: TechFlow frustrations, reorg, bad manager
+
+GIT STATE:
+  Before: commit c859e9a (session 9 — portfolio with TechFlow)
+  After: commit 0384d4d (session 14 — updated for Stripe)
+  Files changed: index.html (subtitle, about section, new project card)
+
+MESSAGE PLAN (8 turns total):
+  1. Normal     — Opens: "update the company stuff" — no re-explanation
+  2. Quick      — React to agent's response
+  3. Normal     — Specific changes she wants
+  4. Code       — Agent shows updated index.html
+  5. Quick      — Feedback on the about section wording
+  6. Code       — Agent shows revised about section
+  7. Quick      — Adds the Stripe project card request
+  8. Quick      — Approves and exits
+
+End Condition: Portfolio site says Stripe, not TechFlow
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 14
+  Track: 2
+  Timestamp: 2026-03-29 11:00:00 UTC
+  Duration: ~4 minutes (11:00:00 to 11:04:10)
+
+---
+
+TURN 1 (Cross-Reference Opening)
+TAG: normal | TOKENS: 38/50 | GENERATION TIME: 6.8s
+
+MAYA:
+  hey can you pull up the portfolio site? need to update the company stuff
+
+  just the basics — title, about section, that kind of thing
+
+AI ASSISTANT:
+  Sure! Looking at your portfolio site. I see it currently says
+  "Senior Product Manager at TechFlow" — since you're heading to
+  Stripe, we'll want to update that along with the About section.
+
+  What exactly do you want the new copy to say? Should I frame it
+  as "currently at Stripe" or reference the transition?
+
+ANALYSIS: Cross-reference test. Maya says "update the company stuff"
+without saying Stripe or explaining. Agent should recall from session
+13 that Maya accepted a Stripe offer and connect "company stuff" to
+the needed portfolio update. Agent correctly identifies the change.
+
+---
+
+TURN 2 (React — Confirm)
+TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.4s
+
+MAYA:
+  yeah just make it stripe. no need to mention the transition — clean
+  break from techflow lol
+
+  keep it simple
+
+AI ASSISTANT:
+  Got it — clean break. I'll update the subtitle, the About section,
+  and we can adjust the project descriptions too. Let me show you
+  the changes.
+
+ANALYSIS: Maya confirms clean break from TechFlow. No sentimental
+transition language. Personality: direct, efficient.
+
+---
+
+TURN 3 (Specific Changes)
+TAG: normal | TOKENS: 41/50 | GENERATION TIME: 6.2s
+
+MAYA:
+  yeah and change the about text. it still talks about "leading the
+  platform team through a re-architecture" which is techflow stuff
+
+  i want it to say something about stripe and payments. and keep
+  techflow as a previous role
+
+AI ASSISTANT:
+  Makes sense — lead with Stripe, keep TechFlow as a "previously at"
+  mention. Let me rewrite the hero section and the About paragraph.
+
+ANALYSIS: Maya wants Stripe-first positioning. TechFlow demoted to
+"previously." Specific about removing TechFlow-centric language.
+
+---
+
+TURN 4 (Agent Shows Updated Code)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 12.4s
+
+AI ASSISTANT:
+  Here's the updated `index.html`:
+
+  ```html
+  <section id="hero">
+    <h1>Maya Chen</h1>
+    <p class="subtitle">Senior Product Manager at Stripe</p>
+    <p class="tagline">Building products that make people's lives easier.</p>
+  </section>
+
+  <section id="about">
+    <h2>About Me</h2>
+    <p>
+      I'm a product manager based in Austin, TX with 8+ years of experience
+      shipping B2B SaaS products. I specialize in turning complex technical
+      requirements into intuitive user experiences.
+    </p>
+    <p>
+      Currently at <strong>Stripe</strong>, where I'm a Senior PM on the
+      payments platform team. Previously at TechFlow, where I led the
+      platform team through a major re-architecture initiative.
+    </p>
+    <p>
+      Outside of work, I'm training for the Austin Half Marathon, building
+      side projects (like a recipe app for my family), and exploring Austin's
+      food scene with my partner David and our golden retriever Biscuit.
+    </p>
+  </section>
+  ```
+
+  Key changes:
+  - Subtitle: TechFlow → Stripe
+  - About: "Currently at Stripe" with TechFlow as previous role
+  - Kept the personal paragraph as-is since it's still accurate
+
+ANALYSIS: Agent updates both the hero subtitle and the about section.
+Correctly frames Stripe as current, TechFlow as previous. Leaves the
+personal paragraph untouched (half marathon, recipe app, David, Biscuit
+— all still accurate). Code matches the actual git diff.
+
+---
+
+TURN 5 (Feedback on About)
+TAG: quick | TOKENS: 28/50 | GENERATION TIME: 5.9s
+
+MAYA:
+  that's good. i like "payments platform team" — sounds more legit
+  than "developer tools" for a portfolio
+
+  actually wait it IS developer tools. whatever, payments platform
+  sounds better. keep it
+
+AI ASSISTANT:
+  Ha, marketing instincts — "payments platform" does sound broader
+  and more impressive. Developer tools is accurate but payments
+  platform positions you higher. Keeping it.
+
+ANALYSIS: Maya's aesthetic/branding instinct. Technically it's
+developer tools (session 13 detail) but she prefers "payments
+platform" for portfolio positioning. This is a deliberate
+discrepancy between the portfolio text and the actual role — tests
+whether the memory system tracks both.
+
+---
+
+TURN 6 (Stripe Project Card)
+TAG: normal | TOKENS: 35/50 | GENERATION TIME: 6.1s
+
+MAYA:
+  oh also — add a stripe project card. like the techflow one but
+  for stripe. payments stuff, API design, developer experience
+
+  nothing fancy just so the projects section isn't only old stuff
+
+AI ASSISTANT:
+  Absolutely. Here's the new project card:
+
+  ```html
+  <div class="project-card">
+    <h3>Stripe Payments Platform</h3>
+    <p>
+      Senior PM on the payments platform team, working on next-generation
+      payment processing infrastructure. Focus on developer experience
+      and API design for high-volume transaction processing.
+    </p>
+    <div class="tech-tags">
+      <span class="tech-tag">Payments</span>
+      <span class="tech-tag">API Design</span>
+      <span class="tech-tag">Developer Experience</span>
+    </div>
+  </div>
+  ```
+
+  I'll add this after the TechFlow card in the projects grid.
+
+ANALYSIS: New Stripe project card requested. Maya describes it in
+non-technical language ("payments stuff, API design"). Agent writes
+professional copy. Tags: Payments, API Design, Developer Experience.
+Matches the actual committed code.
+
+---
+
+TURN 7 (Approve)
+TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.2s
+
+MAYA:
+  looks good. commit it
+
+  oh and the recipe app card should probably mention graphql now but
+  that can wait. this is fine for now
+
+AI ASSISTANT:
+  Committed! The portfolio now shows Stripe across the board.
+
+  I noted the GraphQL update for the recipe app card — we can update
+  that next time you're working on the portfolio.
+
+  Anything else?
+
+ANALYSIS: Quick approval. Maya mentions the recipe app card needs
+a GraphQL tag update — forward reference to session 16's GraphQL
+pivot. Agent notes it for later. Clean.
+
+---
+
+TURN 8 (Exit)
+TAG: quick | TOKENS: 8/50 | GENERATION TIME: 4.5s
+
+MAYA:
+  nah that's it. quick one today
+
+  thanks!
+
+AI ASSISTANT:
+  Nice and clean! The portfolio is Stripe-ready. Talk later!
+
+ANALYSIS: Quick exit. Shortest session in the series. Maya's mood:
+efficiently excited — the Stripe energy from session 13 is still
+there but channeled into productivity rather than giddiness.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Rachel's children's names or ages
+  - No David promotion
+  - No moving specifics (Zilker vs East Austin)
+  - No half marathon results
+  - No mom's diabetes improvement
+
+CONSTRAINT 2: Cross-Reference from Session 13 Executed
+  STATUS: PASS
+  Location: Turn 1
+  Evidence: Maya says "update the company stuff" — no mention of Stripe
+    in her opening. Agent correctly infers this means updating TechFlow
+    references to Stripe based on session 13 context.
+  Note: This is a core cross-reference test. If the agent doesn't
+    remember the Stripe offer, it would ask "what company?" or be
+    confused. A correct response demonstrates session 13 recall.
+
+CONSTRAINT 3: Portfolio Content Matches Git History
+  STATUS: PASS
+  Git diff (c859e9a → 0384d4d):
+  - Subtitle: "at TechFlow" → "at Stripe"
+  - About: Rewritten with Stripe current, TechFlow as previous
+  - New project card: Stripe Payments Platform added
+  All code shown in transcript matches the actual committed changes.
+
+CONSTRAINT 4: Stale Fact Resolution
+  STATUS: PASS
+  Before session 14: Portfolio says "Senior Product Manager at TechFlow"
+  After session 14: Portfolio says "Senior Product Manager at Stripe"
+  The stale fact (portfolio = TechFlow) planted in session 13, Turn 9
+  is resolved here. Memory systems should track this update.
+
+CONSTRAINT 5: Maya Token Limits
+  STATUS: PASS
+  Turn 1: 38 tokens (under 50)
+  Turn 2: 22 tokens (under 50)
+  Turn 3: 41 tokens (under 50)
+  Turn 5: 28 tokens (under 50)
+  Turn 6: 35 tokens (under 50)
+  Turn 7: 18 tokens (under 50)
+  Turn 8: 8 tokens (under 50)
+  All Maya messages under the 50-token hard limit.
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 8 only. Quick single exit.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  Cross-reference from session 13 properly executed
+  Portfolio updated consistently with git history
+  No future facts leaked
+  Maya's token limits respected throughout
+  Quick, efficient session matches character
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-14 (cumulative ground truth)
+  Evaluation Scope: Stale facts, temporal updates, cross-references
+
+QUERY 1: "What company is listed on Maya's portfolio site?"
+  Ground Truth: Stripe. The portfolio was updated in session 14 from
+    TechFlow to Stripe. The subtitle reads "Senior Product Manager at
+    Stripe" and the About section says "Currently at Stripe."
+  Evidence Sessions: 9, 13, 14
+  Supporting Evidence:
+    - Session 9: Portfolio created with TechFlow
+    - Session 13, Turn 9: "my portfolio site... still says techflow"
+    - Session 14: Updated to Stripe
+  Query Type: stale_fact (CRITICAL — must return Stripe, NOT TechFlow)
+  Recall Difficulty: Hard (tests fact supersession across 3 sessions:
+    created with TechFlow → flagged as stale → updated to Stripe)
+
+QUERY 2: "Where does Maya work now?"
+  Ground Truth: Stripe. She accepted a senior PM role on the developer
+    tools platform (session 13). Her portfolio describes it as
+    "payments platform team" — a deliberate branding choice. Started
+    May 19th (session 13).
+  Evidence Sessions: 1, 6, 13, 14
+  Supporting Evidence:
+    - Session 1: "product manager at this company called techflow"
+    - Session 6: unhappy at TechFlow
+    - Session 13: "I GOT AN OFFER. FROM STRIPE"
+    - Session 14: Portfolio updated to Stripe
+  Query Type: temporal_current
+  Recall Difficulty: Medium (must return Stripe, not TechFlow. Multiple
+    sessions confirm the transition)
+
+QUERY 3: "Why was the portfolio site updated?"
+  Ground Truth: Maya got a job offer from Stripe (session 13) and
+    needed to update her portfolio to reflect the new role. She
+    mentioned in session 13 that the portfolio "still says TechFlow"
+    and updated it in session 14.
+  Evidence Sessions: 13, 14
+  Supporting Evidence:
+    - Session 13, Turn 9: "my portfolio site... still says techflow"
+    - Session 14, Turn 1: "update the company stuff"
+  Query Type: cross_reference
+  Recall Difficulty: Hard (requires connecting the motivation from
+    session 13 to the action in session 14 without explicit re-statement)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Stale fact: Query 1 (portfolio company)
+  Temporal current: Query 2 (current employer)
+  Cross-reference: Query 3 (why the update)
+  Complexity: 0 Easy, 1 Medium, 2 Hard
+  Coverage: Fact update tracking, career arc, cross-session motivation
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec outline: "Portfolio site — 'update it, I'm going to Stripe now.'
+     Cross-ref: session 13, but Maya just says 'update the company stuff.'
+     Test suite E: must say Stripe, not TechFlow."
+   Full session created with specific HTML changes, feedback cycle,
+   and forward reference to GraphQL.
+
+2. QUICK SESSION BY DESIGN
+   8 turns (shortest Track 2 session). This is deliberate — the changes
+   are straightforward (text replacement + new card). Maya doesn't
+   overthink it. Contrast with session 16 (14-16 turns for GraphQL pivot).
+   Rationale: Tests session length variety. Not every coding session
+   needs to be long.
+
+3. "PAYMENTS PLATFORM" VS "DEVELOPER TOOLS" DISCREPANCY
+   Not in spec. Added: Maya says to call it "payments platform" instead
+   of "developer tools" for the portfolio — deliberate branding choice.
+   Rationale: Creates a testable discrepancy. Session 13 says developer
+   tools, portfolio says payments platform. The system should track
+   both: the actual role (developer tools) and the portfolio text
+   (payments platform).
+
+4. FORWARD REFERENCE TO GRAPHQL
+   Not in spec. Added: Turn 7 — Maya mentions the recipe app card
+   should say GraphQL, defers it.
+   Rationale: Natural forward reference to session 16's GraphQL pivot.
+   Tests whether the system remembers deferred tasks.
+
+5. CROSS-REFERENCE MECHANISM
+   Spec: "Maya just says 'update the company stuff'"
+   Transcript: Exactly as specified. Maya's opening does NOT mention
+   Stripe. The agent must recall session 13 to understand the context.
+   Rationale: This is the purest cross-reference test in the Track 2
+   sessions. No hints, no re-explanation.
+
+6. CODE MATCHES GIT HISTORY
+   All HTML shown in the transcript matches the actual git diff
+   between commits c859e9a and 0384d4d. The code is real, not
+   fabricated.
+
+VALIDATION SUMMARY:
+  Cross-reference from session 13 properly tested
+  Portfolio changes match git history exactly
+  3 eval queries covering stale fact, temporal, and cross-reference
+  8 turns, quick and efficient
+  No forbidden facts leaked
+  Maya's tone matches post-Stripe excitement (calm productivity)
+  Forward reference to GraphQL planted
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 14 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

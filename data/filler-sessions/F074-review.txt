@@ -1,0 +1,160 @@
+================================================================================
+FILLER SESSION F074 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F074 (Filler — Recipe App Micro)
+Date: 2026-04-23 21:52
+Topic: the search is too slow when there's a lot of recipes
+Turn Count: 14
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F074
+  Track: filler
+  Timestamp: 2026-04-23 21:52:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  hey the search is getting super slow now that i have like 200 recipes in there. takes like 3-4 seconds sometimes. can u help optimize it?
+
+AI ASSISTANT:
+  I can help optimize that search performance. Let me first look at what's likely causing the slowdown, then we'll add proper indexing and improve the query.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ok cool. do i need to rebuild the fts table for my existing recipes or will the triggers handle it?
+
+AI ASSISTANT:
+  The triggers only fire on future changes, so you need a one-time rebuild for existing data. Here's a migration script:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  ran it and now getting this error when i search:
+
+AI ASSISTANT:
+  Ah right - FTS5's `rank` column needs to be explicitly selected. The issue is that FTS5 uses `rank` as a built-in relevance score, but we need to access it properly. Here's the fix:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  perfect that's way faster now lol. btw should i add the relevance_score to the response or is that just internal?
+
+AI ASSISTANT:
+  Good question! Including the relevance score can actually be useful for debugging and potentially for UI features later. Here's how I'd structure it:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  makes sense. one more thing - what if someone searches for like "chicken pasta" - does fts5 handle multi-word queries well?
+
+AI ASSISTANT:
+  FTS5 handles multi-word queries, but you need to be careful about how the query is formatted. By default it does an AND search, but there are better options. Here's an improved version with query preprocessing:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  oh nice. does this work for like partial matches? if i type "chick" will it find "chicken"?
+
+AI ASSISTANT:
+  No, FTS5 doesn't do partial matching by default - it's exact word matches only. You need to add prefix matching with the `*` operator. Here's how to add that:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  that's perfect. can u also add a test for this? wanna make sure it doesn't break
+
+AI ASSISTANT:
+  Absolutely, here's a comprehensive test suite for the search query builder:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  nice, all passing. one last thing - how would i add filtering by prep_time? like "quick recipes under 30 min"
+
+AI ASSISTANT:
+  Good question! You'll want to add query parameters for filtering alongside the search. Here's how to add time-based and other filters:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  perfect. this is way better now lol. search went from 3-4 sec to like 50ms. ty!
+
+AI ASSISTANT:
+  Nice! That's a huge improvement - 60-80x faster. FTS5 + proper indexing makes a massive difference once you get past ~100 records.
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  awesome. gonna add pagination next week. btw speaking of perf, should i be worried about the db file size? it's like 2mb now
+
+AI ASSISTANT:
+  2MB for 200 recipes is actually totally fine - that's about 10KB per recipe average. SQLite can handle databases up to 281 TB (theoretical limit), but practically you're fine into the gigabytes range.
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  got it. not worried then lol. thanks for all the help! gonna test this w D tomorrow and see if he notices the speed diff
+
+AI ASSISTANT:
+  Nice! Yeah, 3-4 seconds down to 50ms is definitely noticeable - he'll definitely feel the difference, especially on mobile.
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  will do. one more quick q - if i wanted to search just by ingredients (not title/description), how would i do that?
+
+AI ASSISTANT:
+  Good question! FTS5 lets you search specific columns using the column name prefix. Here's how to add that:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,160 @@
+================================================================================
+FILLER SESSION F174 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F174 (Filler — Recipe App Micro)
+Date: 2026-04-18 15:59
+Topic: can you explain this error: SQLITE_CONSTRAINT: UNIQUE constraint failed
+Turn Count: 14
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F174
+  Track: filler
+  Timestamp: 2026-04-18 15:59:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  hey can you explain this error: SQLITE_CONSTRAINT: UNIQUE constraint failed: recipes.user_id, recipes.title
+
+AI ASSISTANT:
+  This error means you're trying to insert a recipe with a `user_id` and `title` combination that already exists in your database. You have a UNIQUE constraint (probably a composite unique index) that prevents duplicate recipe titles for the same user.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  during creation. users keep double clicking the save button lol
+
+AI ASSISTANT:
+  Ah classic! You need to prevent duplicate submissions on the frontend AND handle it gracefully on the backend. Here's a solid two-layer fix:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  nice that works. now i need to write tests for this. never done jest with sqlite before
+
+AI ASSISTANT:
+  Here's a complete test suite for your recipes endpoint with SQLite. The key is setting up a fresh in-memory database for each test:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  getting "Cannot find module '../app'" - my express setup is in server.js not app.js
+
+AI ASSISTANT:
+  Easy fix - just update the import path and make sure you're exporting your Express app properly. Here's what you need:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  ok tests pass but now i'm getting timeout errors on the update route. think there's a deadlock?
+
+AI ASSISTANT:
+  Yeah, that's classic SQLite write contention! SQLite only allows one writer at a time, and if you're not handling transactions properly or have lingering connections, you'll get timeouts. Here's how to fix it:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  wal mode helped but i'm still seeing occasional timeouts under load. running k6 tests with 50 concurrent users
+
+AI ASSISTANT:
+  Under heavy concurrent load, you need connection pooling and better concurrency handling. SQLite isn't great at high write concurrency (it's single-writer by design), but here's how to optimize what you've got:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  nah i wanna stick with sqlite for now, it's just a side project. this is way better tho thanks
+
+AI ASSISTANT:
+  Totally fair! SQLite is perfect for side projects - way less operational overhead than Postgres. Here are a few quick wins to squeeze more performance out of what you've got:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  sweet. last thing - should i add rate limiting? worried about users spamming the create endpoint
+
+AI ASSISTANT:
+  Yeah definitely add rate limiting, especially on auth and create endpoints. Here's a solid setup with `express-rate-limit`:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  perfect. gonna deploy this to railway. do i need to change anything for production?
+
+AI ASSISTANT:
+  Yeah, a few critical changes for production on Railway. Here's your deployment checklist:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  btw do i need bcrypt for passwords or is hashing with crypto.createHash good enough?
+
+AI ASSISTANT:
+  You **definitely need bcrypt** (or argon2). `crypto.createHash()` is way too fast - that's the problem! Password hashing needs to be intentionally slow to resist brute force attacks.
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  got it. last Q - should i add cors? frontend is gonna be on vercel
+
+AI ASSISTANT:
+  Yes, definitely add CORS if your frontend is on a different domain (Vercel) than your API (Railway). Without it, browsers will block your requests.
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  amazing thanks. gonna ship this and see what D thinks lol
+
+AI ASSISTANT:
+  Haha nice! You've built a solid API - rate limiting, proper auth, connection pooling, CORS, the works. David's gonna be impressed.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

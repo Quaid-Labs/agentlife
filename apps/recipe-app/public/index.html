@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #fafafa; color: #333; }
+    h1 { color: #2d3436; margin-bottom: 20px; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+    .search-bar input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    button { padding: 8px 16px; background: #00b894; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    button:hover { opacity: 0.9; }
+    button.delete { background: #d63031; font-size: 12px; padding: 4px 10px; }
+    button.safe-mom { background: #e17055; }
+    .add-form { background: white; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+    .add-form input, .add-form textarea { width: 100%; padding: 8px; margin: 4px 0 10px; border: 1px solid #ddd; border-radius: 4px; }
+    .add-form textarea { resize: vertical; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; align-items: center; }
+    .filters label { font-size: 13px; cursor: pointer; }
+    .filters input[type="checkbox"] { margin-right: 2px; }
+
+    /* Card layout — replaced table from session 3 */
+    .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .recipe-card { background: white; border-radius: 8px; padding: 16px; border: 1px solid #e0e0e0; transition: box-shadow 0.2s; }
+    .recipe-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .recipe-card h3 { font-size: 16px; margin-bottom: 8px; color: #2d3436; }
+    .recipe-card .meta { font-size: 12px; color: #636e72; margin-bottom: 8px; }
+    .recipe-card .ingredients { font-size: 13px; color: #555; margin-bottom: 8px; line-height: 1.4; }
+    .recipe-card .tags { margin-bottom: 8px; }
+    .recipe-card .actions { display: flex; justify-content: flex-end; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #dfe6e9; color: #2d3436; margin: 2px; }
+    .tag.vegetarian { background: #a8e6cf; }
+    .tag.vegan { background: #81ecec; }
+    .tag.gluten-free { background: #ffeaa7; }
+    .tag.dairy-free { background: #fab1a0; }
+    .tag.diabetic-friendly { background: #fd79a8; color: white; }
+    .tag.low-sodium { background: #74b9ff; color: white; }
+    .empty-state { text-align: center; padding: 40px; color: #636e72; }
+  </style>
+</head>
+<body>
+  <h1>Recipe App</h1>
+
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search recipes..." onkeyup="if(event.key==='Enter') searchRecipes()">
+    <button onclick="searchRecipes()">Search</button>
+    <button onclick="loadRecipes()" style="background:#636e72">Clear</button>
+  </div>
+
+  <div class="filters">
+    <strong style="font-size:13px;">Filter:</strong>
+    <label><input type="checkbox" value="vegetarian" onchange="applyFilters()"> Vegetarian</label>
+    <label><input type="checkbox" value="vegan" onchange="applyFilters()"> Vegan</label>
+    <label><input type="checkbox" value="gluten-free" onchange="applyFilters()"> Gluten-Free</label>
+    <label><input type="checkbox" value="dairy-free" onchange="applyFilters()"> Dairy-Free</label>
+    <label><input type="checkbox" value="diabetic-friendly" onchange="applyFilters()"> Diabetic-Friendly</label>
+    <label><input type="checkbox" value="low-sodium" onchange="applyFilters()"> Low-Sodium</label>
+    <button class="safe-mom" onclick="safeForMom()">Safe for Mom</button>
+  </div>
+
+  <details>
+    <summary style="cursor:pointer; font-weight:bold; margin-bottom:10px;">Add Recipe</summary>
+    <div class="add-form">
+      <form id="addForm" onsubmit="addRecipe(event)">
+        <input type="text" id="title" placeholder="Recipe title" required>
+        <textarea id="ingredients" placeholder="Ingredients (comma separated)" rows="3" required></textarea>
+        <textarea id="instructions" placeholder="Instructions" rows="3" required></textarea>
+        <label style="font-size:13px;">Prep time (minutes): <input type="number" id="prepTime" min="0" value="30" style="width:80px;"></label>
+        <br><br>
+        <button type="submit">Add Recipe</button>
+      </form>
+    </div>
+  </details>
+
+  <div id="recipeList" class="recipe-grid"></div>
+
+  <script>
+    async function loadRecipes() {
+      document.querySelectorAll('.filters input[type="checkbox"]').forEach(cb => cb.checked = false);
+      const res = await fetch('/api/recipes');
+      const recipes = await res.json();
+      renderRecipes(recipes);
+    }
+
+    async function searchRecipes() {
+      const q = document.getElementById('searchInput').value;
+      if (!q) return loadRecipes();
+      const res = await fetch(`/api/recipes/search?q=${encodeURIComponent(q)}`);
+      const recipes = await res.json();
+      renderRecipes(recipes);
+    }
+
+    async function applyFilters() {
+      const checked = [...document.querySelectorAll('.filters input[type="checkbox"]:checked')]
+        .map(cb => cb.value);
+      if (checked.length === 0) return loadRecipes();
+      const res = await fetch(`/api/recipes?diet=${checked.join(',')}`);
+      const recipes = await res.json();
+      renderRecipes(recipes);
+    }
+
+    async function safeForMom() {
+      const res = await fetch('/api/recipes?safeForMom=true');
+      const recipes = await res.json();
+      renderRecipes(recipes);
+    }
+
+    function renderTags(tagsStr) {
+      try {
+        const tags = JSON.parse(tagsStr || '[]');
+        return tags.map(t => `<span class="tag ${t}">${t}</span>`).join('');
+      } catch { return ''; }
+    }
+
+    function renderRecipes(recipes) {
+      const container = document.getElementById('recipeList');
+      if (recipes.length === 0) {
+        container.innerHTML = '<div class="empty-state">No recipes found.</div>';
+        return;
+      }
+      container.innerHTML = recipes.map(r => `
+        <div class="recipe-card">
+          <h3>${r.title}</h3>
+          <div class="meta">${r.prep_time ? r.prep_time + ' min' : ''}</div>
+          <div class="tags">${renderTags(r.dietary_tags)}</div>
+          <div class="ingredients">${r.ingredients}</div>
+          <div class="actions">
+            <button class="delete" onclick="deleteRecipe(${r.id})">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function addRecipe(e) {
+      e.preventDefault();
+      const body = {
+        title: document.getElementById('title').value,
+        ingredients: document.getElementById('ingredients').value,
+        instructions: document.getElementById('instructions').value,
+        prep_time: parseInt(document.getElementById('prepTime').value, 10) || 0,
+      };
+      await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      document.getElementById('addForm').reset();
+      loadRecipes();
+    }
+
+    async function deleteRecipe(id) {
+      await fetch(`/api/recipes/${id}`, { method: 'DELETE' });
+      loadRecipes();
+    }
+
+    loadRecipes();
+  </script>
+</body>
+</html>

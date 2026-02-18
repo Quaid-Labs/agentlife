@@ -1,0 +1,226 @@
+================================================================================
+FILLER SESSION F112 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 5 and 6
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F112 (Filler — Work Session)
+Date: 2026-03-12 08:05
+Topic: i want to create an onboarding guide for new engineers on my team
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F112
+  Track: filler
+  Timestamp: 2026-03-12 08:05:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  hey can you help me draft an onboarding guide for new engineers? we keep hiring and everyone asks the same questions lol
+
+AI ASSISTANT:
+  I can help with that! What role are these engineers (frontend, backend, full-stack)? And what are the top 3-5 questions they always ask?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  mostly full-stack, some backend. they always ask about deploy process, where docs are, how to run tests locally, and who to bug for access to stuff
+
+AI ASSISTANT:
+  Got it. Do you want this as a markdown doc in your repo, a Notion page, or something else? And should we include a "first week checklist" section?
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  markdown in the repo is fine. yeah checklist would be great, also maybe a section on team norms? like code review expectations, slack etiquette, that kind of thing
+
+AI ASSISTANT:
+  Perfect. Let me draft a structure:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  yeah that's solid. can you flesh out the "week 1 checklist" section? i want it to be super actionable with actual links and commands
+
+AI ASSISTANT:
+  Sure! What's your repo name, and where are your docs hosted? Also, who should new engineers ping for AWS/database access?
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  repo is `recipeapp-api`, docs are in the repo under `/docs`. D handles aws access, Rach does database stuff. we use github for everything
+
+AI ASSISTANT:
+  Here's the fleshed-out checklist:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  this is great but add something about running the test suite, it's kinda finicky. also we have a staging env that auto-deploys from main
+
+AI ASSISTANT:
+  What's finicky about the tests? Need specific env vars, docker containers, seed data, etc.?
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~31
+
+MAYA:
+  yeah you need postgres AND redis running locally. also there's a seed script that sometimes fails if you don't clear the db first. it's `npm run db:reset && npm run db:seed`
+
+AI ASSISTANT:
+  Got it. I'll add a troubleshooting subsection:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  perfect lol. now can you do the "team norms" section? focus on code reviews and how we use slack
+
+AI ASSISTANT:
+  What are your code review expectations? Like, how fast should reviews happen, how many approvals needed, any style preferences?
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~32
+
+MAYA:
+  we try to review within 24hrs on weekdays. 1 approval is fine for small stuff, 2 for anything touching auth or payments. we're pretty chill on style as long as prettier passes
+
+AI ASSISTANT:
+  Here's the team norms section:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  good but we don't do stand-ups anymore, we switched to a weekly written update thing. also add something about wip prs
+
+AI ASSISTANT:
+  What's the format for weekly updates—when are they due and where do people post them?
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  fridays by eod in #engineering. just a quick bullets on what you shipped, what you're working on, any blockers. nothing formal
+
+AI ASSISTANT:
+  Updated:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  nice. can you add a "key resources" section with links to our main docs? i'll send you the structure
+
+AI ASSISTANT:
+  Sure, just paste the doc structure and I'll format it into the guide.
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  we have `/docs/api-reference.md`, `/docs/deployment.md`, `/docs/database-schema.md`, and `/docs/architecture.md`. also our notion has a "recipes app" workspace but idk the link rn
+
+AI ASSISTANT:
+  Here's the resources section:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  pm is kyle, designer is jen. also we don't use datadog we use cloudwatch lol
+
+AI ASSISTANT:
+  Fixed:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  perfect. can you write up a quick FAQ section? like 4-5 common questions
+
+AI ASSISTANT:
+  What questions do new engineers ask most often besides the setup stuff we already covered?
+
+---
+
+TURN 16 (Filler)
+TAG: normal | TOKENS: ~38
+
+MAYA:
+  "how do i get prod access" (you don't unless absolutely necessary), "what's our on-call rotation" (every 4 weeks), "can i work remote" (yeah just post in slack), "how do deploys work on friday" (we freeze deploys after 3pm)
+
+AI ASSISTANT:
+  Here's the FAQ:
+
+---
+
+TURN 17 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  lol love it. can you put the whole thing together in one doc so i can review it?
+
+AI ASSISTANT:
+  Here's the complete onboarding guide:
+
+---
+
+TURN 18 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  yeah save it as `docs/ONBOARDING.md` actually. this is solid, thanks!
+
+AI ASSISTANT:
+  Done! Saved to `docs/ONBOARDING.md`. You can update the Notion link and any other specifics later. Good luck with the new hires!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

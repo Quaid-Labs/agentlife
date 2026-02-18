@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F019 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 10 and 11
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F019 (Filler — Work Session)
+Date: 2026-03-18 20:51
+Topic: what metrics should i track for user onboarding
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F019
+  Track: filler
+  Timestamp: 2026-03-18 20:51:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  hey need help figuring out what metrics to track for user onboarding on the recipe app. like what actually matters vs vanity metrics
+
+AI ASSISTANT:
+  Here's a framework for onboarding metrics that separates signal from noise:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ok this is super helpful. what's a realistic target for ttfv? like should it be under 2 min or what
+
+AI ASSISTANT:
+  **TTFV Targets by Action Type:**
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  got it. how do i actually instrument this? like do i need to set up a whole analytics thing or can i start simple
+
+AI ASSISTANT:
+  **Start Simple, Scale Later:**
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  lol perfect. ok one more thing - should i track drop-off points in the signup flow itself? like email verification, profile setup, etc
+
+AI ASSISTANT:
+  **Yes, but keep it minimal:**
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  wait so you're saying i shouldn't require email verification upfront? that feels risky tho
+
+AI ASSISTANT:
+  **You're right to be cautious, but here's the tradeoff:**
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  ok yeah that makes sense. what about retention curves - how do i know if my d7 retention is actually good or just ok
+
+AI ASSISTANT:
+  **Recipe App Retention Benchmarks:**
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  this is super useful. should i be segmenting retention by acquisition channel? like organic vs paid vs referral
+
+AI ASSISTANT:
+  **Yes, absolutely - but start with just 3 segments:**
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  got it. what's the formula for cost per activated user? is that just cpa divided by activation rate
+
+AI ASSISTANT:
+  **Almost, but there's a critical nuance:**
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  ok so if i don't have ltv data yet bc the app is brand new, what should i optimize for in the first month
+
+AI ASSISTANT:
+  **First Month Optimization Hierarchy:**
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  that makes sense. should i set up cohort analysis or is that overkill for month 1
+
+AI ASSISTANT:
+  **Cohort analysis is NOT overkill - it's essential even at day 1.**
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  ok last question i promise lol. what's the one metric i should check every single morning. like the health check number
+
+AI ASSISTANT:
+  **The North Star Metric for Recipe Apps:**
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  perfect that's exactly what i needed. gonna set this all up tomorrow. thanks!!
+
+AI ASSISTANT:
+  **Quick Setup Checklist for Tomorrow:**
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  wait one more thing sorry - should i track recipe views separately from saves? or is that getting too granular
+
+AI ASSISTANT:
+  **Track views, but don't optimize for them yet.**
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ok cool. and i'm assuming i should track which recipes are most popular so i can promote them better right
+
+AI ASSISTANT:
+  **Yes, but with important caveats:**
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  oh damn i hadn't thought about retention lift per recipe. that's smart. ok i think i'm good now for real lol
+
+AI ASSISTANT:
+  **Awesome! Here's your complete metrics stack in one place:**
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

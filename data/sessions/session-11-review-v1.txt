@@ -1,0 +1,536 @@
+================================================================================
+SESSION 11 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 11 (Track 1: Personal — Marathon update, injury scare, Rachel)
+Goal: Update the running arc. Maya has a minor injury scare. Corrects the
+  half marathon date from April to May. Rachel is visiting Austin soon.
+Turn Count: 10
+Session Type: Life update, health anxiety, family planning
+Timestamp: 2026-04-07 (2 weeks after session 8, ~6 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Maya tweaked her knee during a long run — scared it's serious
+  - The half marathon is actually in MAY, not April (correction from session 2)
+  - She hasn't been running for a few days because of the knee
+  - Rachel is coming to visit Austin in a couple weeks
+  - Maya mentions she hates stretching routines but knows she should do them
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe or any specific company in job search (session 13)
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's promotion (session 17)
+  - Moving specifics (session 17)
+  - Half marathon results (session 19)
+  - Mom's diabetes improvement (session 19)
+
+CROSS-REFERENCES:
+  - Half marathon from session 2 — corrects April → May
+  - Session 2's running routine (3-4x/week, prefers outdoor)
+  - Session 2's hate for yoga (sets up stretching discussion)
+  - Rachel from session 1 (visiting) + session 4 (concerned about Linda)
+
+TANGENT TRIGGER:
+  Trigger: After injury discussion
+  Content: Maya asks about stretching routines, admits she never stretches.
+    Mentions she tried yoga once and hated it (callback to session 2).
+    Wants something quicker/less annoying.
+  Extractable Facts: Maya never stretches, hates yoga (reinforcement)
+  Return phrase: "ok anyway — wanted to tell you about rachel"
+
+MESSAGE PLAN (10 turns total):
+  1. Normal     — Opens: injury scare, knee pain during run
+  2. Quick      — React to advice
+  3. Normal     — Timing concern: the race is in MAY not April (correction)
+  4. Quick      — React to correction comfort
+  5. Extended   — Stretching tangent: never stretches, yoga hate, wants alternative
+  6. Quick      — Back from tangent
+  7. Normal     — Rachel visiting Austin soon
+  8. Normal     — Plans for Rachel's visit
+  9. Quick      — React to ideas
+  10. Quick     — Exit
+
+End Condition: Maya has shared injury concern, corrected the date, and mentioned Rachel's visit
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 11
+  Track: 1
+  Timestamp: 2026-04-07 13:20:00 UTC
+  Duration: ~5 minutes (13:20:00 to 13:25:30)
+
+---
+
+TURN 1 (Injury Scare)
+TAG: normal | TOKENS: 76/100
+
+MAYA:
+  hey so minor crisis
+
+  i was doing my long run saturday — like 9 miles, longest one yet —
+  and around mile 7 my left knee started doing this... clicking thing?
+  and now it kind of hurts when i go down stairs
+
+  i haven't run since. it's been 2 days and i'm freaking out a little.
+  is this how you get a stress fracture? i googled it and now i think
+  i'm dying
+
+AI ASSISTANT:
+  Ok, first: stop Googling. That way lies madness.
+
+  A clicking or popping in the knee after a long run is really common
+  — it's often runner's knee (patellofemoral pain syndrome). The fact
+  that it started at mile 7 of your longest run makes sense — your
+  body wasn't ready for that distance yet.
+
+  Does it hurt when you're sitting still, or only with movement like
+  stairs?
+
+ANALYSIS: Injury scare. Specific: left knee clicking at mile 7 of
+a 9-mile run, pain going downstairs. 2 days of no running. Google
+anxiety spiral. Agent provides calm medical context.
+
+---
+
+TURN 2 (React to Advice)
+TAG: quick | TOKENS: 28/50
+
+MAYA:
+  mostly just stairs and when i like... squat down? sitting is fine.
+  no swelling or anything
+
+  i just keep thinking what if i can't run the race. i've been
+  training for months
+
+AI ASSISTANT:
+  No swelling and pain only with specific movements is actually a
+  really good sign. That's almost certainly not a stress fracture —
+  those hurt even at rest.
+
+  It sounds like soft tissue irritation. RICE (rest, ice, compression,
+  elevation) for a few more days, and if it's not better by Thursday
+  or Friday, see a sports medicine doc.
+
+  You've got time — when's the race again?
+
+ANALYSIS: More details on the injury (no swelling, only movement-
+related). Maya anxious about race. Agent correctly reassures and asks
+about the race date — setting up the correction.
+
+---
+
+TURN 3 (Date Correction: April → May)
+TAG: normal | TOKENS: 54/100
+
+MAYA:
+  ok wait i think i told you april but it's actually MAY. may 18th.
+  i was confused because registration closed in april
+
+  so i have like 6 weeks. which is better. but still — losing a week
+  of training to this knee thing is stressing me out
+
+  is it ok to cross-train? like bike or something while my knee heals?
+
+AI ASSISTANT:
+  Oh nice, May 18th gives you way more runway. And losing one week
+  is totally fine — better to rest now than push through and make
+  it a real injury.
+
+  Yes, absolutely cross-train. Biking is great because it's low
+  impact — no pounding on the knee. Swimming too if you have access
+  to a pool. Just avoid anything that reproduces the pain.
+
+  You can probably start easy running again in 4-5 days if the
+  pain keeps improving. Start with 2-3 miles, see how it feels.
+
+ANALYSIS: CRITICAL CORRECTION — half marathon is May 18th, not April.
+Maya explains the confusion (registration closed in April). Agent
+accepts the correction naturally. Cross-training question shows
+Maya's commitment to the race.
+
+---
+
+TURN 4 (React to Recovery Plan)
+TAG: quick | TOKENS: 22/50
+
+MAYA:
+  ok good. i'll try biking this week. D has a peloton he never uses
+  so at least i don't have to go to a gym
+
+  no swimming though — i swim like a rock
+
+AI ASSISTANT:
+  Ha, fair enough. The Peloton is perfect for this — low impact,
+  you can control intensity, and you can watch something while you
+  ride instead of staring at a road.
+
+  Give it a few days and you'll probably be back running by the
+  weekend.
+
+ANALYSIS: David has a Peloton (he doesn't use it). Maya can't swim.
+Humor. Additional personality details.
+
+---
+
+TURN 5 (Stretching Tangent)
+TAG: extended | TOKENS: 128/200
+
+MAYA:
+  yeah hopefully
+
+  ok also — and i know the answer to this already — i should probably
+  be stretching right? like actually stretching. not just walking to my
+  car after a run and calling it a cooldown
+
+  i hate stretching. it's boring. i know i said i hate yoga too and
+  yes i still hate yoga. i tried one of those youtube yoga-for-runners
+  videos and i lasted 4 minutes
+
+  is there like a minimum viable stretching routine? like the absolute
+  bare minimum i can do and still count as a responsible runner?
+
+  because i will not do 30 minutes of stretching. i just won't. be
+  real with me here
+
+AI ASSISTANT:
+  I respect the honesty. Here's your minimum viable stretching:
+
+  **After EVERY run (3 minutes):**
+  - 30 seconds each: quad stretch, hamstring stretch, calf stretch
+  - Each leg = 3 minutes total. That's it.
+
+  **Twice a week (5 minutes):**
+  - Foam roller on quads and IT band (this is the big knee-protector)
+  - Hip flexor stretch (90/90 position, 30 seconds each side)
+
+  No yoga. No 30-minute sessions. Just these specific things that
+  directly prevent the knee issue you're dealing with.
+
+  The foam roller is the most important one. It sucks but it works.
+
+ANALYSIS: Stretching tangent. Reinforces: hates yoga (session 2
+callback), hates stretching, wants minimum effective dose. Personality:
+practical, no-nonsense about wellness. Agent matches her energy.
+
+---
+
+TURN 6 (Back from Tangent)
+TAG: quick | TOKENS: 15/50
+
+MAYA:
+  ok fine i'll get a foam roller. D probably has one somewhere in the
+  closet
+
+  ok anyway — wanted to tell you about rachel
+
+AI ASSISTANT:
+  Oh nice, what's up with Rachel?
+
+ANALYSIS: Clean tangent exit. David has fitness equipment he doesn't
+use (running personality detail). Pivot to Rachel.
+
+---
+
+TURN 7 (Rachel Visiting)
+TAG: normal | TOKENS: 72/100
+
+MAYA:
+  she's coming to visit! like in 2 weeks. flying in from seattle for
+  a long weekend
+
+  she hasn't been to austin in over a year. i'm excited — we text
+  all the time but it's not the same you know? and D loves her too
+  so it'll be nice to all hang out
+
+  i want to take her to some good restaurants and maybe barton springs
+  if it's warm enough. she's never been there
+
+AI ASSISTANT:
+  That's awesome! A long weekend is a solid visit length — enough
+  time to actually do stuff without it feeling rushed.
+
+  Barton Springs is a great call if it's warm. April weather in
+  Austin should be perfect for it — 80s and sunny usually.
+
+  Any food spots you definitely want to hit? Austin's food scene has
+  probably changed since she was here last.
+
+ANALYSIS: Rachel visiting in 2 weeks. Long weekend. Seattle to
+Austin flight. Hasn't visited in over a year. David likes Rachel.
+Barton Springs plan. Agent engages with Austin recommendations.
+
+---
+
+TURN 8 (Plans for Rachel's Visit)
+TAG: normal | TOKENS: 68/100
+
+MAYA:
+  definitely tacos. she doesn't have good tacos in seattle — it's
+  her number one complaint about living there lol
+
+  and maybe that thai place near south congress? D and i went there
+  a while back and it was really good
+
+  honestly i mostly just want to hang out and catch up. with
+  everything going on — mom's stuff, work being garbage — it'll be
+  nice to just be around family
+
+AI ASSISTANT:
+  The taco pilgrimage is sacred. Make sure you hit at least one
+  proper breakfast taco spot — that's the real Austin flex.
+
+  And yeah, sometimes you just need your sister around. Especially
+  with a lot on your plate. Catching up in person is totally
+  different from texting.
+
+  Is she bringing the kids?
+
+ANALYSIS: Thai restaurant on South Congress — callback to session 3's
+brief (if Track 2 existed). Tacos as Austin essential. Rachel's
+Seattle complaint. "Mom's stuff" = organic reference to diabetes.
+"Work being garbage" = organic reference to job frustration.
+Agent asks about kids — setting up that Maya doesn't name them yet.
+
+---
+
+TURN 9 (React — No Kids This Trip)
+TAG: quick | TOKENS: 28/50
+
+MAYA:
+  nah just her. her husband's watching the kids. she said she needs
+  a "solo trip" which i fully support
+
+  adult-only weekend. D and rach and me. and biscuit obviously, he
+  counts
+
+AI ASSISTANT:
+  Biscuit absolutely counts. He's going to lose his mind when
+  there's a new person to love.
+
+  Sounds like a great weekend. Let me know if you want restaurant
+  recs closer to the visit.
+
+ANALYSIS: First mention of Rachel's husband (not named). Kids staying
+home. "Solo trip" for Rachel. Biscuit included. Notice: Maya does
+NOT name Rachel's children — their names are reserved for session 15.
+
+---
+
+TURN 10 (Exit)
+TAG: quick | TOKENS: 10/50
+
+MAYA:
+  will do. ok gotta go ice this knee lol
+
+  bye!
+
+AI ASSISTANT:
+  Ha, go ice! And don't Google anything else.
+
+  Bye, Maya!
+
+ANALYSIS: Quick exit with knee callback. Light humor. Clean.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Stripe or job search companies
+  - No Rachel's children's names (Ethan, Lily) or ages
+  - No David promotion
+  - No moving specifics
+  - No half marathon results
+  - No mom's diabetes improvement
+
+CONSTRAINT 2: Date Correction Properly Executed
+  STATUS: PASS
+  Location: Turn 3
+  Evidence: "ok wait i think i told you april but it's actually MAY.
+    may 18th. i was confused because registration closed in april"
+  Note: Maya explicitly corrects herself. Provides the exact date
+    (May 18th) and explains the confusion. Tests whether memory
+    system updates the temporal fact properly.
+  Previous fact (session 2): "it's in april i think?"
+  Updated fact (session 11): "May 18th"
+
+CONSTRAINT 3: Yoga Hate Reinforced
+  STATUS: PASS
+  Location: Turn 5
+  Evidence: "i know i said i hate yoga too and yes i still hate yoga.
+    i tried one of those youtube yoga-for-runners videos and i lasted
+    4 minutes"
+  Note: Direct callback to session 2 yoga mention. Maya self-
+    references her prior statement. Reinforces the fact for
+    confirmation boosting in the memory system.
+
+CONSTRAINT 4: Rachel's Kids Not Named
+  STATUS: PASS
+  Location: Turn 9
+  Evidence: "her husband's watching the kids" — generic, no names
+  Note: Deliberately avoids naming Ethan and Lily. Session 15 is
+    where Rachel visits and Maya talks about her nephews by name.
+
+CONSTRAINT 5: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 10 only. Clean single exit.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  Date correction cleanly executed
+  Prior facts reinforced without forced exposition
+  Rachel's children appropriately unnamed
+  Cross-references organic and multi-session
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-11 (cumulative ground truth)
+  Evaluation Scope: Temporal correction, injury facts, family planning
+
+QUERY 1: "When is the Austin Half marathon?"
+  Ground Truth: May 18th. Maya originally said April in session 2 but
+    corrected to May 18th in session 11.
+  Evidence Sessions: 2, 11
+  Supporting Evidence:
+    - Session 2: "it's in april i think?"
+    - Session 11, Turn 3: "it's actually MAY. may 18th."
+  Query Type: temporal_current (tests fact update)
+  Recall Difficulty: Hard (must return May, not April. Tests whether
+    system correctly handles fact correction/supersession)
+
+QUERY 2: "Did Maya have any injuries during training?"
+  Ground Truth: Yes — she tweaked her left knee during a 9-mile run.
+    Clicking/popping at mile 7, pain going downstairs. No swelling.
+    She took a few days off running and planned to cross-train
+    on David's Peloton.
+  Evidence Session: 11
+  Supporting Evidence:
+    - Turn 1: "left knee started doing this... clicking thing"
+    - Turn 2: "mostly just stairs and when i... squat down"
+    - Turn 4: "D has a peloton he never uses"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (specific medical details)
+
+QUERY 3: "Does Maya stretch after running?"
+  Ground Truth: No — she admits she never stretches. She hates
+    stretching and yoga. She agreed to get a foam roller after
+    the knee injury.
+  Evidence Sessions: 2, 11
+  Supporting Evidence:
+    - Session 2, Turn 7: "tried yoga, hated it"
+    - Session 11, Turn 5: "i should probably be stretching right?"
+    - Session 11, Turn 5: "i hate stretching"
+    - Session 11, Turn 6: "ok fine i'll get a foam roller"
+  Query Type: tangent_recall
+  Recall Difficulty: Medium (pattern across two sessions)
+
+QUERY 4: "When is Rachel visiting Austin?"
+  Ground Truth: In about 2 weeks from session 11 (mid-to-late April).
+    Flying from Seattle for a long weekend. Coming solo — kids
+    staying with her husband.
+  Evidence Session: 11
+  Supporting Evidence:
+    - Turn 7: "she's coming to visit! like in 2 weeks"
+    - Turn 9: "just her. her husband's watching the kids"
+  Query Type: temporal_current
+  Recall Difficulty: Easy (directly stated)
+
+QUERY 5: "Has Maya ever said the same thing twice about yoga?"
+  Ground Truth: Yes — she mentioned hating yoga in session 2 (when
+    considering treadmill alternatives) and again in session 11 (when
+    discussing stretching). She even referenced her prior statement:
+    "i know i said i hate yoga too and yes i still hate yoga."
+  Evidence Sessions: 2, 11
+  Supporting Evidence:
+    - Session 2, Turn 7: "tried it once, hated it. i'm too fidgety"
+    - Session 11, Turn 5: "i know i said i hate yoga too and yes
+      i still hate yoga"
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Hard (requires connecting two mentions across
+    9-session gap, testing confirmation tracking)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Temporal correction: Query 1 (April → May)
+  Factual recall: Query 2 (knee injury details)
+  Tangent recall: Query 3 (stretching habits)
+  Temporal: Query 4 (Rachel visit timing)
+  Multi-session synthesis: Query 5 (yoga confirmation pattern)
+  Complexity: 1 Easy, 2 Medium, 2 Hard
+  Coverage: Running arc update, injury, lifestyle habits, family visit
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec outline: "Marathon training update. Injury scare. Mentions
+     Rachel visiting soon. TANGENT: Stretching routines, hates yoga."
+   Full session created with knee injury details, date correction,
+   stretching discussion, Rachel visit planning.
+
+2. DATE CORRECTION MECHANICS
+   Spec: "Maya states half marathon is in April (session 2), corrects
+     to May (session 11)"
+   Transcript: Maya explains the confusion — registration closed in
+     April, race is May 18th. Provides exact date for precision testing.
+   Rationale: The explanation for the confusion makes the correction
+     feel natural rather than arbitrary. Exact date tests precision.
+
+3. DAVID'S PELOTON DETAIL
+   Not in spec. Added: David has a Peloton he never uses. Maya will
+   use it for cross-training.
+   Rationale: Personality detail for David (buys fitness equipment
+     but doesn't use it). Natural problem-solving moment.
+
+4. RACHEL'S HUSBAND MENTIONED
+   Not in spec. Added: Turn 9 — Rachel's husband watching the kids.
+   Rationale: First mention of Rachel having a husband. Note: husband
+     is NOT named — just "her husband." This is deliberate.
+
+5. YOGA CALLBACK EXPLICITLY SELF-REFERENCED
+   Spec: "TANGENT: asks about stretching routines, mentions she hates
+     yoga"
+   Transcript: Maya explicitly says "i know i said i hate yoga too
+     and yes i still hate yoga"
+   Rationale: Self-referential callbacks test whether the memory
+     system tracks confirmation. Maya is aware she's repeating herself.
+
+6. SOUTH CONGRESS THAI RESTAURANT CALLBACK
+   Not in spec. Added: Turn 8 — Maya mentions the Thai place near
+     South Congress for Rachel's visit.
+   Rationale: Callback to session 3's brief (tangent about a Thai
+     restaurant). Even without Track 2, this fact was planted in
+     Maya's world. Tests long-range tangent recall.
+
+VALIDATION SUMMARY:
+  Date correction cleanly planted and explained
+  Injury details specific and medical
+  Stretching tangent with yoga callback executed
+  Rachel visit planned with kids appropriately unnamed
+  5 eval queries covering 5 query types (2 hard)
+  10 turns, natural pacing
+  No forbidden facts leaked
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 11 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

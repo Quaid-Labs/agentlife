@@ -1,0 +1,127 @@
+================================================================================
+FILLER SESSION F088 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F088 (Filler — Work Session)
+Date: 2026-03-06 15:48
+Topic: what metrics should i track for user onboarding
+Turn Count: 12
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F088
+  Track: filler
+  Timestamp: 2026-03-06 15:48:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  hey so i'm thinking about metrics for the recipe app onboarding flow... what should i actually track?
+
+AI ASSISTANT:
+  For onboarding, I'd focus on:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  yeah that'd be great. can you draft something quick? nothing fancy just the key stuff
+
+AI ASSISTANT:
+  Here's a starter tracking plan:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  perfect. what's a good completion rate to aim for? i have no idea what's realistic lol
+
+AI ASSISTANT:
+  For consumer apps, benchmark onboarding completion rates:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  makes sense. should i be worried about tracking this stuff from day 1 or can i wait
+
+AI ASSISTANT:
+  Track from day 1 if possible - you can't retrofit historical data. Even basic tracking (just the funnel steps) is better than nothing.
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  ok cool. can you write me a quick schema for the events table? using postgres
+
+AI ASSISTANT:
+  ```sql
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  nice. what would the actual event names be? like "onboarding_started" or whatever
+
+AI ASSISTANT:
+  Here's a clean naming convention:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  perfect thx. one more thing - should i send myself alerts or just check a dashboard weekly?
+
+AI ASSISTANT:
+  Both, but start lean:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  got it. ok this is super helpful i'm gonna start building this out
+
+AI ASSISTANT:
+  Nice! One last tip - add a simple cohort date field to your users table so you can easily compare "users who signed up in March" vs April as you iterate. Makes A/B analysis way easier later.
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  oh yeah good call. adding that now. thanks!
+
+AI ASSISTANT:
+  You're welcome! Feel free to ping me when you have data flowing and want help writing the analysis queries.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

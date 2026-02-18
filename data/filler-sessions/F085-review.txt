@@ -1,0 +1,138 @@
+================================================================================
+FILLER SESSION F085 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 19 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F085 (Filler — Recipe App Micro)
+Date: 2026-04-28 22:54
+Topic: how do i handle file uploads for recipe images
+Turn Count: 13
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F085
+  Track: filler
+  Timestamp: 2026-04-28 22:54:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~31
+
+MAYA:
+  hey so i need to add image uploads to my recipe app. users should be able to upload photos of their dishes. what's the best way to handle this with express?
+
+AI ASSISTANT:
+  For recipe image uploads in Express, I'd recommend using **multer** for handling multipart/form-data and storing files locally (or you can integrate S3 later). Here's a complete setup:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  nice! one thing tho - do i need to update my schema migration or can i just alter the existing table?
+
+AI ASSISTANT:
+  Great question! You should **create a proper migration** rather than just altering the table directly. Here's why and how:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ok cool. now how do i write tests for the upload endpoint? never tested file uploads before lol
+
+AI ASSISTANT:
+  File upload testing is actually pretty straightforward with **supertest**! Here's a complete test suite:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  perfect. btw should i be storing the images in the repo or gitignoring uploads/?
+
+AI ASSISTANT:
+  **Definitely gitignore `uploads/`** — you don't want user-uploaded files in your repo. Here's the setup:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  makes sense. one more thing - how do i handle deleting recipes? need to clean up the image file too right?
+
+AI ASSISTANT:
+  Exactly! You need to delete both the database record AND the file. Here's a robust implementation:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  oh that's clutch. should i run that cleanup as a cron job or something?
+
+AI ASSISTANT:
+  Great instinct! Here are your options depending on deployment:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  perfect. last thing i swear lol - how do i show the images on the frontend? just img src with the path?
+
+AI ASSISTANT:
+  Yep, pretty much! But here are some best practices to make it production-ready:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  this is awesome thank you!! gonna test it out tomorrow. running austin half on sunday so need to sleep lol
+
+AI ASSISTANT:
+  Nice! Good luck on the half marathon! 🏃‍♀️
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  wait one more q - should i add auth middleware to the upload route? don't want randos uploading stuff
+
+AI ASSISTANT:
+  **Absolutely!** You definitely need auth on uploads. Here's a complete auth setup:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  clutch!! ok this is everything i need. gonna smash this feature tomorrow after my run 💪
+
+AI ASSISTANT:
+  You got this! 🚀 Here's a **final implementation checklist** so you can knock it out efficiently post-run:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,94 @@
+================================================================================
+FILLER SESSION F094 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F094 (Filler — Work Session)
+Date: 2026-03-28 10:06
+Topic: write a SQL query to find users who signed up but never activated
+Turn Count: 9
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F094
+  Track: filler
+  Timestamp: 2026-03-28 10:06:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  need to write a query for users who signed up but never activated their account, can you help
+
+AI ASSISTANT:
+  Sure! I'll need a bit of info about your schema. What tables are we working with? Assuming you have a `users` table - is there an `activated_at` timestamp column, or is activation tracked separately?
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  yeah users table has email, created_at, activated_at (nullable)
+
+AI ASSISTANT:
+  Perfect. Here's your query:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  oh wait also need to exclude anyone who signed up in the last 24hrs, they might still activate
+
+AI ASSISTANT:
+  Got it - filtering out the very recent signups:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  perfect. actually can you add a count grouped by signup week? want to see if there's a trend
+
+AI ASSISTANT:
+  Here's the version with weekly counts:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  nice. one more thing - what if i want to see the conversion rate too, like % who did activate each week
+
+AI ASSISTANT:
+  Here's the full breakdown with conversion rates:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  this is great thx! gonna run this and share with the growth team
+
+AI ASSISTANT:
+  Awesome! This should give them good visibility into activation trends. Let me know if they want any other cuts of the data - like by signup source, cohort retention, etc.
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

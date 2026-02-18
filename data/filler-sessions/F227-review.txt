@@ -1,0 +1,149 @@
+================================================================================
+FILLER SESSION F227 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 19 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F227 (Filler — Recipe App Micro)
+Date: 2026-04-25 08:00
+Topic: how do i write a test for an async function in jest
+Turn Count: 12
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F227
+  Track: filler
+  Timestamp: 2026-04-25 08:00:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  hey how do i write a test for an async function in jest? trying to test my login endpoint but keeps timing out
+
+AI ASSISTANT:
+  Hey Maya! Jest async tests need either `async/await` or you need to return the promise. The timeout usually means Jest finished before your async code completed. Here's how to test an async login endpoint properly:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  getting "cannot read property 'run' of undefined" on the db.run line. my db setup uses better-sqlite3 not the async one
+
+AI ASSISTANT:
+  Ah, that's the issue! `better-sqlite3` is synchronous, not promise-based. You're mixing sync and async patterns. Here's the corrected version:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  yeah it's still hitting my dev db. how do i make the app use the test db when running tests?
+
+AI ASSISTANT:
+  You need to set up environment-based database initialization. Here's how to structure it:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  ok cool that works but now getting "jwt must be provided" when testing a protected route. how do i add auth to the test requests?
+
+AI ASSISTANT:
+  You need to generate a valid JWT in your tests and include it in the Authorization header. Here's how:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  perfect. last thing - how do i test that the password is actually getting hashed? want to make sure im not storing plaintext lol
+
+AI ASSISTANT:
+  Good thinking! Here's how to test the password hashing in your signup flow:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  awesome thanks. btw whats the difference between beforeAll and beforeEach? been using them randomly tbh
+
+AI ASSISTANT:
+  Ha, yeah that's a common confusion! Here's the breakdown:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  got it. one more - getting this error "SQLITE_CONSTRAINT: FOREIGN KEY constraint failed" when trying to delete a user in my test
+
+AI ASSISTANT:
+  That's SQLite enforcing your foreign key constraint - you're trying to delete a user that still has recipes attached. Here's how to handle it:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  oh damn i didnt know sqlite disables fks by default. is there other stuff like that i should know about?
+
+AI ASSISTANT:
+  Yeah, SQLite has a bunch of gotchas! Here's the critical stuff for your recipe app:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  wait whats the fts5 thing? sounds useful for searching recipes
+
+AI ASSISTANT:
+  FTS5 = Full-Text Search! It's SQLite's built-in search engine - way better than `LIKE '%keyword%'` for finding recipes. Here's how to use it:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  this is sick. ok last q - how do i test the search endpoint with fts?
+
+AI ASSISTANT:
+  Here's how to test FTS search - you need to seed the FTS table along with your regular data:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  perfect tysm. gonna add auth this weekend before the marathon. zilker house viewing went well btw might put in an offer
+
+AI ASSISTANT:
+  Nice! Zilker is great for running - you'll be right by the trail. Good luck with the offer and the marathon!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

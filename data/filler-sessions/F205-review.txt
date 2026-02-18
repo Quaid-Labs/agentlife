@@ -1,0 +1,61 @@
+================================================================================
+FILLER SESSION F205 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F205 (Filler — Quick Question)
+Date: 2026-04-22 10:55
+Topic: is it safe to give dogs blueberries
+Turn Count: 3
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F205
+  Track: filler
+  Timestamp: 2026-04-22 10:55:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  hey quick q - is it safe to give dogs blueberries or nah
+
+AI ASSISTANT:
+  Yeah totally safe! Blueberries are actually great for dogs - antioxidants, low cal, good training treats. Just wash them first and don't go overboard with portions.
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  oh sick. my neighbor's dog was eyeing mine this morning lol wondered if i could share
+
+AI ASSISTANT:
+  Haha yeah you're good to share! Most dogs love them. Just start with a few to make sure their stomach handles it fine.
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~2
+
+MAYA:
+  perfect thx
+
+AI ASSISTANT:
+  No prob!
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================
