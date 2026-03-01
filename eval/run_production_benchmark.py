@@ -88,6 +88,62 @@ PROJECT_SESSIONS = sorted(
 )
 
 
+def _default_domain_descriptions() -> dict:
+    """Load canonical domain defaults from plugin code, with safe fallback."""
+    fallback = {
+        "finance": "budgeting, purchases, salary, bills",
+        "health": "training, injuries, routines, wellness",
+        "household": "home, chores, food planning, shared logistics",
+        "legal": "contracts, policy, and regulatory constraints",
+        "personal": "identity, preferences, relationships, life events",
+        "project": "project status, tasks, files, milestones",
+        "research": "options considered, comparisons, tradeoff analysis",
+        "schedule": "dates, appointments, deadlines",
+        "technical": "code, infra, APIs, architecture",
+        "travel": "trips, moves, places, logistics",
+        "work": "job/team/process decisions not deeply technical",
+    }
+    try:
+        import importlib.util
+        mod_path = _QUAID_DIR / "datastore" / "memorydb" / "domain_defaults.py"
+        if not mod_path.exists():
+            return fallback
+        spec = importlib.util.spec_from_file_location("domain_defaults", str(mod_path))
+        if spec is None or spec.loader is None:
+            return fallback
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        fn = getattr(mod, "default_domain_descriptions", None)
+        if callable(fn):
+            loaded = fn()
+            if isinstance(loaded, dict) and loaded:
+                return {str(k): str(v) for k, v in loaded.items()}
+    except Exception:
+        pass
+    return fallback
+
+
+def _bootstrap_domain_registry(conn: sqlite3.Connection) -> None:
+    """Ensure active domain_registry rows exist (installer-equivalent bootstrap)."""
+    rows = conn.execute("SELECT count(*) FROM domain_registry WHERE active = 1").fetchone()
+    active_count = int(rows[0]) if rows else 0
+    if active_count > 0:
+        return
+    defaults = _default_domain_descriptions()
+    for domain_id, description in defaults.items():
+        conn.execute(
+            """
+            INSERT INTO domain_registry(domain, description, active)
+            VALUES (?, ?, 1)
+            ON CONFLICT(domain) DO UPDATE SET
+              description = COALESCE(NULLIF(domain_registry.description, ''), excluded.description),
+              active = 1,
+              updated_at = datetime('now')
+            """,
+            (str(domain_id).strip().lower(), str(description).strip()),
+        )
+
+
 def _load_active_domain_ids(workspace: Path) -> List[str]:
     """Load active domain ids from workspace domain_registry (fail-hard)."""
     db_path = workspace / "data" / "memory.db"
@@ -168,11 +224,14 @@ def setup_workspace(workspace: Path) -> None:
     schema = (_QUAID_DIR / "schema.sql").read_text()
     conn = sqlite3.connect(str(db_path))
     conn.executescript(schema)
+    _bootstrap_domain_registry(conn)
     conn.close()
     print(f"  DB initialized: {db_path}")
 
     # 2. Benchmark config
     prod_config = json.loads((_CLAWD / "config" / "memory.json").read_text())
+    if not isinstance(prod_config.get("users"), dict):
+        prod_config["users"] = {}
     prod_config["users"]["defaultOwner"] = "maya"
     prod_config["users"]["identities"] = {
         "maya": {
@@ -181,6 +240,8 @@ def setup_workspace(workspace: Path) -> None:
             "personNodeName": "Maya",
         },
     }
+    if not isinstance(prod_config.get("projects"), dict):
+        prod_config["projects"] = {}
     prod_config["projects"]["definitions"] = {
         "recipe-app": {
             "label": "Recipe App",
@@ -202,6 +263,10 @@ def setup_workspace(workspace: Path) -> None:
         },
     }
     # Core markdown: only what the benchmark workspace has
+    if not isinstance(prod_config.get("docs"), dict):
+        prod_config["docs"] = {}
+    if not isinstance(prod_config["docs"].get("coreMarkdown"), dict):
+        prod_config["docs"]["coreMarkdown"] = {}
     prod_config["docs"]["coreMarkdown"]["files"] = {
         "SOUL.md": {"purpose": "Personality and values", "maxLines": 80},
         "USER.md": {"purpose": "User biography", "maxLines": 150},
@@ -209,9 +274,15 @@ def setup_workspace(workspace: Path) -> None:
         "IDENTITY.md": {"purpose": "Name and identity", "maxLines": 20},
         "TOOLS.md": {"purpose": "Tool reference", "maxLines": 150},
     }
+    if not isinstance(prod_config["docs"].get("journal"), dict):
+        prod_config["docs"]["journal"] = {}
     prod_config["docs"]["journal"]["targetFiles"] = ["SOUL.md", "USER.md", "MEMORY.md"]
     # Disable notifications (don't spam Solomon's Telegram during benchmark)
-    prod_config["notifications"] = {"fullText": False, "showProcessingStart": False}
+    if not isinstance(prod_config.get("notifications"), dict):
+        prod_config["notifications"] = {}
+    prod_config["notifications"].update({"fullText": False, "showProcessingStart": False})
+    if not isinstance(prod_config.get("retrieval"), dict):
+        prod_config["retrieval"] = {}
     prod_config["retrieval"]["notifyOnRecall"] = False
 
     config_path = workspace / "config" / "memory.json"
