@@ -119,7 +119,9 @@ def build_extraction_prompt(
         if domain_list:
             domain_clause = (
                 "\n\nDOMAIN TAGS:\n"
-                f"- Use only these domain values when setting domain: {domain_list}\n"
+                f"- Every fact MUST include a \"domains\" array (empty array is allowed).\n"
+                f"- Use only these values in \"domains\": {domain_list}\n"
+                "- Multiple domains are allowed and encouraged when the fact truly spans areas.\n"
                 "- If uncertain, choose the closest listed domain and avoid inventing new values.\n"
             )
 
@@ -320,6 +322,7 @@ Respond with JSON only:
       "extraction_confidence": "high|medium|low",
       "keywords": "space separated search terms",
       "privacy": "private|shared|public",
+      "domains": ["personal"],
       "sensitivity": null,
       "sensitivity_handling": null,
       "is_technical": false,
