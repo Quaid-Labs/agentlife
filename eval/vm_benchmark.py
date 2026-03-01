@@ -1645,7 +1645,7 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
             if "missing" in check.stdout:
                 # Install Quaid from GitHub
                 result = vm.ssh(
-                    "cd /tmp && rm -rf quaid && git clone https://github.com/Steadman-Labs/quaid.git "
+                    "cd /tmp && rm -rf quaid && git clone https://github.com/quaid-labs/quaid.git "
                     "&& mkdir -p ~/clawd/plugins/quaid ~/clawd/config ~/clawd/data ~/clawd/journal "
                     "&& cp -r /tmp/quaid/plugins/quaid/* ~/clawd/plugins/quaid/ "
                     "&& cp /tmp/quaid/memory.json.example ~/clawd/config/memory.json "

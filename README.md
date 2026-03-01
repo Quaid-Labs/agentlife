@@ -73,7 +73,7 @@ Each query includes ground truth, evidence sessions, query type, and recall diff
 ### Setup
 
 ```bash
-git clone https://github.com/Steadman-Labs/agentlife.git
+git clone https://github.com/quaid-labs/agentlife.git
 cd agentlife
 cp .env.example .env
 # Edit .env with your API keys
@@ -177,7 +177,7 @@ If you use AgentLife in your research:
   title={AgentLife: A Full-Lifecycle Benchmark for AI Agent Memory Systems},
   author={Solomon Steadman},
   year={2026},
-  url={https://github.com/Steadman-Labs/agentlife}
+  url={https://github.com/quaid-labs/agentlife}
 }
 ```
 
@@ -187,6 +187,6 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Related
 
-- [Quaid](https://github.com/Steadman-Labs/quaid) — The memory system that motivated this benchmark
+- [Quaid](https://github.com/quaid-labs/quaid) — The memory system that motivated this benchmark
 - [LoCoMo](https://github.com/snap-research/locomo) — Conversational memory benchmark (extraction+recall only)
 - [LongMemEval](https://github.com/xiaowu0162/LongMemEval) — Long-term memory evaluation from ICLR 2025
