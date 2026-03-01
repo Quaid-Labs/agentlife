@@ -1698,7 +1698,7 @@ QUERY 3: "Do Maya and David have a regular restaurant they go to?"
   Recall Difficulty: Medium (embedded in tangents in two sessions,
     requires recognizing the pattern/callback)
 
-QUERY 4: "What does the recipe app currently look like?"
+QUERY 4: "What does the recipe app UI currently look like?"
   Ground Truth: A responsive CSS grid of recipe cards. Each card shows
     the recipe name, a prep time value in the meta line, and dietary tag
     pills (color-coded: green for vegetarian, yellow for gluten-free,

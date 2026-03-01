@@ -493,100 +493,273 @@ OVERALL LEAKAGE ASSESSMENT: CLEAN
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-NOTE: This session contains the COMPREHENSIVE evaluation queries that
-test the entire series. These are the capstone queries.
-
 QUERY 1: "What are the names of all the people in Maya's life?"
-  Ground Truth: David (partner, software engineer, now lead engineer),
-    Biscuit (dog, golden retriever), Linda (mom, Houston, Type 2
-    diabetes), Rachel (sister, Seattle, two kids), Ethan (nephew, 7,
-    dinosaurs/geology), Lily (niece, 4, funny), Priya (coworker at
-    TechFlow, not family), David's mom (opinionated, visited 10 days),
-    Mike (David's brother), Sarah (Maya's new manager at Stripe),
-    Rachel's husband (unnamed).
+  Ground Truth: David (partner, software engineer, now lead engineer), Biscuit (dog, golden retriever), Linda (mom, Houston, Type 2 diabetes), Rachel (sister, Seattle, two kids), Ethan (nephew, 7, dinosaurs/geology), Lily (niece, 4, funny), Priya (coworker at TechFlow, not family), David's mom (opinionated, visited 10 days), Mike (David's brother), Sarah (Maya's new manager at Stripe), Rachel's husband (unnamed).
   Query Type: multi_session_synthesis
   Recall Difficulty: Very Hard (complete relationship inventory)
 
 QUERY 2: "Trace Maya's career path."
-  Ground Truth: Product manager at TechFlow (B2B analytics, 2 years) →
-    unhappy after reorg (January), manager didn't listen, AI-first
-    pivot → browsed opportunities with Priya → interviewed at Stripe
-    (3 weeks, 4 rounds) → accepted senior PM on developer tools
-    (30% raise, remote, equity) → started May 19th → currently week 2,
-    loves it, manager Sarah is great.
+  Ground Truth: Product manager at TechFlow (B2B analytics, 2 years) → unhappy after reorg (January), manager didn't listen, AI-first pivot → browsed opportunities with Priya → interviewed at Stripe (3 weeks, 4 rounds) → accepted senior PM on developer tools (30% raise, remote, equity) → started May 19th → currently week 2, loves it, manager Sarah is great.
   Query Type: evolution (full arc)
   Recall Difficulty: Very Hard (7 sessions of career data)
 
 QUERY 3: "What dietary restrictions exist in Maya's family?"
-  Ground Truth: Linda has Type 2 diabetes (diabetic-friendly diet needed),
-    David is vegetarian. These two facts converged in the birthday
-    dinner restaurant planning (session 8) and in Maya's desire to
-    help Linda with meal planning.
+  Ground Truth: Linda has Type 2 diabetes (diabetic-friendly diet needed), David is vegetarian. These two facts converged in the birthday dinner restaurant planning (session 8) and in Maya's desire to help Linda with meal planning.
   Query Type: inference (multi-fact assembly)
   Recall Difficulty: Hard (2 facts from 2 sessions, 1 convergence point)
 
 QUERY 4: "What corrections has Maya made?"
-  Ground Truth: Half marathon date — originally said April (session 2),
-    corrected to May 18th (session 11). Reason: confused registration
-    closing date with race date.
+  Ground Truth: Half marathon date — originally said April (session 2), corrected to May 18th (session 11). Reason: confused registration closing date with race date.
   Query Type: evolution (fact correction tracking)
   Recall Difficulty: Hard (must identify the correction AND the
-    explanation for it)
 
 QUERY 5: "Does Maya have children?"
-  Ground Truth: No. Maya has a partner (David), a dog (Biscuit), a mom
-    (Linda), a sister (Rachel), and Rachel has two children (Ethan and
-    Lily). But Maya does not have children herself.
+  Ground Truth: No. Maya has a partner (David), a dog (Biscuit), a mom (Linda), a sister (Rachel), and Rachel has two children (Ethan and Lily). But Maya does not have children herself.
   Query Type: negative (hallucination resistance)
   Recall Difficulty: Medium (must correctly distinguish Maya's
-    relationship to children — they're niece/nephew, not hers)
 
 QUERY 6: "What happened at Linda's birthday dinner?"
-  Ground Truth: David planned a surprise dinner at Riel restaurant in
-    Montrose, Houston. He told Linda it was just the two of them, then
-    Maya was already there. Rachel FaceTimed with the kids — Ethan
-    showed a dinosaur toy, Lily yelled "happy birthday grandma." Linda
-    screamed when she saw Maya. She had grilled redfish. The menu was
-    diabetic-friendly.
+  Ground Truth: David planned a surprise dinner at Riel restaurant in Montrose, Houston. He told Linda it was just the two of them, then Maya was already there. Rachel FaceTimed with the kids — Ethan showed a dinosaur toy, Lily yelled "happy birthday grandma." Linda screamed when she saw Maya. She had grilled redfish. The menu was diabetic-friendly.
   Query Type: surprise_callback
   Recall Difficulty: Hard (setup in session 8, resolution in session 19)
 
 QUERY 7: "Where does Maya want to live and why?"
-  Ground Truth: They're buying a house in East Austin — David's
-    preference won, but the location is walkable (Maya's core
-    requirement). It has a workshop garage for David's woodworking.
-    Previously Maya wanted Zilker (sessions 6, 17) but was flexible.
+  Ground Truth: They're buying a house in East Austin — David's preference won, but the location is walkable (Maya's core requirement). It has a workshop garage for David's woodworking. Previously Maya wanted Zilker (sessions 6, 17) but was flexible.
   Query Type: contested_fact (resolved)
   Recall Difficulty: Hard (tracks preference evolution + resolution)
 
 QUERY 8: "What is Rachel's relationship to Ethan?"
-  Ground Truth: Rachel is Ethan's mother. Rachel is Maya's sister.
-    Ethan is 7, interested in dinosaurs and now plate tectonics.
+  Ground Truth: Rachel is Ethan's mother. Rachel is Maya's sister. Ethan is 7, interested in dinosaurs and now plate tectonics.
   Query Type: graph_traversal (2-hop)
   Recall Difficulty: Medium
 
 QUERY 9: "What's Linda's relationship to Lily?"
-  Ground Truth: Linda is Lily's grandmother. Linda is Maya's mom,
-    Rachel is Maya's sister, Lily is Rachel's daughter.
+  Ground Truth: Linda is Lily's grandmother. Linda is Maya's mom, Rachel is Maya's sister, Lily is Rachel's daughter.
   Query Type: graph_traversal (3-hop)
   Recall Difficulty: Hard (3-hop: Linda → Maya → Rachel → Lily)
 
 QUERY 10: "Is Maya moving to Portugal?"
-  Ground Truth: No. Maya has never mentioned Portugal. She's buying
-    a house in East Austin, Texas.
+  Ground Truth: No. Maya has never mentioned Portugal. She's buying a house in East Austin, Texas.
   Query Type: negative (hallucination resistance)
   Recall Difficulty: Easy (but tests whether system fabricates)
 
+QUERY 11: "How did Maya's feelings about her job at TechFlow change over time?"
+  Ground Truth: Maya's satisfaction at TechFlow deteriorated steadily. In sessions 1-5 she described TechFlow as boring but stable — 'pays the bills.' By session 6 (March 14) frustration had peaked: a January reorg reshuffled teams, her manager was talking over her in meetings, and leadership brought in consultants to do her job. She told the agent her job felt like '...a job lol.' By sessions 7-12 she was actively browsing and talking to coworker Priya about leaving. Session 13 (April 21) brought the Stripe offer (senior PM, developer tools, 30% raise, fully remote). Session 14 she accepted and gave notice. By session 15+ she was at Stripe — happy, manager Sarah listens, people read PRDs before meetings.
+  Evidence Session(s): 1, 6, 13, 14, 15, 20
+  Query Type: evolution
+  Recall Difficulty: Hard
+
+QUERY 12: "Trace the progression of Linda's A1C from diagnosis through the end of the story."
+  Ground Truth: Linda's A1C followed a clear downward arc across three data points. Session 4 (March 10): diagnosed with Type 2 diabetes, A1C at 8.2, doctor's target was under 7. Maya and Rachel put together weekly diabetic-friendly meal plans for her. Session 19 (May 19): A1C dropped to 7.1 — significant improvement but still above the target. Linda described the food as 'doesn't taste like punishment.' Session 20 (May 26) / sessions 18-20: A1C reached 6.8, finally below the target of 7. Linda began modifying the recipes herself, adding her own spices.
+  Evidence Session(s): 4, 15, 19, 20
+  Query Type: evolution
+  Recall Difficulty: Hard
+
+QUERY 13: "What changed about the half marathon date, and why?"
+  Ground Truth: In session 2 (March 3), Maya mentioned her half marathon was 'in april i think.' In session 11 (March 22 / April 7), she corrected herself: the race is actually May 18th. She explained the confusion — registration closed in April, which she had mentally conflated with the race date. The corrected date was confirmed in session 19 when Maya reported finishing the race on May 18th.
+  Evidence Session(s): 2, 11, 19
+  Query Type: evolution
+  Recall Difficulty: Medium
+
+QUERY 14: "How did Maya and David's house-hunting preferences evolve, and how was the disagreement resolved?"
+  Ground Truth: The house-hunting debate unfolded across several sessions. Session 6 planted the moving concept — Maya mentioned wanting to live closer to downtown because of Austin traffic. Session 8 introduced the Zilker preference. By session 8 and onward, Maya favored Zilker (walkable, near downtown) while David preferred East Austin (yard for Biscuit, more space). Session 19 introduced a new factor: Stripe's hybrid schedule (2 days in office, rest remote) reduced the importance of downtown proximity, weakening Maya's walkability argument. Session 20 (May 26) brought the resolution: they found a place in East Austin — David's preferred neighborhood — but in a newer, walkable pocket with restaurants and a coffee shop within walking distance. It also has a detached garage workshop for David's woodworking. They were putting in an offer.
+  Evidence Session(s): 6, 8, 19, 20
+  Query Type: evolution
+  Recall Difficulty: Hard
+
+QUERY 15: "How did the portfolio site's company listing change across the series, and why?"
+  Ground Truth: The portfolio site started as 'Senior Product Manager at TechFlow' when it was created in session 9. In session 13 (April 21), Maya noticed it was stale — she had just accepted a Stripe offer and observed 'my portfolio site still says techflow.' In session 14 (March 29 per transcript, shortly after session 13), Maya asked the agent to 'update the company stuff' without re-explaining, and the portfolio was updated to 'Senior Product Manager at Stripe.' She chose to label her role 'payments platform team' on the portfolio rather than 'developer tools' for branding reasons. Session 20 confirms the portfolio shows Stripe.
+  Evidence Session(s): 9, 13, 14, 20
+  Query Type: evolution
+  Recall Difficulty: Hard
+
+QUERY 16: "How did Maya's running fitness and relationship with cross-training evolve across the training arc?"
+  Ground Truth: Session 2 established Maya as a runner (3-4 times per week, outdoor, hates yoga). Session 11 (April 7) brought an injury scare: left knee clicking at mile 7 of a 9-mile run, pain on stairs. Maya stopped running for 2 days and was anxious. She cross-trained on David's Peloton. She also agreed, reluctantly, to get a foam roller — she had resisted stretching entirely. Session 19 (May 19) showed the payoff: the foam roller worked, her knee twinged at mile 10 of the half marathon but held. She ran a consistent pace the whole way, 2:14, without walking. Session 20 (May 26): knee is fully fine, back to running 5-mile runs, already looking at fall marathons. David ran with her.
+  Evidence Session(s): 2, 11, 19, 20
+  Query Type: evolution
+  Recall Difficulty: Medium
+
+QUERY 17: "Where does Maya work right now?"
+  Ground Truth: Stripe. Maya is a Senior Product Manager on the developer tools platform (she calls it 'payments platform team' on her portfolio for branding reasons). She accepted the offer in session 13, gave notice at TechFlow in session 14, started May 19th, and as of session 20 (May 26) is in week 2. Her manager is Sarah. She should NOT be described as working at TechFlow.
+  Evidence Session(s): 1, 6, 13, 14, 19, 20
+  Query Type: temporal_current
+  Recall Difficulty: Easy
+
+QUERY 18: "What is Linda's current A1C level, and has she met her doctor's target?"
+  Ground Truth: As of session 20 (May 26), Linda's A1C is 6.8 — below the target of under 7. This is a full recovery arc: 8.2 at diagnosis (session 4) → 7.1 mid-arc (session 19) → 6.8 now (session 20). The target has been met. Maya and Rachel's meal planning worked, and Linda is now modifying the recipes herself.
+  Evidence Session(s): 4, 19, 20
+  Query Type: temporal_current
+  Recall Difficulty: Medium
+
+QUERY 19: "Has Maya run the half marathon yet? If so, what was her time?"
+  Ground Truth: Yes — Maya completed the Austin Half Marathon on May 18th in 2 hours and 14 minutes. She did not walk any of it. Her secret goal had been under 2:30, so she beat it by 16 minutes. Her knee held (she foam rolled). David and Biscuit were at mile 11. She cried at the finish line. As of session 20 she is already back to running (5-mile runs) and discussing a fall full marathon.
+  Evidence Session(s): 2, 11, 19, 20
+  Query Type: temporal_current
+  Recall Difficulty: Easy
+
+QUERY 20: "What neighborhood is Maya currently planning to buy a house in, and what does the property have?"
+  Ground Truth: East Austin. As of session 20 (May 26), Maya and David found a house in East Austin — David's preferred neighborhood — and are putting in an offer this week. Despite earlier disagreement (Maya wanted Zilker for walkability), the chosen property is in a newer, walkable pocket of East Austin with restaurants and a coffee shop within walking distance. It has a detached garage that can serve as a workshop for David's woodworking. It is at the top of their budget. The answer is NOT Zilker, which was Maya's earlier preference.
+  Evidence Session(s): 6, 8, 19, 20
+  Query Type: temporal_current
+  Recall Difficulty: Medium
+
+QUERY 21: "What does Maya's portfolio site currently say about her employer?"
+  Ground Truth: Stripe. The portfolio was originally created in session 9 with 'Senior Product Manager at TechFlow.' Maya flagged it as stale in session 13 after getting the Stripe offer. It was updated in session 14 to say 'Senior Product Manager at Stripe,' with an About section reading 'Currently at Stripe, previously at TechFlow.' A new Stripe project card was added. Maya chose to describe her role as 'payments platform team' on the portfolio — even though her actual role title is developer tools — for branding reasons. The answer is NOT TechFlow.
+  Evidence Session(s): 9, 13, 14, 20
+  Query Type: temporal_current
+  Recall Difficulty: Hard
+
+QUERY 22: "Is Priya still at TechFlow, or has she moved on?"
+  Ground Truth: As of session 20 (May 26), Priya is still at TechFlow but actively interviewing elsewhere — she texted Maya saying 'she's interviewing somewhere' but didn't say where. Maya hopes Priya 'gets out.' Priya was introduced in session 6 as Maya's teammate at TechFlow who was also job-hunting. When Maya got the Stripe offer in session 13, she offered to refer Priya. But as of the last session, Priya has not yet left TechFlow.
+  Evidence Session(s): 6, 13, 20
+  Query Type: temporal_current
+  Recall Difficulty: Medium
+
+QUERY 23: "What health condition does Maya's mom have that directly influenced a feature Maya built into the recipe app?"
+  Ground Truth: Linda has type 2 diabetes, which drove Maya to build a 'Safe for Mom' one-click dietary preset into the recipe app — filtering recipes to be diabetic-friendly and low-sodium. The app's entire dietary filtering system was designed primarily around Linda's health needs.
+  Evidence Session(s): 4, 3, 5
+  Query Type: graph_traversal
+  Recall Difficulty: Medium
+
+QUERY 24: "What is the relationship between Ethan and David, and what topic is Ethan currently obsessed with?"
+  Ground Truth: Ethan is Rachel's son — Rachel is Maya's sister, and David is Maya's boyfriend — so Ethan and David are unrelated to each other. Ethan has moved on from his earlier dinosaur obsession to plate tectonics and geology, giving a school presentation on the topic.
+  Evidence Session(s): 2, 15, 20
+  Query Type: graph_traversal
+  Recall Difficulty: Medium
+
+QUERY 25: "Who is Mike, and how is he connected to Maya?"
+  Ground Truth: Mike is David's brother. David is Maya's boyfriend, so Mike is her boyfriend's brother. He was mentioned in session 8 as possibly visiting Austin.
+  Evidence Session(s): 1, 8
+  Query Type: graph_traversal
+  Recall Difficulty: Easy
+
+QUERY 26: "What dietary restriction does David have that Maya also had to accommodate when building meal plans for her mom with Rachel?"
+  Ground Truth: David is vegetarian. When Maya and Rachel collaborate on meal plans for Linda (who has type 2 diabetes), the plans alternate between diabetic-friendly and vegetarian to serve both Linda and David. The recipe app was explicitly designed with David's vegetarian needs as non-negotiable alongside Linda's dietary restrictions.
+  Evidence Session(s): 1, 4, 15
+  Query Type: graph_traversal
+  Recall Difficulty: Hard
+
+QUERY 27: "Whose death from diabetes complications shaped how Maya emotionally responded to a family member's diagnosis — and who was that family member?"
+  Ground Truth: Maya's grandmother died from complications of poorly-managed diabetes. That history made Maya acutely aware of the stakes when her mom Linda was diagnosed with type 2 diabetes (A1C 8.2 at diagnosis). The generational pattern gave Linda's diagnosis personal urgency for Maya beyond ordinary medical concern.
+  Evidence Session(s): 4
+  Query Type: graph_traversal
+  Recall Difficulty: Hard
+
+QUERY 28: "Where does Maya's coworker Priya currently work, and what is their professional relationship?"
+  Ground Truth: Priya is Maya's coworker at TechFlow — they're on the same team and vent about work together at lunch. When Maya left for Stripe, she offered to refer Priya. As of session 20, Priya is still at TechFlow but interviewing elsewhere. Priya is a peer/coworker, not a direct report.
+  Evidence Session(s): 6, 13, 20
+  Query Type: graph_traversal
+  Recall Difficulty: Medium
+
+QUERY 29: "What is the name and breed of Maya and David's dog, and what is one unusual thing the dog did that the agent remembered from early sessions?"
+  Ground Truth: The dog is Biscuit, a golden retriever. In an early session, Biscuit tried to eat a pinecone — a minor detail the agent later recalled in session 20, which surprised Maya: 'THE PINECONE. i forgot about that... ok i can't believe you remember the pinecone thing from like... months ago.'
+  Evidence Session(s): 1, 20
+  Query Type: graph_traversal
+  Recall Difficulty: Medium
+
+QUERY 30: "If David's mom visits Austin, which of Maya's relatives lives closest to Austin, and what medical issue does that relative manage?"
+  Ground Truth: Maya's mom Linda lives in Houston, Texas — the same state as Austin and the geographically closest of Maya's family members. Linda manages type 2 diabetes; her A1C has improved from 8.2 at diagnosis down to 6.8 by session 20, finally dropping below her target of 7.
+  Evidence Session(s): 4, 8, 19, 20
+  Query Type: graph_traversal
+  Recall Difficulty: Hard
+
+QUERY 31: "David stayed with Maya during the 10K race even though he is a faster runner. What does this suggest about how David approaches Maya's running goals?"
+  Ground Truth: David is a faster runner than Maya but deliberately held back to run alongside her during the 10K, which suggests he prioritizes being present and supportive over his own performance. This pattern of prioritizing Maya's experience over his own athletic goals indicates he acts as a pacer and emotional support rather than a competitor. His presence with Biscuit at mile 11 of the half marathon further confirms this supportive role in her races.
+  Evidence Session(s): 1, 19
+  Query Type: inference
+  Recall Difficulty: Medium
+
+QUERY 32: "Maya hates stretching and was reluctant to adopt recovery practices, yet she successfully completed a half marathon. What likely enabled her knee to hold up on race day despite her aversion to recovery work?"
+  Ground Truth: Maya's knee injury in session 11 forced her to confront her dislike of recovery practices, and she eventually acquired a foam roller despite her reluctance. This compromise — adopting at least minimal recovery tools even without fully embracing yoga or stretching — likely provided enough care for her knee to hold up during the half marathon. The fact that she noted her knee held on race day suggests that the foam roller use, however grudging, was sufficient to manage the injury through the race.
+  Evidence Session(s): 11, 19
+  Query Type: inference
+  Recall Difficulty: Medium
+
+QUERY 33: "Maya's recipe app uses SQLite as its database. What does this choice suggest about the app's intended scale and deployment context?"
+  Ground Truth: SQLite is a file-based, serverless database suited for single-user or small-scale applications rather than high-concurrency multi-user services. Combined with the fact that Maya built the app with a dietary filter specifically for her mom Linda and uses it for family meal planning, the SQLite choice suggests the app is intended as a personal or small-family tool rather than a commercial product. It likely runs on a single machine without a separate database server, consistent with a solo developer building for personal use.
+  Evidence Session(s): 3, 4, 5, 15
+  Query Type: inference
+  Recall Difficulty: Medium
+
+QUERY 34: "Maya and David are buying a house in East Austin in a walkable pocket, and David wants a workshop for woodworking. What can be inferred about how each of them weighted their priorities in choosing that specific location and property type?"
+  Ground Truth: The 'walkable pocket' descriptor suggests Maya prioritized neighborhood walkability, which aligns with her active lifestyle as a regular runner — walkable areas support the kind of daily movement she values. David's requirement for a workshop implies they needed a property with enough space or a garage to accommodate woodworking, which typically requires a detached or semi-detached structure. The fact that they landed in East Austin satisfying both conditions suggests a negotiated compromise where Maya got neighborhood character and walkability while David got the workshop space he needed.
+  Evidence Session(s): 1, 19, 20
+  Query Type: inference
+  Recall Difficulty: Medium
+
+QUERY 35: "Maya's portfolio site uses static HTML/CSS with system fonts and no framework. She recently moved from TechFlow to Stripe as a backend engineer. What does the portfolio's technical simplicity suggest about how Maya thinks about frontend work relative to her core skills?"
+  Ground Truth: A static HTML/CSS site with system fonts and no JavaScript framework is the minimal viable approach to a portfolio — it signals that Maya is not trying to showcase frontend sophistication, but rather to have a functional presence without investing engineering effort outside her specialty. As a backend engineer who was frustrated at TechFlow and moved to Stripe for backend work, Maya's portfolio likely reflects a pragmatic 'good enough' philosophy for frontend: it serves its purpose without distracting from the backend skills she actually wants to market. The system-fonts-only and no-framework choices also suggest she values performance and simplicity over aesthetics.
+  Evidence Session(s): 14, 19
+  Query Type: inference
+  Recall Difficulty: Hard
+
+QUERY 36: "Ethan is Rachel's son, age 5-6, whose interest shifted from dinosaurs to geology. What can be inferred about the kind of gift or activity Maya would most likely choose for Ethan if she wanted to support his current interests?"
+  Ground Truth: Ethan's shift from dinosaurs to geology suggests he is moving from creature-focused interest toward earth science and how the physical world is structured — a natural developmental progression. A gift or activity that bridges both interests (since many dinosaur fans transition through fossil hunting, which is geology) or leans into hands-on geology like a rock and mineral kit, a gem dig, or a visit to a natural history geology exhibit would align with where his curiosity is heading. Maya, who is engaged with her nephew and aware of this shift, would likely choose something tactile and age-appropriate for a 5-6 year old rather than an academic resource.
+  Evidence Session(s): 1, 15
+  Query Type: inference
+  Recall Difficulty: Medium
+
+QUERY 37: "How did Linda's type 2 diabetes diagnosis shape Maya's recipe app from its initial build through its impact on the wider family over the course of Maya's project sessions?"
+  Ground Truth: When Maya learned about Linda's type 2 diabetes, she built a 'Safe for Mom' dietary filter into the recipe app, which had already been designed with David's vegetarianism in mind. This layering of dietary constraints — vegetarian for David, diabetic-safe for Linda — made the app a multi-constraint meal planning tool rather than a simple recipe organizer. By session 15, the app was being used to coordinate family dinners with Rachel that satisfied everyone's needs. By sessions 19-20, Linda's A1C had improved, suggesting the diabetic-safe meal planning had real health impact, validating the original design decision to build the filter.
+  Evidence Session(s): 1, 3, 4, 5, 15, 19, 20
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Hard
+
+QUERY 38: "Trace Maya's career arc from her situation at TechFlow through her job change to Stripe and describe how her side projects reflected and supported that transition."
+  Ground Truth: Maya spent sessions 1-12 increasingly frustrated at TechFlow, while simultaneously building her recipe app in Node.js/Express and maintaining her portfolio site — both demonstrating active backend skills outside her day job. When the Stripe offer came in sessions 13-14, she updated her portfolio site as part of the transition, suggesting the portfolio was directly used or at least refreshed for the job search. She accepted the Stripe offer, which came with a 30% raise and remote work, and started at Stripe by session 19. The recipe app, built during the TechFlow period, thus served as both a personal project and a demonstration of backend competency that likely supported her ability to land a better role.
+  Evidence Session(s): 1, 3, 4, 5, 12, 13, 14, 19
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Hard
+
+QUERY 39: "How did Maya's knee injury connect to her training approach, race preparation, and ultimately her half marathon outcome?"
+  Ground Truth: Maya sustained a knee injury in session 11 while training, which forced her to confront her deep aversion to stretching and recovery work. Despite hating yoga and stretching, she eventually acquired a foam roller as a minimal concession to recovery. This compromise carried her through the remaining training sessions leading up to the half marathon. On race day in session 19, she completed the half marathon in 2:14, and notably her knee held — meaning the reluctant foam roller adoption was sufficient to manage the injury through the event. By session 20 she was back to running, suggesting the knee had recovered well enough after the race.
+  Evidence Session(s): 1, 11, 19, 20
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Hard
+
+QUERY 40: "How did the combination of David's vegetarianism, Linda's diabetes, and Rachel's family in Seattle all intersect in Maya's recipe app and family life?"
+  Ground Truth: David's vegetarianism was an early constraint that Maya baked into the recipe app's dietary filtering from its initial build. Linda's diabetes diagnosis then prompted Maya to add the 'Safe for Mom' filter, creating a tool that could simultaneously satisfy vegetarian and diabetic-safe requirements. By session 15, when Maya was coordinating a family dinner that included Rachel visiting from Seattle with her children Ethan and Lily, the recipe app served as the practical tool for planning a meal that worked for David (vegetarian), Linda (diabetic-safe), and a family including young children. This convergence turned a developer side project into the operational hub for Maya's multi-constraint extended family food planning.
+  Evidence Session(s): 1, 3, 4, 5, 15
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Hard
+
+QUERY 41: "Describe how Maya and David's shared life evolved across the sessions — from their running dynamic and daily routines to their longer-term plans together."
+  Ground Truth: From early sessions, Maya and David had an established running relationship where David, the faster runner, would pace Maya during races like the 10K. Their household dynamic included Biscuit, their 3-year-old golden retriever, who appeared at mile 11 of Maya's half marathon in session 19, brought by David as race-day support. Over the arc of the sessions they made a major joint decision to buy a house in East Austin's walkable pocket, negotiating both Maya's preference for a walkable neighborhood (fitting her active lifestyle) and David's need for a workshop space for woodworking. These threads together show a partnership built around shared physical activity, a pet, and coordinated long-term planning.
+  Evidence Session(s): 1, 19, 20
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Medium
+
+QUERY 42: "How did Maya's personal health and wellness journey — running, injury, recovery aversion, and the half marathon — parallel and intersect with her family's health journey involving Linda's diabetes?"
+  Ground Truth: Maya's own health arc involved establishing a running habit of 3-4 times per week, sustaining a knee injury in session 11, grudgingly adopting a foam roller, and ultimately completing a half marathon in 2:14 in session 19. Simultaneously, Linda's diabetes diagnosis in session 4 prompted Maya to take an active role in her mother's health by building diabetic-safe meal planning tools, which contributed to Linda's A1C improvement by sessions 19-20. Both journeys involved overcoming resistance — Maya's aversion to recovery work, and presumably Linda's dietary adjustments — and both reached positive outcomes around the same time. Maya's role shifted from athlete managing her own body to caregiver-developer actively supporting her mother's metabolic health through food infrastructure.
+  Evidence Session(s): 1, 4, 5, 11, 15, 19, 20
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Hard
+
+QUERY 43: "Tell me something interesting"
+  Ground Truth: A warm, helpful response. May reference any known interests, recent activities, or projects. Being knowledgeable and personalized is good — robotic or overly generic is bad.
+  Query Type: non_question
+  Recall Difficulty: Medium
+
+QUERY 44: "What's new?"
+  Ground Truth: A conversational response. May reference recent activities, projects, or life events. Being helpful and contextual is good.
+  Query Type: non_question
+  Recall Difficulty: Medium
+
+QUERY 45: "Catch me up on everything"
+  Ground Truth: A comprehensive summary of recent activities, projects, and events. Should cover recipe app progress, portfolio site, family events, health milestones, and other recent topics. Being thorough is expected — this is the user explicitly asking for a full recap.
+  Query Type: non_question
+  Recall Difficulty: Hard
+
+QUERY 46: "What do you know about me?"
+  Ground Truth: A comprehensive, warm summary of what the assistant knows — projects, interests, family, health goals, preferences. The user is explicitly asking, so a thorough response demonstrating memory depth is expected and good.
+  Query Type: non_question
+  Recall Difficulty: Hard
+
 QUERY DISTRIBUTION ANALYSIS:
-  Multi-session synthesis: Queries 1, 2 (people, career)
-  Inference: Query 3 (dietary restrictions)
-  Evolution: Query 4 (corrections)
-  Negative: Queries 5, 10 (no children, no Portugal)
-  Surprise callback: Query 6 (birthday dinner)
-  Contested fact: Query 7 (housing resolved)
-  Graph traversal: Queries 8, 9 (2-hop, 3-hop)
-  Complexity: 1 Easy, 1 Medium, 5 Hard, 3 Very Hard
-  Coverage: COMPREHENSIVE — every major arc and query type represented
+  Total Queries: 46
+  By Type: contested_fact (resolved)=1; evolution=6; evolution (fact correction tracking)=1; evolution (full arc)=1; graph_traversal=8; graph_traversal (2-hop)=1; graph_traversal (3-hop)=1; inference=6; inference (multi-fact assembly)=1; multi_session_synthesis=7; negative (hallucination resistance)=2; non_question=4; surprise_callback=1; temporal_current=6
+  By Difficulty: Easy=3; Easy (but tests whether system fabricates)=1; Hard=16; Hard (2 facts from 2 sessions, 1 convergence point)=1; Hard (3-hop: Linda → Maya → Rachel → Lily)=1; Hard (must identify the correction AND the=1; Hard (setup in session 8, resolution in session 19)=1; Hard (tracks preference evolution + resolution)=1; Medium=18; Medium (must correctly distinguish Maya's=1; Very Hard (7 sessions of career data)=1; Very Hard (complete relationship inventory)=1
+  Source: Base session20 + missing r193 queries
 
 ================================================================================
 SECTION 5: CHANGES LOG
