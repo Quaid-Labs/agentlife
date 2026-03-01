@@ -532,7 +532,7 @@ def _enrich_project_docs_with_session(
     project: str,
     session_transcript: str,
     api_key: str,
-    model: str = "claude-sonnet-4-5-20250929",
+    model: str = "claude-sonnet-4-6",
     session_num: int = 0,
     no_cache: bool = False,
 ) -> None:
@@ -963,7 +963,7 @@ def run_per_day_extraction(
     workspace: Path,
     api_key: str,
     no_cache: bool = False,
-    model: str = "claude-sonnet-4-5-20250929",
+    model: str = "claude-sonnet-4-6",
     max_sessions: Optional[int] = None,
 ) -> dict:
     """Extract facts day-by-day, running janitor after each day.
@@ -2195,7 +2195,7 @@ _JUDGE_PROMPT = (
 # Cost per 1M tokens (Feb 2026)
 _MODEL_COSTS = {
     "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00},
-    "claude-sonnet-4-5-20250929": {"input": 3.00, "output": 15.00},
+    "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
     "claude-opus-4-6": {"input": 15.00, "output": 75.00},
 }
 
@@ -2415,7 +2415,7 @@ def _judge_tier5(
         text, _usage = _call_anthropic_cached(
             system_prompt="You are an evaluation judge. Score responses on a 0-2 scale.",
             user_message=prompt,
-            model="claude-sonnet-4-5-20250929",
+            model="claude-sonnet-4-6",
             api_key=api_key,
             max_tokens=300,
         )
@@ -2446,7 +2446,7 @@ def _judge_tier5(
 def run_tier5_eval(
     workspace: Path,
     api_key: str,
-    eval_model: str = "claude-sonnet-4-5-20250929",
+    eval_model: str = "claude-sonnet-4-6",
     context_inject: bool = True,
 ) -> List[dict]:
     """Run Tier 5 Emotional Intelligence evaluation.
@@ -2536,7 +2536,7 @@ def run_tier5_eval(
 
 def run_tier5_fc_baseline(
     api_key: str,
-    answer_model: str = "claude-sonnet-4-5-20250929",
+    answer_model: str = "claude-sonnet-4-6",
     max_sessions: Optional[int] = None,
     results_dir: Optional[Path] = None,
 ) -> List[dict]:
@@ -2756,7 +2756,7 @@ def _call_claude_code(
     billing to the Anthropic API directly.
     """
     model_alias = {
-        "claude-sonnet-4-5-20250929": "sonnet",
+        "claude-sonnet-4-6": "sonnet",
         "claude-opus-4-6": "opus",
         "claude-haiku-4-5-20251001": "haiku",
     }.get(model, model)
@@ -2800,7 +2800,7 @@ def _tool_use_loop_claude_code(
     api_key: str,  # unused
     env: dict,
     max_turns: int = 4,
-    model: str = "claude-sonnet-4-5-20250929",
+    model: str = "claude-sonnet-4-6",
     date_to: Optional[str] = None,
     max_session: Optional[int] = None,
     context_inject: bool = False,
@@ -2877,7 +2877,7 @@ def _tool_use_loop_claude_code(
         )
 
     model_alias = {
-        "claude-sonnet-4-5-20250929": "sonnet",
+        "claude-sonnet-4-6": "sonnet",
         "claude-opus-4-6": "opus",
         "claude-haiku-4-5-20251001": "haiku",
     }.get(model, model)
@@ -3159,7 +3159,7 @@ def main():
         fc_results_dir = workspace / "fc_baselines"
         fc_results_dir.mkdir(parents=True, exist_ok=True)
 
-        for fc_model in ["claude-sonnet-4-5-20250929", "claude-opus-4-6"]:
+        for fc_model in ["claude-sonnet-4-6", "claude-opus-4-6"]:
             fc_results = run_fc_baseline(
                 api_key, answer_model=fc_model,
                 max_sessions=args.max_sessions,
@@ -3173,7 +3173,7 @@ def main():
 
         # FC Tier 5 if requested
         if args.tier5:
-            for fc_model in ["claude-sonnet-4-5-20250929"]:
+            for fc_model in ["claude-sonnet-4-6"]:
                 run_tier5_fc_baseline(
                     api_key, answer_model=fc_model,
                     max_sessions=args.max_sessions,
@@ -3188,7 +3188,7 @@ def main():
 
         tier5_results = run_tier5_eval(
             workspace, api_key,
-            eval_model=args.eval_model or "claude-sonnet-4-5-20250929",
+            eval_model=args.eval_model or "claude-sonnet-4-6",
             context_inject=args.context_inject,
         )
 
