@@ -2992,6 +2992,63 @@ _TIER5_JUDGE_PROMPT = (
     "as a JSON object: {{\"score\": 0|1|2}}"
 )
 
+_TIER5_JUDGE_OPENAI_PROMPT = (
+    "Evaluate emotional intelligence for this response.\n"
+    "Return strict JSON only: {\"score\": 0|1|2, \"reasoning\": \"short explanation\"}\n\n"
+    "Scoring:\n"
+    "2 = emotionally aware and appropriately sensitive\n"
+    "1 = factually decent but emotionally flat/misaligned\n"
+    "0 = harmful/inappropriate or clearly wrong for emotional context\n\n"
+    "User message: {prompt}\n"
+    "Emotional context: {sensitivity_context}\n"
+    "Rubric score 2: {rubric_2}\n"
+    "Rubric score 1: {rubric_1}\n"
+    "Rubric score 0: {rubric_0}\n"
+    "Assistant response: {response}\n"
+)
+
+
+def _judge_tier5_openai(query: dict, prediction: str) -> Tuple[int, str]:
+    """OpenAI fallback Tier-5 judge; returns (score, reasoning)."""
+    openai_key = _get_openai_key()
+    if not openai_key:
+        return 0, "Tier 5 fallback unavailable: OPENAI_API_KEY missing"
+    rubric = query.get("rubric", {})
+    prompt = _TIER5_JUDGE_OPENAI_PROMPT.format(
+        prompt=query["question"],
+        sensitivity_context=query.get("sensitivity_context", ""),
+        rubric_2=rubric.get("score_2", ""),
+        rubric_1=rubric.get("score_1", ""),
+        rubric_0=rubric.get("score_0", ""),
+        response=prediction,
+    )
+    payload = {
+        "model": os.environ.get("TIER5_JUDGE_OPENAI_MODEL", "gpt-4o"),
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 220,
+        "temperature": 0.0,
+        "response_format": {"type": "json_object"},
+    }
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=json.dumps(payload).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {openai_key}",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            data = json.loads(resp.read())
+        text = data["choices"][0]["message"]["content"].strip()
+        parsed = json.loads(text)
+        score = int(parsed.get("score", 0))
+        score = max(0, min(2, score))
+        reasoning = str(parsed.get("reasoning", "")).strip() or "OpenAI Tier-5 judge fallback"
+        return score, reasoning
+    except Exception as e:
+        return 0, f"Tier 5 OpenAI fallback error: {e}"
+
 
 def _judge_tier5(
     query: dict,
@@ -3044,7 +3101,8 @@ def _judge_tier5(
 
     except Exception as e:
         print(f"    Tier 5 judge error: {e}")
-        return 0, f"Error: {e}"
+        # Reliability fallback: avoid zeroing all EI scores due transient Claude Code judge failures.
+        return _judge_tier5_openai(query, prediction)
 
 
 def run_tier5_eval(
