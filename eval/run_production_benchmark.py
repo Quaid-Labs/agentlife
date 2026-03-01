@@ -1160,6 +1160,7 @@ def run_extraction(
                 }
 
             chunk_results = []
+            chunk_errors = []
             with concurrent.futures.ThreadPoolExecutor(max_workers=chunk_count) as ex:
                 futures = [
                     ex.submit(_extract_chunk, i, chunk)
@@ -1168,21 +1169,59 @@ def run_extraction(
                 ]
                 completed = 0
                 for fut in concurrent.futures.as_completed(futures):
-                    chunk_results.append(fut.result())
-                    completed += 1
                     try:
-                        progress_path.write_text(
-                            json.dumps(
-                                {
-                                    "total_chunks": len(chunks),
-                                    "last_completed_chunk": completed - 1,
-                                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                                },
-                                indent=2,
+                        chunk_results.append(fut.result())
+                        completed += 1
+                        try:
+                            progress_path.write_text(
+                                json.dumps(
+                                    {
+                                        "total_chunks": len(chunks),
+                                        "last_completed_chunk": completed - 1,
+                                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                                    },
+                                    indent=2,
+                                )
                             )
-                        )
-                    except Exception:
-                        pass
+                        except Exception:
+                            pass
+                    except Exception as e:
+                        chunk_errors.append(e)
+            if chunk_errors:
+                print(f"  WARN: {len(chunk_errors)} extraction chunks failed in parallel pass; retrying serially")
+                done_idxs = {c["chunk_idx"] for c in chunk_results if isinstance(c, dict) and "chunk_idx" in c}
+                retry_attempts = max(1, int(os.environ.get("BENCHMARK_CHUNK_RETRY_ATTEMPTS", "3")))
+                for idx, chunk in enumerate(chunks):
+                    if idx in done_idxs:
+                        continue
+                    last_err = None
+                    for attempt in range(1, retry_attempts + 1):
+                        try:
+                            c = _extract_chunk(idx, chunk)
+                            chunk_results.append(c)
+                            completed += 1
+                            try:
+                                progress_path.write_text(
+                                    json.dumps(
+                                        {
+                                            "total_chunks": len(chunks),
+                                            "last_completed_chunk": completed - 1,
+                                            "updated_at": datetime.now(timezone.utc).isoformat(),
+                                        },
+                                        indent=2,
+                                    )
+                                )
+                            except Exception:
+                                pass
+                            last_err = None
+                            break
+                        except Exception as e:
+                            last_err = e
+                            delay = min(30, 2 ** (attempt - 1))
+                            print(f"    retry chunk {idx+1}/{len(chunks)} attempt {attempt}/{retry_attempts} failed: {e}; sleeping {delay}s")
+                            time.sleep(delay)
+                    if last_err is not None:
+                        raise RuntimeError(f"Extraction chunk {idx+1}/{len(chunks)} failed after retries: {last_err}") from last_err
             chunk_results.sort(key=lambda c: c["chunk_idx"])
 
             merged_facts = []
@@ -3485,18 +3524,37 @@ def _call_claude_code(
     env.pop("ANTHROPIC_API_KEY", None)
     env.pop("ANTHROPIC_AUTH_TOKEN", None)
 
-    result = subprocess.run(
-        cmd, capture_output=True, text=True, timeout=600, env=env,
-        cwd="/tmp",  # Avoid loading CLAUDE.md project context
-    )
-    if result.returncode != 0:
-        stdout_tail = (result.stdout or "")[-500:]
-        stderr_tail = (result.stderr or "")[-500:]
-        raise RuntimeError(
-            f"Claude Code failed: rc={result.returncode} stderr={stderr_tail} stdout={stdout_tail}"
-        )
+    retry_attempts = max(1, int(os.environ.get("CLAUDE_CODE_RETRY_ATTEMPTS", "4")))
+    backoff_s = max(1.0, float(os.environ.get("CLAUDE_CODE_RETRY_BACKOFF_S", "2")))
+    backoff_cap_s = max(backoff_s, float(os.environ.get("CLAUDE_CODE_RETRY_BACKOFF_CAP_S", "30")))
 
-    data = json.loads(result.stdout)
+    data = None
+    last_err = None
+    for attempt in range(1, retry_attempts + 1):
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=600, env=env,
+            cwd="/tmp",  # Avoid loading CLAUDE.md project context
+        )
+        if result.returncode == 0:
+            try:
+                data = json.loads(result.stdout)
+                break
+            except Exception as e:
+                last_err = RuntimeError(f"Claude Code parse failed: {e}")
+        else:
+            stdout_tail = (result.stdout or "")[-500:]
+            stderr_tail = (result.stderr or "")[-500:]
+            last_err = RuntimeError(
+                f"Claude Code failed: rc={result.returncode} stderr={stderr_tail} stdout={stdout_tail}"
+            )
+        if attempt < retry_attempts:
+            delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
+            delay *= 1.0 + random.uniform(0.0, 0.25)
+            print(f"  [claude-code] attempt {attempt}/{retry_attempts} failed; retrying in {delay:.1f}s")
+            time.sleep(delay)
+    if data is None:
+        raise last_err or RuntimeError("Claude Code failed: no response payload")
+
     text = data.get("result", "").strip()
 
     # Aggregate token usage across models
