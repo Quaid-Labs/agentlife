@@ -27,6 +27,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -85,6 +86,57 @@ PROJECT_SESSIONS = sorted(
     [(s, "portfolio-site", c) for s, c in SESSION_TO_PORTFOLIO_COMMIT.items()],
     key=lambda x: x[0],
 )
+
+
+def _load_active_domain_ids(workspace: Path) -> List[str]:
+    """Load active domain ids from workspace domain_registry (fail-hard)."""
+    db_path = workspace / "data" / "memory.db"
+    if not db_path.exists():
+        raise RuntimeError(f"Domain registry DB missing: {db_path}")
+    conn = sqlite3.connect(str(db_path))
+    try:
+        rows = conn.execute(
+            "SELECT domain FROM domain_registry WHERE active = 1 ORDER BY domain"
+        ).fetchall()
+    finally:
+        conn.close()
+    domains = [str(r[0]).strip().lower() for r in rows if str(r[0]).strip()]
+    if not domains:
+        raise RuntimeError("No active domains found in domain_registry")
+    return domains
+
+
+def _write_prompt_trace(
+    workspace: Path,
+    scope: str,
+    model: str,
+    domain_ids: List[str],
+    system_prompt: str,
+) -> None:
+    """Best-effort prompt trace for extraction prompt audits."""
+    if os.environ.get("BENCHMARK_EXTRACT_PROMPT_TRACE", "1") != "1":
+        return
+    try:
+        logs_dir = workspace / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        prompt_hash = hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()[:12]
+        safe_scope = re.sub(r"[^a-zA-Z0-9._-]+", "-", scope).strip("-") or "extraction"
+        prompt_file = logs_dir / f"extraction-prompt-{safe_scope}-{prompt_hash}.txt"
+        prompt_file.write_text(system_prompt, encoding="utf-8")
+        row = {
+            "event": "extraction_prompt",
+            "scope": scope,
+            "model": model,
+            "prompt_hash": prompt_hash,
+            "domain_ids": domain_ids,
+            "prompt_file": str(prompt_file),
+            "ts": datetime.utcnow().isoformat() + "Z",
+        }
+        with (logs_dir / "extraction-prompt-trace.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row) + "\n")
+    except Exception:
+        # Never fail the run due to trace write issues.
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -771,7 +823,10 @@ def run_extraction(
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_path = cache_dir / "full-extraction.json"
 
-    system_prompt = build_extraction_prompt("Maya", "Assistant")
+    domain_ids = _load_active_domain_ids(workspace)
+    print(f"  Domain registry: {', '.join(domain_ids)}")
+    system_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
+    _write_prompt_trace(workspace, "single-call", model, domain_ids, system_prompt)
     env = _make_env(workspace)
 
     # Check cache
@@ -907,8 +962,17 @@ def _store_facts(
         project_name = fact.get("project")
         if project_name:
             cmd.extend(["--project", str(project_name)])
-        if fact.get("is_technical"):
-            cmd.append("--is-technical")
+        raw_domains = fact.get("domains", [])
+        if isinstance(raw_domains, str):
+            raw_domains = [d for d in raw_domains.split(",")]
+        if not isinstance(raw_domains, list):
+            raw_domains = []
+        parsed_domains = [str(d).strip().lower() for d in raw_domains if str(d).strip()]
+        if not parsed_domains:
+            raise RuntimeError(
+                f"Extraction fact missing required domains array: {text[:120]!r}"
+            )
+        cmd.extend(["--domains", ",".join(dict.fromkeys(parsed_domains))])
 
         try:
             result = subprocess.run(
@@ -991,7 +1055,10 @@ def run_per_day_extraction(
         print(f"    {date}: sessions {snums}")
     print()
 
-    system_prompt = build_extraction_prompt("Maya", "Assistant")
+    domain_ids = _load_active_domain_ids(workspace)
+    print(f"  Domain registry: {', '.join(domain_ids)}")
+    system_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
+    _write_prompt_trace(workspace, "per-day-template", model, domain_ids, system_prompt)
     env = _make_env(workspace)
     cache_dir = workspace / "extraction_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -1074,10 +1141,12 @@ def run_per_day_extraction(
                 f"Extract memorable facts from these conversation sessions "
                 f"with Maya on {date}.\n\n{combined_transcript}"
             )
+            day_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
+            _write_prompt_trace(workspace, f"per-day-{date}", model, domain_ids, day_prompt)
 
             t0 = time.time()
             raw_response, usage = _call_anthropic_cached(
-                system_prompt, user_message, model, api_key,
+                day_prompt, user_message, model, api_key,
                 max_tokens=16384,
             )
             elapsed = time.time() - t0
