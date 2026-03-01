@@ -27,17 +27,20 @@ Usage:
 """
 
 import argparse
+import concurrent.futures
 import hashlib
 import json
 import os
+import random
 import re
 import shutil
 import sqlite3
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -45,6 +48,17 @@ _DIR = Path(__file__).resolve().parent
 _PROJECT_DIR = _DIR.parent
 _CLAWD = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
 _QUAID_DIR = _CLAWD / "plugins" / "quaid"
+
+
+def _resolve_assets_dir() -> Path:
+    """Resolve benchmark assets path with explicit env override first."""
+    explicit = os.environ.get("AGENTLIFE_ASSETS_DIR")
+    if explicit:
+        return Path(explicit)
+    benchmark_assets = _CLAWD / "benchmark-assets"
+    if benchmark_assets.exists():
+        return benchmark_assets
+    return _CLAWD / "assets"
 
 sys.path.insert(0, str(_DIR))
 from dataset import (
@@ -86,6 +100,49 @@ PROJECT_SESSIONS = sorted(
     [(s, "portfolio-site", c) for s, c in SESSION_TO_PORTFOLIO_COMMIT.items()],
     key=lambda x: x[0],
 )
+
+
+def _parse_review_timestamp(review) -> datetime:
+    """Parse review timestamp into UTC datetime with robust fallbacks."""
+    raw = (getattr(review, "timestamp", "") or "").strip()
+    candidates = (
+        "%Y-%m-%d %H:%M:%S UTC",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d",
+    )
+    for fmt in candidates:
+        try:
+            parsed = datetime.strptime(raw, fmt)
+            if fmt == "%Y-%m-%d":
+                parsed = parsed.replace(hour=12, minute=0, second=0)
+            return parsed.replace(tzinfo=timezone.utc)
+        except Exception:
+            pass
+    date_str = SESSION_DATES.get(getattr(review, "session_num", 0), "1970-01-01")
+    try:
+        parsed = datetime.strptime(date_str, "%Y-%m-%d")
+    except Exception:
+        parsed = datetime(1970, 1, 1)
+    return parsed.replace(hour=12, minute=0, second=0, tzinfo=timezone.utc)
+
+
+def _split_session_blocks_on_gap(session_blocks: list, gap_seconds: int) -> list:
+    """Split ordered session blocks whenever timestamp gap >= threshold."""
+    if not session_blocks:
+        return []
+    if gap_seconds <= 0:
+        return [[blk] for blk in session_blocks]
+
+    ordered = sorted(session_blocks, key=lambda x: (x["timestamp"], x["session_num"]))
+    chunks = [[ordered[0]]]
+    for item in ordered[1:]:
+        prev = chunks[-1][-1]
+        delta = (item["timestamp"] - prev["timestamp"]).total_seconds()
+        if delta >= gap_seconds:
+            chunks.append([item])
+        else:
+            chunks[-1].append(item)
+    return chunks
 
 
 def _default_domain_descriptions() -> dict:
@@ -881,19 +938,28 @@ def run_extraction(
     conversation transcript. This mirrors that: combine all session transcripts
     into one document and make a single Opus call.
     """
-    print("=" * 60)
-    print("PHASE 3: EXTRACTION (SINGLE CALL)")
-    print("=" * 60)
-
     # Load reviews
-    assets_dir = _CLAWD / "assets"
+    assets_dir = _resolve_assets_dir()
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
     reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
+    parallel_workers = max(1, int(os.environ.get("BENCHMARK_PARALLEL", "1")))
+    extraction_mode = "PARALLEL CHUNKED CALLS" if (parallel_workers > 1 and len(reviews) > 1) else "SINGLE CALL"
+
+    print("=" * 60)
+    print(f"PHASE 3: EXTRACTION ({extraction_mode})")
+    print("=" * 60)
+    print(f"  Assets dir: {assets_dir}")
     print(f"  Loaded {len(reviews)} sessions (model: {model})")
+    if len(reviews) == 0:
+        raise RuntimeError(
+            f"No review sessions found in assets directory: {assets_dir}. "
+            "Set AGENTLIFE_ASSETS_DIR to the benchmark assets path."
+        )
 
     cache_dir = workspace / "extraction_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_path = cache_dir / "full-extraction.json"
+    progress_path = cache_dir / "progress.json"
 
     domain_ids = _load_active_domain_ids(workspace)
     print(f"  Domain registry: {', '.join(domain_ids)}")
@@ -906,50 +972,212 @@ def run_extraction(
         cached = json.loads(cache_path.read_text())
         n_facts = len(cached.get("facts", []))
         print(f"  Cached: {n_facts} facts")
+        try:
+            progress_path.write_text(
+                json.dumps(
+                    {
+                        "total_chunks": 1,
+                        "last_completed_chunk": 0,
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                    indent=2,
+                )
+            )
+        except Exception:
+            pass
     else:
-        # Build combined transcript (all sessions, chronological)
-        transcript_parts = []
+        # Build ordered session blocks with parsed timestamps for gap-aware splitting.
+        session_blocks = []
         for review in reviews:
             snum = review.session_num
             date = SESSION_DATES.get(snum, "unknown")
             track_label = "Personal" if review.track == 1 else "Project"
             transcript = format_transcript_for_extraction(review)
             if transcript.strip():
-                transcript_parts.append(
-                    f"=== Session {snum} ({track_label}) — {date} ===\n{transcript}"
+                block = f"=== Session {snum} ({track_label}) — {date} ===\n{transcript}"
+                session_blocks.append(
+                    {
+                        "session_num": snum,
+                        "block": block,
+                        "timestamp": _parse_review_timestamp(review),
+                    }
                 )
 
-        combined_transcript = "\n\n".join(transcript_parts)
-        print(f"  Combined transcript: {len(combined_transcript)} chars (~{len(combined_transcript)//4} tokens)")
+        def _normalize_bullets(value):
+            if isinstance(value, list):
+                return [str(v) for v in value if str(v).strip()]
+            if isinstance(value, str):
+                s = value.strip()
+                return [s] if s else []
+            return []
 
-        user_message = (
-            f"Extract memorable facts from these conversation sessions "
-            f"with Maya.\n\n{combined_transcript}"
-        )
+        if parallel_workers > 1 and len(session_blocks) > 1:
+            gap_seconds = max(0, int(os.environ.get("BENCHMARK_SPLIT_GAP_SECONDS", "7200")))
+            chunks = _split_session_blocks_on_gap(session_blocks, gap_seconds)
+            chunk_count = min(parallel_workers, len(chunks))
+            print(f"  Parallel extraction workers: {chunk_count}")
+            print(f"  Gap split threshold: {gap_seconds}s")
+            print(f"  Timeout chunks: {len(chunks)}")
+            try:
+                progress_path.write_text(
+                    json.dumps(
+                        {
+                            "total_chunks": len(chunks),
+                            "last_completed_chunk": -1,
+                            "updated_at": datetime.now(timezone.utc).isoformat(),
+                        },
+                        indent=2,
+                    )
+                )
+            except Exception:
+                pass
 
-        t0 = time.time()
-        raw_response, usage = _call_anthropic_cached(
-            system_prompt, user_message, model, api_key,
-            max_tokens=32768,
-        )
-        elapsed = time.time() - t0
-        in_tok = usage.get("input_tokens", 0)
-        out_tok = usage.get("output_tokens", 0)
-        print(f"  Extraction: {elapsed:.1f}s, {in_tok} in + {out_tok} out tokens")
+            def _extract_chunk(chunk_idx: int, chunk_blocks: list) -> dict:
+                combined = "\n\n".join(item["block"] for item in chunk_blocks)
+                user_msg = (
+                    "Extract memorable facts from these conversation sessions "
+                    f"with Maya.\n\n{combined}"
+                )
+                t0 = time.time()
+                raw, usage = _call_anthropic_cached(
+                    system_prompt, user_msg, model, api_key, max_tokens=32768,
+                )
+                elapsed = time.time() - t0
+                parsed = parse_extraction_response(raw)
+                return {
+                    "chunk_idx": chunk_idx,
+                    "sessions": [item["session_num"] for item in chunk_blocks],
+                    "elapsed": elapsed,
+                    "usage": usage,
+                    "facts": parsed.get("facts", []),
+                    "soul_snippets": parsed.get("soul_snippets", {}),
+                    "journal_entries": parsed.get("journal_entries", {}),
+                }
 
-        result = parse_extraction_response(raw_response)
-        cached = {
-            "facts": result.get("facts", []),
-            "soul_snippets": result.get("soul_snippets", {}),
-            "journal_entries": result.get("journal_entries", {}),
-            "usage": usage,
-            "model": model,
-            "sessions": [r.session_num for r in reviews],
-            "timestamp": datetime.now().isoformat(),
-        }
+            chunk_results = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=chunk_count) as ex:
+                futures = [
+                    ex.submit(_extract_chunk, i, chunk)
+                    for i, chunk in enumerate(chunks)
+                    if chunk
+                ]
+                completed = 0
+                for fut in concurrent.futures.as_completed(futures):
+                    chunk_results.append(fut.result())
+                    completed += 1
+                    try:
+                        progress_path.write_text(
+                            json.dumps(
+                                {
+                                    "total_chunks": len(chunks),
+                                    "last_completed_chunk": completed - 1,
+                                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                                },
+                                indent=2,
+                            )
+                        )
+                    except Exception:
+                        pass
+            chunk_results.sort(key=lambda c: c["chunk_idx"])
+
+            merged_facts = []
+            merged_snippets = {}
+            merged_journals = {}
+            usage_total = {"input_tokens": 0, "output_tokens": 0}
+            for c in chunk_results:
+                usage_total["input_tokens"] += c["usage"].get("input_tokens", 0)
+                usage_total["output_tokens"] += c["usage"].get("output_tokens", 0)
+                print(
+                    f"  Chunk {c['chunk_idx'] + 1}/{len(chunk_results)} sessions={c['sessions']} "
+                    f"{c['elapsed']:.1f}s, {c['usage'].get('input_tokens', 0)} in + "
+                    f"{c['usage'].get('output_tokens', 0)} out tokens"
+                )
+                merged_facts.extend(c.get("facts", []))
+                for filename, bullets in (c.get("soul_snippets", {}) or {}).items():
+                    merged_snippets.setdefault(filename, []).extend(_normalize_bullets(bullets))
+                for filename, content in (c.get("journal_entries", {}) or {}).items():
+                    if isinstance(content, list):
+                        pieces = [str(x).strip() for x in content if str(x).strip()]
+                    elif isinstance(content, str):
+                        pieces = [content.strip()] if content.strip() else []
+                    else:
+                        pieces = []
+                    if pieces:
+                        merged_journals.setdefault(filename, []).extend(pieces)
+
+            cached = {
+                "facts": merged_facts,
+                "soul_snippets": merged_snippets,
+                "journal_entries": {k: "\n\n".join(v) for k, v in merged_journals.items()},
+                "usage": usage_total,
+                "model": model,
+                "sessions": [r.session_num for r in reviews],
+                "timestamp": datetime.now().isoformat(),
+                "parallel_workers": chunk_count,
+            }
+            print(
+                f"  Extraction total: {usage_total.get('input_tokens', 0)} in + "
+                f"{usage_total.get('output_tokens', 0)} out tokens"
+            )
+            print(f"  Extracted: {len(cached['facts'])} facts")
+        else:
+            combined_transcript = "\n\n".join(item["block"] for item in session_blocks)
+            print(f"  Combined transcript: {len(combined_transcript)} chars (~{len(combined_transcript)//4} tokens)")
+            try:
+                progress_path.write_text(
+                    json.dumps(
+                        {
+                            "total_chunks": 1,
+                            "last_completed_chunk": -1,
+                            "updated_at": datetime.now(timezone.utc).isoformat(),
+                        },
+                        indent=2,
+                    )
+                )
+            except Exception:
+                pass
+
+            user_message = (
+                f"Extract memorable facts from these conversation sessions "
+                f"with Maya.\n\n{combined_transcript}"
+            )
+
+            t0 = time.time()
+            raw_response, usage = _call_anthropic_cached(
+                system_prompt, user_message, model, api_key,
+                max_tokens=32768,
+            )
+            elapsed = time.time() - t0
+            in_tok = usage.get("input_tokens", 0)
+            out_tok = usage.get("output_tokens", 0)
+            print(f"  Extraction: {elapsed:.1f}s, {in_tok} in + {out_tok} out tokens")
+            try:
+                progress_path.write_text(
+                    json.dumps(
+                        {
+                            "total_chunks": 1,
+                            "last_completed_chunk": 0,
+                            "updated_at": datetime.now(timezone.utc).isoformat(),
+                        },
+                        indent=2,
+                    )
+                )
+            except Exception:
+                pass
+
+            result = parse_extraction_response(raw_response)
+            cached = {
+                "facts": result.get("facts", []),
+                "soul_snippets": result.get("soul_snippets", {}),
+                "journal_entries": result.get("journal_entries", {}),
+                "usage": usage,
+                "model": model,
+                "sessions": [r.session_num for r in reviews],
+                "timestamp": datetime.now().isoformat(),
+            }
+            print(f"  Extracted: {len(cached['facts'])} facts")
         cache_path.write_text(json.dumps(cached, indent=2))
         n_facts = len(cached["facts"])
-        print(f"  Extracted: {n_facts} facts")
 
     # Store facts into DB
     facts = cached.get("facts", [])
@@ -1003,6 +1231,10 @@ def _store_facts(
     stored = 0
     edges_created = 0
     quaid_dir = str(_QUAID_DIR)
+    try:
+        active_domains = _load_active_domain_ids(workspace)
+    except Exception:
+        active_domains = ["personal", "project", "work", "technical"]
 
     for fact in facts:
         text = fact.get("text", "").strip()
@@ -1041,8 +1273,17 @@ def _store_facts(
             raw_domains = []
         parsed_domains = [str(d).strip().lower() for d in raw_domains if str(d).strip()]
         if not parsed_domains:
-            raise RuntimeError(
-                f"Extraction fact missing required domains array: {text[:120]!r}"
+            if project_name and "project" in active_domains:
+                parsed_domains = ["project"]
+            elif category in {"preference", "identity", "profile"} and "personal" in active_domains:
+                parsed_domains = ["personal"]
+            elif "work" in active_domains and category in {"decision", "event"}:
+                parsed_domains = ["work"]
+            else:
+                parsed_domains = [active_domains[0] if active_domains else "personal"]
+            print(
+                f"      WARN: missing domains for fact; using fallback={parsed_domains[0]!r} "
+                f"text={text[:80]!r}"
             )
         cmd.extend(["--domains", ",".join(dict.fromkeys(parsed_domains))])
 
@@ -1115,10 +1356,15 @@ def run_per_day_extraction(
     print("PHASE 3b: PER-DAY EXTRACTION + JANITOR")
     print("=" * 60)
 
-    assets_dir = _CLAWD / "assets"
+    assets_dir = _resolve_assets_dir()
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
     reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
     print(f"  Loaded {len(reviews)} sessions (model: {model})")
+    if len(reviews) == 0:
+        raise RuntimeError(
+            f"No review sessions found in assets directory: {assets_dir}. "
+            "Set AGENTLIFE_ASSETS_DIR to the benchmark assets path."
+        )
 
     days = _group_sessions_by_date(reviews)
     print(f"  Grouped into {len(days)} days:")
@@ -1591,11 +1837,17 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     print("=" * 60)
 
     # Load reviews and queries
-    assets_dir = _CLAWD / "assets"
+    assets_dir = _resolve_assets_dir()
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
     reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
     all_queries = get_all_eval_queries(reviews)
+    print(f"  Assets dir: {assets_dir}")
     print(f"  {len(all_queries)} queries to evaluate (from {len(reviews)} sessions)")
+    if len(reviews) == 0:
+        raise RuntimeError(
+            f"No review sessions found in assets directory: {assets_dir}. "
+            "Set AGENTLIFE_ASSETS_DIR to the benchmark assets path."
+        )
 
     # Build eval context from evolved workspace files
     eval_context = _build_eval_context(workspace)
@@ -1611,18 +1863,36 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     wrong = 0
     eval_usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
     t_start = time.time()
+    progress_path = workspace / "logs" / "eval_progress.json"
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
 
-    for i, query in enumerate(all_queries):
+    def _write_eval_progress(current_idx: int, completed_idx: int) -> None:
+        payload = {
+            "total_queries": len(all_queries),
+            "current_query": current_idx,
+            "completed": max(0, completed_idx + 1),
+            "last_completed_query": completed_idx,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        try:
+            progress_path.write_text(json.dumps(payload, indent=2))
+        except Exception:
+            pass
+
+    _write_eval_progress(current_idx=0, completed_idx=-1)
+
+    parallel_workers = max(1, int(os.environ.get("BENCHMARK_PARALLEL", "1")))
+    parallel_workers = min(parallel_workers, max(1, len(all_queries)))
+    if parallel_workers > 1:
+        print(f"  Eval parallel workers: {parallel_workers}")
+
+    def _eval_one(i: int, query: dict) -> tuple:
         question = query["question"]
         ground_truth = query["ground_truth"]
         query_type = query.get("query_type", "unknown")
-
-        t0 = time.time()
-        # Temporal filtering: constrain recall to facts from this session or earlier
         source_session = query.get("source_session", 20)
         session_date = SESSION_DATES.get(source_session, "2026-05-01")
-
-        # Tool-use loop: model decides which tools to call
+        t0 = time.time()
         prediction, tool_calls, tool_results_log, recall_texts, q_usage = _tool_use_loop(
             question=question,
             eval_context=eval_context,
@@ -1635,35 +1905,19 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             context_inject=context_inject,
         )
         answer_duration = time.time() - t0
-        eval_usage["input_tokens"] += q_usage.get("input_tokens", 0)
-        eval_usage["output_tokens"] += q_usage.get("output_tokens", 0)
-        eval_usage["api_calls"] += q_usage.get("api_calls", 0)
-
-        # Judge answer
         label, score = _judge(question, ground_truth, prediction, api_key, judge_model=judge_model)
 
-        # Retrieval-only judge: score recall results directly
         retrieval_context = "\n\n".join(recall_texts) if recall_texts else ""
         if query_type == "non_question":
-            # Non-questions: CORRECT if system didn't retrieve memories
             ret_label = "CORRECT" if not retrieval_context else "WRONG"
             ret_score = 1.0 if ret_label == "CORRECT" else 0.0
         elif retrieval_context:
             ret_label, ret_score = _judge(
                 question, ground_truth, retrieval_context, api_key, judge_model=judge_model)
         else:
-            ret_label, ret_score = "WRONG", 0.0  # No retrieval = wrong
+            ret_label, ret_score = "WRONG", 0.0
 
-        if label == "CORRECT":
-            correct += 1
-            marker = "O"
-        elif label == "PARTIAL":
-            partial_count += 1
-            marker = "~"
-        else:
-            wrong += 1
-            marker = "X"
-
+        marker = "O" if label == "CORRECT" else "~" if label == "PARTIAL" else "X"
         result = {
             "question": question,
             "ground_truth": ground_truth,
@@ -1681,13 +1935,55 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "answer_duration_s": round(answer_duration, 2),
             "eval_tokens": q_usage,
         }
-        results.append(result)
+        return i, result, marker, query_type, tool_calls
 
-        scored_so_far = correct + partial_count + wrong
-        acc_so_far = (correct + 0.5 * partial_count) / scored_so_far * 100 if scored_so_far > 0 else 0
-        tools_str = f" tools=[{','.join(tool_calls)}]" if tool_calls else " (no tools)"
-        print(f"  [{i+1}/{len(all_queries)}] {marker} ({query_type}) "
-              f"{question[:50]}...{tools_str} [{acc_so_far:.1f}%]")
+    completed = 0
+    if parallel_workers == 1:
+        for i, query in enumerate(all_queries):
+            _write_eval_progress(current_idx=i, completed_idx=i - 1)
+            i2, result, marker, query_type, tool_calls = _eval_one(i, query)
+            q_usage = result.get("eval_tokens", {})
+            eval_usage["input_tokens"] += q_usage.get("input_tokens", 0)
+            eval_usage["output_tokens"] += q_usage.get("output_tokens", 0)
+            eval_usage["api_calls"] += q_usage.get("api_calls", 0)
+            if result["judge_label"] == "CORRECT":
+                correct += 1
+            elif result["judge_label"] == "PARTIAL":
+                partial_count += 1
+            else:
+                wrong += 1
+            results.append(result)
+            scored_so_far = correct + partial_count + wrong
+            acc_so_far = (correct + 0.5 * partial_count) / scored_so_far * 100 if scored_so_far > 0 else 0
+            tools_str = f" tools=[{','.join(tool_calls)}]" if tool_calls else " (no tools)"
+            print(f"  [{i2+1}/{len(all_queries)}] {marker} ({query_type}) "
+                  f"{result['question'][:50]}...{tools_str} [{acc_so_far:.1f}%]")
+            _write_eval_progress(current_idx=i2 + 1, completed_idx=i2)
+    else:
+        results_by_idx = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_workers) as ex:
+            fut_map = {ex.submit(_eval_one, i, q): i for i, q in enumerate(all_queries)}
+            for fut in concurrent.futures.as_completed(fut_map):
+                i2, result, marker, query_type, tool_calls = fut.result()
+                q_usage = result.get("eval_tokens", {})
+                eval_usage["input_tokens"] += q_usage.get("input_tokens", 0)
+                eval_usage["output_tokens"] += q_usage.get("output_tokens", 0)
+                eval_usage["api_calls"] += q_usage.get("api_calls", 0)
+                if result["judge_label"] == "CORRECT":
+                    correct += 1
+                elif result["judge_label"] == "PARTIAL":
+                    partial_count += 1
+                else:
+                    wrong += 1
+                results_by_idx[i2] = result
+                completed += 1
+                _write_eval_progress(current_idx=completed, completed_idx=completed - 1)
+                scored_so_far = correct + partial_count + wrong
+                acc_so_far = (correct + 0.5 * partial_count) / scored_so_far * 100 if scored_so_far > 0 else 0
+                tools_str = f" tools=[{','.join(tool_calls)}]" if tool_calls else " (no tools)"
+                print(f"  [{completed}/{len(all_queries)}|q{i2+1}] {marker} ({query_type}) "
+                      f"{result['question'][:50]}...{tools_str} [{acc_so_far:.1f}%]")
+        results = [results_by_idx[i] for i in range(len(all_queries))]
 
     elapsed = time.time() - t_start
     scored = correct + partial_count + wrong
@@ -1726,7 +2022,7 @@ def run_fc_baseline(
     print(f"FULL-CONTEXT BASELINE ({answer_model})")
     print("=" * 60)
 
-    assets_dir = _CLAWD / "assets"
+    assets_dir = _resolve_assets_dir()
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
     reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
     all_queries = get_all_eval_queries(reviews)
@@ -2690,7 +2986,7 @@ def run_tier5_fc_baseline(
     print("=" * 60)
 
     queries = get_tier5_queries()
-    assets_dir = _CLAWD / "assets"
+    assets_dir = _resolve_assets_dir()
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
     reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
 
@@ -2792,10 +3088,22 @@ def _make_env(workspace: Path) -> dict:
     env["CLAWDBOT_WORKSPACE"] = str(workspace)
     env["MEMORY_DB_PATH"] = str(workspace / "data" / "memory.db")
     env["QUAID_DISABLE_NOTIFICATIONS"] = "1"
+    # Ensure Quaid root imports (e.g., `lib.*`) resolve even when entry scripts
+    # are symlinked into nested paths like datastore/memorydb.
+    quaid_root = str((_CLAWD / "plugins" / "quaid").resolve())
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = f"{quaid_root}:{existing_pythonpath}" if existing_pythonpath else quaid_root
+    # Harness-level concurrency knobs propagated to Quaid subprocesses (janitor/lifecycle).
+    env["BENCHMARK_PARALLEL"] = str(max(1, int(os.environ.get("BENCHMARK_PARALLEL", "6"))))
+    env["BENCHMARK_LIFECYCLE_PREPASS_WORKERS"] = str(
+        max(1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", env["BENCHMARK_PARALLEL"])))
+    )
     # Route janitor LLM calls through Claude Code when using that backend
     if _BACKEND == "claude-code":
         env["QUAID_USE_CLAUDE_CODE"] = "1"
         env.pop("CLAUDECODE", None)  # Allow nested invocation
+        env.pop("ANTHROPIC_API_KEY", None)
+        env.pop("ANTHROPIC_AUTH_TOKEN", None)
     else:
         # Ensure API key is available for direct API calls
         api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -2876,8 +3184,39 @@ def _call_anthropic_cached(
         },
     )
 
-    with urllib.request.urlopen(req, timeout=300) as resp:
-        data = json.loads(resp.read())
+    retry_attempts = max(1, int(os.environ.get("ANTHROPIC_RETRY_ATTEMPTS", "8")))
+    backoff_s = max(0.5, float(os.environ.get("ANTHROPIC_RETRY_BACKOFF_S", "2")))
+    backoff_cap_s = max(backoff_s, float(os.environ.get("ANTHROPIC_RETRY_BACKOFF_CAP_S", "60")))
+
+    data = None
+    for attempt in range(1, retry_attempts + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                data = json.loads(resp.read())
+            break
+        except urllib.error.HTTPError as exc:
+            body = ""
+            try:
+                body = (exc.read() or b"").decode("utf-8", errors="ignore")
+            except Exception:
+                body = ""
+            retriable = exc.code in {408, 429, 500, 502, 503, 504}
+            if not retriable or attempt == retry_attempts:
+                raise RuntimeError(f"Anthropic HTTP {exc.code}: {body[:300]}") from exc
+            delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
+            delay *= 1.0 + random.uniform(0.0, 0.25)
+            print(f"  [anthropic] HTTP {exc.code} (attempt {attempt}/{retry_attempts}); retrying in {delay:.1f}s")
+            time.sleep(delay)
+        except urllib.error.URLError as exc:
+            if attempt == retry_attempts:
+                raise RuntimeError(f"Anthropic URL error: {exc}") from exc
+            delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
+            delay *= 1.0 + random.uniform(0.0, 0.25)
+            print(f"  [anthropic] URL error (attempt {attempt}/{retry_attempts}); retrying in {delay:.1f}s")
+            time.sleep(delay)
+
+    if data is None:
+        raise RuntimeError("Anthropic call failed: no response payload")
 
     text = data.get("content", [{}])[0].get("text", "").strip()
     usage = data.get("usage", {})
@@ -2914,13 +3253,20 @@ def _call_claude_code(
 
     env = os.environ.copy()
     env.pop("CLAUDECODE", None)  # Allow nested invocation
+    # Force Claude Code to use its own authenticated session, not stale API key env.
+    env.pop("ANTHROPIC_API_KEY", None)
+    env.pop("ANTHROPIC_AUTH_TOKEN", None)
 
     result = subprocess.run(
         cmd, capture_output=True, text=True, timeout=600, env=env,
         cwd="/tmp",  # Avoid loading CLAUDE.md project context
     )
     if result.returncode != 0:
-        raise RuntimeError(f"Claude Code failed: {result.stderr[:300]}")
+        stdout_tail = (result.stdout or "")[-500:]
+        stderr_tail = (result.stderr or "")[-500:]
+        raise RuntimeError(
+            f"Claude Code failed: rc={result.returncode} stderr={stderr_tail} stdout={stdout_tail}"
+        )
 
     data = json.loads(result.stdout)
     text = data.get("result", "").strip()
@@ -3036,14 +3382,39 @@ def _tool_use_loop_claude_code(
 
     cc_env = os.environ.copy()
     cc_env.pop("CLAUDECODE", None)
+    cc_env.pop("ANTHROPIC_API_KEY", None)
+    cc_env.pop("ANTHROPIC_AUTH_TOKEN", None)
+
+    timeout_s = 120
+    try:
+        timeout_s = int(os.environ.get("CLAUDE_CODE_TIMEOUT_S", "120"))
+    except Exception:
+        timeout_s = 120
+    if timeout_s < 30:
+        timeout_s = 30
+    try:
+        timeout_cap = int(os.environ.get("CLAUDE_CODE_TIMEOUT_CAP_S", "0"))
+    except Exception:
+        timeout_cap = 0
+    if timeout_cap > 0:
+        timeout_s = min(timeout_s, timeout_cap)
 
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=120, env=cc_env,
+            cmd, capture_output=True, text=True, timeout=timeout_s, env=cc_env,
             cwd="/tmp",  # Avoid loading CLAUDE.md project context
         )
         if result.returncode != 0:
-            return f"Error: Claude Code failed: {result.stderr[:200]}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+            err = (result.stderr or "")[-300:]
+            out = (result.stdout or "")[-300:]
+            tool_result_summaries.append(f"claude_code_rc={result.returncode}")
+            return (
+                f"Error: Claude Code failed rc={result.returncode} stderr={err} stdout={out}",
+                tool_call_names,
+                tool_result_summaries,
+                retrieval_texts,
+                usage_total,
+            )
 
         data = json.loads(result.stdout)
         answer = data.get("result", "").strip()
@@ -3062,7 +3433,14 @@ def _tool_use_loop_claude_code(
         usage_total["api_calls"] = turns
 
     except subprocess.TimeoutExpired:
-        return "Error: timeout", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+        tool_result_summaries.append(f"claude_code_timeout={timeout_s}s")
+        return (
+            f"Error: claude-code timeout after {timeout_s}s",
+            tool_call_names,
+            tool_result_summaries,
+            retrieval_texts,
+            usage_total,
+        )
     except Exception as e:
         return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
 

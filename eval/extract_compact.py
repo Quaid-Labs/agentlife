@@ -103,12 +103,26 @@ def build_transcript(messages: list[dict], agent_name: str = "Assistant") -> str
     return "\n\n".join(transcript)
 
 
-def build_extraction_prompt(user_name: str, agent_name: str = "Assistant") -> str:
+def build_extraction_prompt(
+    user_name: str,
+    agent_name: str = "Assistant",
+    allowed_domains: list[str] | None = None,
+) -> str:
     """Build the extraction system prompt, parameterized for the benchmark persona.
 
     Includes facts, edges, soul_snippets, AND journal_entries — matching
     the production Quaid plugin's full extraction output.
     """
+    domain_clause = ""
+    if allowed_domains:
+        domain_list = ", ".join(str(d).strip() for d in allowed_domains if str(d).strip())
+        if domain_list:
+            domain_clause = (
+                "\n\nDOMAIN TAGS:\n"
+                f"- Use only these domain values when setting domain: {domain_list}\n"
+                "- If uncertain, choose the closest listed domain and avoid inventing new values.\n"
+            )
+
     return f"""You are a memory extraction system. You will receive a full conversation transcript that is about to be lost. Your job is to extract personal facts, relationship edges, soul snippets, and journal entries from this conversation.
 
 CRITICAL: These extracted facts will be saved to a persistent memory database — they are the ONLY record of this conversation. After extraction, the original transcript is deleted. Any fact you fail to extract is PERMANENTLY LOST. The system has a janitor that handles noise and duplicates, so err on the side of extracting MORE rather than less. A fact that gets filtered out later costs nothing, but a missed fact can never be recovered.
@@ -173,6 +187,7 @@ PRIVACY CLASSIFICATION (per fact):
 - "shared": Most facts go here. Family info, names, relationships, schedules, preferences.
 - "public": Widely known or non-personal facts.
 IMPORTANT: Default to "shared". Only use "private" for genuinely secret or sensitive information.
+{domain_clause}
 
 SENSITIVITY CLASSIFICATION (per fact):
 Tag facts that require careful handling in conversation. Most facts have null sensitivity.
