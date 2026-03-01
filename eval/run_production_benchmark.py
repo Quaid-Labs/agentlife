@@ -225,6 +225,7 @@ def setup_workspace(workspace: Path) -> None:
     conn = sqlite3.connect(str(db_path))
     conn.executescript(schema)
     _bootstrap_domain_registry(conn)
+    conn.commit()
     conn.close()
     print(f"  DB initialized: {db_path}")
 
