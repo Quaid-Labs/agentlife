@@ -1571,7 +1571,30 @@ def _store_facts(
     try:
         active_domains = _load_active_domain_ids(workspace)
     except Exception:
-        active_domains = ["personal", "project", "work", "technical"]
+        active_domains = ["personal", "projects", "work", "technical"]
+
+    active_set = {str(d).strip().lower() for d in active_domains if str(d).strip()}
+    if "projects" in active_set:
+        preferred_project_domain = "projects"
+    elif "project" in active_set:
+        preferred_project_domain = "project"
+    else:
+        preferred_project_domain = "projects"
+
+    def _normalize_domains(raw: list[str]) -> list[str]:
+        out: list[str] = []
+        for d in raw:
+            val = str(d).strip().lower()
+            if not val:
+                continue
+            if val == "project":
+                val = "projects"
+            if val == "projects" and "projects" not in active_set and "project" in active_set:
+                val = "project"
+            if val == "project" and "project" not in active_set and "projects" in active_set:
+                val = "projects"
+            out.append(val)
+        return list(dict.fromkeys(out))
 
     for fact in facts:
         text = fact.get("text", "").strip()
@@ -1608,10 +1631,10 @@ def _store_facts(
             raw_domains = [d for d in raw_domains.split(",")]
         if not isinstance(raw_domains, list):
             raw_domains = []
-        parsed_domains = [str(d).strip().lower() for d in raw_domains if str(d).strip()]
+        parsed_domains = _normalize_domains(raw_domains)
         if not parsed_domains:
-            if project_name and "project" in active_domains:
-                parsed_domains = ["project"]
+            if project_name:
+                parsed_domains = [preferred_project_domain]
             elif category in {"preference", "identity", "profile"} and "personal" in active_domains:
                 parsed_domains = ["personal"]
             elif "work" in active_domains and category in {"decision", "event"}:
@@ -1932,13 +1955,50 @@ def run_janitor(workspace: Path, model: str) -> None:
     print("  Running: janitor --task all --apply --force-distill")
     print("  (This will take several minutes — Opus review + workspace audit + snippets + journal)")
 
-    t0 = time.time()
-    result = subprocess.run(
-        [sys.executable, janitor_path, "--task", "all", "--apply", "--force-distill"],
-        env=env, cwd=str(_QUAID_DIR),
-        capture_output=True, text=True, timeout=900,
-    )
-    elapsed = time.time() - t0
+    max_attempts = max(1, int(os.environ.get("JANITOR_RATE_LIMIT_RETRIES", "3")) + 1)
+    result = None
+    elapsed = 0.0
+    for attempt in range(1, max_attempts + 1):
+        t0 = time.time()
+        result = subprocess.run(
+            [sys.executable, janitor_path, "--task", "all", "--apply", "--force-distill"],
+            env=env, cwd=str(_QUAID_DIR),
+            capture_output=True, text=True, timeout=900,
+        )
+        elapsed = time.time() - t0
+        stderr_lc = (result.stderr or "").lower()
+        stdout_lc = (result.stdout or "").lower()
+        retryable_429 = (
+            result.returncode != 0
+            and (
+                "http error 429" in stderr_lc
+                or "too many requests" in stderr_lc
+                or "status code 429" in stderr_lc
+                or "http error 429" in stdout_lc
+                or "too many requests" in stdout_lc
+                or "status code 429" in stdout_lc
+            )
+        )
+        if retryable_429 and attempt < max_attempts:
+            wait_s = min(180, 30 * attempt)
+            print(
+                f"  Janitor retry on 429 (attempt {attempt}/{max_attempts - 1}), "
+                f"sleeping {wait_s}s..."
+            )
+            _append_run_diag(
+                workspace,
+                {
+                    "event": "janitor_retryable_429",
+                    "attempt": attempt,
+                    "max_attempts": max_attempts,
+                    "wait_s": wait_s,
+                    "returncode": int(result.returncode),
+                },
+            )
+            time.sleep(wait_s)
+            continue
+        break
+    assert result is not None
 
     # Print janitor output
     for line in result.stdout.split("\n"):
@@ -4039,8 +4099,12 @@ def main():
     parser.add_argument("--results-dir", type=str,
                         default=str(_PROJECT_DIR / "data" / "results-production"),
                         help="Workspace/results directory")
-    parser.add_argument("--model", type=str, default="claude-opus-4-6",
-                        help="Extraction model (default: claude-opus-4-6)")
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=os.environ.get("BENCHMARK_MODEL", "claude-haiku-4-5-20251001"),
+        help="Extraction model (default: BENCHMARK_MODEL or claude-haiku-4-5-20251001)",
+    )
     parser.add_argument("--max-sessions", type=int, default=None,
                         help="Limit to first N sessions (default: all 20)")
     parser.add_argument("--no-cache", action="store_true",
