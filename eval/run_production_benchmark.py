@@ -487,9 +487,13 @@ def setup_workspace(workspace: Path) -> None:
     # Allow run-level override for both reasoning tiers (API debug lanes).
     reasoning_model = os.environ.get("BENCHMARK_REASONING_MODEL", "").strip()
     if reasoning_model:
+        prod_config["models"]["deep_reasoning"] = reasoning_model
+        prod_config["models"]["fast_reasoning"] = reasoning_model
         prod_config["models"]["deepReasoning"] = reasoning_model
         prod_config["models"]["fastReasoning"] = reasoning_model
     elif _BACKEND == "api":
+        prod_config["models"]["deep_reasoning"] = "claude-haiku-4-5-20251001"
+        prod_config["models"]["fast_reasoning"] = "claude-haiku-4-5-20251001"
         prod_config["models"]["deepReasoning"] = "claude-haiku-4-5-20251001"
         prod_config["models"]["fastReasoning"] = "claude-haiku-4-5-20251001"
 
@@ -607,6 +611,10 @@ def setup_workspace(workspace: Path) -> None:
     # Snake_case keys are what Quaid config loader reads today.
     prod_config["janitor"]["opus_review"]["batch_size"] = janitor_batch_size
     prod_config["janitor"]["opus_review"]["max_tokens"] = janitor_max_tokens
+    janitor_model = reasoning_model or prod_config["models"].get("deep_reasoning") or prod_config["models"].get("deepReasoning")
+    if janitor_model:
+        prod_config["janitor"]["opus_review"]["model"] = janitor_model
+        prod_config["janitor"]["opusReview"]["model"] = janitor_model
 
     config_path = workspace / "config" / "memory.json"
     config_path.write_text(json.dumps(prod_config, indent=2))
