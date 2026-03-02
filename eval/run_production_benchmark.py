@@ -568,7 +568,7 @@ def setup_workspace(workspace: Path) -> None:
     janitor_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_LLM_WORKERS", "1")))
     review_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_REVIEW_WORKERS", "1")))
     janitor_max_output = max(
-        512, int(os.environ.get("BENCHMARK_JANITOR_DEEP_MAX_OUTPUT", "1800"))
+        512, int(os.environ.get("BENCHMARK_JANITOR_DEEP_MAX_OUTPUT", "8192"))
     )
     prod_config["core"]["parallel"].update({
         "enabled": True,
@@ -601,7 +601,7 @@ def setup_workspace(workspace: Path) -> None:
     if not isinstance(prod_config.get("janitor"), dict):
         prod_config["janitor"] = {}
     janitor_batch_size = max(6, int(os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE", "12")))
-    janitor_max_tokens = max(512, int(os.environ.get("BENCHMARK_JANITOR_MAX_TOKENS", "1800")))
+    janitor_max_tokens = max(512, int(os.environ.get("BENCHMARK_JANITOR_MAX_TOKENS", "4096")))
     if not isinstance(prod_config["janitor"].get("opusReview"), dict):
         prod_config["janitor"]["opusReview"] = {}
     if not isinstance(prod_config["janitor"].get("opus_review"), dict):
