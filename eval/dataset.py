@@ -655,7 +655,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
         ],
     },
     {
-        "question": "Is Maya happy at work?",
+        "question": "As of session 20, is Maya happy at work?",
         "ground_truth": "Yes, as of the latest sessions. This changed significantly over time. Session 1: neutral ('it's... a job'). Session 6: deeply unhappy at TechFlow (bad manager, reorg, AI pivot). Session 13: excited about Stripe offer. Session 19-20: loves Stripe — smart people, good manager Sarah, developer tools work is rewarding.",
         "query_type": "contested_fact",
         "recall_difficulty": "Hard",
@@ -670,7 +670,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
         ],
     },
     {
-        "question": "What happened to Ethan's interest in dinosaurs?",
+        "question": "By session 20, what happened to Ethan's interest in dinosaurs?",
         "ground_truth": "Ethan's interest evolved. In session 15 he was obsessed with dinosaurs — knew more dinosaur names than human names, corrected his teacher about velociraptor feathers. By session 20, he has moved on to plate tectonics and geology, though Maya notes it might be related ('dinosaurs AND rocks').",
         "query_type": "contested_fact",
         "recall_difficulty": "Medium",
@@ -683,7 +683,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
         ],
     },
     {
-        "question": "What does Maya's portfolio site say about her tech stack?",
+        "question": "As of session 20, what does Maya's portfolio site say about her tech stack?",
         "ground_truth": "The portfolio site itself is a static HTML/CSS site. For project-card wording, Maya noted in session 14 that the recipe app card should mention GraphQL (after the session 12 pivot) but deferred that update. Answers that correctly separate the site stack (HTML/CSS) from recipe-app card wording should be accepted.",
         "query_type": "contested_fact",
         "recall_difficulty": "Medium",
@@ -697,7 +697,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
         ],
     },
     {
-        "question": "What's David's role at work?",
+        "question": "As of session 20, what's David's role at work?",
         "ground_truth": "Current role: lead engineer (session 17). Previously: software engineer (session 1). Responses that mention both the promotion and his prior role should be accepted; answers that only state the old role are incorrect.",
         "query_type": "contested_fact",
         "recall_difficulty": "Medium",
@@ -770,7 +770,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
         ],
     },
     {
-        "question": "Do Maya and David live in South Austin?",
+        "question": "As of session 20, do Maya and David still live in South Austin?",
         "ground_truth": "As of the latest sessions, they are in the process of moving. They currently live in South Austin but are putting an offer on a house in East Austin. The East Austin house is walkable and has a detached garage/workshop for David.",
         "query_type": "stale_fact",
         "recall_difficulty": "Medium",
@@ -784,7 +784,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
         ],
     },
     {
-        "question": "Is Priya still at TechFlow?",
+        "question": "As of session 20, is Priya still at TechFlow?",
         "ground_truth": "As of session 20, Priya is interviewing elsewhere but her current status is not confirmed as having left. In session 13, Maya offered to refer her to Stripe. In session 20, Maya said Priya texted that she's interviewing somewhere (didn't say where). She may still be at TechFlow but is actively looking.",
         "query_type": "stale_fact",
         "recall_difficulty": "Medium",
@@ -811,7 +811,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
         ],
     },
     {
-        "question": "Is the recipe app still using REST API only?",
+        "question": "As of session 20, is the recipe app still using REST API only?",
         "ground_truth": "No. The recipe app pivoted to GraphQL with Apollo Server in session 12. REST endpoints were kept for backward compatibility ('if mom's phone can't handle graphql'), but GraphQL is the primary API. The app also gained authentication in session 18.",
         "query_type": "stale_fact",
         "recall_difficulty": "Medium",

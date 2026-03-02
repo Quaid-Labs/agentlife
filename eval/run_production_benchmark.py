@@ -2282,7 +2282,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         source_session = query.get("source_session", 20)
         session_date = SESSION_DATES.get(source_session, "2026-05-01")
         t0 = time.time()
-        prediction, tool_calls, tool_results_log, recall_texts, q_usage = _tool_use_loop(
+        prediction, tool_calls, tool_results_log, recall_texts, q_usage, tool_call_details = _tool_use_loop(
             question=question,
             eval_context=eval_context,
             workspace=workspace,
@@ -2329,6 +2329,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "source_session": query.get("source_session", 0),
             "evidence_sessions": query.get("evidence_sessions", []),
             "tool_calls": tool_calls,
+            "tool_call_details": tool_call_details,
             "tool_results_summary": tool_results_log,
             "answer_duration_s": round(answer_duration, 2),
             "eval_tokens": q_usage,
@@ -2598,7 +2599,7 @@ def _tool_use_loop(
     date_to: Optional[str] = None,
     max_session: Optional[int] = None,
     context_inject: bool = False,
-) -> Tuple[str, List[str], List[str], List[str], dict]:
+) -> Tuple[str, List[str], List[str], List[str], dict, List[dict]]:
     """Run model with tool use, executing memory_recall and search_project_docs.
 
     Routes through Claude Code CLI when _BACKEND == "claude-code".
@@ -2607,7 +2608,7 @@ def _tool_use_loop(
     system prompt (like Mem0's approach). Tools are still available for
     follow-up queries if the model wants to dig deeper.
 
-    Returns (final_answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total).
+    Returns (final_answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details).
     """
     if _BACKEND == "claude-code":
         return _tool_use_loop_claude_code(
@@ -2674,6 +2675,7 @@ def _tool_use_loop(
     injected_context = ""
     tool_call_names = []
     tool_result_summaries = []
+    tool_call_details: List[dict] = []
     retrieval_texts = []  # Raw recall text for retrieval-only metric
 
     if context_inject:
@@ -2691,6 +2693,16 @@ def _tool_use_loop(
             tool_result_summaries.append(
                 f"pre-inject({query_used[:40]}): {len(recall_text)} chars"
             )
+            tool_call_details.append({
+                "tool": "memory_recall",
+                "source": "pre_inject",
+                "input": {
+                    "query": query_used,
+                    "max_session": max_session,
+                    "date_to": date_to,
+                },
+                "result_meta": {"chars": len(recall_text)},
+            })
             retrieval_texts.append(recall_text)
 
     if context_inject:
@@ -2750,7 +2762,7 @@ def _tool_use_loop(
             with urllib.request.urlopen(req, timeout=120) as resp:
                 data = json.loads(resp.read())
         except Exception as e:
-            return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+            return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
 
         # Track token usage
         _usage = data.get("usage", {})
@@ -2784,6 +2796,13 @@ def _tool_use_loop(
                     tool_result_summaries.append(
                         f"{tool_name}({tool_input.get('query', '')[:40]}): {len(result_text)} chars"
                     )
+                    tool_call_details.append({
+                        "tool": tool_name,
+                        "source": "anthropic_tool_use",
+                        "turn": turn + 1,
+                        "input": dict(tool_input),
+                        "result_meta": {"chars": len(result_text)},
+                    })
                     if tool_name == "memory_recall":
                         retrieval_texts.append(result_text)
 
@@ -2801,14 +2820,14 @@ def _tool_use_loop(
         for block in content_blocks:
             if block.get("type") == "text":
                 text_parts.append(block["text"])
-        return " ".join(text_parts).strip(), tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+        return " ".join(text_parts).strip(), tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
 
     # Exhausted turns — extract whatever text we have
     text_parts = []
     for block in content_blocks:
         if block.get("type") == "text":
             text_parts.append(block["text"])
-    return " ".join(text_parts).strip() or "Unable to determine answer.", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+    return " ".join(text_parts).strip() or "Unable to determine answer.", tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
 
 
 def _execute_tool(
@@ -3426,7 +3445,7 @@ def run_tier5_eval(
 
         t0 = time.time()
         # Use the same tool-use loop as Tiers 1-4
-        prediction, tool_calls, tool_results_log, recall_texts, q_usage = _tool_use_loop(
+        prediction, tool_calls, tool_results_log, recall_texts, q_usage, tool_call_details = _tool_use_loop(
             question=question,
             eval_context=eval_context,
             workspace=workspace,
@@ -3460,6 +3479,7 @@ def run_tier5_eval(
             "sensitivity_context": query.get("sensitivity_context", ""),
             "rubric": query.get("rubric", {}),
             "tool_calls": tool_calls,
+            "tool_call_details": tool_call_details,
             "answer_duration_s": round(answer_duration, 2),
             "eval_tokens": q_usage,
         })
@@ -3831,7 +3851,7 @@ def _tool_use_loop_claude_code(
     date_to: Optional[str] = None,
     max_session: Optional[int] = None,
     context_inject: bool = False,
-) -> Tuple[str, List[str], List[str], List[str], dict]:
+) -> Tuple[str, List[str], List[str], List[str], dict, List[dict]]:
     """Eval answer loop using Claude Code CLI with Bash tool for memory search.
 
     Routes through Claude Code subscription instead of direct API.
@@ -3840,6 +3860,7 @@ def _tool_use_loop_claude_code(
     usage_total = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
     tool_call_names = []
     tool_result_summaries = []
+    tool_call_details: List[dict] = []
     retrieval_texts = []
 
     # Pre-inject recall results (Python/subprocess, no LLM cost)
@@ -3859,6 +3880,16 @@ def _tool_use_loop_claude_code(
             tool_result_summaries.append(
                 f"pre-inject({query_used[:40]}): {len(recall_text)} chars"
             )
+            tool_call_details.append({
+                "tool": "memory_recall",
+                "source": "pre_inject",
+                "input": {
+                    "query": query_used,
+                    "max_session": max_session,
+                    "date_to": date_to,
+                },
+                "result_meta": {"chars": len(recall_text)},
+            })
             retrieval_texts.append(recall_text)
 
     # Build system prompt
@@ -3954,6 +3985,7 @@ def _tool_use_loop_claude_code(
                 tool_result_summaries,
                 retrieval_texts,
                 usage_total,
+                tool_call_details,
             )
 
         data = json.loads(result.stdout)
@@ -3965,6 +3997,13 @@ def _tool_use_loop_claude_code(
             # Model made Bash calls — count them as memory_recall
             for _i in range(turns - 1):
                 tool_call_names.append("memory_recall")
+                tool_call_details.append({
+                    "tool": "memory_recall",
+                    "source": "claude_code_bash",
+                    "turn": _i + 1,
+                    "input": {"query": "<unknown-from-claude-code>"},
+                    "result_meta": {"chars": None},
+                })
 
         # Aggregate usage
         for _m, u in data.get("modelUsage", {}).items():
@@ -3980,11 +4019,12 @@ def _tool_use_loop_claude_code(
             tool_result_summaries,
             retrieval_texts,
             usage_total,
+            tool_call_details,
         )
     except Exception as e:
-        return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+        return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
 
-    return answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+    return answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
 
 
 # ---------------------------------------------------------------------------
