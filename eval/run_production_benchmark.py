@@ -50,6 +50,82 @@ _CLAWD = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
 _QUAID_DIR = _CLAWD / "plugins" / "quaid"
 
 
+def _key_fingerprint(secret: str) -> str:
+    """Return a short non-reversible fingerprint for diagnostics."""
+    s = (secret or "").strip()
+    if not s:
+        return "missing"
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()[:12]
+
+
+def _append_run_diag(workspace: Path, event: dict) -> None:
+    """Append structured benchmark diagnostics to a local jsonl log."""
+    try:
+        logs_dir = workspace / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        path = logs_dir / "benchmark-diagnostics.jsonl"
+        payload = dict(event or {})
+        payload["ts"] = datetime.now(timezone.utc).isoformat()
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
+
+
+def _probe_anthropic_limits(api_key: str, model: str) -> dict:
+    """Issue a tiny Anthropic call and capture ratelimit headers for diagnostics."""
+    out = {
+        "status": "skipped",
+        "model": model,
+        "key_fp": _key_fingerprint(api_key),
+    }
+    key = (api_key or "").strip()
+    if not key:
+        out["status"] = "missing_key"
+        return out
+
+    payload = {
+        "model": model,
+        "max_tokens": 8,
+        "messages": [{"role": "user", "content": "ping"}],
+    }
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            h = {str(k).lower(): str(v) for k, v in resp.headers.items()}
+            out["status"] = "ok"
+            out["ratelimit"] = {k: v for k, v in h.items() if "ratelimit" in k}
+            return out
+    except urllib.error.HTTPError as exc:
+        body = ""
+        try:
+            body = (exc.read() or b"").decode("utf-8", errors="ignore")
+        except Exception:
+            body = ""
+        h = {str(k).lower(): str(v) for k, v in (exc.headers.items() if exc.headers else [])}
+        out["status"] = "http_error"
+        out["http_status"] = int(exc.code)
+        out["error_body_preview"] = body[:300].replace("\n", " ")
+        out["ratelimit"] = {k: v for k, v in h.items() if "ratelimit" in k}
+        return out
+    except urllib.error.URLError as exc:
+        out["status"] = "url_error"
+        out["error"] = str(exc)
+        return out
+    except Exception as exc:
+        out["status"] = "error"
+        out["error"] = f"{type(exc).__name__}: {exc}"
+        return out
+
+
 def _resolve_assets_dir() -> Path:
     """Resolve benchmark assets path with explicit env override first."""
     explicit = os.environ.get("AGENTLIFE_ASSETS_DIR")
@@ -488,7 +564,7 @@ def setup_workspace(workspace: Path) -> None:
     janitor_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_LLM_WORKERS", "1")))
     review_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_REVIEW_WORKERS", "1")))
     janitor_max_output = max(
-        1024, int(os.environ.get("BENCHMARK_JANITOR_DEEP_MAX_OUTPUT", "6000"))
+        512, int(os.environ.get("BENCHMARK_JANITOR_DEEP_MAX_OUTPUT", "1800"))
     )
     prod_config["core"]["parallel"].update({
         "enabled": True,
@@ -520,8 +596,8 @@ def setup_workspace(workspace: Path) -> None:
     prod_config["models"]["deepReasoningMaxOutput"] = janitor_max_output
     if not isinstance(prod_config.get("janitor"), dict):
         prod_config["janitor"] = {}
-    janitor_batch_size = max(10, int(os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE", "25")))
-    janitor_max_tokens = max(1024, int(os.environ.get("BENCHMARK_JANITOR_MAX_TOKENS", "6000")))
+    janitor_batch_size = max(6, int(os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE", "12")))
+    janitor_max_tokens = max(512, int(os.environ.get("BENCHMARK_JANITOR_MAX_TOKENS", "1800")))
     if not isinstance(prod_config["janitor"].get("opusReview"), dict):
         prod_config["janitor"]["opusReview"] = {}
     if not isinstance(prod_config["janitor"].get("opus_review"), dict):
@@ -1776,7 +1852,7 @@ def run_per_day_extraction(
 # Phase 4: Janitor
 # ---------------------------------------------------------------------------
 
-def run_janitor(workspace: Path) -> None:
+def run_janitor(workspace: Path, model: str) -> None:
     """Run full janitor via subprocess."""
     print("=" * 60)
     print("PHASE 4: FULL JANITOR")
@@ -1784,6 +1860,24 @@ def run_janitor(workspace: Path) -> None:
 
     env = _make_env(workspace)
     janitor_path = str(_QUAID_DIR / "janitor.py")
+    key_fp = _key_fingerprint(env.get("ANTHROPIC_API_KEY", ""))
+
+    print(f"  Janitor backend: {_BACKEND} | model={model} | key_fp={key_fp}")
+    _append_run_diag(
+        workspace,
+        {
+            "event": "janitor_start",
+            "backend": _BACKEND,
+            "model": model,
+            "key_fp": key_fp,
+        },
+    )
+    if _BACKEND == "api":
+        pre_probe = _probe_anthropic_limits(env.get("ANTHROPIC_API_KEY", ""), model)
+        print(f"  Anthropic pre-janitor probe: status={pre_probe.get('status')} key_fp={pre_probe.get('key_fp')}")
+        if pre_probe.get("ratelimit"):
+            print(f"  Pre-janitor ratelimit: {pre_probe.get('ratelimit')}")
+        _append_run_diag(workspace, {"event": "anthropic_probe_pre_janitor", **pre_probe})
 
     print("  Running: janitor --task all --apply --force-distill")
     print("  (This will take several minutes — Opus review + workspace audit + snippets + journal)")
@@ -1803,11 +1897,45 @@ def run_janitor(workspace: Path) -> None:
 
     if result.returncode != 0:
         print(f"\n  WARNING: Janitor exited with code {result.returncode}")
+        if result.stderr:
+            try:
+                logs_dir = workspace / "logs"
+                logs_dir.mkdir(parents=True, exist_ok=True)
+                (logs_dir / "janitor-stderr-tail.txt").write_text(
+                    "\n".join([ln for ln in result.stderr.splitlines()[-200:]]),
+                    encoding="utf-8",
+                )
+            except Exception:
+                pass
         for line in result.stderr.split("\n")[-10:]:
             if line.strip():
                 print(f"    STDERR: {line}")
     else:
         print(f"\n  Janitor completed in {elapsed:.1f}s")
+    if _BACKEND == "api":
+        post_probe = _probe_anthropic_limits(env.get("ANTHROPIC_API_KEY", ""), model)
+        print(f"  Anthropic post-janitor probe: status={post_probe.get('status')} key_fp={post_probe.get('key_fp')}")
+        if post_probe.get("ratelimit"):
+            print(f"  Post-janitor ratelimit: {post_probe.get('ratelimit')}")
+        _append_run_diag(
+            workspace,
+            {
+                "event": "anthropic_probe_post_janitor",
+                "janitor_rc": int(result.returncode),
+                **post_probe,
+            },
+        )
+    _append_run_diag(
+        workspace,
+        {
+            "event": "janitor_complete",
+            "backend": _BACKEND,
+            "model": model,
+            "key_fp": key_fp,
+            "returncode": int(result.returncode),
+            "elapsed_sec": round(elapsed, 3),
+        },
+    )
 
     print()
 
@@ -3877,7 +4005,7 @@ def main():
         if not args.skip_janitor:
             # Full janitor at the end (contradictions, decay, workspace audit,
             # snippets FOLD/REWRITE/DISCARD, journal distillation)
-            run_janitor(workspace)
+            run_janitor(workspace, args.model)
 
         verify_post_janitor(workspace)
 
@@ -3957,7 +4085,7 @@ def main():
         )
 
         if not args.skip_janitor:
-            run_janitor(workspace)
+            run_janitor(workspace, args.model)
 
         verify_post_janitor(workspace)
 
