@@ -485,12 +485,22 @@ def setup_workspace(workspace: Path) -> None:
         prod_config["core"] = {}
     if not isinstance(prod_config["core"].get("parallel"), dict):
         prod_config["core"]["parallel"] = {}
-    janitor_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_LLM_WORKERS", "2")))
+    janitor_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_LLM_WORKERS", "1")))
     review_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_REVIEW_WORKERS", "1")))
+    janitor_max_output = max(
+        1024, int(os.environ.get("BENCHMARK_JANITOR_DEEP_MAX_OUTPUT", "6000"))
+    )
     prod_config["core"]["parallel"].update({
         "enabled": True,
+        "llm_workers": janitor_workers,
         "llmWorkers": janitor_workers,
         "taskWorkers": {
+            "review_pending": review_workers,
+            "dedup_review": review_workers,
+            "decay_review": review_workers,
+            "contradiction_resolution": review_workers,
+        },
+        "task_workers": {
             "review_pending": review_workers,
             "dedup_review": review_workers,
             "decay_review": review_workers,
@@ -499,14 +509,28 @@ def setup_workspace(workspace: Path) -> None:
         "lifecyclePrepassWorkers": max(
             1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", str(janitor_workers)))
         ),
+        "lifecycle_prepass_workers": max(
+            1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", str(janitor_workers)))
+        ),
     })
+    if not isinstance(prod_config.get("models"), dict):
+        prod_config["models"] = {}
+    # Keep janitor review batches small enough for lower-tier Anthropic keys.
+    prod_config["models"]["deep_reasoning_max_output"] = janitor_max_output
+    prod_config["models"]["deepReasoningMaxOutput"] = janitor_max_output
     if not isinstance(prod_config.get("janitor"), dict):
         prod_config["janitor"] = {}
+    janitor_batch_size = max(10, int(os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE", "25")))
+    janitor_max_tokens = max(1024, int(os.environ.get("BENCHMARK_JANITOR_MAX_TOKENS", "6000")))
     if not isinstance(prod_config["janitor"].get("opusReview"), dict):
         prod_config["janitor"]["opusReview"] = {}
-    prod_config["janitor"]["opusReview"]["batchSize"] = max(
-        10, int(os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE", "40"))
-    )
+    if not isinstance(prod_config["janitor"].get("opus_review"), dict):
+        prod_config["janitor"]["opus_review"] = {}
+    prod_config["janitor"]["opusReview"]["batchSize"] = janitor_batch_size
+    prod_config["janitor"]["opusReview"]["maxTokens"] = janitor_max_tokens
+    # Snake_case keys are what Quaid config loader reads today.
+    prod_config["janitor"]["opus_review"]["batch_size"] = janitor_batch_size
+    prod_config["janitor"]["opus_review"]["max_tokens"] = janitor_max_tokens
 
     config_path = workspace / "config" / "memory.json"
     config_path.write_text(json.dumps(prod_config, indent=2))
