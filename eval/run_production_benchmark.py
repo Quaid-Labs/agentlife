@@ -401,6 +401,22 @@ def setup_workspace(workspace: Path) -> None:
 
     # 2. Benchmark config
     prod_config = json.loads((_CLAWD / "config" / "memory.json").read_text())
+    if not isinstance(prod_config.get("models"), dict):
+        prod_config["models"] = {}
+    # Quaid strict mode requires explicit provider declaration.
+    if _BACKEND == "claude-code":
+        prod_config["models"]["llmProvider"] = "claude-code"
+    else:
+        prod_config["models"]["llmProvider"] = "anthropic"
+    # Allow run-level override for both reasoning tiers (API debug lanes).
+    reasoning_model = os.environ.get("BENCHMARK_REASONING_MODEL", "").strip()
+    if reasoning_model:
+        prod_config["models"]["deepReasoning"] = reasoning_model
+        prod_config["models"]["fastReasoning"] = reasoning_model
+    elif _BACKEND == "api":
+        prod_config["models"]["deepReasoning"] = "claude-haiku-4-5-20251001"
+        prod_config["models"]["fastReasoning"] = "claude-haiku-4-5-20251001"
+
     if not isinstance(prod_config.get("users"), dict):
         prod_config["users"] = {}
     prod_config["users"]["defaultOwner"] = "maya"
@@ -464,6 +480,33 @@ def setup_workspace(workspace: Path) -> None:
     if not isinstance(prod_config.get("retrieval"), dict):
         prod_config["retrieval"] = {}
     prod_config["retrieval"]["notifyOnRecall"] = False
+    # Configure janitor parallelism explicitly for benchmark stability.
+    if not isinstance(prod_config.get("core"), dict):
+        prod_config["core"] = {}
+    if not isinstance(prod_config["core"].get("parallel"), dict):
+        prod_config["core"]["parallel"] = {}
+    janitor_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_LLM_WORKERS", "2")))
+    review_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_REVIEW_WORKERS", "1")))
+    prod_config["core"]["parallel"].update({
+        "enabled": True,
+        "llmWorkers": janitor_workers,
+        "taskWorkers": {
+            "review_pending": review_workers,
+            "dedup_review": review_workers,
+            "decay_review": review_workers,
+            "contradiction_resolution": review_workers,
+        },
+        "lifecyclePrepassWorkers": max(
+            1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", str(janitor_workers)))
+        ),
+    })
+    if not isinstance(prod_config.get("janitor"), dict):
+        prod_config["janitor"] = {}
+    if not isinstance(prod_config["janitor"].get("opusReview"), dict):
+        prod_config["janitor"]["opusReview"] = {}
+    prod_config["janitor"]["opusReview"]["batchSize"] = max(
+        10, int(os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE", "40"))
+    )
 
     config_path = workspace / "config" / "memory.json"
     config_path.write_text(json.dumps(prod_config, indent=2))
