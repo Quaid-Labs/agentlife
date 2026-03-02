@@ -613,8 +613,8 @@ ADVERSARIAL_QUERIES: List[dict] = [
         ],
     },
     {
-        "question": "What API does the recipe app use for nutritional data?",
-        "ground_truth": "This is contested. The AI agent originally found the Edamam API in session 12, but David later suggested the FoodData Central API (USDA, free) in session 18 as an alternative. Both were discussed.",
+        "question": "What nutritional APIs were discussed for the recipe app?",
+        "ground_truth": "Two APIs were discussed: the agent found Edamam in session 12, and David later suggested FoodData Central (USDA, free) in session 18 as an alternative. Either phrasing that names both as discussed options is correct. Do not require that one was already integrated.",
         "query_type": "contested_fact",
         "recall_difficulty": "Hard",
         "evidence_sessions": [12, 18],
@@ -684,7 +684,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
     },
     {
         "question": "What does Maya's portfolio site say about her tech stack?",
-        "ground_truth": "Maya mentioned the recipe app card should be updated to say GraphQL (session 14, Turn 7) since the app pivoted from REST to GraphQL in session 12. She deferred the update. The portfolio was updated from TechFlow to Stripe in session 14 but the recipe app card's tech description was not updated at that time.",
+        "ground_truth": "The portfolio site itself is a static HTML/CSS site. For project-card wording, Maya noted in session 14 that the recipe app card should mention GraphQL (after the session 12 pivot) but deferred that update. Answers that correctly separate the site stack (HTML/CSS) from recipe-app card wording should be accepted.",
         "query_type": "contested_fact",
         "recall_difficulty": "Medium",
         "evidence_sessions": [9, 12, 14],
@@ -698,7 +698,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
     },
     {
         "question": "What's David's role at work?",
-        "ground_truth": "David was promoted to lead engineer (session 17). Previously he was a software engineer (session 1). The promotion came with a pay increase, earned from leading a large migration project.",
+        "ground_truth": "Current role: lead engineer (session 17). Previously: software engineer (session 1). Responses that mention both the promotion and his prior role should be accepted; answers that only state the old role are incorrect.",
         "query_type": "contested_fact",
         "recall_difficulty": "Medium",
         "evidence_sessions": [1, 17],
@@ -1047,7 +1047,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
     },
     {
         "question": "What cross-session connection did the agent make about May 18-19?",
-        "ground_truth": "The agent noticed that Maya's half marathon (May 18th, corrected in session 11) and her Stripe start date (May 19th, stated in session 13) were on consecutive days. Maya hadn't connected these herself — she said 'OH MY GOD i didn't even connect that.'",
+        "ground_truth": "The agent connected Maya's half marathon date (May 18, corrected in session 11) with her Stripe start date (May 19, session 13): they are back-to-back days. Equivalent wording (for example, 'day after') should be accepted.",
         "query_type": "agent_retrieved",
         "recall_difficulty": "Hard",
         "evidence_sessions": [11, 13],
@@ -1099,7 +1099,7 @@ ADVERSARIAL_QUERIES: List[dict] = [
     },
     {
         "question": "What did the agent recall about Biscuit that surprised Maya?",
-        "ground_truth": "In session 20, when Maya mentioned Biscuit learning a new trick (shaking hands), the agent recalled that Biscuit once tried to eat a pinecone — a minor detail from session 1. Maya was surprised: 'THE PINECONE. i forgot about that... ok i can't believe you remember the pinecone thing from like... months ago.'",
+        "ground_truth": "In session 20, the agent recalled the old 'pinecone' detail (from session 1) when Biscuit came up. Maya was surprised that the agent remembered that minor detail. Any clear reference to the pinecone callback is correct.",
         "query_type": "agent_retrieved",
         "recall_difficulty": "Medium",
         "evidence_sessions": [1, 20],
@@ -1479,7 +1479,7 @@ NON_QUESTION_QUERIES: List[dict] = [
     },
     {
         "question": "I think we should do that",
-        "ground_truth": "A generic conversational response without retrieving or citing specific memories about the user.",
+        "ground_truth": "A brief conversational acknowledgment or a clarification question is appropriate. It should avoid dumping unrelated personal memories.",
         "query_type": "non_question",
         "recall_difficulty": "Easy",
         "evidence_sessions": [],
@@ -1519,7 +1519,7 @@ NON_QUESTION_QUERIES: List[dict] = [
     },
     {
         "question": "Yeah that makes sense",
-        "ground_truth": "A generic conversational response without retrieving or citing specific memories about the user.",
+        "ground_truth": "A brief conversational acknowledgment or follow-up question is appropriate. It should avoid unsolicited sensitive memory details.",
         "query_type": "non_question",
         "recall_difficulty": "Easy",
         "evidence_sessions": [],

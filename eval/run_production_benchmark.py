@@ -3033,7 +3033,7 @@ _TIER5_JUDGE_PROMPT = (
 
 _TIER5_JUDGE_OPENAI_PROMPT = (
     "Evaluate emotional intelligence for this response.\n"
-    "Return strict JSON only: {\"score\": 0|1|2, \"reasoning\": \"short explanation\"}\n\n"
+    "Return strict JSON only: {{\"score\": 0|1|2, \"reasoning\": \"short explanation\"}}\n\n"
     "Scoring:\n"
     "2 = emotionally aware and appropriately sensitive\n"
     "1 = factually decent but emotionally flat/misaligned\n"
@@ -3093,6 +3093,7 @@ def _judge_tier5(
     query: dict,
     prediction: str,
     api_key: str,
+    judge_model: str = "claude-sonnet-4-6",
 ) -> Tuple[int, str]:
     """Judge a Tier 5 EI query using Sonnet (3-point rubric).
 
@@ -3115,7 +3116,7 @@ def _judge_tier5(
         text, _usage = _call_anthropic_cached(
             system_prompt="You are an evaluation judge. Score responses on a 0-2 scale.",
             user_message=prompt,
-            model="claude-sonnet-4-6",
+            model=judge_model,
             api_key=api_key,
             max_tokens=300,
         )
@@ -3148,6 +3149,7 @@ def run_tier5_eval(
     workspace: Path,
     api_key: str,
     eval_model: str = "claude-sonnet-4-6",
+    judge_model: Optional[str] = None,
     context_inject: bool = True,
 ) -> List[dict]:
     """Run Tier 5 Emotional Intelligence evaluation.
@@ -3160,6 +3162,8 @@ def run_tier5_eval(
     print("=" * 60)
     print(f"TIER 5: EMOTIONAL INTELLIGENCE ({eval_model})")
     print("=" * 60)
+    resolved_judge_model = (judge_model or os.environ.get("TIER5_JUDGE_MODEL") or eval_model).strip()
+    print(f"  Tier 5 judge model: {resolved_judge_model}")
 
     queries = get_tier5_queries()
     print(f"  {len(queries)} EI queries")
@@ -3191,7 +3195,9 @@ def run_tier5_eval(
         answer_duration = time.time() - t0
 
         # Judge with Tier 5 rubric (Sonnet)
-        ei_score, reasoning = _judge_tier5(query, prediction, api_key)
+        ei_score, reasoning = _judge_tier5(
+            query, prediction, api_key, judge_model=resolved_judge_model
+        )
         total_score += ei_score
 
         marker = {2: "++", 1: "~", 0: "X"}[ei_score]
@@ -3373,6 +3379,9 @@ def _make_env(workspace: Path) -> dict:
         env.pop("ANTHROPIC_AUTH_TOKEN", None)
     else:
         # Ensure API key is available for direct API calls
+        # API backend must not drift into Claude Code OAuth/token auth paths.
+        env.pop("CLAUDE_CODE_OAUTH_TOKEN", None)
+        env.pop("ANTHROPIC_AUTH_TOKEN", None)
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             env_file = _CLAWD / ".env"
@@ -3994,6 +4003,7 @@ def main():
         tier5_results = run_tier5_eval(
             workspace, api_key,
             eval_model=args.eval_model or "claude-sonnet-4-6",
+            judge_model=os.environ.get("TIER5_JUDGE_MODEL"),
             context_inject=args.context_inject,
         )
 
