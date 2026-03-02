@@ -567,8 +567,16 @@ def setup_workspace(workspace: Path) -> None:
         prod_config["core"]["parallel"] = {}
     janitor_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_LLM_WORKERS", "1")))
     review_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_REVIEW_WORKERS", "1")))
+    prod_deep_max_output = int(
+        prod_config["models"].get(
+            "deep_reasoning_max_output",
+            prod_config["models"].get("deepReasoningMaxOutput", 16384),
+        )
+    )
+    janitor_deep_max_output_env = os.environ.get("BENCHMARK_JANITOR_DEEP_MAX_OUTPUT")
     janitor_max_output = max(
-        512, int(os.environ.get("BENCHMARK_JANITOR_DEEP_MAX_OUTPUT", "8192"))
+        512,
+        int(janitor_deep_max_output_env) if janitor_deep_max_output_env is not None else prod_deep_max_output,
     )
     prod_config["core"]["parallel"].update({
         "enabled": True,
@@ -600,8 +608,27 @@ def setup_workspace(workspace: Path) -> None:
     prod_config["models"]["deepReasoningMaxOutput"] = janitor_max_output
     if not isinstance(prod_config.get("janitor"), dict):
         prod_config["janitor"] = {}
-    janitor_batch_size = max(6, int(os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE", "12")))
-    janitor_max_tokens = max(512, int(os.environ.get("BENCHMARK_JANITOR_MAX_TOKENS", "4096")))
+    prod_janitor = prod_config["janitor"]
+    prod_janitor_batch_size = int(
+        prod_janitor.get("opus_review", {}).get(
+            "batch_size",
+            prod_janitor.get("opusReview", {}).get("batchSize", 50),
+        )
+    )
+    prod_janitor_max_tokens = int(
+        prod_janitor.get("opus_review", {}).get(
+            "max_tokens",
+            prod_janitor.get("opusReview", {}).get("maxTokens", 4000),
+        )
+    )
+    janitor_batch_env = os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE")
+    janitor_max_tokens_env = os.environ.get("BENCHMARK_JANITOR_MAX_TOKENS")
+    janitor_batch_size = max(
+        6, int(janitor_batch_env) if janitor_batch_env is not None else prod_janitor_batch_size
+    )
+    janitor_max_tokens = max(
+        512, int(janitor_max_tokens_env) if janitor_max_tokens_env is not None else prod_janitor_max_tokens
+    )
     if not isinstance(prod_config["janitor"].get("opusReview"), dict):
         prod_config["janitor"]["opusReview"] = {}
     if not isinstance(prod_config["janitor"].get("opus_review"), dict):
@@ -615,6 +642,21 @@ def setup_workspace(workspace: Path) -> None:
     if janitor_model:
         prod_config["janitor"]["opus_review"]["model"] = janitor_model
         prod_config["janitor"]["opusReview"]["model"] = janitor_model
+    if janitor_deep_max_output_env is not None and janitor_max_output != prod_deep_max_output:
+        print(
+            "  NOTE: non-prod janitor deep output override active: "
+            f"{janitor_max_output} (prod {prod_deep_max_output}) via BENCHMARK_JANITOR_DEEP_MAX_OUTPUT"
+        )
+    if janitor_max_tokens_env is not None and janitor_max_tokens != prod_janitor_max_tokens:
+        print(
+            "  NOTE: non-prod janitor max-tokens override active: "
+            f"{janitor_max_tokens} (prod {prod_janitor_max_tokens}) via BENCHMARK_JANITOR_MAX_TOKENS"
+        )
+    if janitor_batch_env is not None and janitor_batch_size != prod_janitor_batch_size:
+        print(
+            "  NOTE: non-prod janitor batch-size override active: "
+            f"{janitor_batch_size} (prod {prod_janitor_batch_size}) via BENCHMARK_JANITOR_BATCH_SIZE"
+        )
 
     config_path = workspace / "config" / "memory.json"
     config_path.write_text(json.dumps(prod_config, indent=2))
