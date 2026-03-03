@@ -2832,7 +2832,7 @@ def _tool_use_loop(
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": tool_id,
-                        "content": result_text[:4000],  # Truncate long results
+                        "content": result_text,
                     })
 
             messages.append({"role": "user", "content": tool_results})
@@ -2981,7 +2981,7 @@ def _tool_search_project_docs(
         for doc_name in ["PROJECT.md", "TOOLS.md"]:
             doc_path = pdir / doc_name
             if doc_path.exists():
-                doc_parts.append(f"--- {p}/{doc_name} ---\n{doc_path.read_text()[:2000]}")
+                doc_parts.append(f"--- {p}/{doc_name} ---\n{doc_path.read_text()}")
 
     # 2. Search source files by content match (not just filename)
     query_lower = query.lower()
@@ -2998,7 +2998,7 @@ def _tool_search_project_docs(
                     # Match if any query word appears in file content
                     if any(w in content_lower for w in query_words):
                         rel = f.relative_to(workspace)
-                        doc_parts.append(f"--- {rel} ---\n{content[:1500]}")
+                        doc_parts.append(f"--- {rel} ---\n{content}")
                 except Exception:
                     pass
 
