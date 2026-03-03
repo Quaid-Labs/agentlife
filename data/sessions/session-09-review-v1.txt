@@ -627,7 +627,7 @@ QUERY 3: "Is Maya job hunting?"
     explicit confirmation. A correct answer acknowledges the suggestion
     without stating it as fact.)
 
-QUERY 4: "What does Maya's portfolio site look like?"
+QUERY 4: "What does Maya's portfolio site UI look like?"
   Ground Truth: Clean, minimal static HTML/CSS site. System fonts, warm
     gray background (#fafafa), friendly blue accent (#0984e3). No
     frameworks, no dark mode. Three sections: About, Projects, Contact.

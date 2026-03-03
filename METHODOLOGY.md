@@ -157,7 +157,7 @@ Commits are checked out at the correct session number and rsync'd to the workspa
 # Full run (all phases)
 python3 run_production_benchmark.py --mode full \
   --model claude-opus-4-6 \
-  --eval-model claude-sonnet-4-5-20250929 \
+  --eval-model claude-sonnet-4-6 \
   --judge gpt-4o-mini \
   --results-dir ../data/results-production-v3
 
@@ -168,7 +168,7 @@ python3 run_production_benchmark.py --mode ingest \
 
 # Eval only (phase 5, assumes workspace exists)
 python3 run_production_benchmark.py --mode eval \
-  --eval-model claude-sonnet-4-5-20250929 \
+  --eval-model claude-sonnet-4-6 \
   --judge gpt-4o-mini \
   --results-dir ../data/results-production-v3
 
@@ -242,8 +242,8 @@ python3 run_agentlife.py --mode eval \
 # Full per-day run (~$5-10, ~2-3 hours)
 PYTHONUNBUFFERED=1 python3 -u run_production_benchmark.py \
   --mode per-day \
-  --model claude-sonnet-4-5-20250929 \
-  --eval-model claude-sonnet-4-5-20250929 \
+  --model claude-sonnet-4-6 \
+  --eval-model claude-sonnet-4-6 \
   --results-dir ../data/results-production-perday \
   --no-cache \
   2>&1 | tee /tmp/quaid-perday.log
@@ -298,7 +298,7 @@ cd ~/clawd/projects/agentlife/eval
 
 # AgentLife S (no filler, 20 sessions)
 PYTHONUNBUFFERED=1 python3 -u vm_benchmark.py \
-  --system qmd --no-filler --answer-model claude-sonnet-4-5-20250929 \
+  --system qmd --no-filler --answer-model claude-sonnet-4-6 \
   --results-dir ../data/results-vm \
   2>&1 | tee /tmp/qmd-benchmark.log
 
@@ -306,14 +306,14 @@ PYTHONUNBUFFERED=1 python3 -u vm_benchmark.py \
 PYTHONUNBUFFERED=1 python3 -u vm_benchmark.py \
   --system quaid --filler-dir ../data/filler-sessions-L/ \
   --snapshot test-openclaw --local-plugin \
-  --answer-model claude-sonnet-4-5-20250929 \
+  --answer-model claude-sonnet-4-6 \
   --results-dir ../data/results-vm-L \
   2>&1 | tee /tmp/agentlife-L-quaid.log
 
 # Mem0 (runs on host, not VM)
 PYTHONUNBUFFERED=1 python3 -u vm_benchmark.py \
   --system mem0 --filler-dir ../data/filler-sessions-L/ \
-  --answer-model claude-sonnet-4-5-20250929 \
+  --answer-model claude-sonnet-4-6 \
   --results-dir ../data/results-vm-L \
   2>&1 | tee /tmp/agentlife-L-mem0.log
 ```
@@ -431,7 +431,7 @@ Each query has a `source_session` field indicating which session it references. 
 ### 6.1.3 Answer Model Variants
 
 The same DB and workspace can be evaluated with different answer models to isolate model effects:
-- `--eval-model claude-sonnet-4-5-20250929` (default for production)
+- `--eval-model claude-sonnet-4-6` (default for production)
 - `--eval-model claude-haiku-4-5-20251001` (for fair Mem0 comparison)
 
 ### 6.2 Direct Recall Evaluation (Simulation Benchmark)
@@ -606,7 +606,7 @@ These are the ceiling — memory systems should approach but not exceed these.
 
 - **System**: Quaid plugin, per-day Sonnet extraction + lightweight janitor + full janitor at end
 - **Accuracy**: 43.4% (30C / 52P / 47W)
-- **Extraction model**: Sonnet (claude-sonnet-4-5-20250929)
+- **Extraction model**: Sonnet (claude-sonnet-4-6)
 - **Facts**: 482 extracted across 18 days → 380 active after janitor (31 edges)
 - **Core markdown evolution**: SOUL.md 37 lines, USER.md 75 lines, MEMORY.md 9 lines
 - **Journal**: 8 archives across 3 months (SOUL, USER, MEMORY)
@@ -1032,7 +1032,7 @@ export ANTHROPIC_API_KEY=$(grep '^ANTHROPIC_API_KEY=' ~/clawd/.env | cut -d= -f2
 PYTHONUNBUFFERED=1 python3 -u run_production_benchmark.py \
   --mode full \
   --model claude-opus-4-6 \
-  --eval-model claude-sonnet-4-5-20250929 \
+  --eval-model claude-sonnet-4-6 \
   --results-dir ../data/results-production-v3 \
   2>&1 | tee ../data/results-production-v3/run.log
 ```
@@ -1062,7 +1062,7 @@ python3 densify.py --count 259 --output-dir ../data/filler-sessions-L/
 # Base
 PYTHONUNBUFFERED=1 python3 -u vm_benchmark.py \
   --system base --filler-dir ../data/filler-sessions-L/ \
-  --snapshot test-openclaw --answer-model claude-sonnet-4-5-20250929 \
+  --snapshot test-openclaw --answer-model claude-sonnet-4-6 \
   --results-dir ../data/results-vm-L \
   2>&1 | tee /tmp/agentlife-L-base.log
 
@@ -1070,21 +1070,21 @@ PYTHONUNBUFFERED=1 python3 -u vm_benchmark.py \
 PYTHONUNBUFFERED=1 python3 -u vm_benchmark.py \
   --system quaid --filler-dir ../data/filler-sessions-L/ \
   --snapshot test-openclaw --local-plugin \
-  --answer-model claude-sonnet-4-5-20250929 \
+  --answer-model claude-sonnet-4-6 \
   --results-dir ../data/results-vm-L \
   2>&1 | tee /tmp/agentlife-L-quaid.log
 
 # Mem0 (runs on host, needs OPENAI_API_KEY)
 PYTHONUNBUFFERED=1 python3 -u vm_benchmark.py \
   --system mem0 --filler-dir ../data/filler-sessions-L/ \
-  --answer-model claude-sonnet-4-5-20250929 \
+  --answer-model claude-sonnet-4-6 \
   --results-dir ../data/results-vm-L \
   2>&1 | tee /tmp/agentlife-L-mem0.log
 
 # QMD (memory-core, uses gateway compaction)
 PYTHONUNBUFFERED=1 python3 -u vm_benchmark.py \
   --system qmd --filler-dir ../data/filler-sessions-L/ \
-  --snapshot test-openclaw --answer-model claude-sonnet-4-5-20250929 \
+  --snapshot test-openclaw --answer-model claude-sonnet-4-6 \
   --results-dir ../data/results-vm-L \
   2>&1 | tee /tmp/agentlife-L-qmd.log
 ```
@@ -1282,7 +1282,7 @@ Tier 5 is a 15-query evaluation of emotional intelligence — the ability to han
 
 ### 18.4 Judge
 
-Sonnet (claude-sonnet-4-5-20250929) judges Tier 5 queries using the sensitivity context and rubric for each query. The judge receives:
+Sonnet (claude-sonnet-4-6) judges Tier 5 queries using the sensitivity context and rubric for each query. The judge receives:
 - The original question
 - The model's prediction
 - The sensitivity context (what makes this emotionally complex)

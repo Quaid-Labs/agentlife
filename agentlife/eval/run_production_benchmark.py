@@ -1411,9 +1411,6 @@ def _store_facts(
 
     store_failures = 0
     store_failure_samples: list[str] = []
-    store_timeout_s = max(5, int(os.environ.get("BENCHMARK_STORE_TIMEOUT_SECONDS", "90")))
-    store_retries = max(0, int(os.environ.get("BENCHMARK_STORE_RETRIES", "2")))
-    store_retry_backoff_s = max(0.0, float(os.environ.get("BENCHMARK_STORE_RETRY_BACKOFF_SECONDS", "1.5")))
     edge_timeout_s = max(30, int(os.environ.get("BENCHMARK_EDGE_TIMEOUT_SECONDS", "90")))
     edge_retries = max(0, int(os.environ.get("BENCHMARK_EDGE_RETRIES", "1")))
     edge_retry_backoff_s = max(0.0, float(os.environ.get("BENCHMARK_EDGE_RETRY_BACKOFF_SECONDS", "1.5")))
@@ -1471,37 +1468,16 @@ def _store_facts(
         cmd.extend(["--domains", ",".join(parsed_domains)])
 
         try:
-            result = None
-            store_last_err = ""
-            for attempt in range(store_retries + 1):
-                try:
-                    result = subprocess.run(
-                        cmd, capture_output=True, text=True, timeout=store_timeout_s,
-                        cwd=quaid_dir, env=env,
-                    )
-                    if result.returncode == 0:
-                        break
-                    detail = (result.stderr or result.stdout or "").strip().replace("\n", " ")
-                    store_last_err = (
-                        f"rc={result.returncode} attempt={attempt + 1}/{store_retries + 1} "
-                        f"err={detail[:240]!r}"
-                    )
-                except subprocess.TimeoutExpired:
-                    store_last_err = (
-                        f"timeout={store_timeout_s}s attempt={attempt + 1}/{store_retries + 1}"
-                    )
-                except Exception as e:
-                    store_last_err = (
-                        f"exception attempt={attempt + 1}/{store_retries + 1} err={str(e)[:220]!r}"
-                    )
-                if attempt < store_retries and store_retry_backoff_s > 0:
-                    time.sleep(store_retry_backoff_s * (attempt + 1))
-
-            if result is None or result.returncode != 0:
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=30,
+                cwd=quaid_dir, env=env,
+            )
+            if result.returncode != 0:
                 store_failures += 1
+                detail = (result.stderr or result.stdout or "").strip().replace("\n", " ")
                 sample = (
-                    f"store failure text={text[:80]!r} {store_last_err} "
-                    f"cmd={str(_MEMORY_GRAPH_SCRIPT)!r}"
+                    f"rc={result.returncode} text={text[:80]!r} "
+                    f"err={detail[:240]!r} cmd={str(_MEMORY_GRAPH_SCRIPT)!r}"
                 )
                 if len(store_failure_samples) < 5:
                     store_failure_samples.append(sample)
@@ -3759,7 +3735,7 @@ def _call_anthropic_cached(
                 body = (exc.read() or b"").decode("utf-8", errors="ignore")
             except Exception:
                 body = ""
-            retriable = exc.code in {408, 429, 500, 502, 503, 504, 529}
+            retriable = exc.code in {408, 429, 500, 502, 503, 504}
             if not retriable or attempt == retry_attempts:
                 raise RuntimeError(f"Anthropic HTTP {exc.code}: {body[:300]}") from exc
             delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))

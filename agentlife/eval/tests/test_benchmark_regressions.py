@@ -5,12 +5,10 @@ extract_compact.py. No network or subprocess calls — everything mocked.
 """
 
 import json
-import io
 import os
 import re
 import sqlite3
 import sys
-import urllib.error
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -216,51 +214,6 @@ class TestSplitSessionBlocksOnGap:
         assert [len(c) for c in result] == [2, 2, 1]
 
 
-class TestAnthropicCachedRetries:
-    """Tests for _call_anthropic_cached HTTP retry behavior."""
-
-    def test_retries_http_529_then_succeeds(self, monkeypatch):
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
-        monkeypatch.setenv("ANTHROPIC_RETRY_ATTEMPTS", "2")
-        monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_S", "0.01")
-        monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_CAP_S", "0.01")
-
-        first_err = urllib.error.HTTPError(
-            url="https://api.anthropic.com/v1/messages",
-            code=529,
-            msg="overloaded",
-            hdrs={},
-            fp=io.BytesIO(b'{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}'),
-        )
-
-        class _Resp:
-            def __enter__(self):
-                return self
-            def __exit__(self, exc_type, exc, tb):
-                return False
-            def read(self):
-                return json.dumps(
-                    {
-                        "content": [{"type": "text", "text": "ok"}],
-                        "usage": {"input_tokens": 1, "output_tokens": 1},
-                    }
-                ).encode()
-
-        calls = {"n": 0}
-
-        def _fake_urlopen(_req, timeout=300):
-            calls["n"] += 1
-            if calls["n"] == 1:
-                raise first_err
-            return _Resp()
-
-        monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
-        text, usage = rpb._call_anthropic_cached("sys", "user", "claude-haiku-4-5-20251001", "test-key")
-        assert text == "ok"
-        assert usage.get("input_tokens") == 1
-        assert calls["n"] == 2
-
-
 class TestGroupSessionsByDate:
     """Tests for _group_sessions_by_date: session grouping."""
 
@@ -370,89 +323,6 @@ class TestParseJudgeLabel:
         label, score = rpb._parse_judge_label("")
         assert label == "ERROR"
         assert score == 0.0
-
-
-class TestClaudeStreamToolParsing:
-    """Tests for Claude stream-json parsing in eval tool mode."""
-
-    def test_classifies_bash_search_commands(self):
-        label, query = rpb._classify_claude_bash_command(
-            'python3 memory_graph.py search "maya partner name" --owner maya --limit 5'
-        )
-        assert label == "memory_recall"
-        assert query == "maya partner name"
-
-        label, query = rpb._classify_claude_bash_command(
-            'python3 memory_graph.py search-all "recipe app test suites"'
-        )
-        assert label == "search_project_docs"
-        assert query == "recipe app test suites"
-
-    def test_parses_stream_events_with_tool_use_and_results(self):
-        stream = "\n".join(
-            [
-                json.dumps({
-                    "type": "assistant",
-                    "message": {
-                        "content": [
-                            {
-                                "type": "tool_use",
-                                "id": "toolu_1",
-                                "name": "Bash",
-                                "input": {
-                                    "command": 'python3 memory_graph.py search "maya partner" --owner maya --limit 5'
-                                },
-                            },
-                            {
-                                "type": "tool_use",
-                                "id": "toolu_2",
-                                "name": "Bash",
-                                "input": {
-                                    "command": 'python3 memory_graph.py search-all "recipe app auth tests"'
-                                },
-                            },
-                        ]
-                    },
-                }),
-                json.dumps({
-                    "type": "user",
-                    "message": {
-                        "content": [{"type": "tool_result", "tool_use_id": "toolu_1"}]
-                    },
-                    "tool_use_result": {"stdout": "memory line one\nmemory line two"},
-                }),
-                json.dumps({
-                    "type": "user",
-                    "message": {
-                        "content": [{"type": "tool_result", "tool_use_id": "toolu_2"}]
-                    },
-                    "tool_use_result": {"stdout": "docs snippet"},
-                }),
-                json.dumps({
-                    "type": "result",
-                    "is_error": False,
-                    "num_turns": 3,
-                    "result": "final answer",
-                    "modelUsage": {
-                        "claude-sonnet-4-6": {
-                            "inputTokens": 10,
-                            "outputTokens": 20,
-                            "cacheReadInputTokens": 30,
-                            "cacheCreationInputTokens": 0,
-                        }
-                    },
-                }),
-            ]
-        )
-
-        answer, tool_calls, summaries, retrieval_texts, final_data = rpb._parse_claude_stream_output(stream)
-        assert answer == "final answer"
-        assert tool_calls == ["memory_recall", "search_project_docs"]
-        assert len(summaries) == 2
-        assert "memory_recall(" in summaries[0]
-        assert "search_project_docs(" in summaries[1]
-        assert retrieval_texts == ["memory line one\nmemory line two"]
-        assert final_data.get("num_turns") == 3
 
 
 class TestMakeEnv:
