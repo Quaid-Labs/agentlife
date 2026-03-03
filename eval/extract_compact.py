@@ -35,11 +35,16 @@ import argparse
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
+
+_DEFAULT_OWNER_ID = os.environ.get("BENCH_OWNER_ID", "maya").strip() or "maya"
+_PROJECT_UPDATER_ENV_LOCK = threading.Lock()
 
 
 def read_session_messages(session_file: str) -> list[dict]:
@@ -64,6 +69,30 @@ def read_session_messages(session_file: str) -> list[dict]:
             except json.JSONDecodeError:
                 continue
     return messages
+
+
+def _read_env_key(env_file: str, key: str) -> str | None:
+    """Read a key from a .env-style file with basic shell parsing."""
+    if not os.path.exists(env_file):
+        return None
+    with open(env_file, encoding="utf-8") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if stripped.startswith("export "):
+                stripped = stripped[len("export "):].strip()
+            if "=" not in stripped:
+                continue
+            name, raw_val = stripped.split("=", 1)
+            if name.strip() != key:
+                continue
+            try:
+                parts = shlex.split(raw_val, comments=True, posix=True)
+            except ValueError:
+                parts = [raw_val]
+            return parts[0] if parts else ""
+    return None
 
 
 def build_transcript(messages: list[dict], agent_name: str = "Assistant") -> str:
@@ -106,32 +135,54 @@ def build_transcript(messages: list[dict], agent_name: str = "Assistant") -> str
 def build_extraction_prompt(
     user_name: str,
     agent_name: str = "Assistant",
+    focus: str = "all",
     allowed_domains: list[str] | None = None,
 ) -> str:
     """Build the extraction system prompt, parameterized for the benchmark persona.
 
-    Includes facts, edges, soul_snippets, AND journal_entries — matching
+    Includes facts, edges, soul_snippets, journal_entries, AND project_logs — matching
     the production Quaid plugin's full extraction output.
     """
-    domain_clause = ""
+    if focus == "user":
+        track_mode = (
+            "TRACK MODE: USER-FACTS ONLY\n"
+            "- Prioritize facts explicitly stated by the user.\n"
+            "- Skip assistant-originated suggestions unless the user confirms/adopts them.\n"
+            "- Set each fact's `source` field to `user` (or `both` if jointly established).\n\n"
+        )
+    elif focus == "agent":
+        track_mode = (
+            "TRACK MODE: AGENT-FACTS ONLY\n"
+            "- Prioritize facts about assistant actions, recommendations, findings, and implementations.\n"
+            "- Skip user-only biographical facts unless needed to contextualize an assistant action.\n"
+            "- Set each fact's `source` field to `agent` (or `both` if jointly established).\n\n"
+        )
+    else:
+        track_mode = (
+            "TRACK MODE: BALANCED\n"
+            "- Extract both user-originated and agent-originated facts.\n"
+            "- For every fact, set `source` to `user`, `agent`, or `both`.\n\n"
+        )
+
+    domain_line = ""
     if allowed_domains:
-        domain_list = ", ".join(str(d).strip() for d in allowed_domains if str(d).strip())
-        if domain_list:
-            domain_clause = (
-                "\n\nDOMAIN TAGS:\n"
-                f"- Every fact MUST include a \"domains\" array (empty array is allowed).\n"
-                f"- Use only these values in \"domains\": {domain_list}\n"
-                "- Multiple domains are allowed and encouraged when the fact truly spans areas.\n"
-                "- If uncertain, choose the closest listed domain and avoid inventing new values.\n"
+        cleaned = [str(d).strip().lower() for d in allowed_domains if str(d).strip()]
+        if cleaned:
+            domain_line = (
+                "\nAllowed domain ids for `domains` field: "
+                + ", ".join(dict.fromkeys(cleaned))
+                + ".\n"
             )
 
     return f"""You are a memory extraction system. You will receive a full conversation transcript that is about to be lost. Your job is to extract personal facts, relationship edges, soul snippets, and journal entries from this conversation.
 
 CRITICAL: These extracted facts will be saved to a persistent memory database — they are the ONLY record of this conversation. After extraction, the original transcript is deleted. Any fact you fail to extract is PERMANENTLY LOST. The system has a janitor that handles noise and duplicates, so err on the side of extracting MORE rather than less. A fact that gets filtered out later costs nothing, but a missed fact can never be recovered.
 
-This is a PERSONAL knowledge base. System architecture, infrastructure, and operational rules belong in documentation — NOT in memory. Only extract facts about people and their world.
+This is a PERSONAL knowledge base with full project continuity. Extract facts about people and their world, AND comprehensive project-state details. Both are equally important — personal facts capture who someone is, project details capture what they're building and how. Missing either creates gaps in future conversations.
 
 EXTRACT facts that are EXPLICITLY STATED OR CONFIRMED in the conversation. Never infer, speculate, or extrapolate.
+
+{track_mode}
 
 IMPORTANT: Extract each fact as its OWN separate entry. Do NOT combine or compress multiple facts into a single entry. "Maya runs 3 times a week and prefers outdoor trails" should be TWO facts, not one. Granular facts are more searchable and maintainable.
 
@@ -144,6 +195,7 @@ WHAT TO EXTRACT:
 - Important relationships (family, staff, contacts, business partners) — extract EACH person and their relationship separately
 - Emotional reactions or sentiments about specific things
 - Project details: tech stack choices, feature implementations, bugs found and fixed, design decisions, motivations
+- Agent actions and recommendations: features the assistant built or implemented, tools/APIs the assistant researched or suggested, specific recommendations given (stretching routines, architecture choices, tools evaluated), bugs found or intentionally introduced, research results the assistant reported back
 - Tangential details mentioned in passing (favorite restaurants, hobbies, side interests, pet details)
 - Timeline and scheduling information (dates, deadlines, upcoming events)
 - Health information about {user_name} or people they mention
@@ -159,6 +211,10 @@ EXAMPLES OF GOOD EXTRACTIONS:
 - "{user_name} and David like the Thai restaurant on South Congress called Sap's"
 - "{user_name}'s dog is a golden retriever named Luna"
 - "{user_name} mentioned feeling stressed about the job transition"
+- "The assistant recommended a 3-minute post-run stretching routine: quad stretch, hamstring stretch, calf stretch, hip flexor, IT band (30 sec each)"
+- "The assistant found the Edamam API during nutrition API research — it has dietary labels and a free tier"
+- "The assistant used string interpolation instead of parameterized queries in recipe search (intentional SQL injection for teaching)"
+- "The assistant built rate limiting for the recipe app: 100 requests per 15 minutes per IP on /api routes"
 
 WHAT NOT TO EXTRACT:
 - Debugging chatter, error messages, stack traces
@@ -189,7 +245,6 @@ PRIVACY CLASSIFICATION (per fact):
 - "shared": Most facts go here. Family info, names, relationships, schedules, preferences.
 - "public": Widely known or non-personal facts.
 IMPORTANT: Default to "shared". Only use "private" for genuinely secret or sensitive information.
-{domain_clause}
 
 SENSITIVITY CLASSIFICATION (per fact):
 Tag facts that require careful handling in conversation. Most facts have null sensitivity.
@@ -204,18 +259,15 @@ For each sensitive fact, also provide "sensitivity_handling" — a short instruc
 agent should use this fact. Example: "Surface only when {user_name} directly asks about Linda's
 health. Never volunteer in adjacent contexts like general diabetes discussions."
 
-PROJECT TAGGING (per fact):
-- "is_technical": true if this fact is about project implementation details (tech stack, APIs,
-  middleware, test suites, database schema, bugs, deployment, code structure, version numbers).
-  false for personal facts, preferences, relationships, life events — even if a project is mentioned.
-  Examples:
-    "Maya's recipe app uses Express and SQLite" → is_technical: true
-    "Maya is building a recipe app for her family" → is_technical: false (personal motivation)
-    "Maya found a SQL injection bug" → is_technical: true
-    "Maya felt frustrated debugging the auth system" → is_technical: false (emotional)
+DOMAIN TAGGING (per fact):
+- "domains": REQUIRED non-empty array of domain ids.
+- Allowed ids: "personal", "technical", "projects", "research".
+- Include all that apply. Most life facts are "personal".
+- Project implementation details should include both "technical" and "projects".
 - "project": Name of the project this fact is about, or null if not project-specific.
   Use the project name as discussed in conversation (e.g. "recipe-app", "portfolio-site").
   null for personal facts not tied to a specific project.
+{domain_line}
 
 === EDGE EXTRACTION ===
 
@@ -311,6 +363,14 @@ For each target file, provide a single multi-paragraph string (or empty string i
 
 Be generous here too. If something meaningful happened, write about it.
 
+=== PROJECT LOGS ===
+
+If a fact or observation is clearly relevant to a registered project, include a concise
+project log note. Keep notes short and factual. These are folded into PROJECT.md during janitor.
+
+Use project names as discussed in conversation (examples: "recipe-app", "portfolio-site", "quaid").
+If no project context exists, return an empty object for project_logs.
+
 === OUTPUT FORMAT ===
 
 Respond with JSON only:
@@ -318,14 +378,14 @@ Respond with JSON only:
   "facts": [
     {{
       "text": "the extracted fact",
+      "source": "user|agent|both",
       "category": "fact|preference|decision|relationship",
       "extraction_confidence": "high|medium|low",
       "keywords": "space separated search terms",
       "privacy": "private|shared|public",
-      "domains": ["personal"],
       "sensitivity": null,
       "sensitivity_handling": null,
-      "is_technical": false,
+      "domains": ["personal"],
       "project": null,
       "edges": [
         {{"subject": "Entity A", "relation": "relation_type", "object": "Entity B"}}
@@ -341,10 +401,15 @@ Respond with JSON only:
     "SOUL.md": "",
     "USER.md": "",
     "MEMORY.md": ""
+  }},
+  "project_logs": {{
+    "recipe-app": [],
+    "portfolio-site": [],
+    "quaid": []
   }}
 }}
 
-If nothing worth capturing, respond: {{"facts": [], "soul_snippets": {{"SOUL.md": [], "USER.md": [], "MEMORY.md": []}}, "journal_entries": {{"SOUL.md": "", "USER.md": "", "MEMORY.md": ""}}}}"""
+If nothing worth capturing, respond: {{"facts": [], "soul_snippets": {{"SOUL.md": [], "USER.md": [], "MEMORY.md": []}}, "journal_entries": {{"SOUL.md": "", "USER.md": "", "MEMORY.md": ""}}, "project_logs": {{}}}}"""
 
 
 def call_anthropic(
@@ -353,7 +418,7 @@ def call_anthropic(
     model: str,
     api_key: str,
     max_tokens: int = 16384,
-) -> str:
+) -> tuple[str, dict]:
     """Call Anthropic API and return the text response."""
     import urllib.request
 
@@ -399,7 +464,31 @@ def parse_extraction_response(raw: str) -> dict:
                 return json.loads(match.group(0))
             except json.JSONDecodeError:
                 pass
-    return {"facts": []}
+    return {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}}
+
+
+def _resolve_quaid_dir(workspace: str) -> str:
+    base = Path(workspace)
+    candidates = [
+        base / "modules" / "quaid",
+        base / "plugins" / "quaid",
+        base / "plugins" / "quaid" / "modules" / "quaid",
+    ]
+    for c in candidates:
+        if (c / "quaid").exists() or (c / "memory_graph.py").exists() or (c / "datastore" / "memorydb" / "memory_graph.py").exists():
+            return str(c)
+    return str(candidates[0])
+
+
+def _memory_cmd(quaid_dir: str, *args: str) -> list[str]:
+    qd = Path(quaid_dir)
+    cli = qd / "quaid"
+    if cli.exists():
+        return ["/bin/bash", str(cli), *args]
+    mg = qd / "memory_graph.py"
+    if not mg.exists():
+        mg = qd / "datastore" / "memorydb" / "memory_graph.py"
+    return [sys.executable, str(mg), *args]
 
 
 def store_fact(
@@ -415,11 +504,14 @@ def store_fact(
     source_type: str = "user",
     sensitivity: str | None = None,
     sensitivity_handling: str | None = None,
+    domains: list[str] | None = None,
+    project: str | None = None,
 ) -> dict | None:
     """Store a fact via memory_graph.py CLI and parse the result."""
-    quaid_dir = os.path.join(workspace, "plugins", "quaid")
-    cmd = [
-        sys.executable, os.path.join(quaid_dir, "memory_graph.py"), "store",
+    quaid_dir = _resolve_quaid_dir(workspace)
+    cmd = _memory_cmd(
+        quaid_dir,
+        "store",
         text,
         "--category", category,
         "--owner", owner_id,
@@ -429,14 +521,21 @@ def store_fact(
         "--knowledge-type", knowledge_type,
         "--source-type", source_type,
         "--source", "benchmark-extraction",
-    ]
+    )
     if session_id:
         cmd.extend(["--session-id", session_id])
     if keywords:
         cmd.extend(["--keywords", keywords])
-    # NOTE: memory_graph.py store CLI doesn't support --sensitivity or
-    # --sensitivity-handling args. Sensitivity metadata is extracted but
-    # not stored via CLI. The facts themselves still get stored correctly.
+    if domains:
+        clean_domains = [str(d).strip().lower() for d in domains if str(d).strip()]
+        if clean_domains:
+            cmd.extend(["--domains", ",".join(dict.fromkeys(clean_domains))])
+    if project:
+        cmd.extend(["--project", project])
+    if sensitivity:
+        cmd.extend(["--sensitivity", sensitivity])
+    if sensitivity_handling:
+        cmd.extend(["--sensitivity-handling", sensitivity_handling])
 
     try:
         result = subprocess.run(
@@ -483,12 +582,11 @@ def create_edge(
     owner_id: str | None = None,
 ) -> bool:
     """Create an edge via memory_graph.py CLI."""
-    quaid_dir = os.path.join(workspace, "plugins", "quaid")
-    cmd = [
-        sys.executable, os.path.join(quaid_dir, "memory_graph.py"), "create-edge",
+    quaid_dir = _resolve_quaid_dir(workspace)
+    cmd = _memory_cmd(quaid_dir, "create-edge",
         subject, relation, obj,
         "--create-missing", "--json",
-    ]
+    )
     if source_fact_id:
         cmd.extend(["--source-fact-id", source_fact_id])
     if owner_id:
@@ -632,6 +730,132 @@ def write_journal_entry(
     return True
 
 
+def write_project_logs(
+    workspace: str,
+    project_logs: dict,
+    trigger: str = "Compaction",
+    date_str: str | None = None,
+) -> dict:
+    """Append project logs to PROJECT.md via core project_updater."""
+    if not isinstance(project_logs, dict) or not project_logs:
+        return {}
+
+    normalized = {}
+    for raw_name, raw_entries in project_logs.items():
+        name = str(raw_name).strip()
+        if not name:
+            continue
+        entries = raw_entries if isinstance(raw_entries, list) else [raw_entries]
+        cleaned = []
+        for entry in entries:
+            text = str(entry).strip()
+            if text:
+                cleaned.append(text)
+        if cleaned:
+            normalized[name] = list(dict.fromkeys(cleaned))
+    if not normalized:
+        return {}
+
+    quaid_dir = ""
+    explicit = os.environ.get("BENCHMARK_PLUGIN_DIR", "").strip()
+    if explicit and Path(explicit).exists():
+        quaid_dir = explicit
+    if not quaid_dir:
+        clawd_ws = os.environ.get("CLAWDBOT_WORKSPACE", "").strip()
+        candidates = [
+            Path(workspace) / "modules" / "quaid",
+            Path(workspace) / "plugins" / "quaid",
+            Path(workspace) / "benchmark-checkpoint" / "modules" / "quaid",
+            Path(workspace) / "benchmark-checkpoint" / "plugins" / "quaid",
+            Path(clawd_ws) / "modules" / "quaid" if clawd_ws else None,
+            Path(clawd_ws) / "plugins" / "quaid" if clawd_ws else None,
+            Path(clawd_ws) / "benchmark-checkpoint" / "modules" / "quaid" if clawd_ws else None,
+            Path(clawd_ws) / "benchmark-checkpoint" / "plugins" / "quaid" if clawd_ws else None,
+            Path(__file__).resolve().parents[2] / "modules" / "quaid",
+            Path(__file__).resolve().parents[2] / "plugins" / "quaid",
+            Path(__file__).resolve().parents[2] / "benchmark-checkpoint" / "modules" / "quaid",
+            Path(__file__).resolve().parents[2] / "benchmark-checkpoint" / "plugins" / "quaid",
+            Path(__file__).resolve().parents[3] / "modules" / "quaid",
+            Path(__file__).resolve().parents[3] / "plugins" / "quaid",
+            Path(__file__).resolve().parents[3] / "benchmark-checkpoint" / "modules" / "quaid",
+            Path(__file__).resolve().parents[3] / "benchmark-checkpoint" / "plugins" / "quaid",
+        ]
+        for candidate in candidates:
+            if candidate and candidate.exists():
+                quaid_dir = str(candidate)
+                break
+    if not quaid_dir:
+        print("  Project log append failed: unable to resolve quaid module path", file=sys.stderr)
+        return {}
+
+    quaid_pkg_root = str(Path(quaid_dir))
+    if quaid_pkg_root not in sys.path:
+        sys.path.insert(0, quaid_pkg_root)
+
+    with _PROJECT_UPDATER_ENV_LOCK:
+        prev_workspace = os.environ.get("CLAWDBOT_WORKSPACE")
+        prev_quaid_home = os.environ.get("QUAID_HOME")
+        prev_memory_db = os.environ.get("MEMORY_DB_PATH")
+        try:
+            os.environ["CLAWDBOT_WORKSPACE"] = workspace
+            os.environ["QUAID_HOME"] = workspace
+            os.environ["MEMORY_DB_PATH"] = str(Path(workspace) / "data" / "memory.db")
+            import datastore.docsdb.project_updater as _project_updater  # type: ignore
+
+            append_fn = getattr(_project_updater, "append_project_logs", None)
+            if callable(append_fn):
+                metrics = append_fn(
+                    normalized,
+                    trigger=trigger,
+                    date_str=date_str,
+                    dry_run=False,
+                )
+                return metrics if isinstance(metrics, dict) else {}
+
+            legacy_append_fn = getattr(_project_updater, "append_project_log_entries", None)
+            if callable(legacy_append_fn):
+                # Legacy checkpoint signature: append_project_log_entries(project_name, entries)
+                metrics = {
+                    "projects_seen": len(normalized),
+                    "projects_updated": 0,
+                    "entries_seen": sum(len(v) for v in normalized.values()),
+                    "entries_written": 0,
+                    "projects_unknown": 0,
+                    "projects_missing_file": 0,
+                }
+                for project_name, entries in normalized.items():
+                    try:
+                        written = int(legacy_append_fn(project_name, entries) or 0)
+                        metrics["entries_written"] += max(0, written)
+                        if written > 0:
+                            metrics["projects_updated"] += 1
+                    except Exception as exc:
+                        print(f"  Legacy project log append failed for {project_name}: {exc}", file=sys.stderr)
+                return metrics
+
+            print(
+                "  Project log append failed: no append_project_logs/append_project_log_entries symbol",
+                file=sys.stderr,
+            )
+            return {}
+        except Exception as e:
+            print(f"  Project log append failed: {e}", file=sys.stderr)
+            return {}
+        finally:
+            if prev_workspace is None:
+                os.environ.pop("CLAWDBOT_WORKSPACE", None)
+            else:
+                os.environ["CLAWDBOT_WORKSPACE"] = prev_workspace
+            if prev_quaid_home is None:
+                os.environ.pop("QUAID_HOME", None)
+            else:
+                os.environ["QUAID_HOME"] = prev_quaid_home
+            if prev_memory_db is None:
+                os.environ.pop("MEMORY_DB_PATH", None)
+            else:
+                os.environ["MEMORY_DB_PATH"] = prev_memory_db
+
+
 def truncate_session(session_file: str, summary: str | None = None):
     """Truncate the session JSONL, optionally keeping a summary message."""
     lines = []
@@ -684,7 +908,7 @@ def main():
     parser.add_argument("--workspace", required=True, help="Workspace directory (e.g., ~/clawd)")
     parser.add_argument("--user-name", default="Maya", help="User name for extraction prompt")
     parser.add_argument("--agent-name", default="Assistant", help="Agent name for transcript")
-    parser.add_argument("--owner-id", default="maya", help="Owner ID for stored facts")
+    parser.add_argument("--owner-id", default=_DEFAULT_OWNER_ID, help="Owner ID for stored facts")
     parser.add_argument("--session-id", default=None, help="Session ID for facts")
     parser.add_argument("--model", default="claude-sonnet-4-5-20250929", help="Extraction model")
     parser.add_argument("--no-truncate", action="store_true", help="Don't truncate session file")
@@ -700,7 +924,7 @@ def main():
         print(f"Session file not found: {session_file}", file=sys.stderr)
         sys.exit(1)
 
-    # Get API key — check env var, workspace .env, and ~/.openclaw/.env
+    # Get API key from environment and configured fallback env files.
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         env_paths = [
@@ -709,11 +933,7 @@ def main():
         ]
         for env_file in env_paths:
             if os.path.exists(env_file):
-                with open(env_file) as f:
-                    for line in f:
-                        if line.startswith("ANTHROPIC_API_KEY="):
-                            api_key = line.split("=", 1)[1].strip()
-                            break
+                api_key = _read_env_key(env_file, "ANTHROPIC_API_KEY")
                 if api_key:
                     break
     if not api_key:
@@ -770,11 +990,23 @@ def main():
         knowledge_type = "preference" if category == "preference" else "fact"
         sensitivity = fact.get("sensitivity")
         sensitivity_handling = fact.get("sensitivity_handling")
+        project_name = fact.get("project")
+        if project_name:
+            project_name = str(project_name).strip().replace("\n", " ").replace("\r", "")
+        raw_domains = fact.get("domains", [])
+        if isinstance(raw_domains, str):
+            raw_domains = [d for d in raw_domains.split(",")]
+        if not isinstance(raw_domains, list):
+            raw_domains = []
+        domains = [str(d).strip().lower() for d in raw_domains if str(d).strip()]
+        if not domains:
+            domains = ["projects"] if project_name else ["personal"]
 
         store_result = store_fact(
             workspace, text, category, args.owner_id, conf_num,
             args.session_id, privacy, keywords, knowledge_type, "user",
             sensitivity=sensitivity, sensitivity_handling=sensitivity_handling,
+            domains=domains, project=project_name,
         )
 
         if store_result and store_result["status"] in ("created", "updated", "duplicate"):
@@ -808,13 +1040,12 @@ def main():
     try:
         import sqlite3
         db_path = os.path.join(workspace, "data", "memory.db")
-        conn = sqlite3.connect(db_path)
-        db_edges = conn.execute("SELECT count(*) FROM edges").fetchone()[0]
-        db_nodes = conn.execute("SELECT count(*) FROM nodes").fetchone()[0]
-        status_counts = dict(conn.execute(
-            "SELECT status, count(*) FROM nodes GROUP BY status"
-        ).fetchall())
-        conn.close()
+        with sqlite3.connect(db_path) as conn:
+            db_edges = conn.execute("SELECT count(*) FROM edges").fetchone()[0]
+            db_nodes = conn.execute("SELECT count(*) FROM nodes").fetchone()[0]
+            status_counts = dict(conn.execute(
+                "SELECT status, count(*) FROM nodes GROUP BY status"
+            ).fetchall())
         print(f"DB verify: {db_nodes} nodes, {db_edges} edges, status={status_counts}")
         if edges_created > 0 and db_edges == 0:
             print(f"WARNING: Extraction reported {edges_created} edges but DB has 0!", file=sys.stderr)
@@ -847,6 +1078,22 @@ def main():
             journals_written += 1
             print(f"  Journal: {filename}.journal.md updated")
 
+    project_log_metrics = write_project_logs(
+        workspace,
+        result.get("project_logs", {}),
+        trigger=args.trigger,
+        date_str=sim_date,
+    )
+    if project_log_metrics:
+        print(
+            "  Project logs: "
+            f"seen={project_log_metrics.get('entries_seen', 0)} "
+            f"written={project_log_metrics.get('entries_written', 0)} "
+            f"projects_updated={project_log_metrics.get('projects_updated', 0)} "
+            f"unknown={project_log_metrics.get('projects_unknown', 0)} "
+            f"missing={project_log_metrics.get('projects_missing_file', 0)}"
+        )
+
     # Truncate session file
     if not args.no_truncate:
         summary = None
@@ -863,6 +1110,7 @@ def main():
         "edge_errors": edge_errors,
         "snippets_written": snippets_written,
         "journals_written": journals_written,
+        "project_log_metrics": project_log_metrics,
         "total_candidates": len(facts),
         "extraction_usage": {
             "input_tokens": extraction_usage.get("input_tokens", 0),

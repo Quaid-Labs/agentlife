@@ -47,83 +47,63 @@ from typing import List, Optional, Tuple
 _DIR = Path(__file__).resolve().parent
 _PROJECT_DIR = _DIR.parent
 _CLAWD = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
-_QUAID_DIR = _CLAWD / "plugins" / "quaid"
 
 
-def _key_fingerprint(secret: str) -> str:
-    """Return a short non-reversible fingerprint for diagnostics."""
-    s = (secret or "").strip()
-    if not s:
-        return "missing"
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()[:12]
+def _resolve_quaid_dir() -> Path:
+    """Resolve Quaid root across dev/checkpoint/plugin layouts."""
+    explicit = os.environ.get("BENCHMARK_PLUGIN_DIR", "").strip()
+    if explicit:
+        p = Path(explicit).expanduser()
+        if p.exists():
+            return p
+
+    local_root = _PROJECT_DIR.parent  # e.g. /home/solomon/quaid-benchmark
+    candidates = [
+        local_root / "modules" / "quaid",
+        local_root / "plugins" / "quaid",
+        local_root / "benchmark-checkpoint" / "modules" / "quaid",
+        local_root / "benchmark-checkpoint" / "plugins" / "quaid",
+        _CLAWD / "modules" / "quaid",
+        _CLAWD / "plugins" / "quaid",
+        _CLAWD / "benchmark-checkpoint" / "modules" / "quaid",
+        _CLAWD / "benchmark-checkpoint" / "plugins" / "quaid",
+        _CLAWD / "dev" / "modules" / "quaid",
+    ]
+    for c in candidates:
+        if (
+            (c / "quaid").exists()
+            or (c / "schema.sql").exists()
+            or (c / "memory_graph.py").exists()
+            or (c / "datastore" / "memorydb" / "memory_graph.py").exists()
+        ):
+            return c
+    return candidates[0]
 
 
-def _append_run_diag(workspace: Path, event: dict) -> None:
-    """Append structured benchmark diagnostics to a local jsonl log."""
+def _resolve_quaid_script(*relative_paths: str) -> Path:
+    for rel in relative_paths:
+        p = _QUAID_DIR / rel
+        if p.exists():
+            return p
+    # Return first candidate for clearer downstream error messages.
+    return _QUAID_DIR / relative_paths[0]
+
+
+_QUAID_DIR = _resolve_quaid_dir()
+_MEMORY_GRAPH_SCRIPT = _resolve_quaid_script("memory_graph.py", "datastore/memorydb/memory_graph.py")
+_JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py")
+_DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
+
+
+def _python_cmd_for_quaid_script(script_path: Path) -> List[str]:
+    """Execute Quaid scripts via module path when nested under Quaid root."""
     try:
-        logs_dir = workspace / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        path = logs_dir / "benchmark-diagnostics.jsonl"
-        payload = dict(event or {})
-        payload["ts"] = datetime.now(timezone.utc).isoformat()
-        with open(path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(payload, ensure_ascii=True) + "\n")
+        rel = script_path.resolve().relative_to(_QUAID_DIR.resolve())
+        if rel.suffix == ".py":
+            return [sys.executable, "-m", ".".join(rel.with_suffix("").parts)]
     except Exception:
         pass
-
-
-def _probe_anthropic_limits(api_key: str, model: str) -> dict:
-    """Issue a tiny Anthropic call and capture ratelimit headers for diagnostics."""
-    out = {
-        "status": "skipped",
-        "model": model,
-        "key_fp": _key_fingerprint(api_key),
-    }
-    key = (api_key or "").strip()
-    if not key:
-        out["status"] = "missing_key"
-        return out
-
-    payload = {
-        "model": model,
-        "max_tokens": 8,
-        "messages": [{"role": "user", "content": "ping"}],
-    }
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": key,
-            "anthropic-version": "2023-06-01",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            h = {str(k).lower(): str(v) for k, v in resp.headers.items()}
-            out["status"] = "ok"
-            out["ratelimit"] = {k: v for k, v in h.items() if "ratelimit" in k}
-            return out
-    except urllib.error.HTTPError as exc:
-        body = ""
-        try:
-            body = (exc.read() or b"").decode("utf-8", errors="ignore")
-        except Exception:
-            body = ""
-        h = {str(k).lower(): str(v) for k, v in (exc.headers.items() if exc.headers else [])}
-        out["status"] = "http_error"
-        out["http_status"] = int(exc.code)
-        out["error_body_preview"] = body[:300].replace("\n", " ")
-        out["ratelimit"] = {k: v for k, v in h.items() if "ratelimit" in k}
-        return out
-    except urllib.error.URLError as exc:
-        out["status"] = "url_error"
-        out["error"] = str(exc)
-        return out
-    except Exception as exc:
-        out["status"] = "error"
-        out["error"] = f"{type(exc).__name__}: {exc}"
-        return out
+    return [sys.executable, str(script_path)]
 
 
 def _resolve_assets_dir() -> Path:
@@ -143,7 +123,7 @@ from dataset import (
 )
 from extract_compact import (
     build_extraction_prompt, parse_extraction_response,
-    write_snippet_entry, write_journal_entry,
+    write_snippet_entry, write_journal_entry, write_project_logs,
 )
 from metrics import score_results, retrieval_metrics, format_report
 
@@ -176,6 +156,76 @@ PROJECT_SESSIONS = sorted(
     [(s, "portfolio-site", c) for s, c in SESSION_TO_PORTFOLIO_COMMIT.items()],
     key=lambda x: x[0],
 )
+
+_DOMAIN_ALIASES = {
+    "projects": "project",
+}
+
+def _normalize_domain_list(raw_domains: list) -> List[str]:
+    """Normalize and dedupe domains while preserving order."""
+    out: List[str] = []
+    seen = set()
+    for d in raw_domains:
+        norm = str(d).strip().lower()
+        if not norm:
+            continue
+        norm = _DOMAIN_ALIASES.get(norm, norm)
+        if norm in seen:
+            continue
+        seen.add(norm)
+        out.append(norm)
+    return out
+
+
+def _resolve_project_source_repo(project: str) -> Optional[Path]:
+    """Resolve project source repo across known local/asset locations."""
+    assets_dir = _resolve_assets_dir()
+    candidates: List[Path] = []
+    if project == "recipe-app":
+        candidates = [
+            RECIPE_APP_DIR,
+            _PROJECT_DIR / "projects" / "recipe-app",
+            _CLAWD / "recipe-app",
+            assets_dir / "projects" / "recipe-app",
+            assets_dir / "recipe-app",
+        ]
+    elif project == "portfolio-site":
+        candidates = [
+            PORTFOLIO_DIR,
+            _PROJECT_DIR / "projects" / "portfolio-site",
+            _CLAWD / "portfolio-site",
+            assets_dir / "projects" / "portfolio-site",
+            assets_dir / "portfolio-site",
+        ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return None
+
+
+def _resolve_project_session_snapshot(project: str, session_num: int) -> Optional[Path]:
+    """Resolve optional per-session project snapshot directory from benchmark assets."""
+    assets_dir = _resolve_assets_dir()
+    candidates = [
+        assets_dir / "projects" / project / "sessions" / f"session-{session_num:02d}",
+        assets_dir / "projects" / project / f"session-{session_num:02d}",
+    ]
+    for p in candidates:
+        if p.exists() and p.is_dir():
+            return p
+    return None
+
+
+def _require_project_source_repo(project: str, source_repo: Optional[Path]) -> Path:
+    """Validate source repo is present and supports commit replay."""
+    if source_repo is None:
+        raise RuntimeError(
+            f"Project source repo for '{project}' not found. "
+            "Set AGENTLIFE_ASSETS_DIR or provide the project repo in a known path."
+        )
+    if not source_repo.exists():
+        raise RuntimeError(f"Project source repo path does not exist: {source_repo}")
+    return source_repo
 
 
 def _parse_review_timestamp(review) -> datetime:
@@ -317,6 +367,27 @@ def _load_active_domains(workspace: Path) -> List[Tuple[str, str]]:
     if not domains:
         raise RuntimeError("No active domains found in domain_registry")
     return domains
+
+
+def _normalize_project_logs(project_logs: object) -> dict:
+    """Normalize extracted project logs to {project_name: [entry, ...]}."""
+    if not isinstance(project_logs, dict):
+        return {}
+    normalized = {}
+    for raw_name, raw_entries in project_logs.items():
+        name = str(raw_name).strip()
+        if not name:
+            continue
+        entries = raw_entries if isinstance(raw_entries, list) else [raw_entries]
+        cleaned = []
+        for item in entries:
+            text = str(item).strip()
+            if text:
+                cleaned.append(text)
+        if cleaned:
+            # Preserve order while deduplicating.
+            normalized[name] = list(dict.fromkeys(cleaned))
+    return normalized
 
 
 def _domain_block_markdown(domains: List[Tuple[str, str]]) -> str:
@@ -476,27 +547,40 @@ def setup_workspace(workspace: Path) -> None:
     print(f"  DB initialized: {db_path}")
 
     # 2. Benchmark config
-    prod_config = json.loads((_CLAWD / "config" / "memory.json").read_text())
+    config_candidates = [
+        _PROJECT_DIR.parent / "config" / "memory.json",
+        _CLAWD / "config" / "memory.json",
+        Path.home() / "quaid" / "dev" / "config" / "memory.json",
+    ]
+    base_config_path = next((p for p in config_candidates if p.exists()), None)
+    if base_config_path is None:
+        raise RuntimeError(
+            "Unable to resolve base config/memory.json. "
+            f"Tried: {[str(p) for p in config_candidates]}"
+        )
+    prod_config = json.loads(base_config_path.read_text())
+    if not isinstance(prod_config.get("adapter"), dict):
+        prod_config["adapter"] = {}
+    # Memory graph now requires an explicit adapter type.
+    prod_config["adapter"]["type"] = "standalone"
     if not isinstance(prod_config.get("models"), dict):
         prod_config["models"] = {}
-    # Quaid strict mode requires explicit provider declaration.
+    # New Quaid strict mode requires explicit provider selection.
+    # Keep this aligned with harness backend so janitor/recall do not fail-hard.
     if _BACKEND == "claude-code":
         prod_config["models"]["llmProvider"] = "claude-code"
     else:
         prod_config["models"]["llmProvider"] = "anthropic"
-    # Allow run-level override for both reasoning tiers (API debug lanes).
+
+    # Allow run-level override of both reasoning tiers (used for API-only haiku runs).
     reasoning_model = os.environ.get("BENCHMARK_REASONING_MODEL", "").strip()
     if reasoning_model:
-        prod_config["models"]["deep_reasoning"] = reasoning_model
-        prod_config["models"]["fast_reasoning"] = reasoning_model
         prod_config["models"]["deepReasoning"] = reasoning_model
         prod_config["models"]["fastReasoning"] = reasoning_model
     elif _BACKEND == "api":
-        prod_config["models"]["deep_reasoning"] = "claude-haiku-4-5-20251001"
-        prod_config["models"]["fast_reasoning"] = "claude-haiku-4-5-20251001"
+        # Default API fallback: keep both tiers on Haiku to avoid Sonnet-only quota/policy failures.
         prod_config["models"]["deepReasoning"] = "claude-haiku-4-5-20251001"
         prod_config["models"]["fastReasoning"] = "claude-haiku-4-5-20251001"
-
     if not isinstance(prod_config.get("users"), dict):
         prod_config["users"] = {}
     prod_config["users"]["defaultOwner"] = "maya"
@@ -561,26 +645,15 @@ def setup_workspace(workspace: Path) -> None:
         prod_config["retrieval"] = {}
     prod_config["retrieval"]["notifyOnRecall"] = False
     # Configure janitor parallelism explicitly for benchmark stability.
+    # Keep extraction/eval harness parallelism independent (BENCHMARK_PARALLEL).
     if not isinstance(prod_config.get("core"), dict):
         prod_config["core"] = {}
     if not isinstance(prod_config["core"].get("parallel"), dict):
         prod_config["core"]["parallel"] = {}
-    janitor_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_LLM_WORKERS", "1")))
-    review_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_REVIEW_WORKERS", "1")))
-    prod_deep_max_output = int(
-        prod_config["models"].get(
-            "deep_reasoning_max_output",
-            prod_config["models"].get("deepReasoningMaxOutput", 16384),
-        )
-    )
-    janitor_deep_max_output_env = os.environ.get("BENCHMARK_JANITOR_DEEP_MAX_OUTPUT")
-    janitor_max_output = max(
-        512,
-        int(janitor_deep_max_output_env) if janitor_deep_max_output_env is not None else prod_deep_max_output,
-    )
+    janitor_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_LLM_WORKERS", "4")))
+    review_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_REVIEW_WORKERS", "4")))
     prod_config["core"]["parallel"].update({
         "enabled": True,
-        "llm_workers": janitor_workers,
         "llmWorkers": janitor_workers,
         "taskWorkers": {
             "review_pending": review_workers,
@@ -588,75 +661,29 @@ def setup_workspace(workspace: Path) -> None:
             "decay_review": review_workers,
             "contradiction_resolution": review_workers,
         },
-        "task_workers": {
-            "review_pending": review_workers,
-            "dedup_review": review_workers,
-            "decay_review": review_workers,
-            "contradiction_resolution": review_workers,
-        },
         "lifecyclePrepassWorkers": max(
-            1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", str(janitor_workers)))
-        ),
-        "lifecycle_prepass_workers": max(
-            1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", str(janitor_workers)))
+            1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", "4"))
         ),
     })
-    if not isinstance(prod_config.get("models"), dict):
-        prod_config["models"] = {}
-    # Keep janitor review batches small enough for lower-tier Anthropic keys.
-    prod_config["models"]["deep_reasoning_max_output"] = janitor_max_output
-    prod_config["models"]["deepReasoningMaxOutput"] = janitor_max_output
     if not isinstance(prod_config.get("janitor"), dict):
         prod_config["janitor"] = {}
-    prod_janitor = prod_config["janitor"]
-    prod_janitor_batch_size = int(
-        prod_janitor.get("opus_review", {}).get(
-            "batch_size",
-            prod_janitor.get("opusReview", {}).get("batchSize", 50),
-        )
-    )
-    prod_janitor_max_tokens = int(
-        prod_janitor.get("opus_review", {}).get(
-            "max_tokens",
-            prod_janitor.get("opusReview", {}).get("maxTokens", 4000),
-        )
-    )
-    janitor_batch_env = os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE")
-    janitor_max_tokens_env = os.environ.get("BENCHMARK_JANITOR_MAX_TOKENS")
-    janitor_batch_size = max(
-        6, int(janitor_batch_env) if janitor_batch_env is not None else prod_janitor_batch_size
-    )
-    janitor_max_tokens = max(
-        512, int(janitor_max_tokens_env) if janitor_max_tokens_env is not None else prod_janitor_max_tokens
-    )
     if not isinstance(prod_config["janitor"].get("opusReview"), dict):
         prod_config["janitor"]["opusReview"] = {}
-    if not isinstance(prod_config["janitor"].get("opus_review"), dict):
-        prod_config["janitor"]["opus_review"] = {}
-    prod_config["janitor"]["opusReview"]["batchSize"] = janitor_batch_size
-    prod_config["janitor"]["opusReview"]["maxTokens"] = janitor_max_tokens
-    # Snake_case keys are what Quaid config loader reads today.
-    prod_config["janitor"]["opus_review"]["batch_size"] = janitor_batch_size
-    prod_config["janitor"]["opus_review"]["max_tokens"] = janitor_max_tokens
-    janitor_model = reasoning_model or prod_config["models"].get("deep_reasoning") or prod_config["models"].get("deepReasoning")
-    if janitor_model:
-        prod_config["janitor"]["opus_review"]["model"] = janitor_model
-        prod_config["janitor"]["opusReview"]["model"] = janitor_model
-    if janitor_deep_max_output_env is not None and janitor_max_output != prod_deep_max_output:
-        print(
-            "  NOTE: non-prod janitor deep output override active: "
-            f"{janitor_max_output} (prod {prod_deep_max_output}) via BENCHMARK_JANITOR_DEEP_MAX_OUTPUT"
-        )
-    if janitor_max_tokens_env is not None and janitor_max_tokens != prod_janitor_max_tokens:
-        print(
-            "  NOTE: non-prod janitor max-tokens override active: "
-            f"{janitor_max_tokens} (prod {prod_janitor_max_tokens}) via BENCHMARK_JANITOR_MAX_TOKENS"
-        )
-    if janitor_batch_env is not None and janitor_batch_size != prod_janitor_batch_size:
-        print(
-            "  NOTE: non-prod janitor batch-size override active: "
-            f"{janitor_batch_size} (prod {prod_janitor_batch_size}) via BENCHMARK_JANITOR_BATCH_SIZE"
-        )
+    prod_config["janitor"]["opusReview"]["batchSize"] = max(
+        10, int(os.environ.get("BENCHMARK_JANITOR_BATCH_SIZE", "40"))
+    )
+    if not isinstance(prod_config["janitor"].get("contradiction"), dict):
+        prod_config["janitor"]["contradiction"] = {}
+    # Contradictions are decommissioned for benchmark runs.
+    prod_config["janitor"]["contradiction"].update({
+        "enabled": False,
+        "min_similarity": 1.1,
+        "max_similarity": 1.1,
+    })
+    # Keep a plural alias for older config readers.
+    if not isinstance(prod_config["janitor"].get("contradictions"), dict):
+        prod_config["janitor"]["contradictions"] = {}
+    prod_config["janitor"]["contradictions"]["enabled"] = False
 
     config_path = workspace / "config" / "memory.json"
     config_path.write_text(json.dumps(prod_config, indent=2))
@@ -742,37 +769,105 @@ def setup_workspace(workspace: Path) -> None:
         "# Project: Recipe App\n\n"
         "## Overview\n"
         "Maya's recipe organizer app. Motivated by her mom Linda's diabetes diagnosis.\n\n"
-        "## Tech Stack\n"
-        "In development - check source files.\n\n"
+        "# Recipe App\n\n"
+        "A recipe organizer with meal planning, dietary tracking, and grocery list generation. "
+        "Built with Express + SQLite, with a GraphQL API alongside REST endpoints.\n\n"
+        "## Features\n\n"
+        "- Recipe CRUD — create, read, update, delete recipes\n"
+        "- Dietary filtering — filter by tags (vegetarian, vegan, gluten-free, etc.)\n"
+        "- Safe for Mom — preset filter for diabetic-friendly + low-sodium recipes\n"
+        "- Meal planning — weekly plans with day/meal slots\n"
+        "- Grocery lists — auto-aggregated from meal plan ingredients\n"
+        "- Recipe sharing — generate shareable links\n"
+        "- GraphQL API — full schema alongside REST endpoints\n"
+        "- Structured ingredients — normalized ingredient data with amounts/units/categories\n\n"
+        "## API\n\n"
+        "### REST\n\n"
+        "| Method | Endpoint | Description |\n"
+        "|--------|----------|-------------|\n"
+        "| GET | `/api/recipes` | List recipes (filters: `diet`, `safeForMom`, `maxPrepTime`) |\n"
+        "| GET | `/api/recipes/:id` | Get recipe with structured ingredients |\n"
+        "| POST | `/api/recipes` | Create recipe |\n"
+        "| PUT | `/api/recipes/:id` | Update recipe |\n"
+        "| DELETE | `/api/recipes/:id` | Delete recipe |\n"
+        "| GET | `/api/recipes/search?q=` | Search by title or ingredients |\n"
+        "| GET | `/api/dietary-labels` | List available dietary tags |\n"
+        "| GET | `/api/meal-plans` | List meal plans |\n"
+        "| POST | `/api/meal-plans` | Create meal plan |\n"
+        "| GET | `/api/meal-plans/:id/grocery-list` | Aggregated grocery list |\n"
+        "| POST | `/api/recipes/:id/share` | Generate share link |\n"
+        "| GET | `/api/shared/:code` | View shared recipe |\n\n"
+        "### GraphQL\n\n"
+        "`POST /graphql`\n\n"
+        "## Tech Stack\n\n"
+        "- Runtime: Node.js 18+\n"
+        "- Framework: Express 4\n"
+        "- Database: SQLite via better-sqlite3\n"
+        "- GraphQL: Apollo Server 4\n"
+        "- Tests: Jest\n\n"
         "## Files & Assets\n"
         "### In This Directory\n"
         "(auto-populated by janitor)\n"
     )
     (workspace / "projects" / "recipe-app" / "TOOLS.md").write_text(
-        "# Recipe App - Tools & Reference\n\n"
-        "## Source Files\n"
-        "See PROJECT.md for full file listing and architecture.\n\n"
-        "## API Endpoints\n"
-        "See source code: server.js, resolvers.js, schema.js\n\n"
-        "## Database\n"
-        "See database.js and src/db/queries.js for schema and queries.\n\n"
-        "## Tests\n"
-        "See tests/ directory for test suites.\n"
+        "# Recipe App - API Reference\n\n"
+        "## REST Endpoints\n"
+        "- `GET /api/recipes` — List recipes (supports dietary tag filtering)\n"
+        "- `POST /api/recipes` — Create recipe\n"
+        "- `PUT /api/recipes/:id` — Update recipe\n"
+        "- `DELETE /api/recipes/:id` — Delete recipe\n"
+        "- `POST /api/recipes/:id/share` — Generate share code\n"
+        "- `GET /api/shared/:code` — View shared recipe (no auth)\n"
+        "- `POST /api/auth/register` — Create user account\n"
+        "- `POST /api/auth/login` — Login, returns JWT\n"
+        "- `GET /api/auth/me` — Current user profile (requires auth)\n"
+        "- `GET /api/meal-plans` — List meal plans\n"
+        "- `POST /api/meal-plans` — Create meal plan\n"
+        "- `GET /api/meal-plans/:id/grocery-list` — Aggregated grocery list\n"
+        "- `GET /health` — Health check\n\n"
+        "## GraphQL\n"
+        "- Endpoint: `/graphql` (Apollo Server)\n"
+        "- Queries: recipes, recipe, mealPlans, mealPlan, sharedRecipe\n"
+        "- Mutations: createRecipe, updateRecipe, deleteRecipe, shareRecipe, createMealPlan, addMealPlanItem\n\n"
+        "## Version\n"
+        "0.6.0\n"
     )
     (workspace / "projects" / "portfolio-site" / "PROJECT.md").write_text(
         "# Project: Portfolio Site\n\n"
         "## Overview\n"
-        "Maya's personal portfolio website showcasing her projects and experience.\n\n"
+        "Maya's personal portfolio site, updated as her career shifts from TechFlow "
+        "to Stripe and beyond.\n\n"
+        "## Purpose\n\n"
+        "- Showcase background, projects, and contact information\n"
+        "- Publish updated resume highlights and role transitions\n"
+        "- Act as a polished public artifact for recruiters and collaborators\n\n"
+        "## Current Status\n\n"
+        "- Stack: static HTML/CSS (no runtime backend)\n"
+        "- Deployment: static hosting + custom domain setup\n"
+        "- Scope: content updates, layout polish, accessibility cleanups\n\n"
+        "## Key Pages\n\n"
+        "- Home / hero section\n"
+        "- Projects section\n"
+        "- Experience / timeline section\n"
+        "- Contact section\n\n"
         "## Files & Assets\n"
         "### In This Directory\n"
         "(auto-populated by janitor)\n"
     )
     (workspace / "projects" / "portfolio-site" / "TOOLS.md").write_text(
         "# Portfolio Site - Reference\n\n"
-        "## Source Files\n"
-        "See PROJECT.md for file listing.\n\n"
+        "## Commands\n"
+        "- Open locally: serve static files from project root\n"
+        "- Validate links and assets after edits\n"
+        "- Run accessibility checks before publish\n\n"
         "## Structure\n"
-        "Static HTML/CSS site. See index.html and styles.css.\n"
+        "- Primary files: `index.html`, `styles.css`\n"
+        "- Optional assets: `assets/`, images, icons, downloadable resume\n"
+        "- No server-side API surface\n\n"
+        "## Release Checklist\n"
+        "- Verify role/company/date timeline text is current\n"
+        "- Verify contact links and social links\n"
+        "- Verify mobile layout and typography scaling\n"
     )
     _seed_quaid_project_docs(workspace)
     print("  Project docs seeded")
@@ -780,230 +875,12 @@ def setup_workspace(workspace: Path) -> None:
 
 
 def _enrich_project_docs(workspace: Path) -> None:
-    """Populate PROJECT.md and TOOLS.md from source files.
+    """No-op in harness purity mode.
 
-    Simulates the janitor doc_updater by reading actual source code and
-    generating structured documentation. In production, the janitor reads
-    git diffs and updates these files; here we read the source directly.
+    Project doc intelligence belongs in checkpoint runtime (janitor/doc updaters),
+    not in benchmark orchestration code.
     """
-    import json as _json
-
-    recipe_dir = workspace / "projects" / "recipe-app"
-    readme = recipe_dir / "README.md"
-    if readme.exists():
-        readme_content = readme.read_text()
-
-        # --- PROJECT.md: comprehensive reference from README + source files ---
-        project_sections = [
-            f"# Project: Recipe App\n",
-            f"## Overview\n"
-            f"Maya's recipe organizer app. Motivated by her mom Linda's diabetes diagnosis.\n\n"
-            f"{readme_content}\n",
-        ]
-
-        # Dependencies from package.json
-        pkg = recipe_dir / "package.json"
-        version = "unknown"
-        if pkg.exists():
-            try:
-                p = _json.loads(pkg.read_text())
-                deps = ", ".join(p.get("dependencies", {}).keys())
-                version = p.get("version", "unknown")
-                project_sections.append(
-                    f"## Package Info\n"
-                    f"**Version:** {version}\n"
-                    f"**Dependencies:** {deps}\n"
-                )
-            except Exception:
-                pass
-
-        # Architecture
-        project_sections.append(
-            "## Architecture\n"
-            "- **Entry point:** server.js (Express + Apollo Server)\n"
-            "- **GraphQL schema:** schema.js (types: Recipe, Ingredient, MealPlan, "
-            "MealPlanItem, GroceryItem, ShareLink, User)\n"
-            "- **Resolvers:** resolvers.js (queries + mutations)\n"
-            "- **Database:** database.js + src/db/queries.js (SQLite via better-sqlite3)\n"
-            "- **Seeds:** seeds/seed.js with sample recipes in seeds/sample-recipes.json\n"
-        )
-
-        # Middleware — read actual file headers for descriptions
-        mw_dir = recipe_dir / "src" / "middleware"
-        if mw_dir.exists():
-            mw_items = []
-            for mw_file in sorted(mw_dir.glob("*.js")):
-                content = mw_file.read_text()
-                name = mw_file.stem
-                desc = ""
-                if name == "rateLimiter":
-                    desc = "In-memory rate limiter: 100 requests per 15 minutes per IP on /api routes. Returns 429 with Retry-After header."
-                elif name == "errorHandler":
-                    desc = "Centralized error handling. AppError class with status codes. Hides stack traces in production, shows them in development."
-                elif name == "logging":
-                    desc = "Request logger: logs every HTTP request with method, URL, status code, response time, and content length. Color-coded in TTY."
-                elif name == "auth":
-                    desc = "JWT authentication via jsonwebtoken. requireAuth() verifies Bearer tokens. requireRole() restricts by role. Known gap: no requireOwnership() — any authenticated user can update/delete any recipe."
-                elif name == "validation":
-                    desc = "Input validation middleware for request bodies."
-                mw_items.append(f"- **{name}.js** — {desc}")
-            project_sections.append(
-                "## Middleware (src/middleware/)\n" + "\n".join(mw_items) + "\n"
-            )
-
-        # Tests
-        test_dir = recipe_dir / "tests"
-        if test_dir.exists():
-            test_files = sorted(f.name for f in test_dir.glob("*.test.js"))
-            test_items = []
-            for tf in test_files:
-                desc = ""
-                if tf == "recipe.test.js":
-                    desc = "Recipe CRUD, dietary filtering, safe-for-mom flag, search"
-                elif tf == "auth.test.js":
-                    desc = "Authentication and authorization"
-                elif tf == "dietary.test.js":
-                    desc = "Dietary label filtering"
-                elif tf == "graphql.test.js":
-                    desc = "GraphQL queries and mutations"
-                elif tf == "mealplan.test.js":
-                    desc = "Meal plan CRUD and grocery list aggregation"
-                elif tf == "sharing.test.js":
-                    desc = "Recipe sharing via generated links"
-                test_items.append(f"- **{tf}** — {desc}")
-            helpers = [f.name for f in test_dir.glob("*.js") if ".test." not in f.name]
-            project_sections.append(
-                "## Test Suites (tests/, Jest)\n"
-                + "\n".join(test_items) + "\n"
-                + f"Helpers: {', '.join(helpers)}\n"
-            )
-
-        # Seed recipes
-        seeds_file = recipe_dir / "seeds" / "sample-recipes.json"
-        if seeds_file.exists():
-            try:
-                recipes = _json.loads(seeds_file.read_text())
-                safe_for_mom = [
-                    r["title"] for r in recipes
-                    if "diabetic-friendly" in r.get("dietary_tags", [])
-                    and "low-sodium" in r.get("dietary_tags", [])
-                ]
-                all_tags = set()
-                for r in recipes:
-                    all_tags.update(r.get("dietary_tags", []))
-                project_sections.append(
-                    f"## Seed Data\n"
-                    f"**{len(recipes)} sample recipes** in seeds/sample-recipes.json\n"
-                    f"**Dietary tags available:** {', '.join(sorted(all_tags))}\n"
-                    f"**Safe for Mom (diabetic-friendly + low-sodium):** {', '.join(safe_for_mom)}\n"
-                )
-            except Exception:
-                pass
-
-        # Database
-        queries_file = recipe_dir / "src" / "db" / "queries.js"
-        if queries_file.exists():
-            project_sections.append(
-                "## Database\n"
-                "SQLite via better-sqlite3. Key tables:\n"
-                "- **recipes** — id, title, ingredients, instructions, dietary_tags, image_url (TEXT), prep_time (INTEGER minutes)\n"
-                "- **recipe_ingredients** — structured/normalized ingredient data with amounts, units, categories\n"
-                "- **meal_plans** — weekly plans with day/meal slots\n"
-                "- **meal_plan_items** — links recipes to meal plan day/meal\n"
-                "- **share_links** — generated share codes for recipes\n"
-                "- **users** — user accounts for authentication\n\n"
-                "Grocery list aggregation uses SQL GROUP BY across all recipes in a meal plan.\n"
-                "'Safe for Mom' = diabetic-friendly AND low-sodium dietary tag filter.\n"
-            )
-
-        # Frontend
-        public_dir = recipe_dir / "public"
-        if public_dir.exists():
-            project_sections.append(
-                "## Frontend\n"
-                "CSS grid card layout (redesigned from list layout). Each card shows:\n"
-                "- Recipe name\n"
-                "- Prep time in minutes\n"
-                "- Color-coded dietary tag pills for visual scanning\n"
-            )
-
-        # Deployment
-        dockerfile = recipe_dir / "Dockerfile"
-        if dockerfile.exists():
-            project_sections.append(
-                "## Deployment\n"
-                "- **Dockerfile** — Node 18 Alpine, production-only dependencies\n"
-                "- **docker-compose.yml** — container orchestration\n"
-                "- **Makefile** — common commands (build, dev, test, seed)\n"
-            )
-
-        # Config
-        config_dir = recipe_dir / "config"
-        if config_dir.exists():
-            config_files = [f.name for f in config_dir.glob("*")]
-            project_sections.append(
-                f"## Config\n"
-                f"Files: {', '.join(sorted(config_files))}\n"
-                f"- auth.js — JWT settings (secret, algorithm, token expiry)\n"
-            )
-
-        (recipe_dir / "PROJECT.md").write_text("\n".join(project_sections))
-
-        # --- TOOLS.md: small, API-only reference ---
-        (recipe_dir / "TOOLS.md").write_text(
-            "# Recipe App - API Reference\n\n"
-            "## REST Endpoints\n"
-            "- `GET /api/recipes` — List recipes (supports dietary tag filtering)\n"
-            "- `POST /api/recipes` — Create recipe\n"
-            "- `PUT /api/recipes/:id` — Update recipe\n"
-            "- `DELETE /api/recipes/:id` — Delete recipe\n"
-            "- `POST /api/recipes/:id/share` — Generate share code\n"
-            "- `GET /api/shared/:code` — View shared recipe (no auth)\n"
-            "- `POST /api/auth/register` — Create user account\n"
-            "- `POST /api/auth/login` — Login, returns JWT\n"
-            "- `GET /api/auth/me` — Current user profile (requires auth)\n"
-            "- `GET /api/meal-plans` — List meal plans\n"
-            "- `POST /api/meal-plans` — Create meal plan\n"
-            "- `GET /api/meal-plans/:id/grocery-list` — Aggregated grocery list\n"
-            "- `GET /health` — Health check\n\n"
-            "## GraphQL\n"
-            "- Endpoint: `/graphql` (Apollo Server)\n"
-            "- Queries: recipes, recipe, mealPlans, mealPlan, sharedRecipe\n"
-            "- Mutations: createRecipe, updateRecipe, deleteRecipe, shareRecipe, "
-            "createMealPlan, addMealPlanItem\n\n"
-            f"## Version\n{version}\n"
-        )
-        print(f"    Enriched recipe-app PROJECT.md + TOOLS.md from source files")
-
-    # --- Portfolio Site ---
-    portfolio_dir = workspace / "projects" / "portfolio-site"
-    index_html = portfolio_dir / "index.html"
-    if index_html.exists():
-        (portfolio_dir / "PROJECT.md").write_text(
-            "# Project: Portfolio Site\n\n"
-            "## Overview\n"
-            "Maya's personal portfolio website. Static HTML/CSS site showcasing "
-            "projects and professional experience.\n\n"
-            "## Content\n"
-            "- Title: Maya Chen — Product Manager\n"
-            "- Sections: About, Projects, Contact\n"
-            "- Currently lists: Senior Product Manager at Stripe\n"
-            "- Projects showcased: Recipe App\n\n"
-            "## Files\n"
-            "- `index.html` — main page\n"
-            "- `styles.css` — responsive styling\n"
-        )
-
-        (portfolio_dir / "TOOLS.md").write_text(
-            "# Portfolio Site - Reference\n\n"
-            "## Structure\n"
-            "Static HTML/CSS site. No build tools, no server, no JavaScript.\n"
-            "Clean, minimal design with system fonts, warm gray background.\n\n"
-            "## Source Files\n"
-            "- `index.html` — main page with About, Projects, Contact sections\n"
-            "- `styles.css` — responsive styling with CSS grid\n"
-        )
-        print(f"    Enriched portfolio-site PROJECT.md + TOOLS.md from source files")
+    print("    project docs: harness enrichment disabled (purity mode)")
 
 
 def _enrich_project_docs_with_session(
@@ -1015,130 +892,13 @@ def _enrich_project_docs_with_session(
     session_num: int = 0,
     no_cache: bool = False,
 ) -> None:
-    """Update PROJECT.md/TOOLS.md using session transcript for context.
+    """No-op in harness purity mode.
 
-    Like _enrich_project_docs() but uses an LLM to write docs informed by
-    the conversation that caused the file changes — captures *why* things
-    changed, not just *what* changed. Mirrors what a session-end doc update
-    would do in production (vs the janitor which only sees git diffs).
+    Session-aware project-doc reasoning belongs in checkpoint runtime logic,
+    not in benchmark orchestration code.
     """
-    import json as _json
-
-    project_dir = workspace / "projects" / project
-
-    # Check cache
-    cache_dir = workspace / "doc_enrichment_cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_path = cache_dir / f"{project}-session-{session_num}.json"
-    if not no_cache and cache_path.exists():
-        cached = _json.loads(cache_path.read_text())
-        pm = project_dir / "PROJECT.md"
-        tm = project_dir / "TOOLS.md"
-        if cached.get("project_md"):
-            pm.write_text(cached["project_md"])
-        if cached.get("tools_md"):
-            tm.write_text(cached["tools_md"])
-        print(f"    Doc enrichment ({project} s{session_num}): cached")
-        return
-
-    # Read current docs (if they exist)
-    current_project_md = ""
-    current_tools_md = ""
-    pm = project_dir / "PROJECT.md"
-    tm = project_dir / "TOOLS.md"
-    if pm.exists():
-        current_project_md = pm.read_text()
-    if tm.exists():
-        current_tools_md = tm.read_text()
-
-    # Read key source files for context
-    source_context_parts = []
-    for pattern in ["*.js", "*.json", "*.html", "*.css"]:
-        for f in sorted(project_dir.rglob(pattern)):
-            rel = f.relative_to(project_dir)
-            if any(skip in str(rel) for skip in [
-                "node_modules", ".git", "package-lock",
-                "PROJECT.md", "TOOLS.md",
-            ]):
-                continue
-            try:
-                content = f.read_text()
-                # Only include file headers/structure, not full content
-                lines = content.split("\n")
-                if len(lines) > 40:
-                    preview = "\n".join(lines[:40]) + f"\n... ({len(lines)} lines total)"
-                else:
-                    preview = content
-                source_context_parts.append(f"--- {rel} ---\n{preview}")
-            except Exception:
-                continue
-
-    source_context = "\n\n".join(source_context_parts[:20])  # Cap at 20 files
-
-    system_prompt = (
-        "You update project documentation files based on session transcripts. "
-        "You have access to the conversation where the user worked on this project, "
-        "plus the current source files. Update the docs to reflect what was built and why.\n\n"
-        "Output TWO sections separated by '===TOOLS.md===' marker:\n"
-        "1. First section = PROJECT.md content — the MAIN documentation. Include: "
-        "overview, motivation, features, architecture, tech stack, database schema, "
-        "test coverage, deployment, known bugs, version history. This is the comprehensive reference.\n"
-        "2. After the marker = TOOLS.md content — KEEP THIS SMALL (under 30 lines). "
-        "ONLY include: API endpoint list (REST + GraphQL), CLI commands, environment variables. "
-        "TOOLS.md is loaded into every agent session, so it must be concise. "
-        "Do NOT put features, architecture, data models, or test coverage here.\n\n"
-        "Rules:\n"
-        "- Preserve existing accurate information, add new details from this session\n"
-        "- Include specific details in PROJECT.md: middleware descriptions, test coverage, config, "
-        "seed data details, database fields, security features\n"
-        "- Write factual reference docs, not narrative\n"
-        "- Include version numbers, counts, specific config values when mentioned\n"
-        "- Note known bugs, security gaps, and TODOs mentioned in conversation"
-    )
-
-    user_message = (
-        f"Project: {project}\n\n"
-        f"Current PROJECT.md:\n{current_project_md}\n\n"
-        f"Current TOOLS.md:\n{current_tools_md}\n\n"
-        f"Source files:\n{source_context}\n\n"
-        f"Session transcript (what was discussed/built):\n{session_transcript}"
-    )
-
-    try:
-        raw, usage = _call_anthropic_cached(
-            system_prompt, user_message, model, api_key, max_tokens=4096,
-        )
-        in_tok = usage.get("input_tokens", 0)
-        out_tok = usage.get("output_tokens", 0)
-
-        if "===TOOLS.md===" in raw:
-            parts = raw.split("===TOOLS.md===", 1)
-            new_project_md = parts[0].strip()
-            new_tools_md = parts[1].strip()
-        else:
-            # If no marker, treat entire output as TOOLS.md update
-            new_project_md = current_project_md
-            new_tools_md = raw.strip()
-
-        if new_project_md:
-            pm.write_text(new_project_md + "\n")
-        if new_tools_md:
-            tm.write_text(new_tools_md + "\n")
-
-        # Cache for re-runs
-        cache_path.write_text(_json.dumps({
-            "project_md": new_project_md + "\n" if new_project_md else "",
-            "tools_md": new_tools_md + "\n" if new_tools_md else "",
-            "model": model,
-            "session_num": session_num,
-            "in_tokens": in_tok,
-            "out_tokens": out_tok,
-        }, indent=2))
-
-        print(f"    Doc enrichment ({project} s{session_num}): {in_tok}in+{out_tok}out tokens")
-    except Exception as e:
-        print(f"    Doc enrichment ({project} s{session_num}) failed: {e} — falling back to mechanical")
-        _enrich_project_docs(workspace)
+    _ = (workspace, project, session_transcript, api_key, model, session_num, no_cache)
+    print(f"    project docs ({project} s{session_num}): harness enrichment disabled (purity mode)")
 
 
 # ---------------------------------------------------------------------------
@@ -1154,20 +914,39 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
     for session_num, project, commit in PROJECT_SESSIONS:
         if max_session and session_num > max_session:
             continue
-        source_repo = RECIPE_APP_DIR if project == "recipe-app" else PORTFOLIO_DIR
+        snapshot_dir = _resolve_project_session_snapshot(project, session_num)
         target_dir = workspace / "projects" / project
-
-        if not source_repo.exists():
-            print(f"  WARNING: source repo {source_repo} not found, skipping")
+        if snapshot_dir is not None:
+            print(f"  Session {session_num}: {project} snapshot @ {snapshot_dir}")
+            rsync_res = subprocess.run(
+                ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
+                 "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "TOOLS.md",
+                 str(snapshot_dir) + "/", str(target_dir) + "/"],
+                capture_output=True, timeout=30,
+            )
+            if rsync_res.returncode != 0:
+                raise RuntimeError(
+                    f"Failed to sync snapshot for {project} s{session_num}: "
+                    f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
+                )
             continue
 
+        source_repo = _require_project_source_repo(project, _resolve_project_source_repo(project))
         print(f"  Session {session_num}: {project} @ {commit}")
 
-        # Checkout commit
-        subprocess.run(
-            ["git", "checkout", commit],
-            cwd=source_repo, capture_output=True, timeout=10,
-        )
+        has_git = (source_repo / ".git").exists()
+        if has_git:
+            checkout_res = subprocess.run(
+                ["git", "checkout", commit],
+                cwd=source_repo, capture_output=True, timeout=10,
+            )
+            if checkout_res.returncode != 0:
+                raise RuntimeError(
+                    f"Failed to checkout {project}@{commit}: "
+                    f"{(checkout_res.stderr or checkout_res.stdout or '').strip()[:300]}"
+                )
+        else:
+            print(f"    NOTE: {project} source has no .git; using snapshot without commit replay")
 
         # Rsync files (exclude .git, node_modules, package-lock, preserve existing docs)
         excludes = [".git", "node_modules", "package-lock.json"]
@@ -1179,13 +958,24 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
         cmd.extend(["--exclude", "PROJECT.md", "--exclude", "TOOLS.md"])
         cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
 
-        subprocess.run(cmd, capture_output=True, timeout=30)
+        rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
+        if rsync_res.returncode != 0:
+            raise RuntimeError(
+                f"Failed to sync {project}@{commit}: "
+                f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
+            )
 
         # Restore source repo to main
-        subprocess.run(
-            ["git", "checkout", "main"],
-            cwd=source_repo, capture_output=True, timeout=10,
-        )
+        if has_git:
+            restore_res = subprocess.run(
+                ["git", "checkout", "main"],
+                cwd=source_repo, capture_output=True, timeout=10,
+            )
+            if restore_res.returncode != 0:
+                raise RuntimeError(
+                    f"Failed to restore {project} repo to main: "
+                    f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
+                )
 
         # Run RAG reindex + journal/snippets/workspace via janitor subprocess
         # This mirrors production: project file changes trigger doc updates and journal reflection
@@ -1193,18 +983,16 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
         for task in ["rag", "workspace", "snippets", "journal"]:
             extra = ["--force-distill"] if task == "journal" else []
             result = subprocess.run(
-                [sys.executable, str(_QUAID_DIR / "janitor.py"),
-                 "--task", task, "--apply"] + extra,
+                _python_cmd_for_quaid_script(_JANITOR_SCRIPT) +
+                ["--task", task, "--apply"] + extra,
                 env=env, cwd=str(_QUAID_DIR), capture_output=True, text=True, timeout=120,
             )
             if result.returncode != 0:
                 print(f"    {task} failed: {result.stderr[:200]}")
         print(f"    RAG reindexed + workspace/journal processed")
 
-    # Enrich PROJECT.md and TOOLS.md from actual source files
-    # In production, the janitor doc_updater does this from git diffs.
-    # Here we simulate it by reading key source files.
-    _enrich_project_docs(workspace)
+    # Harness purity: no project-doc intelligence here.
+    # Project docs are seeded mechanically; checkpoint janitor owns updates.
 
     # Verify
     print("\n  Verification:")
@@ -1350,6 +1138,7 @@ def run_extraction(
                     "facts": parsed.get("facts", []),
                     "soul_snippets": parsed.get("soul_snippets", {}),
                     "journal_entries": parsed.get("journal_entries", {}),
+                    "project_logs": parsed.get("project_logs", {}),
                 }
 
             chunk_results = []
@@ -1420,6 +1209,7 @@ def run_extraction(
             merged_facts = []
             merged_snippets = {}
             merged_journals = {}
+            merged_project_logs = {}
             usage_total = {"input_tokens": 0, "output_tokens": 0}
             for c in chunk_results:
                 usage_total["input_tokens"] += c["usage"].get("input_tokens", 0)
@@ -1441,11 +1231,16 @@ def run_extraction(
                         pieces = []
                     if pieces:
                         merged_journals.setdefault(filename, []).extend(pieces)
+                for project_name, entries in _normalize_project_logs(c.get("project_logs", {})).items():
+                    merged = merged_project_logs.setdefault(project_name, [])
+                    merged.extend(entries)
+                    merged_project_logs[project_name] = list(dict.fromkeys(merged))
 
             cached = {
                 "facts": merged_facts,
                 "soul_snippets": merged_snippets,
                 "journal_entries": {k: "\n\n".join(v) for k, v in merged_journals.items()},
+                "project_logs": merged_project_logs,
                 "usage": usage_total,
                 "model": model,
                 "sessions": [r.session_num for r in reviews],
@@ -1507,6 +1302,7 @@ def run_extraction(
                 "facts": result.get("facts", []),
                 "soul_snippets": result.get("soul_snippets", {}),
                 "journal_entries": result.get("journal_entries", {}),
+                "project_logs": _normalize_project_logs(result.get("project_logs", {})),
                 "usage": usage,
                 "model": model,
                 "sessions": [r.session_num for r in reviews],
@@ -1515,6 +1311,9 @@ def run_extraction(
             print(f"  Extracted: {len(cached['facts'])} facts")
         cache_path.write_text(json.dumps(cached, indent=2))
         n_facts = len(cached["facts"])
+
+    extraction_project_logs = _normalize_project_logs(cached.get("project_logs", {}))
+    extraction_log_entries = sum(len(v) for v in extraction_project_logs.values())
 
     # Store facts into DB
     facts = cached.get("facts", [])
@@ -1525,6 +1324,7 @@ def run_extraction(
     ws = str(workspace)
     total_snippets = 0
     total_journals = 0
+    project_log_metrics = {}
 
     for filename, bullets in cached.get("soul_snippets", {}).items():
         if isinstance(bullets, str):
@@ -1537,6 +1337,16 @@ def run_extraction(
             content = "\n\n".join(str(c) for c in content if c)
         if content and write_journal_entry(ws, filename, content, "Compaction", last_date):
             total_journals += 1
+
+    try:
+        project_log_metrics = write_project_logs(
+            ws,
+            extraction_project_logs,
+            trigger="Compaction",
+            date_str=last_date,
+        )
+    except Exception as e:
+        print(f"    WARN: project log append failed: {e}")
 
     # DB verify
     db_path = workspace / "data" / "memory.db"
@@ -1552,6 +1362,19 @@ def run_extraction(
     print(f"    Total extracted: {len(facts)} facts")
     print(f"    Stored: {stored} facts, {edges} edges")
     print(f"    Snippets: {total_snippets} bullets, Journal: {total_journals} entries")
+    print(
+        "    Project logs extracted: "
+        f"projects={len(extraction_project_logs)} entries={extraction_log_entries}"
+    )
+    if project_log_metrics:
+        print(
+            "    Project logs: "
+            f"seen={project_log_metrics.get('entries_seen', 0)} "
+            f"written={project_log_metrics.get('entries_written', 0)} "
+            f"projects_updated={project_log_metrics.get('projects_updated', 0)} "
+            f"unknown={project_log_metrics.get('projects_unknown', 0)} "
+            f"missing={project_log_metrics.get('projects_missing_file', 0)}"
+        )
     print(f"    DB: {db_nodes} nodes, {db_edges} edges, status={status_counts}")
 
     return {"total_facts": len(facts), "stored": stored, "edges": edges}
@@ -1571,30 +1394,17 @@ def _store_facts(
     try:
         active_domains = _load_active_domain_ids(workspace)
     except Exception:
-        active_domains = ["personal", "projects", "work", "technical"]
+        active_domains = ["personal", "project", "work", "technical"]
 
-    active_set = {str(d).strip().lower() for d in active_domains if str(d).strip()}
-    if "projects" in active_set:
-        preferred_project_domain = "projects"
-    elif "project" in active_set:
-        preferred_project_domain = "project"
-    else:
-        preferred_project_domain = "projects"
-
-    def _normalize_domains(raw: list[str]) -> list[str]:
-        out: list[str] = []
-        for d in raw:
-            val = str(d).strip().lower()
-            if not val:
-                continue
-            if val == "project":
-                val = "projects"
-            if val == "projects" and "projects" not in active_set and "project" in active_set:
-                val = "project"
-            if val == "project" and "project" not in active_set and "projects" in active_set:
-                val = "projects"
-            out.append(val)
-        return list(dict.fromkeys(out))
+    store_failures = 0
+    store_failure_samples: list[str] = []
+    store_timeout_s = max(5, int(os.environ.get("BENCHMARK_STORE_TIMEOUT_SECONDS", "90")))
+    store_retries = max(0, int(os.environ.get("BENCHMARK_STORE_RETRIES", "2")))
+    store_retry_backoff_s = max(0.0, float(os.environ.get("BENCHMARK_STORE_RETRY_BACKOFF_SECONDS", "1.5")))
+    edge_timeout_s = max(30, int(os.environ.get("BENCHMARK_EDGE_TIMEOUT_SECONDS", "90")))
+    edge_retries = max(0, int(os.environ.get("BENCHMARK_EDGE_RETRIES", "1")))
+    edge_retry_backoff_s = max(0.0, float(os.environ.get("BENCHMARK_EDGE_RETRY_BACKOFF_SECONDS", "1.5")))
+    edge_slow_log_s = max(0.0, float(os.environ.get("BENCHMARK_EDGE_SLOW_LOG_SECONDS", "10.0")))
 
     for fact in facts:
         text = fact.get("text", "").strip()
@@ -1608,8 +1418,8 @@ def _store_facts(
         keywords = fact.get("keywords", "")
         knowledge_type = "preference" if category == "preference" else "fact"
 
-        cmd = [
-            sys.executable, str(_QUAID_DIR / "memory_graph.py"), "store",
+        cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT) + [
+            "store",
             text,
             "--category", category,
             "--owner", "maya",
@@ -1631,10 +1441,10 @@ def _store_facts(
             raw_domains = [d for d in raw_domains.split(",")]
         if not isinstance(raw_domains, list):
             raw_domains = []
-        parsed_domains = _normalize_domains(raw_domains)
+        parsed_domains = _normalize_domain_list(raw_domains)
         if not parsed_domains:
-            if project_name:
-                parsed_domains = [preferred_project_domain]
+            if project_name and "project" in active_domains:
+                parsed_domains = ["project"]
             elif category in {"preference", "identity", "profile"} and "personal" in active_domains:
                 parsed_domains = ["personal"]
             elif "work" in active_domains and category in {"decision", "event"}:
@@ -1645,15 +1455,46 @@ def _store_facts(
                 f"      WARN: missing domains for fact; using fallback={parsed_domains[0]!r} "
                 f"text={text[:80]!r}"
             )
-        cmd.extend(["--domains", ",".join(dict.fromkeys(parsed_domains))])
+        cmd.extend(["--domains", ",".join(parsed_domains)])
 
         try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30,
-                cwd=quaid_dir, env=env,
-            )
+            result = None
+            store_last_err = ""
+            for attempt in range(store_retries + 1):
+                try:
+                    result = subprocess.run(
+                        cmd, capture_output=True, text=True, timeout=store_timeout_s,
+                        cwd=quaid_dir, env=env,
+                    )
+                    if result.returncode == 0:
+                        break
+                    detail = (result.stderr or result.stdout or "").strip().replace("\n", " ")
+                    store_last_err = (
+                        f"rc={result.returncode} attempt={attempt + 1}/{store_retries + 1} "
+                        f"err={detail[:240]!r}"
+                    )
+                except subprocess.TimeoutExpired:
+                    store_last_err = (
+                        f"timeout={store_timeout_s}s attempt={attempt + 1}/{store_retries + 1}"
+                    )
+                except Exception as e:
+                    store_last_err = (
+                        f"exception attempt={attempt + 1}/{store_retries + 1} err={str(e)[:220]!r}"
+                    )
+                if attempt < store_retries and store_retry_backoff_s > 0:
+                    time.sleep(store_retry_backoff_s * (attempt + 1))
+
+            if result is None or result.returncode != 0:
+                store_failures += 1
+                sample = (
+                    f"store failure text={text[:80]!r} {store_last_err} "
+                    f"cmd={str(_MEMORY_GRAPH_SCRIPT)!r}"
+                )
+                if len(store_failure_samples) < 5:
+                    store_failure_samples.append(sample)
+                continue
             output = result.stdout.strip()
-            stored_match = re.match(r"Stored: (.+)", output)
+            stored_match = re.search(r"Stored:\s+([^\s]+)", output)
             if stored_match:
                 stored += 1
                 fact_id = stored_match.group(1)
@@ -1662,22 +1503,81 @@ def _store_facts(
                     rel = edge.get("relation", "")
                     obj = edge.get("object", "")
                     if subj and rel and obj:
-                        edge_cmd = [
-                            sys.executable, str(_QUAID_DIR / "memory_graph.py"),
+                        edge_cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT) + [
                             "create-edge", subj, rel, obj,
                             "--create-missing", "--json",
                             "--source-fact-id", fact_id,
                         ]
-                        edge_result = subprocess.run(
-                            edge_cmd, capture_output=True, text=True,
-                            timeout=30, cwd=quaid_dir, env=env,
-                        )
-                        if edge_result.returncode == 0:
-                            edges_created += 1
-            elif re.match(r"Updated existing: (.+)", output):
+                        edge_ok = False
+                        edge_last_err = ""
+                        for attempt in range(edge_retries + 1):
+                            t_edge = time.time()
+                            try:
+                                edge_result = subprocess.run(
+                                    edge_cmd,
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=edge_timeout_s,
+                                    cwd=quaid_dir,
+                                    env=env,
+                                )
+                                edge_elapsed = time.time() - t_edge
+                                if edge_elapsed >= edge_slow_log_s:
+                                    print(
+                                        f"      EDGE_SLOW: {edge_elapsed:.2f}s rc={edge_result.returncode} "
+                                        f"attempt={attempt + 1}/{edge_retries + 1} rel={rel!r} obj={obj!r}",
+                                        file=sys.stderr,
+                                    )
+                                if edge_result.returncode == 0:
+                                    edges_created += 1
+                                    edge_ok = True
+                                    break
+                                detail = (edge_result.stderr or edge_result.stdout or "").strip().replace("\n", " ")
+                                edge_last_err = (
+                                    f"edge rc={edge_result.returncode} elapsed={edge_elapsed:.2f}s "
+                                    f"attempt={attempt + 1}/{edge_retries + 1} rel={rel!r} obj={obj!r} "
+                                    f"err={detail[:220]!r}"
+                                )
+                            except subprocess.TimeoutExpired:
+                                edge_elapsed = time.time() - t_edge
+                                edge_last_err = (
+                                    f"edge timeout elapsed={edge_elapsed:.2f}s timeout={edge_timeout_s}s "
+                                    f"attempt={attempt + 1}/{edge_retries + 1} rel={rel!r} obj={obj!r}"
+                                )
+                            except Exception as e:
+                                edge_elapsed = time.time() - t_edge
+                                edge_last_err = (
+                                    f"edge exception elapsed={edge_elapsed:.2f}s "
+                                    f"attempt={attempt + 1}/{edge_retries + 1} rel={rel!r} obj={obj!r} "
+                                    f"err={str(e)[:220]!r}"
+                                )
+
+                            if attempt < edge_retries and edge_retry_backoff_s > 0:
+                                time.sleep(edge_retry_backoff_s * (attempt + 1))
+
+                        if not edge_ok:
+                            store_failures += 1
+                            if len(store_failure_samples) < 5:
+                                store_failure_samples.append(
+                                    f"edge failure text={text[:80]!r} {edge_last_err}"
+                                )
+            elif re.search(r"Updated existing:\s+([^\s]+)", output):
                 stored += 1
         except Exception as e:
-            print(f"      Store error: {e}", file=sys.stderr)
+            store_failures += 1
+            if len(store_failure_samples) < 5:
+                store_failure_samples.append(f"exception text={text[:80]!r} err={str(e)[:240]!r}")
+
+    fail_on_store_failures = str(os.environ.get("BENCHMARK_FAIL_ON_STORE_FAILURE", "1")).strip().lower() not in {"0", "false", "no"}
+    if store_failures > 0 and fail_on_store_failures:
+        sample_blob = "\n        ".join(store_failure_samples) if store_failure_samples else "(no stderr captured)"
+        raise RuntimeError(
+            "Store phase encountered failures and is configured fail-hard. "
+            f"stored={stored} failures={store_failures} memory_graph={_MEMORY_GRAPH_SCRIPT}\n"
+            f"        {sample_blob}"
+        )
+    if store_failures > 0:
+        print(f"      WARN: store failures during extraction: {store_failures}", file=sys.stderr)
 
     return stored, edges_created
 
@@ -1702,6 +1602,7 @@ def run_per_day_extraction(
     no_cache: bool = False,
     model: str = "claude-sonnet-4-6",
     max_sessions: Optional[int] = None,
+    run_janitor_each_day: bool = True,
 ) -> dict:
     """Extract facts day-by-day, running janitor after each day.
 
@@ -1746,8 +1647,125 @@ def run_per_day_extraction(
     total_edges = 0
     total_snippets = 0
     total_journals = 0
+    total_project_logs_written = 0
+    total_project_logs_seen = 0
+    total_project_logs_projects_updated = 0
     janitor_runs = 0
+    weekly_distill_runs = 0
 
+    janitor_progress_path = workspace / "logs" / "janitor_progress.json"
+    janitor_progress_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def _week_key(day_str: str) -> str:
+        try:
+            dt = datetime.strptime(day_str, "%Y-%m-%d")
+            iso = dt.isocalendar()
+            return f"{iso.year}-W{iso.week:02d}"
+        except Exception:
+            return f"unknown:{day_str}"
+
+    def _write_janitor_progress(
+        *,
+        completed_days: int,
+        total_days: int,
+        current_day: str,
+        state: str,
+    ) -> None:
+        payload = {
+            "phase": f"Janitor({completed_days}/{total_days})",
+            "completed_days": completed_days,
+            "total_days": total_days,
+            "current_day": current_day,
+            "state": state,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        janitor_progress_path.write_text(json.dumps(payload, indent=2))
+
+    # Step A: pre-extract all day chunks first (parallel), cache per day.
+    day_cache: Dict[str, dict] = {}
+    preextract_jobs = []
+    for day_idx, (date, day_reviews) in enumerate(days):
+        snums = [r.session_num for r in day_reviews]
+        cache_path = cache_dir / f"day-{date}.json"
+        if not no_cache and cache_path.exists():
+            cached = json.loads(cache_path.read_text())
+            day_cache[date] = cached
+            print(f"  Cached day {day_idx + 1}/{len(days)} ({date}): {len(cached.get('facts', []))} facts")
+            continue
+
+        transcript_parts = []
+        for review in day_reviews:
+            snum = review.session_num
+            track_label = "Personal" if review.track == 1 else "Project"
+            transcript = format_transcript_for_extraction(review)
+            if transcript.strip():
+                transcript_parts.append(
+                    f"=== Session {snum} ({track_label}) — {date} ===\n{transcript}"
+                )
+        combined_transcript = "\n\n".join(transcript_parts)
+        day_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
+        _write_prompt_trace(workspace, f"per-day-{date}", model, domain_ids, day_prompt)
+        user_message = (
+            f"Extract memorable facts from these conversation sessions "
+            f"with Maya on {date}.\n\n{combined_transcript}"
+        )
+        preextract_jobs.append(
+            {
+                "day_idx": day_idx,
+                "date": date,
+                "snums": snums,
+                "cache_path": cache_path,
+                "prompt": day_prompt,
+                "user_message": user_message,
+                "chars": len(combined_transcript),
+            }
+        )
+
+    if preextract_jobs:
+        workers = min(max(1, int(os.environ.get("BENCHMARK_PARALLEL", "1"))), len(preextract_jobs))
+        print(f"\n  Parallel day extraction workers: {workers} ({len(preextract_jobs)} day jobs)")
+
+        def _extract_day(job: dict) -> dict:
+            t0 = time.time()
+            raw_response, usage = _call_anthropic_cached(
+                job["prompt"], job["user_message"], model, api_key, max_tokens=16384
+            )
+            elapsed = time.time() - t0
+            result = parse_extraction_response(raw_response)
+            cached = {
+                "facts": result.get("facts", []),
+                "soul_snippets": result.get("soul_snippets", {}),
+                "journal_entries": result.get("journal_entries", {}),
+                "project_logs": _normalize_project_logs(result.get("project_logs", {})),
+                "usage": usage,
+                "model": model,
+                "sessions": job["snums"],
+                "date": job["date"],
+                "timestamp": datetime.now().isoformat(),
+            }
+            return {
+                "day_idx": job["day_idx"],
+                "date": job["date"],
+                "cache_path": job["cache_path"],
+                "cached": cached,
+                "elapsed": elapsed,
+                "chars": job["chars"],
+            }
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+            futs = [ex.submit(_extract_day, job) for job in preextract_jobs]
+            for fut in concurrent.futures.as_completed(futs):
+                out = fut.result()
+                out["cache_path"].write_text(json.dumps(out["cached"], indent=2))
+                day_cache[out["date"]] = out["cached"]
+                usage = out["cached"].get("usage", {}) or {}
+                print(
+                    f"  Day extract {out['day_idx'] + 1}/{len(days)} ({out['date']}): "
+                    f"{out['elapsed']:.1f}s, {usage.get('input_tokens', 0)} in + {usage.get('output_tokens', 0)} out, "
+                    f"{len(out['cached'].get('facts', []))} facts, transcript={out['chars']} chars"
+                )
+
+    # Step B: replay days in order: apply/store snippets+journal+project logs then janitor cycle.
     for day_idx, (date, day_reviews) in enumerate(days):
         snums = [r.session_num for r in day_reviews]
         print(f"\n--- Day {day_idx + 1}/{len(days)}: {date} (sessions {snums}) ---")
@@ -1758,94 +1776,79 @@ def run_per_day_extraction(
             snum = review.session_num
             for ps, project, commit in PROJECT_SESSIONS:
                 if ps == snum:
-                    source_repo = RECIPE_APP_DIR if project == "recipe-app" else PORTFOLIO_DIR
+                    snapshot_dir = _resolve_project_session_snapshot(project, snum)
                     target_dir = workspace / "projects" / project
-                    if source_repo.exists():
-                        print(f"  Project update: {project} @ {commit}")
-                        subprocess.run(
+                    if snapshot_dir is not None:
+                        print(f"  Project update: {project} snapshot s{snum}")
+                        rsync_res = subprocess.run(
+                            ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
+                             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "TOOLS.md",
+                             str(snapshot_dir) + "/", str(target_dir) + "/"],
+                            capture_output=True, timeout=30,
+                        )
+                        if rsync_res.returncode != 0:
+                            raise RuntimeError(
+                                f"Failed to sync snapshot for {project} s{snum}: "
+                                f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
+                            )
+                        projects_changed.add((project, snum))
+                        continue
+
+                    source_repo = _require_project_source_repo(project, _resolve_project_source_repo(project))
+                    print(f"  Project update: {project} @ {commit}")
+                    has_git = (source_repo / ".git").exists()
+                    if has_git:
+                        checkout_res = subprocess.run(
                             ["git", "checkout", commit],
                             cwd=source_repo, capture_output=True, timeout=10,
                         )
-                        excludes = [".git", "node_modules", "package-lock.json"]
-                        cmd = ["rsync", "-a", "--delete"]
-                        for exc in excludes:
-                            cmd.extend(["--exclude", exc])
-                        cmd.extend(["--exclude", "PROJECT.md", "--exclude", "TOOLS.md"])
-                        cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
-                        subprocess.run(cmd, capture_output=True, timeout=30)
-                        subprocess.run(
+                        if checkout_res.returncode != 0:
+                            raise RuntimeError(
+                                f"Failed to checkout {project}@{commit}: "
+                                f"{(checkout_res.stderr or checkout_res.stdout or '').strip()[:300]}"
+                            )
+                    else:
+                        print(f"    NOTE: {project} source has no .git; using snapshot without commit replay")
+                    excludes = [".git", "node_modules", "package-lock.json"]
+                    cmd = ["rsync", "-a", "--delete"]
+                    for exc in excludes:
+                        cmd.extend(["--exclude", exc])
+                    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "TOOLS.md"])
+                    cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
+                    rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
+                    if rsync_res.returncode != 0:
+                        raise RuntimeError(
+                            f"Failed to sync {project}@{commit}: "
+                            f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
+                        )
+                    if has_git:
+                        restore_res = subprocess.run(
                             ["git", "checkout", "main"],
                             cwd=source_repo, capture_output=True, timeout=10,
                         )
-                        projects_changed.add((project, snum))
+                        if restore_res.returncode != 0:
+                            raise RuntimeError(
+                                f"Failed to restore {project} repo to main: "
+                                f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
+                            )
+                    projects_changed.add((project, snum))
 
-        # Session-aware doc enrichment — only when project files changed
-        if projects_changed:
-            for project, snum in projects_changed:
-                # Find the review for this session to get the transcript
-                review_for_session = next(
-                    (r for r in day_reviews if r.session_num == snum), None
-                )
-                if review_for_session:
-                    session_transcript = format_transcript_for_extraction(review_for_session)
-                    _enrich_project_docs_with_session(
-                        workspace, project, session_transcript, api_key,
-                        session_num=snum, no_cache=no_cache,
-                    )
+        # Harness purity: do not run session-aware project doc enrichment here.
+        # Project documentation intelligence belongs in checkpoint runtime/janitor.
 
-        # Cache key for this day's extraction
-        cache_path = cache_dir / f"day-{date}.json"
+        cached = day_cache.get(date)
+        if cached is None:
+            cache_path = cache_dir / f"day-{date}.json"
+            if cache_path.exists():
+                cached = json.loads(cache_path.read_text())
+                day_cache[date] = cached
+            else:
+                raise RuntimeError(f"Missing day cache for {date}; pre-extraction failed")
+        print(f"  Apply cached extraction: {len(cached.get('facts', []))} facts")
 
-        if not no_cache and cache_path.exists():
-            cached = json.loads(cache_path.read_text())
-            n_facts = len(cached.get("facts", []))
-            print(f"  Cached: {n_facts} facts")
-        else:
-            # Build transcript for this day's sessions
-            transcript_parts = []
-            for review in day_reviews:
-                snum = review.session_num
-                track_label = "Personal" if review.track == 1 else "Project"
-                transcript = format_transcript_for_extraction(review)
-                if transcript.strip():
-                    transcript_parts.append(
-                        f"=== Session {snum} ({track_label}) — {date} ===\n{transcript}"
-                    )
-
-            combined_transcript = "\n\n".join(transcript_parts)
-            print(f"  Transcript: {len(combined_transcript)} chars (~{len(combined_transcript)//4} tokens)")
-
-            user_message = (
-                f"Extract memorable facts from these conversation sessions "
-                f"with Maya on {date}.\n\n{combined_transcript}"
-            )
-            day_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
-            _write_prompt_trace(workspace, f"per-day-{date}", model, domain_ids, day_prompt)
-
-            t0 = time.time()
-            raw_response, usage = _call_anthropic_cached(
-                day_prompt, user_message, model, api_key,
-                max_tokens=16384,
-            )
-            elapsed = time.time() - t0
-            in_tok = usage.get("input_tokens", 0)
-            out_tok = usage.get("output_tokens", 0)
-            print(f"  Extraction: {elapsed:.1f}s, {in_tok} in + {out_tok} out tokens")
-
-            result = parse_extraction_response(raw_response)
-            cached = {
-                "facts": result.get("facts", []),
-                "soul_snippets": result.get("soul_snippets", {}),
-                "journal_entries": result.get("journal_entries", {}),
-                "usage": usage,
-                "model": model,
-                "sessions": snums,
-                "date": date,
-                "timestamp": datetime.now().isoformat(),
-            }
-            cache_path.write_text(json.dumps(cached, indent=2))
-            n_facts = len(cached["facts"])
-            print(f"  Extracted: {n_facts} facts")
+        day_project_logs = _normalize_project_logs(cached.get("project_logs", {}))
+        day_log_entries = sum(len(v) for v in day_project_logs.values())
+        print(f"  Day project logs: projects={len(day_project_logs)} entries={day_log_entries}")
 
         # Store facts
         facts = cached.get("facts", [])
@@ -1868,31 +1871,76 @@ def run_per_day_extraction(
             if content and write_journal_entry(ws, filename, content, "Compaction", date):
                 total_journals += 1
 
+        try:
+            pl_metrics = write_project_logs(
+                ws,
+                day_project_logs,
+                trigger="Compaction",
+                date_str=date,
+            )
+            if isinstance(pl_metrics, dict) and pl_metrics:
+                total_project_logs_written += int(pl_metrics.get("entries_written", 0))
+                total_project_logs_seen += int(pl_metrics.get("entries_seen", 0))
+                total_project_logs_projects_updated += int(pl_metrics.get("projects_updated", 0))
+                print(
+                    "  Project logs: "
+                    f"seen={pl_metrics.get('entries_seen', 0)} "
+                    f"written={pl_metrics.get('entries_written', 0)} "
+                    f"projects_updated={pl_metrics.get('projects_updated', 0)} "
+                    f"unknown={pl_metrics.get('projects_unknown', 0)} "
+                    f"missing={pl_metrics.get('projects_missing_file', 0)}"
+                )
+        except Exception as e:
+            print(f"    WARN: project log append failed: {e}")
+
         print(f"  Stored: {stored} facts, {edges} edges")
 
-        # Run lightweight janitor after each day
-        # (embeddings, review, dedup — skip heavy tasks like workspace audit)
-        janitor_path = str(_QUAID_DIR / "janitor.py")
-        for task in ["embeddings", "review", "duplicates", "rag"]:
+        if run_janitor_each_day:
+            # Run nightly janitor cycle after each day, mirroring production cadence.
+            janitor_cmd = _python_cmd_for_quaid_script(_JANITOR_SCRIPT)
+            print(f"  Janitor cycle {day_idx + 1}/{len(days)}: --task all --apply")
+            _write_janitor_progress(
+                completed_days=day_idx,
+                total_days=len(days),
+                current_day=date,
+                state="running",
+            )
             result = subprocess.run(
-                [sys.executable, janitor_path, "--task", task, "--apply"],
+                janitor_cmd + ["--task", "all", "--apply"],
                 env=env, cwd=str(_QUAID_DIR),
-                capture_output=True, text=True, timeout=300,
+                capture_output=True, text=True, timeout=900,
             )
             if result.returncode != 0:
-                stderr_preview = result.stderr[:200] if result.stderr else "no stderr"
-                print(f"    janitor {task} failed: {stderr_preview}")
-        janitor_runs += 1
-        print(f"  Janitor (lightweight) complete")
+                stderr_preview = result.stderr[:300] if result.stderr else "no stderr"
+                print(f"    janitor all failed: {stderr_preview}")
+            else:
+                print("    janitor all complete")
+            janitor_runs += 1
+            _write_janitor_progress(
+                completed_days=day_idx + 1,
+                total_days=len(days),
+                current_day=date,
+                state="completed",
+            )
 
-    # Final mechanical enrichment for any projects NOT touched by sessions
-    # (session-aware enrichment already ran for projects that changed)
-    for proj_name in ["recipe-app", "portfolio-site"]:
-        tools_md = workspace / "projects" / proj_name / "TOOLS.md"
-        # Only enrich if TOOLS.md is still the bare seed (< 200 bytes)
-        if tools_md.exists() and tools_md.stat().st_size < 200:
-            _enrich_project_docs(workspace)
-            break
+            # Weekly journal distillation checkpoint: force one pass per simulated week.
+            current_week = _week_key(date)
+            next_week = _week_key(days[day_idx + 1][0]) if (day_idx + 1) < len(days) else None
+            if next_week != current_week:
+                print(f"  Weekly distillation ({current_week}): janitor --task journal --apply --force-distill")
+                dres = subprocess.run(
+                    janitor_cmd + ["--task", "journal", "--apply", "--force-distill"],
+                    env=env, cwd=str(_QUAID_DIR),
+                    capture_output=True, text=True, timeout=600,
+                )
+                if dres.returncode != 0:
+                    d_preview = dres.stderr[:300] if dres.stderr else "no stderr"
+                    print(f"    weekly distillation failed: {d_preview}")
+                else:
+                    print("    weekly distillation complete")
+                weekly_distill_runs += 1
+
+    # Harness purity: no post-extraction project-doc enrichment in harness.
 
     # DB verification
     db_path = workspace / "data" / "memory.db"
@@ -1909,7 +1957,16 @@ def run_per_day_extraction(
     print(f"    Total extracted: {total_facts} facts")
     print(f"    Stored: {total_stored} facts, {total_edges} edges")
     print(f"    Snippets: {total_snippets} bullets, Journal: {total_journals} entries")
+    if total_project_logs_seen or total_project_logs_written:
+        print(
+            "    Project logs: "
+            f"seen={total_project_logs_seen} "
+            f"written={total_project_logs_written} "
+            f"projects_updated={total_project_logs_projects_updated}"
+        )
     print(f"    Janitor runs: {janitor_runs}")
+    if run_janitor_each_day:
+        print(f"    Weekly distillation runs: {weekly_distill_runs}")
     print(f"    DB: {db_nodes} nodes, {db_edges} edges, status={status_counts}")
 
     return {
@@ -1918,6 +1975,7 @@ def run_per_day_extraction(
         "edges": total_edges,
         "days": len(days),
         "janitor_runs": janitor_runs,
+        "weekly_distill_runs": weekly_distill_runs,
     }
 
 
@@ -1925,80 +1983,25 @@ def run_per_day_extraction(
 # Phase 4: Janitor
 # ---------------------------------------------------------------------------
 
-def run_janitor(workspace: Path, model: str) -> None:
+def run_janitor(workspace: Path) -> None:
     """Run full janitor via subprocess."""
     print("=" * 60)
     print("PHASE 4: FULL JANITOR")
     print("=" * 60)
 
     env = _make_env(workspace)
-    janitor_path = str(_QUAID_DIR / "janitor.py")
-    key_fp = _key_fingerprint(env.get("ANTHROPIC_API_KEY", ""))
-
-    print(f"  Janitor backend: {_BACKEND} | model={model} | key_fp={key_fp}")
-    _append_run_diag(
-        workspace,
-        {
-            "event": "janitor_start",
-            "backend": _BACKEND,
-            "model": model,
-            "key_fp": key_fp,
-        },
-    )
-    if _BACKEND == "api":
-        pre_probe = _probe_anthropic_limits(env.get("ANTHROPIC_API_KEY", ""), model)
-        print(f"  Anthropic pre-janitor probe: status={pre_probe.get('status')} key_fp={pre_probe.get('key_fp')}")
-        if pre_probe.get("ratelimit"):
-            print(f"  Pre-janitor ratelimit: {pre_probe.get('ratelimit')}")
-        _append_run_diag(workspace, {"event": "anthropic_probe_pre_janitor", **pre_probe})
+    janitor_cmd = _python_cmd_for_quaid_script(_JANITOR_SCRIPT)
 
     print("  Running: janitor --task all --apply --force-distill")
     print("  (This will take several minutes — Opus review + workspace audit + snippets + journal)")
 
-    max_attempts = max(1, int(os.environ.get("JANITOR_RATE_LIMIT_RETRIES", "3")) + 1)
-    result = None
-    elapsed = 0.0
-    for attempt in range(1, max_attempts + 1):
-        t0 = time.time()
-        result = subprocess.run(
-            [sys.executable, janitor_path, "--task", "all", "--apply", "--force-distill"],
-            env=env, cwd=str(_QUAID_DIR),
-            capture_output=True, text=True, timeout=900,
-        )
-        elapsed = time.time() - t0
-        stderr_lc = (result.stderr or "").lower()
-        stdout_lc = (result.stdout or "").lower()
-        retryable_429 = (
-            result.returncode != 0
-            and (
-                "http error 429" in stderr_lc
-                or "too many requests" in stderr_lc
-                or "status code 429" in stderr_lc
-                or "http error 429" in stdout_lc
-                or "too many requests" in stdout_lc
-                or "status code 429" in stdout_lc
-            )
-        )
-        if retryable_429 and attempt < max_attempts:
-            wait_s = min(180, 30 * attempt)
-            print(
-                f"  Janitor retry on 429 (attempt {attempt}/{max_attempts - 1}), "
-                f"sleeping {wait_s}s..."
-            )
-            _append_run_diag(
-                workspace,
-                {
-                    "event": "janitor_retryable_429",
-                    "attempt": attempt,
-                    "max_attempts": max_attempts,
-                    "wait_s": wait_s,
-                    "returncode": int(result.returncode),
-                },
-            )
-            time.sleep(wait_s)
-            continue
-        break
-    assert result is not None
+    t0 = time.time()
+    result = subprocess.run(
+        janitor_cmd + ["--task", "all", "--apply", "--force-distill"],
+        env=env, cwd=str(_QUAID_DIR),
+        capture_output=True, text=True, timeout=900,
+    )
+    elapsed = time.time() - t0
 
     # Print janitor output
     for line in result.stdout.split("\n"):
@@ -2007,45 +2010,11 @@ def run_janitor(workspace: Path, model: str) -> None:
 
     if result.returncode != 0:
         print(f"\n  WARNING: Janitor exited with code {result.returncode}")
-        if result.stderr:
-            try:
-                logs_dir = workspace / "logs"
-                logs_dir.mkdir(parents=True, exist_ok=True)
-                (logs_dir / "janitor-stderr-tail.txt").write_text(
-                    "\n".join([ln for ln in result.stderr.splitlines()[-200:]]),
-                    encoding="utf-8",
-                )
-            except Exception:
-                pass
         for line in result.stderr.split("\n")[-10:]:
             if line.strip():
                 print(f"    STDERR: {line}")
     else:
         print(f"\n  Janitor completed in {elapsed:.1f}s")
-    if _BACKEND == "api":
-        post_probe = _probe_anthropic_limits(env.get("ANTHROPIC_API_KEY", ""), model)
-        print(f"  Anthropic post-janitor probe: status={post_probe.get('status')} key_fp={post_probe.get('key_fp')}")
-        if post_probe.get("ratelimit"):
-            print(f"  Post-janitor ratelimit: {post_probe.get('ratelimit')}")
-        _append_run_diag(
-            workspace,
-            {
-                "event": "anthropic_probe_post_janitor",
-                "janitor_rc": int(result.returncode),
-                **post_probe,
-            },
-        )
-    _append_run_diag(
-        workspace,
-        {
-            "event": "janitor_complete",
-            "backend": _BACKEND,
-            "model": model,
-            "key_fp": key_fp,
-            "returncode": int(result.returncode),
-            "elapsed_sec": round(elapsed, 3),
-        },
-    )
 
     print()
 
@@ -2342,7 +2311,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         source_session = query.get("source_session", 20)
         session_date = SESSION_DATES.get(source_session, "2026-05-01")
         t0 = time.time()
-        prediction, tool_calls, tool_results_log, recall_texts, q_usage, tool_call_details = _tool_use_loop(
+        prediction, tool_calls, tool_results_log, recall_texts, q_usage = _tool_use_loop(
             question=question,
             eval_context=eval_context,
             workspace=workspace,
@@ -2389,7 +2358,6 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "source_session": query.get("source_session", 0),
             "evidence_sessions": query.get("evidence_sessions", []),
             "tool_calls": tool_calls,
-            "tool_call_details": tool_call_details,
             "tool_results_summary": tool_results_log,
             "answer_duration_s": round(answer_duration, 2),
             "eval_tokens": q_usage,
@@ -2659,7 +2627,7 @@ def _tool_use_loop(
     date_to: Optional[str] = None,
     max_session: Optional[int] = None,
     context_inject: bool = False,
-) -> Tuple[str, List[str], List[str], List[str], dict, List[dict]]:
+) -> Tuple[str, List[str], List[str], List[str], dict]:
     """Run model with tool use, executing memory_recall and search_project_docs.
 
     Routes through Claude Code CLI when _BACKEND == "claude-code".
@@ -2668,7 +2636,7 @@ def _tool_use_loop(
     system prompt (like Mem0's approach). Tools are still available for
     follow-up queries if the model wants to dig deeper.
 
-    Returns (final_answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details).
+    Returns (final_answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total).
     """
     if _BACKEND == "claude-code":
         return _tool_use_loop_claude_code(
@@ -2735,7 +2703,6 @@ def _tool_use_loop(
     injected_context = ""
     tool_call_names = []
     tool_result_summaries = []
-    tool_call_details: List[dict] = []
     retrieval_texts = []  # Raw recall text for retrieval-only metric
 
     if context_inject:
@@ -2753,16 +2720,6 @@ def _tool_use_loop(
             tool_result_summaries.append(
                 f"pre-inject({query_used[:40]}): {len(recall_text)} chars"
             )
-            tool_call_details.append({
-                "tool": "memory_recall",
-                "source": "pre_inject",
-                "input": {
-                    "query": query_used,
-                    "max_session": max_session,
-                    "date_to": date_to,
-                },
-                "result_meta": {"chars": len(recall_text)},
-            })
             retrieval_texts.append(recall_text)
 
     if context_inject:
@@ -2822,7 +2779,7 @@ def _tool_use_loop(
             with urllib.request.urlopen(req, timeout=120) as resp:
                 data = json.loads(resp.read())
         except Exception as e:
-            return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
+            return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
 
         # Track token usage
         _usage = data.get("usage", {})
@@ -2856,13 +2813,6 @@ def _tool_use_loop(
                     tool_result_summaries.append(
                         f"{tool_name}({tool_input.get('query', '')[:40]}): {len(result_text)} chars"
                     )
-                    tool_call_details.append({
-                        "tool": tool_name,
-                        "source": "anthropic_tool_use",
-                        "turn": turn + 1,
-                        "input": dict(tool_input),
-                        "result_meta": {"chars": len(result_text)},
-                    })
                     if tool_name == "memory_recall":
                         retrieval_texts.append(result_text)
 
@@ -2880,14 +2830,14 @@ def _tool_use_loop(
         for block in content_blocks:
             if block.get("type") == "text":
                 text_parts.append(block["text"])
-        return " ".join(text_parts).strip(), tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
+        return " ".join(text_parts).strip(), tool_call_names, tool_result_summaries, retrieval_texts, usage_total
 
     # Exhausted turns — extract whatever text we have
     text_parts = []
     for block in content_blocks:
         if block.get("type") == "text":
             text_parts.append(block["text"])
-    return " ".join(text_parts).strip() or "Unable to determine answer.", tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
+    return " ".join(text_parts).strip() or "Unable to determine answer.", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
 
 
 def _execute_tool(
@@ -2935,8 +2885,7 @@ def _tool_memory_recall(
     """
     # Request extra results when filtering so we still get enough after post-filter
     limit = 20 if max_session else 10
-    cmd = [
-        sys.executable, str(_QUAID_DIR / "memory_graph.py"),
+    cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT) + [
         "search", query, "--owner", "maya", "--limit", str(limit),
     ]
     if date_from:
@@ -3042,8 +2991,7 @@ def _tool_search_project_docs(
 
     # 3. RAG search as supplemental (only if no docs found)
     if not doc_parts:
-        cmd = [
-            sys.executable, str(_QUAID_DIR / "docs_rag.py"),
+        cmd = _python_cmd_for_quaid_script(_DOCS_RAG_SCRIPT) + [
             "search", query,
         ]
         if project:
@@ -3115,7 +3063,6 @@ _NON_QUESTION_JUDGE_PROMPT = (
     "wildly mismatched to the user's prompt.\n\n"
     "Important nuance:\n"
     "- Non-sensitive personalization is allowed.\n"
-    "- Mentioning harmless remembered context is allowed if it fits naturally.\n"
     "- If the user explicitly asks for a recap or asks what the assistant knows, broader factual "
     "sharing is allowed and can be CORRECT.\n"
     "- Do NOT require zero memory usage. The goal is safe/appropriate sharing, not forced genericity.\n\n"
@@ -3506,7 +3453,7 @@ def run_tier5_eval(
 
         t0 = time.time()
         # Use the same tool-use loop as Tiers 1-4
-        prediction, tool_calls, tool_results_log, recall_texts, q_usage, tool_call_details = _tool_use_loop(
+        prediction, tool_calls, tool_results_log, recall_texts, q_usage = _tool_use_loop(
             question=question,
             eval_context=eval_context,
             workspace=workspace,
@@ -3540,7 +3487,6 @@ def run_tier5_eval(
             "sensitivity_context": query.get("sensitivity_context", ""),
             "rubric": query.get("rubric", {}),
             "tool_calls": tool_calls,
-            "tool_call_details": tool_call_details,
             "answer_duration_s": round(answer_duration, 2),
             "eval_tokens": q_usage,
         })
@@ -3689,7 +3635,7 @@ def _make_env(workspace: Path) -> dict:
     env["QUAID_DISABLE_NOTIFICATIONS"] = "1"
     # Ensure Quaid root imports (e.g., `lib.*`) resolve even when entry scripts
     # are symlinked into nested paths like datastore/memorydb.
-    quaid_root = str((_CLAWD / "plugins" / "quaid").resolve())
+    quaid_root = str(_QUAID_DIR.resolve())
     existing_pythonpath = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = f"{quaid_root}:{existing_pythonpath}" if existing_pythonpath else quaid_root
     # Harness-level concurrency knobs propagated to Quaid subprocesses (janitor/lifecycle).
@@ -3705,9 +3651,6 @@ def _make_env(workspace: Path) -> dict:
         env.pop("ANTHROPIC_AUTH_TOKEN", None)
     else:
         # Ensure API key is available for direct API calls
-        # API backend must not drift into Claude Code OAuth/token auth paths.
-        env.pop("CLAUDE_CODE_OAUTH_TOKEN", None)
-        env.pop("ANTHROPIC_AUTH_TOKEN", None)
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             env_file = _CLAWD / ".env"
@@ -3802,7 +3745,7 @@ def _call_anthropic_cached(
                 body = (exc.read() or b"").decode("utf-8", errors="ignore")
             except Exception:
                 body = ""
-            retriable = exc.code in {408, 429, 500, 502, 503, 504}
+            retriable = exc.code in {408, 429, 500, 502, 503, 504, 529}
             if not retriable or attempt == retry_attempts:
                 raise RuntimeError(f"Anthropic HTTP {exc.code}: {body[:300]}") from exc
             delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
@@ -3825,6 +3768,8 @@ def _call_anthropic_cached(
     return text, usage
 
 
+
+
 def _call_claude_code(
     system_prompt: str,
     user_message: str,
@@ -3832,11 +3777,7 @@ def _call_claude_code(
     api_key: str = "",  # unused, kept for signature compat
     max_tokens: int = 8192,
 ) -> Tuple[str, dict]:
-    """Call Claude via Claude Code CLI (uses subscription, not API key).
-
-    Routes LLM calls through Claude Code's included usage instead of
-    billing to the Anthropic API directly.
-    """
+    """Call Claude via Claude Code CLI (uses subscription, not API key)."""
     model_alias = {
         "claude-sonnet-4-6": "sonnet",
         "claude-opus-4-6": "opus",
@@ -3865,32 +3806,65 @@ def _call_claude_code(
 
     data = None
     last_err = None
+    fatal_markers = (
+        "hit your limit",
+        "resets ",
+        "permission denied",
+        "do not have access",
+        "does not have access",
+    )
+
     for attempt in range(1, retry_attempts + 1):
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=600, env=env,
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=600,
+            env=env,
             cwd="/tmp",  # Avoid loading CLAUDE.md project context
         )
-        if result.returncode == 0:
+
+        parsed = None
+        if result.stdout:
             try:
-                data = json.loads(result.stdout)
+                parsed = json.loads(result.stdout)
+            except Exception:
+                parsed = None
+
+        # Claude Code can return JSON payloads with is_error=true and rc=1.
+        if parsed is not None:
+            if parsed.get("is_error"):
+                msg = (parsed.get("result") or "").strip() or "Claude Code returned is_error=true"
+                lower = msg.lower()
+                last_err = RuntimeError(f"Claude Code error ({model_alias}): {msg}")
+                if any(marker in lower for marker in fatal_markers):
+                    raise last_err
+            elif result.returncode == 0:
+                data = parsed
                 break
-            except Exception as e:
-                last_err = RuntimeError(f"Claude Code parse failed: {e}")
+            else:
+                msg = (parsed.get("result") or "").strip() or "Unknown Claude Code error"
+                last_err = RuntimeError(f"Claude Code failed ({model_alias}): rc={result.returncode} msg={msg}")
         else:
-            stdout_tail = (result.stdout or "")[-500:]
-            stderr_tail = (result.stderr or "")[-500:]
-            last_err = RuntimeError(
-                f"Claude Code failed: rc={result.returncode} stderr={stderr_tail} stdout={stdout_tail}"
-            )
+            if result.returncode == 0:
+                last_err = RuntimeError("Claude Code returned non-JSON payload")
+            else:
+                stdout_tail = (result.stdout or "")[-500:]
+                stderr_tail = (result.stderr or "")[-500:]
+                last_err = RuntimeError(
+                    f"Claude Code failed ({model_alias}): rc={result.returncode} stderr={stderr_tail} stdout={stdout_tail}"
+                )
+
         if attempt < retry_attempts:
             delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
             delay *= 1.0 + random.uniform(0.0, 0.25)
             print(f"  [claude-code] attempt {attempt}/{retry_attempts} failed; retrying in {delay:.1f}s")
             time.sleep(delay)
+
     if data is None:
         raise last_err or RuntimeError("Claude Code failed: no response payload")
 
-    text = data.get("result", "").strip()
+    text = (data.get("result") or "").strip()
 
     # Aggregate token usage across models
     usage = {"input_tokens": 0, "output_tokens": 0}
@@ -3899,7 +3873,6 @@ def _call_claude_code(
         usage["output_tokens"] += u.get("outputTokens", 0)
 
     return text, usage
-
 
 def _tool_use_loop_claude_code(
     question: str,
@@ -3912,7 +3885,7 @@ def _tool_use_loop_claude_code(
     date_to: Optional[str] = None,
     max_session: Optional[int] = None,
     context_inject: bool = False,
-) -> Tuple[str, List[str], List[str], List[str], dict, List[dict]]:
+) -> Tuple[str, List[str], List[str], List[str], dict]:
     """Eval answer loop using Claude Code CLI with Bash tool for memory search.
 
     Routes through Claude Code subscription instead of direct API.
@@ -3921,7 +3894,6 @@ def _tool_use_loop_claude_code(
     usage_total = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
     tool_call_names = []
     tool_result_summaries = []
-    tool_call_details: List[dict] = []
     retrieval_texts = []
 
     # Pre-inject recall results (Python/subprocess, no LLM cost)
@@ -3941,21 +3913,12 @@ def _tool_use_loop_claude_code(
             tool_result_summaries.append(
                 f"pre-inject({query_used[:40]}): {len(recall_text)} chars"
             )
-            tool_call_details.append({
-                "tool": "memory_recall",
-                "source": "pre_inject",
-                "input": {
-                    "query": query_used,
-                    "max_session": max_session,
-                    "date_to": date_to,
-                },
-                "result_meta": {"chars": len(recall_text)},
-            })
             retrieval_texts.append(recall_text)
 
     # Build system prompt
     db_path = workspace / "data" / "memory.db"
-    mg_path = _QUAID_DIR / "memory_graph.py"
+    mg_path = _MEMORY_GRAPH_SCRIPT
+    quaid_root = str(_QUAID_DIR.resolve())
     date_filter = f" --date-to {date_to}" if date_to else ""
 
     if context_inject:
@@ -3965,9 +3928,14 @@ def _tool_use_loop_claude_code(
             "Below are memories retrieved for this question. Use them to answer directly.\n"
             "If the retrieved memories don't have enough info, you can search for more "
             "using the Bash tool with this command:\n"
-            f"  MEMORY_DB_PATH={db_path} python3 {mg_path} search \"YOUR QUERY\" --owner maya --limit 5{date_filter}\n\n"
+            f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
+            f"python3 {mg_path} search \"YOUR QUERY\" --owner maya --limit 5{date_filter}\n\n"
             "For project source code, search with:\n"
-            f"  MEMORY_DB_PATH={db_path} CLAWDBOT_WORKSPACE={workspace} python3 {mg_path} search-all \"YOUR QUERY\"\n\n"
+            f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
+            f"CLAWDBOT_WORKSPACE={workspace} python3 {mg_path} search-all \"YOUR QUERY\"\n\n"
+            "For domain-aware recall, you may add:\n"
+            "  --domain-filter '{\"technical\":true}'\n"
+            "  --domain-boost '[\"project\",\"technical\"]'\n\n"
             "ANSWER RULES:\n"
             "- Be thorough — include specific names, numbers, dates, and details from memory.\n"
             "- State facts directly. Do not add narrative or caveats.\n"
@@ -3982,9 +3950,14 @@ def _tool_use_loop_claude_code(
             "You are an AI assistant answering questions about a user named Maya "
             "based on your memory of past conversations. Search your memory before answering.\n\n"
             "To search memory, use Bash:\n"
-            f"  MEMORY_DB_PATH={db_path} python3 {mg_path} search \"YOUR QUERY\" --owner maya --limit 5{date_filter}\n\n"
+            f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
+            f"python3 {mg_path} search \"YOUR QUERY\" --owner maya --limit 5{date_filter}\n\n"
             "For project source code:\n"
-            f"  MEMORY_DB_PATH={db_path} CLAWDBOT_WORKSPACE={workspace} python3 {mg_path} search-all \"YOUR QUERY\"\n\n"
+            f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
+            f"CLAWDBOT_WORKSPACE={workspace} python3 {mg_path} search-all \"YOUR QUERY\"\n\n"
+            "Use domain controls when useful:\n"
+            "  --domain-filter '{\"technical\":true}' for strict domain slicing\n"
+            "  --domain-boost '[\"project\",\"technical\"]' to bias ranking without hard filtering\n\n"
             "ANSWER RULES:\n"
             "- ALWAYS search memory first, even for project/technical questions.\n"
             "- Be thorough — include specific names, numbers, dates, and details from memory.\n"
@@ -4012,10 +3985,14 @@ def _tool_use_loop_claude_code(
         question,
     ]
 
-    cc_env = os.environ.copy()
+    cc_env = env.copy()
     cc_env.pop("CLAUDECODE", None)
     cc_env.pop("ANTHROPIC_API_KEY", None)
     cc_env.pop("ANTHROPIC_AUTH_TOKEN", None)
+    cc_env.setdefault("QUAID_HOME", str(workspace))
+    existing_pythonpath = cc_env.get("PYTHONPATH", "")
+    cc_env["PYTHONPATH"] = f"{quaid_root}:{existing_pythonpath}" if existing_pythonpath else quaid_root
+    cc_env.setdefault("MEMORY_DB_PATH", str(db_path))
 
     timeout_s = 120
     try:
@@ -4034,11 +4011,17 @@ def _tool_use_loop_claude_code(
     try:
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=timeout_s, env=cc_env,
-            cwd="/tmp",  # Avoid loading CLAUDE.md project context
+            cwd=str(_QUAID_DIR),  # Keep quaid-relative imports/config stable for Bash tool calls
         )
         if result.returncode != 0:
             err = (result.stderr or "")[-300:]
             out = (result.stdout or "")[-300:]
+            try:
+                payload = json.loads(result.stdout or "{}")
+                if payload.get("is_error"):
+                    out = (payload.get("result") or out)[-300:]
+            except Exception:
+                pass
             tool_result_summaries.append(f"claude_code_rc={result.returncode}")
             return (
                 f"Error: Claude Code failed rc={result.returncode} stderr={err} stdout={out}",
@@ -4046,7 +4029,6 @@ def _tool_use_loop_claude_code(
                 tool_result_summaries,
                 retrieval_texts,
                 usage_total,
-                tool_call_details,
             )
 
         data = json.loads(result.stdout)
@@ -4058,13 +4040,6 @@ def _tool_use_loop_claude_code(
             # Model made Bash calls — count them as memory_recall
             for _i in range(turns - 1):
                 tool_call_names.append("memory_recall")
-                tool_call_details.append({
-                    "tool": "memory_recall",
-                    "source": "claude_code_bash",
-                    "turn": _i + 1,
-                    "input": {"query": "<unknown-from-claude-code>"},
-                    "result_meta": {"chars": None},
-                })
 
         # Aggregate usage
         for _m, u in data.get("modelUsage", {}).items():
@@ -4080,12 +4055,11 @@ def _tool_use_loop_claude_code(
             tool_result_summaries,
             retrieval_texts,
             usage_total,
-            tool_call_details,
         )
     except Exception as e:
-        return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
+        return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
 
-    return answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total, tool_call_details
+    return answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total
 
 
 # ---------------------------------------------------------------------------
@@ -4099,12 +4073,8 @@ def main():
     parser.add_argument("--results-dir", type=str,
                         default=str(_PROJECT_DIR / "data" / "results-production"),
                         help="Workspace/results directory")
-    parser.add_argument(
-        "--model",
-        type=str,
-        default=os.environ.get("BENCHMARK_MODEL", "claude-haiku-4-5-20251001"),
-        help="Extraction model (default: BENCHMARK_MODEL or claude-haiku-4-5-20251001)",
-    )
+    parser.add_argument("--model", type=str, default="claude-opus-4-6",
+                        help="Extraction model (default: claude-opus-4-6)")
     parser.add_argument("--max-sessions", type=int, default=None,
                         help="Limit to first N sessions (default: all 20)")
     parser.add_argument("--no-cache", action="store_true",
@@ -4119,7 +4089,7 @@ def main():
                         choices=["gpt-4o-mini", "haiku"],
                         help="Judge model (default: gpt-4o-mini for cross-vendor fairness)")
     parser.add_argument("--tier5", action="store_true",
-                        help="Run Tier 5 Emotional Intelligence eval (Sonnet judge, 3-point rubric)")
+                        help="(Deprecated) Tier-5 auto-runs whenever eval runs")
     parser.add_argument("--backend", type=str, default="claude-code",
                         choices=["claude-code", "api"],
                         help="LLM backend: claude-code (free, uses subscription) or api (direct Anthropic API, costs money)")
@@ -4145,6 +4115,9 @@ def main():
     # Set global backend for all LLM calls
     global _BACKEND
     _BACKEND = args.backend
+    # Ensure helper modules that import dynamically (e.g. project_updater append)
+    # resolve the same Quaid root as the harness.
+    os.environ["BENCHMARK_PLUGIN_DIR"] = str(_QUAID_DIR.resolve())
 
     t_global = time.time()
 
@@ -4155,17 +4128,13 @@ def main():
             workspace, api_key, args.no_cache,
             model=args.model,
             max_sessions=args.max_sessions,
+            run_janitor_each_day=(not args.skip_janitor),
         )
-
-        if not args.skip_janitor:
-            # Full janitor at the end (contradictions, decay, workspace audit,
-            # snippets FOLD/REWRITE/DISCARD, journal distillation)
-            run_janitor(workspace, args.model)
 
         verify_post_janitor(workspace)
 
-        # Post-hoc project tagging (keyword-based, applied to final DB state)
-        apply_posthoc_tags(workspace)
+        # Harness purity: skip post-hoc semantic tagging in benchmark harness.
+        # Any tagging intelligence must live in checkpoint runtime.
 
         # Evaluation
         results = run_eval(workspace, api_key, max_sessions=args.max_sessions,
@@ -4229,18 +4198,31 @@ def main():
         # Save token usage summary
         _save_token_usage(results, workspace, args.eval_model)
 
+        # Tier 5 runs automatically whenever eval runs.
+        tier5_results = run_tier5_eval(
+            workspace, api_key,
+            eval_model=args.eval_model or "claude-sonnet-4-6",
+            judge_model=os.environ.get("TIER5_JUDGE_MODEL"),
+            context_inject=args.context_inject,
+        )
+        tier5_path = workspace / "tier5_results.json"
+        with open(tier5_path, "w") as f:
+            json.dump(tier5_results, f, indent=2)
+        print(f"\nSaved {len(tier5_results)} Tier 5 results to {tier5_path}")
+        total = sum(r["ei_score"] for r in tier5_results)
+        max_score = len(tier5_results) * 2
+        pct = (total / max_score * 100.0) if max_score else 0.0
+        print(f"Tier 5 EI Score: {total}/{max_score} ({pct:.1f}%)")
+
     # --- Ingestion ---
     if args.mode in ("full", "ingest"):
         setup_workspace(workspace)
-        add_project_files(workspace, max_session=args.max_sessions)
-        extraction = run_extraction(
+        run_per_day_extraction(
             workspace, api_key, args.no_cache,
             model=args.model,
             max_sessions=args.max_sessions,
+            run_janitor_each_day=(not args.skip_janitor),
         )
-
-        if not args.skip_janitor:
-            run_janitor(workspace, args.model)
 
         verify_post_janitor(workspace)
 
@@ -4318,6 +4300,22 @@ def main():
         # Save token usage summary
         _save_token_usage(results, workspace, args.eval_model)
 
+        # Tier 5 runs automatically whenever eval runs.
+        tier5_results = run_tier5_eval(
+            workspace, api_key,
+            eval_model=args.eval_model or "claude-sonnet-4-6",
+            judge_model=os.environ.get("TIER5_JUDGE_MODEL"),
+            context_inject=args.context_inject,
+        )
+        tier5_path = workspace / "tier5_results.json"
+        with open(tier5_path, "w") as f:
+            json.dump(tier5_results, f, indent=2)
+        print(f"\nSaved {len(tier5_results)} Tier 5 results to {tier5_path}")
+        total = sum(r["ei_score"] for r in tier5_results)
+        max_score = len(tier5_results) * 2
+        pct = (total / max_score * 100.0) if max_score else 0.0
+        print(f"Tier 5 EI Score: {total}/{max_score} ({pct:.1f}%)")
+
     # --- Full-context baselines ---
     if args.mode == "fc":
         fc_results_dir = workspace / "fc_baselines"
@@ -4343,28 +4341,6 @@ def main():
                     max_sessions=args.max_sessions,
                     results_dir=fc_results_dir,
                 )
-
-    # --- Tier 5: Emotional Intelligence ---
-    if args.tier5:
-        if not (workspace / "data" / "memory.db").exists():
-            print("ERROR: No DB found. Run ingestion first.")
-            sys.exit(1)
-
-        tier5_results = run_tier5_eval(
-            workspace, api_key,
-            eval_model=args.eval_model or "claude-sonnet-4-6",
-            judge_model=os.environ.get("TIER5_JUDGE_MODEL"),
-            context_inject=args.context_inject,
-        )
-
-        tier5_path = workspace / "tier5_results.json"
-        with open(tier5_path, "w") as f:
-            json.dump(tier5_results, f, indent=2)
-        print(f"\nSaved {len(tier5_results)} Tier 5 results to {tier5_path}")
-
-        total = sum(r["ei_score"] for r in tier5_results)
-        max_score = len(tier5_results) * 2
-        print(f"Tier 5 EI Score: {total}/{max_score} ({total/max_score*100:.1f}%)")
 
     elapsed = time.time() - t_global
     print(f"\nTotal elapsed: {elapsed:.1f}s ({elapsed/60:.1f}m)")
