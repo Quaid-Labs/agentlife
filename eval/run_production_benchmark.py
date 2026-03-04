@@ -82,18 +82,27 @@ def _resolve_quaid_dir() -> Path:
 
 
 def _resolve_quaid_script(*relative_paths: str) -> Path:
+    candidates: List[Path] = []
     for rel in relative_paths:
-        p = _QUAID_DIR / rel
+        # Standard module/plugin layouts
+        candidates.append(_QUAID_DIR / rel)
+        # Nested plugin layout observed on spark:
+        #   <root>/plugins/quaid/memory_graph.py
+        candidates.append(_QUAID_DIR / "plugins" / "quaid" / rel)
+    for p in candidates:
         if p.exists():
             return p
-    # Return first candidate for clearer downstream error messages.
-    return _QUAID_DIR / relative_paths[0]
+    # Keep import-time behavior non-fatal for local test collection.
+    # Runtime callsites will surface a clear subprocess/file error if unresolved.
+    return candidates[0]
 
 
 _QUAID_DIR = _resolve_quaid_dir()
 _MEMORY_GRAPH_SCRIPT = _resolve_quaid_script("memory_graph.py", "datastore/memorydb/memory_graph.py")
 _JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py")
 _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
+# Last store telemetry (updated by _store_facts for extraction summaries).
+_LAST_STORE_METRICS: Dict[str, int] = {"domain_missing": 0}
 
 
 def _python_cmd_for_quaid_script(script_path: Path) -> List[str]:
@@ -150,6 +159,84 @@ def _resolve_assets_dir() -> Path:
     if benchmark_assets.exists():
         return benchmark_assets
     return _CLAWD / "assets"
+
+
+def _env_truthy(name: str) -> bool:
+    v = str(os.environ.get(name, "")).strip().lower()
+    return v in {"1", "true", "yes", "on"}
+
+
+def _read_dataset_version(assets_dir: Path) -> str:
+    """Read dataset version from assets metadata."""
+    candidates = [
+        assets_dir / "dataset.version.json",
+        assets_dir / "dataset_version.json",
+    ]
+    for p in candidates:
+        if not p.exists():
+            continue
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise RuntimeError(f"Dataset version file is invalid JSON: {p} ({exc})") from exc
+        version = str(data.get("version") or data.get("dataset_version") or "").strip()
+        if version:
+            return version
+        raise RuntimeError(f"Dataset version file missing 'version': {p}")
+    raise RuntimeError(
+        f"Dataset version metadata missing in assets dir: {assets_dir}. "
+        "Expected dataset.version.json or dataset_version.json"
+    )
+
+
+def _load_dataset_registry() -> dict:
+    """Load dataset registry with latest version pin."""
+    registry_path = _DIR / "dataset_versions.json"
+    if not registry_path.exists():
+        raise RuntimeError(
+            f"Dataset registry missing: {registry_path}. "
+            "Create dataset_versions.json with a 'latest' version pin."
+        )
+    try:
+        data = json.loads(registry_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"Dataset registry invalid JSON: {registry_path} ({exc})") from exc
+    latest = str(data.get("latest") or "").strip()
+    if not latest:
+        raise RuntimeError(f"Dataset registry missing 'latest': {registry_path}")
+    return data
+
+
+def _enforce_dataset_version(assets_dir: Path) -> Tuple[str, Optional[int]]:
+    """Fail if assets dataset version is not the pinned latest."""
+    registry = _load_dataset_registry()
+    latest = str(registry.get("latest")).strip()
+    current = _read_dataset_version(assets_dir)
+    if current != latest:
+        raise RuntimeError(
+            "Dataset version gate failed: "
+            f"assets={current} latest={latest}. "
+            "Refusing to run on stale/non-canonical dataset."
+        )
+    version_meta = (registry.get("versions") or {}).get(latest, {}) if isinstance(registry.get("versions"), dict) else {}
+    expected_queries = version_meta.get("expected_queries")
+    try:
+        expected_queries_int = int(expected_queries) if expected_queries is not None else None
+    except Exception:
+        expected_queries_int = None
+    return current, expected_queries_int
+
+
+def _load_reviews_with_dataset_gate(max_sessions: Optional[int]) -> Tuple[Path, list, str, Optional[int]]:
+    assets_dir = _resolve_assets_dir()
+    if _env_truthy("BENCHMARK_ALLOW_STALE_DATASET"):
+        current_version = _read_dataset_version(assets_dir)
+        expected_queries = None
+    else:
+        current_version, expected_queries = _enforce_dataset_version(assets_dir)
+    sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
+    reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
+    return assets_dir, reviews, current_version, expected_queries
 
 sys.path.insert(0, str(_DIR))
 from dataset import (
@@ -1367,6 +1454,7 @@ def run_extraction(
     facts = cached.get("facts", [])
     last_date = SESSION_DATES.get(reviews[-1].session_num, "unknown") if reviews else "unknown"
     stored, edges = _store_facts(workspace, facts, env, 0, last_date)
+    domain_missing = int(_LAST_STORE_METRICS.get("domain_missing", 0))
 
     # Write snippets and journal entries
     ws = str(workspace)
@@ -1409,6 +1497,7 @@ def run_extraction(
     print(f"\n  Extraction summary:")
     print(f"    Total extracted: {len(facts)} facts")
     print(f"    Stored: {stored} facts, {edges} edges")
+    print(f"    Store telemetry: domain_missing={domain_missing}")
     print(f"    Snippets: {total_snippets} bullets, Journal: {total_journals} entries")
     print(
         "    Project logs extracted: "
@@ -1438,6 +1527,7 @@ def _store_facts(
     """Store facts and edges into DB via subprocess. Returns (stored, edges_created)."""
     stored = 0
     edges_created = 0
+    domain_missing = 0
     quaid_dir = str(_QUAID_DIR)
     try:
         active_domains = _load_active_domain_ids(workspace)
@@ -1490,20 +1580,11 @@ def _store_facts(
         if not isinstance(raw_domains, list):
             raw_domains = []
         parsed_domains = _normalize_domain_list(raw_domains)
-        if not parsed_domains:
-            if project_name and "project" in active_domains:
-                parsed_domains = ["project"]
-            elif category in {"preference", "identity", "profile"} and "personal" in active_domains:
-                parsed_domains = ["personal"]
-            elif "work" in active_domains and category in {"decision", "event"}:
-                parsed_domains = ["work"]
-            else:
-                parsed_domains = [active_domains[0] if active_domains else "personal"]
-            print(
-                f"      WARN: missing domains for fact; using fallback={parsed_domains[0]!r} "
-                f"text={text[:80]!r}"
-            )
-        cmd.extend(["--domains", ",".join(parsed_domains)])
+        if parsed_domains:
+            cmd.extend(["--domains", ",".join(parsed_domains)])
+        else:
+            domain_missing += 1
+            print(f"      WARN: missing domains for fact; leaving untagged text={text[:80]!r}")
 
         try:
             result = None
@@ -1627,6 +1708,7 @@ def _store_facts(
     if store_failures > 0:
         print(f"      WARN: store failures during extraction: {store_failures}", file=sys.stderr)
 
+    _LAST_STORE_METRICS["domain_missing"] = domain_missing
     return stored, edges_created
 
 
@@ -1693,6 +1775,7 @@ def run_per_day_extraction(
     total_facts = 0
     total_stored = 0
     total_edges = 0
+    total_domain_missing = 0
     total_snippets = 0
     total_journals = 0
     total_project_logs_written = 0
@@ -1901,9 +1984,11 @@ def run_per_day_extraction(
         # Store facts
         facts = cached.get("facts", [])
         stored, edges = _store_facts(workspace, facts, env, snums[0], date)
+        day_domain_missing = int(_LAST_STORE_METRICS.get("domain_missing", 0))
         total_facts += len(facts)
         total_stored += stored
         total_edges += edges
+        total_domain_missing += day_domain_missing
 
         # Write snippets and journal entries
         ws = str(workspace)
@@ -1941,7 +2026,7 @@ def run_per_day_extraction(
         except Exception as e:
             print(f"    WARN: project log append failed: {e}")
 
-        print(f"  Stored: {stored} facts, {edges} edges")
+        print(f"  Stored: {stored} facts, {edges} edges, domain_missing={day_domain_missing}")
 
         if run_janitor_each_day:
             # Run nightly janitor cycle after each day, mirroring production cadence.
@@ -2004,6 +2089,7 @@ def run_per_day_extraction(
     print(f"    Days processed: {len(days)}")
     print(f"    Total extracted: {total_facts} facts")
     print(f"    Stored: {total_stored} facts, {total_edges} edges")
+    print(f"    Store telemetry: domain_missing={total_domain_missing}")
     print(f"    Snippets: {total_snippets} bullets, Journal: {total_journals} entries")
     if total_project_logs_seen or total_project_logs_written:
         print(
@@ -2133,157 +2219,6 @@ def verify_post_janitor(workspace: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 4c: Post-hoc project tagging
-# ---------------------------------------------------------------------------
-
-# Technical fact patterns — keywords that indicate implementation details
-_TECH_PATTERNS = [
-    r'\bsqlite\b', r'\bexpress\b', r'\bnode\.?js\b', r'\breact\b',
-    r'\bapi\b', r'\bendpoint\b', r'\bmiddleware\b', r'\bjwt\b', r'\bpbkdf2\b',
-    r'\bcss\b', r'\bhtml\b', r'\bdatabase\b', r'\bschema\b',
-    r'\broute\b', r'\bserver\b', r'\bnpm\b', r'\bpackage\.json\b',
-    r'\bmodule\b', r'\bfunction\b', r'\bdeploy\b',
-    r'\bauth\b', r'\btoken\b', r'\bhash\b', r'\bedamam\b',
-    r'\bjest\b', r'\bdependenc', r'\blibrary\b', r'\bframework\b',
-    r'\bgraphql\b', r'\bapollo\b', r'\brest\b', r'\bcrud\b',
-    r'\bsql\b', r'\bfetch\b', r'\bwebsocket\b', r'\bdocker\b',
-    r'\brate.?limit', r'\btest\s+(?:suite|coverage|file)',
-    r'\bversion\s+\d', r'\bv\d+\.\d+', r'\bsemver\b',
-    r'\bbetter-sqlite3\b', r'\bjsonwebtoken\b',
-    r'\bconfig/', r'\bsrc/', r'\b\.js\b', r'\b\.py\b',
-]
-_TECH_RE = re.compile('|'.join(_TECH_PATTERNS), re.IGNORECASE)
-
-# Project-associated sessions (from SESSION_TRACKS and PROJECT_SESSIONS)
-_RECIPE_SESSIONS = {3, 5, 7, 9, 10, 12, 16, 18}
-_PORTFOLIO_SESSIONS = {9, 14}  # session 9 is both portfolio + recipe
-
-# Additional text patterns for project detection (when session info unavailable)
-_RECIPE_TEXT_PATTERNS = re.compile(
-    r'recipe\s+app|dietary\s+(filter|tag|restrict|preference)|meal\s+plan|'
-    r'grocery\s+list|safe\s+for\s+mom|nutrition|recipe\s+sharing|'
-    r'recipe\s+card|card\s+layout|recipe\s+search',
-    re.IGNORECASE,
-)
-_PORTFOLIO_TEXT_PATTERNS = re.compile(
-    r'portfolio\s+site|portfolio\s+page|linkedin|personal\s+site|'
-    r'work\s+history|resume\s+site',
-    re.IGNORECASE,
-)
-
-
-def apply_posthoc_tags(workspace: Path) -> dict:
-    """Apply is_technical and project tags post-hoc to all nodes in the DB.
-
-    Uses keyword pattern matching on fact text + session_id metadata.
-    Returns stats about what was tagged.
-    """
-    print("=" * 60)
-    print("PHASE 4c: POST-HOC PROJECT TAGGING")
-    print("=" * 60)
-
-    db_path = workspace / "data" / "memory.db"
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
-
-    rows = conn.execute(
-        "SELECT id, name, attributes, session_id FROM nodes WHERE status = 'active'"
-    ).fetchall()
-    print(f"  Scanning {len(rows)} active nodes")
-
-    tagged_tech = 0
-    tagged_project = 0
-    already_tagged = 0
-
-    for row in rows:
-        node_id = row["id"]
-        text = row["name"] or ""
-        attrs_raw = row["attributes"]
-        session_id = row["session_id"] or ""
-
-        # Parse existing attributes
-        if attrs_raw:
-            try:
-                attrs = json.loads(attrs_raw) if isinstance(attrs_raw, str) else attrs_raw
-            except (json.JSONDecodeError, TypeError):
-                attrs = {}
-        else:
-            attrs = {}
-
-        # Skip if already tagged
-        if attrs.get("is_technical") or attrs.get("project"):
-            already_tagged += 1
-            continue
-
-        # Detect technical content
-        is_tech = bool(_TECH_RE.search(text))
-
-        # Detect project from session_id
-        project = None
-        snum = None
-        if session_id and session_id.startswith("session-"):
-            try:
-                snum = int(session_id.split("-")[1])
-            except (ValueError, IndexError):
-                pass
-
-        if snum:
-            if snum in _RECIPE_SESSIONS:
-                project = "recipe-app"
-            elif snum in _PORTFOLIO_SESSIONS:
-                project = "portfolio-site"
-
-        # Also check text patterns for project assignment
-        if not project:
-            if _RECIPE_TEXT_PATTERNS.search(text):
-                project = "recipe-app"
-            elif _PORTFOLIO_TEXT_PATTERNS.search(text):
-                project = "portfolio-site"
-
-        # Only mark as technical if BOTH tech pattern matches AND it's project-related
-        # This avoids false positives like "Maya tested the hike route" matching \btest\b
-        if is_tech and project:
-            attrs["is_technical"] = True
-            attrs["project"] = project
-            tagged_tech += 1
-            tagged_project += 1
-        elif project and not is_tech:
-            # Has project but not technical (e.g., "David wants to use the recipe app")
-            attrs["project"] = project
-            tagged_project += 1
-        elif is_tech and snum and snum in (_RECIPE_SESSIONS | _PORTFOLIO_SESSIONS):
-            # Tech pattern in a project session, tag both
-            attrs["is_technical"] = True
-            proj = "recipe-app" if snum in _RECIPE_SESSIONS else "portfolio-site"
-            attrs["project"] = proj
-            tagged_tech += 1
-            tagged_project += 1
-        else:
-            continue  # Nothing to tag
-
-        # Update DB
-        conn.execute(
-            "UPDATE nodes SET attributes = ? WHERE id = ?",
-            (json.dumps(attrs), node_id),
-        )
-
-    conn.commit()
-    conn.close()
-
-    print(f"  Tagged: {tagged_tech} technical, {tagged_project} project-associated")
-    print(f"  Already tagged: {already_tagged}")
-    print(f"  Untagged: {len(rows) - tagged_tech - tagged_project - already_tagged}")
-    print()
-
-    return {
-        "total_nodes": len(rows),
-        "tagged_tech": tagged_tech,
-        "tagged_project": tagged_project,
-        "already_tagged": already_tagged,
-    }
-
-
-# ---------------------------------------------------------------------------
 # Phase 5: Eval with tool use
 # ---------------------------------------------------------------------------
 
@@ -2313,6 +2248,19 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         max_queries_env = 0
     if max_queries_env > 0 and len(all_queries) > max_queries_env:
         all_queries = all_queries[:max_queries_env]
+
+    # Dataset integrity gate (full/eval runs): fail fast if query-set drifts.
+    # Smoke/sample runs can bypass via BENCHMARK_MAX_QUERIES>0.
+    try:
+        required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", "255") or "255")
+    except Exception:
+        required_query_count = 255
+    if required_query_count > 0 and max_queries_env <= 0 and len(all_queries) != required_query_count:
+        raise RuntimeError(
+            f"Dataset integrity gate failed: expected {required_query_count} eval queries, got {len(all_queries)}. "
+            "Refusing to run to avoid invalid benchmark spend. "
+            "Set BENCHMARK_MAX_QUERIES for smoke runs or BENCHMARK_REQUIRE_QUERY_COUNT=0 to override intentionally."
+        )
     print(f"  Assets dir: {assets_dir}")
     print(f"  {len(all_queries)} queries to evaluate (from {len(reviews)} sessions)")
     if len(reviews) == 0:
@@ -2514,6 +2462,16 @@ def run_fc_baseline(
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
     reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
     all_queries = get_all_eval_queries(reviews)
+    # Keep baseline aligned with canonical benchmark query-set.
+    try:
+        required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", "255") or "255")
+    except Exception:
+        required_query_count = 255
+    if required_query_count > 0 and len(all_queries) != required_query_count:
+        raise RuntimeError(
+            f"Dataset integrity gate failed (fc): expected {required_query_count} eval queries, got {len(all_queries)}. "
+            "Set BENCHMARK_REQUIRE_QUERY_COUNT=0 only for intentional experiments."
+        )
     print(f"  {len(all_queries)} queries, {len(reviews)} sessions")
 
     # Build full transcript context
@@ -3042,63 +3000,30 @@ def _tool_search_project_docs(
     project: Optional[str] = None,
     date_to: Optional[str] = None,
 ) -> str:
-    """Search project docs — structured docs first, then source files by content."""
-    doc_parts = []
-    projects_to_search = [project] if project else ["recipe-app", "portfolio-site"]
-
-    # 1. Always read structured docs first (PROJECT.md, TOOLS.md)
-    for p in projects_to_search:
-        pdir = workspace / "projects" / p
-        for doc_name in ["PROJECT.md", "TOOLS.md"]:
-            doc_path = pdir / doc_name
-            if doc_path.exists():
-                doc_parts.append(f"--- {p}/{doc_name} ---\n{doc_path.read_text()}")
-
-    # 2. Search source files by content match (not just filename)
-    query_lower = query.lower()
-    query_words = [w.lower() for w in query.split() if len(w) >= 3]
-    for p in projects_to_search:
-        pdir = workspace / "projects" / p
-        for ext in ["*.js", "*.html", "*.css", "*.json", "*.ts", "*.md"]:
-            for f in pdir.rglob(ext):
-                if f.name in ("PROJECT.md", "TOOLS.md"):
-                    continue  # Already included above
-                try:
-                    content = f.read_text()
-                    content_lower = content.lower()
-                    # Match if any query word appears in file content
-                    if any(w in content_lower for w in query_words):
-                        rel = f.relative_to(workspace)
-                        doc_parts.append(f"--- {rel} ---\n{content}")
-                except Exception:
-                    pass
-
-    # 3. RAG search as supplemental (only if no docs found)
-    if not doc_parts:
-        cmd = _python_cmd_for_quaid_script(_DOCS_RAG_SCRIPT) + [
-            "search", query,
-        ]
-        if project:
-            cmd.extend(["--project", project])
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30,
-                cwd=str(_QUAID_DIR), env=env,
-            )
-            output = result.stdout.strip()
-            if output and "No results" not in output:
-                return output
-        except Exception:
-            pass
-
-    # Prepend temporal note if we have docs and a date constraint
-    if doc_parts and date_to:
-        doc_parts.insert(0,
-            f"[NOTE: This question refers to the state as of {date_to}. "
-            f"These docs may show a later state — use memory dates to disambiguate.]"
+    """Search project docs via checkpoint Docs RAG only (harness orchestration-only)."""
+    cmd = _python_cmd_for_quaid_script(_DOCS_RAG_SCRIPT) + ["search", query]
+    if project:
+        cmd.extend(["--project", project])
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30,
+            cwd=str(_QUAID_DIR), env=env,
         )
-
-    return "\n\n".join(doc_parts) if doc_parts else "No project documentation found."
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip().replace("\n", " ")
+            return f"Project docs search error: rag search failed rc={result.returncode} detail={detail[:240]!r}"
+        output = (result.stdout or "").strip()
+        if not output or "No results found" in output or "No results" in output:
+            return "No project documentation found."
+        if date_to:
+            return (
+                f"[NOTE: This question refers to the state as of {date_to}. "
+                "Docs may include later updates; reconcile with dated memory evidence.]\n\n"
+                f"{output}"
+            )
+        return output
+    except Exception as e:
+        return f"Project docs search error: {e}"
 
 
 # Mem0's exact ACCURACY_PROMPT from mem0ai/mem0/evaluation/metrics/llm_judge.py
@@ -4041,6 +3966,9 @@ def _tool_use_loop_claude_code(
             "For project source code, search with:\n"
             f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
             f"CLAWDBOT_WORKSPACE={workspace} python3 {mg_path} search-all \"YOUR QUERY\"\n\n"
+            "Project-doc rule:\n"
+            "- For project/code questions (architecture, tests, versions, APIs, files, implementation), "
+            "run search-all after memory search.\n\n"
             "For domain-aware recall, you may add:\n"
             "  --domain-filter '{\"technical\":true}'\n"
             "  --domain-boost '[\"project\",\"technical\"]'\n\n"
@@ -4063,6 +3991,9 @@ def _tool_use_loop_claude_code(
             "For project source code:\n"
             f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
             f"CLAWDBOT_WORKSPACE={workspace} python3 {mg_path} search-all \"YOUR QUERY\"\n\n"
+            "Project-doc rule:\n"
+            "- For project/code questions (architecture, tests, versions, APIs, files, implementation), "
+            "run search-all after memory search.\n\n"
             "Use domain controls when useful:\n"
             "  --domain-filter '{\"technical\":true}' for strict domain slicing\n"
             "  --domain-boost '[\"project\",\"technical\"]' to bias ranking without hard filtering\n\n"

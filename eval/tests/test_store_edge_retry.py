@@ -113,3 +113,38 @@ def test_store_facts_retries_store_timeout_and_succeeds(monkeypatch, tmp_path):
     assert stored == 1
     assert edges == 0
     assert calls["n"] == 2
+
+
+def test_store_facts_tracks_domain_missing_metric(monkeypatch, tmp_path):
+    monkeypatch.setattr(rpb, "_MEMORY_GRAPH_SCRIPT", tmp_path / "dummy.py")
+    monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal", "project", "work", "technical"])
+
+    def _run(cmd, **kwargs):
+        return _ProcResult(returncode=0, stdout="Stored: fact-1\n")
+
+    monkeypatch.setattr(rpb.subprocess, "run", _run)
+    monkeypatch.setenv("BENCHMARK_FAIL_ON_STORE_FAILURE", "1")
+
+    facts = [{
+        "text": "Maya prefers tea in the morning",
+        "category": "preference",
+        "privacy": "shared",
+        "domains": [],
+        "edges": [],
+    }]
+
+    stored, edges = rpb._store_facts(tmp_path, facts, os.environ.copy(), 2, "2026-03-02")
+    assert stored == 1
+    assert edges == 0
+    assert int(rpb._LAST_STORE_METRICS.get("domain_missing", 0)) == 1
+
+
+def test_search_project_docs_reports_nonzero_rag_exit(monkeypatch, tmp_path):
+    monkeypatch.setattr(rpb, "_DOCS_RAG_SCRIPT", tmp_path / "docs_rag.py")
+
+    def _run(cmd, **kwargs):
+        return _ProcResult(returncode=2, stdout="", stderr="index not ready")
+
+    monkeypatch.setattr(rpb.subprocess, "run", _run)
+    out = rpb._tool_search_project_docs("auth regression", tmp_path, os.environ.copy())
+    assert "Project docs search error: rag search failed rc=2" in out
