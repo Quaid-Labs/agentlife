@@ -33,6 +33,7 @@ import json
 import os
 import random
 import re
+import shlex
 import shutil
 import sqlite3
 import subprocess
@@ -42,7 +43,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 _DIR = Path(__file__).resolve().parent
 _PROJECT_DIR = _DIR.parent
@@ -104,6 +105,40 @@ def _python_cmd_for_quaid_script(script_path: Path) -> List[str]:
     except Exception:
         pass
     return [sys.executable, str(script_path)]
+
+
+def _load_claude_code_oauth_token() -> Optional[str]:
+    """Best-effort load of Claude Code OAuth token from local credential stores."""
+    token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip()
+    if token:
+        return token
+
+    cred_path = Path.home() / ".claude" / ".credentials.json"
+    if cred_path.exists():
+        try:
+            data = json.loads(cred_path.read_text())
+            token = str(data.get("claudeAiOauth", {}).get("accessToken", "")).strip()
+            if token:
+                return token
+        except Exception:
+            pass
+
+    env_path = Path.home() / ".claude" / ".env"
+    if env_path.exists():
+        try:
+            for line in env_path.read_text().splitlines():
+                s = line.strip()
+                if not s or s.startswith("#") or "=" not in s:
+                    continue
+                key, value = s.split("=", 1)
+                if key.strip() == "CLAUDE_CODE_OAUTH_TOKEN":
+                    token = value.strip()
+                    if token:
+                        return token
+        except Exception:
+            pass
+
+    return None
 
 
 def _resolve_assets_dir() -> Path:
@@ -2272,6 +2307,12 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
     reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
     all_queries = get_all_eval_queries(reviews)
+    try:
+        max_queries_env = int(os.environ.get("BENCHMARK_MAX_QUERIES", "0") or "0")
+    except Exception:
+        max_queries_env = 0
+    if max_queries_env > 0 and len(all_queries) > max_queries_env:
+        all_queries = all_queries[:max_queries_env]
     print(f"  Assets dir: {assets_dir}")
     print(f"  {len(all_queries)} queries to evaluate (from {len(reviews)} sessions)")
     if len(reviews) == 0:
@@ -2371,6 +2412,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "source_session": query.get("source_session", 0),
             "evidence_sessions": query.get("evidence_sessions", []),
             "tool_calls": tool_calls,
+            "tool_call_details": q_usage.get("tool_call_details", []),
             "tool_results_summary": tool_results_log,
             "answer_duration_s": round(answer_duration, 2),
             "eval_tokens": q_usage,
@@ -2428,6 +2470,12 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     elapsed = time.time() - t_start
     scored = correct + partial_count + wrong
     accuracy = (correct + 0.5 * partial_count) / scored * 100 if scored > 0 else 0
+
+    if _BACKEND == "claude-code" and len(all_queries) > 0 and eval_usage.get("api_calls", 0) == 0:
+        raise RuntimeError(
+            "Eval produced zero Claude API calls under claude-code backend; "
+            "aborting to avoid silently invalid scores."
+        )
 
     # Retrieval-only accuracy
     ret_scored = [r for r in results if r.get("retrieval_label") in ("CORRECT", "PARTIAL", "WRONG")]
@@ -2658,7 +2706,12 @@ def _tool_use_loop(
             max_session=max_session, context_inject=context_inject,
         )
 
-    usage_total = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
+    usage_total = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_calls": 0,
+        "tool_call_details": [],
+    }
     tools = [
         {
             "name": "memory_recall",
@@ -2817,17 +2870,35 @@ def _tool_use_loop(
                     tool_input = block["input"]
                     tool_id = block["id"]
                     tool_call_names.append(tool_name)
+                    t0 = time.time()
 
                     # Execute tool (inject session filter for temporal filtering)
                     result_text = _execute_tool(
                         tool_name, tool_input, workspace, env,
                         max_session=max_session, date_to=date_to,
                     )
+                    duration_ms = int((time.time() - t0) * 1000)
                     tool_result_summaries.append(
                         f"{tool_name}({tool_input.get('query', '')[:40]}): {len(result_text)} chars"
                     )
                     if tool_name == "memory_recall":
                         retrieval_texts.append(result_text)
+                    usage_total["tool_call_details"].append({
+                        "tool": tool_name,
+                        "query": tool_input.get("query", ""),
+                        "query_preview_30": str(tool_input.get("query", ""))[:30],
+                        "project": tool_input.get("project"),
+                        "date_from": tool_input.get("date_from"),
+                        "date_to": tool_input.get("date_to"),
+                        "domains": tool_input.get("domains"),
+                        "domain_filter": tool_input.get("domain_filter"),
+                        "domain_boost": tool_input.get("domain_boost"),
+                        "time_frame": tool_input.get("time_frame"),
+                        "duration_ms": duration_ms,
+                        "result_chars": len(result_text or ""),
+                        "result_preview_30": str(result_text or "").strip().splitlines()[0][:30] if result_text else "",
+                        "error": str(result_text or "")[:80] if str(result_text).startswith("Error:") else "",
+                    })
 
                     tool_results.append({
                         "type": "tool_result",
@@ -3500,6 +3571,7 @@ def run_tier5_eval(
             "sensitivity_context": query.get("sensitivity_context", ""),
             "rubric": query.get("rubric", {}),
             "tool_calls": tool_calls,
+            "tool_call_details": q_usage.get("tool_call_details", []),
             "answer_duration_s": round(answer_duration, 2),
             "eval_tokens": q_usage,
         })
@@ -3663,6 +3735,15 @@ def _make_env(workspace: Path) -> dict:
         # Keep ANTHROPIC_API_KEY available for fast-tier anthropic routing
         # (deep can still use claude-code via provider split in config).
         env.pop("ANTHROPIC_AUTH_TOKEN", None)
+        if not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
+            oauth = _load_claude_code_oauth_token()
+            if oauth:
+                env["CLAUDE_CODE_OAUTH_TOKEN"] = oauth
+            else:
+                print(
+                    "WARN: CLAUDE_CODE_OAUTH_TOKEN not found in env or ~/.claude credentials; "
+                    "quaid subprocess LLM calls may fail-hard."
+                )
     else:
         # Ensure API key is available for direct API calls
         api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -3882,9 +3963,17 @@ def _call_claude_code(
 
     # Aggregate token usage across models
     usage = {"input_tokens": 0, "output_tokens": 0}
-    for _m, u in data.get("modelUsage", {}).items():
-        usage["input_tokens"] += u.get("inputTokens", 0) + u.get("cacheReadInputTokens", 0) + u.get("cacheCreationInputTokens", 0)
-        usage["output_tokens"] += u.get("outputTokens", 0)
+    model_usage = data.get("modelUsage", {})
+    if isinstance(model_usage, dict):
+        for _m, u in model_usage.items():
+            if not isinstance(u, dict):
+                continue
+            usage["input_tokens"] += int(
+                u.get("inputTokens", 0)
+                + u.get("cacheReadInputTokens", 0)
+                + u.get("cacheCreationInputTokens", 0)
+            )
+            usage["output_tokens"] += int(u.get("outputTokens", 0))
 
     return text, usage
 
@@ -3905,7 +3994,12 @@ def _tool_use_loop_claude_code(
     Routes through Claude Code subscription instead of direct API.
     The model gets Bash access and can call memory_graph.py for recall.
     """
-    usage_total = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
+    usage_total = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_calls": 0,
+        "tool_call_details": [],
+    }
     tool_call_names = []
     tool_result_summaries = []
     retrieval_texts = []
@@ -4032,6 +4126,7 @@ def _tool_use_loop_claude_code(
         tool_call_names.extend(event_tools)
         tool_result_summaries.extend(event_summaries)
         retrieval_texts.extend(event_retrieval)
+        usage_total["tool_call_details"] = list(final_data.get("_tool_call_details", [])) if isinstance(final_data, dict) else []
 
         if result.returncode != 0:
             err = (result.stderr or "")[-300:]
@@ -4049,10 +4144,38 @@ def _tool_use_loop_claude_code(
 
         # Aggregate usage
         model_usage = final_data.get("modelUsage", {}) if final_data else {}
-        for _m, u in model_usage.items():
-            usage_total["input_tokens"] += u.get("inputTokens", 0) + u.get("cacheReadInputTokens", 0) + u.get("cacheCreationInputTokens", 0)
-            usage_total["output_tokens"] += u.get("outputTokens", 0)
+        if isinstance(model_usage, dict):
+            for _m, u in model_usage.items():
+                if not isinstance(u, dict):
+                    continue
+                usage_total["input_tokens"] += int(
+                    u.get("inputTokens", 0)
+                    + u.get("cacheReadInputTokens", 0)
+                    + u.get("cacheCreationInputTokens", 0)
+                )
+                usage_total["output_tokens"] += int(u.get("outputTokens", 0))
         usage_total["api_calls"] = int(final_data.get("num_turns", 1)) if final_data else 1
+        if (usage_total["input_tokens"] + usage_total["output_tokens"]) == 0 and final_data:
+            fallback_usage = final_data.get("usage", {}) or {}
+            usage_total["input_tokens"] += int(
+                fallback_usage.get("input_tokens", 0)
+                + fallback_usage.get("cache_read_input_tokens", 0)
+                + fallback_usage.get("cache_creation_input_tokens", 0)
+            )
+            usage_total["output_tokens"] += int(fallback_usage.get("output_tokens", 0))
+
+        if not answer or not answer.strip():
+            err_tail = (result.stderr or "")[-220:]
+            out_tail = (result.stdout or "")[-220:]
+            tool_result_summaries.append("claude_code_empty_answer")
+            return (
+                f"Error: Claude Code returned empty answer (rc={result.returncode}) "
+                f"stderr={err_tail} stdout={out_tail}",
+                tool_call_names,
+                tool_result_summaries,
+                retrieval_texts,
+                usage_total,
+            )
 
         # Claude stream occasionally omits explicit tool events; synthesize a fallback
         # recall trace to keep retrieval evaluation from collapsing to all WRONG.
@@ -4062,6 +4185,16 @@ def _tool_use_loop_claude_code(
                 tool_call_names.append("memory_recall(replay)")
                 tool_result_summaries.append(f"memory_recall(replay:{question[:40]}): {len(replay)} chars")
                 retrieval_texts.append(replay)
+                usage_total["tool_call_details"].append({
+                    "tool": "memory_recall(replay)",
+                    "query": question,
+                    "query_preview_30": question[:30],
+                    "duration_ms": None,
+                    "result_chars": len(replay),
+                    "result_preview_30": replay.strip().splitlines()[0][:30] if replay else "",
+                    "error": "",
+                    "source": "fallback_replay",
+                })
 
     except subprocess.TimeoutExpired:
         tool_result_summaries.append(f"claude_code_timeout={timeout_s}s")
@@ -4099,58 +4232,150 @@ def _classify_claude_bash_command(command: str) -> Tuple[str, str]:
     return "memory_recall", query
 
 
+def _extract_bash_tool_args(command: str) -> Dict[str, Any]:
+    """Best-effort parser for recall/search command args in Claude Bash tool calls."""
+    args: Dict[str, Any] = {}
+    cmd = command or ""
+    try:
+        tokens = shlex.split(cmd)
+    except Exception:
+        tokens = cmd.split()
+
+    # Parse common flags from benchmark commands.
+    for i, tok in enumerate(tokens):
+        if tok in ("--date-from", "--date_to", "--date-from=") and i + 1 < len(tokens):
+            args["date_from"] = tokens[i + 1]
+        elif tok in ("--date-to", "--date_to", "--date-to=") and i + 1 < len(tokens):
+            args["date_to"] = tokens[i + 1]
+        elif tok == "--project" and i + 1 < len(tokens):
+            args["project"] = tokens[i + 1]
+        elif tok == "--domain-filter" and i + 1 < len(tokens):
+            raw = tokens[i + 1]
+            try:
+                args["domain_filter"] = json.loads(raw)
+            except Exception:
+                args["domain_filter"] = raw
+        elif tok == "--domain-boost" and i + 1 < len(tokens):
+            raw = tokens[i + 1]
+            try:
+                args["domain_boost"] = json.loads(raw)
+            except Exception:
+                args["domain_boost"] = raw
+
+    return args
+
+
 def _parse_claude_stream_output(stdout_text: str) -> Tuple[str, List[str], List[str], List[str], dict]:
     """Parse Claude stream-json output into answer + tool traces."""
     answer = ""
+    assistant_text_parts: List[str] = []
     tool_calls: List[str] = []
     tool_summaries: List[str] = []
     retrieval_texts: List[str] = []
     final_data: dict = {}
-    pending_by_id: Dict[str, Tuple[str, str]] = {}
+    pending_by_id: Dict[str, Dict[str, Any]] = {}
+    tool_call_details: List[Dict[str, Any]] = []
 
     for raw in (stdout_text or "").splitlines():
         line = raw.strip()
-        if not line or not line.startswith("{"):
+        if not line:
             continue
+        if not line.startswith("{"):
+            brace = line.find("{")
+            if brace < 0:
+                continue
+            line = line[brace:]
         try:
             event = json.loads(line)
         except Exception:
             continue
 
+        if not isinstance(event, dict):
+            continue
         etype = event.get("type")
         if etype == "assistant":
             msg = event.get("message") or {}
-            for block in msg.get("content") or []:
-                if block.get("type") != "tool_use":
+            if not isinstance(msg, dict):
+                continue
+            content_blocks = msg.get("content") or []
+            if not isinstance(content_blocks, list):
+                continue
+            for block in content_blocks:
+                if not isinstance(block, dict):
                     continue
-                if block.get("name") != "Bash":
-                    continue
-                tool_id = block.get("id")
-                command = ((block.get("input") or {}).get("command") or "")
-                label, query = _classify_claude_bash_command(command)
-                tool_calls.append(label)
-                if tool_id:
-                    pending_by_id[tool_id] = (label, query)
+                btype = block.get("type")
+                if btype == "text":
+                    text = str(block.get("text") or "").strip()
+                    if text:
+                        assistant_text_parts.append(text)
+                elif btype == "tool_use":
+                    if block.get("name") != "Bash":
+                        continue
+                    tool_id = block.get("id")
+                    command = ((block.get("input") or {}).get("command") or "")
+                    label, query = _classify_claude_bash_command(command)
+                    tool_calls.append(label)
+                    detail = {
+                        "tool": label,
+                        "tool_use_id": tool_id,
+                        "query": query,
+                        "query_preview_30": query[:30] if query else "",
+                        "command_preview_160": command[:160],
+                        "date_from": None,
+                        "date_to": None,
+                        "project": None,
+                        "domains": None,
+                        "domain_filter": None,
+                        "domain_boost": None,
+                        "time_frame": None,
+                    }
+                    detail.update(_extract_bash_tool_args(command))
+                    if tool_id:
+                        pending_by_id[tool_id] = detail
 
         elif etype == "user":
             tool_meta = event.get("tool_use_result") or {}
+            if not isinstance(tool_meta, dict):
+                tool_meta = {}
             stdout = str(tool_meta.get("stdout") or "")
-            content = (event.get("message") or {}).get("content") or []
+            msg = event.get("message") or {}
+            if not isinstance(msg, dict):
+                msg = {}
+            content = msg.get("content") or []
+            if not isinstance(content, list):
+                content = []
             tool_use_id = None
             if content and isinstance(content[0], dict):
                 tool_use_id = content[0].get("tool_use_id")
 
-            label, query = pending_by_id.get(tool_use_id, ("memory_recall", ""))
+            detail = dict(pending_by_id.get(tool_use_id, {
+                "tool": "memory_recall",
+                "tool_use_id": tool_use_id,
+                "query": "",
+                "query_preview_30": "",
+            }))
+            label = str(detail.get("tool") or "memory_recall")
+            query = str(detail.get("query") or "")
             if stdout:
                 q = query[:40] if query else "bash"
                 tool_summaries.append(f"{label}({q}): {len(stdout)} chars")
                 if label == "memory_recall":
                     retrieval_texts.append(stdout)
+            detail["result_chars"] = len(stdout or "")
+            detail["result_preview_30"] = str(stdout or "").strip().splitlines()[0][:30] if stdout else ""
+            detail["duration_ms"] = tool_meta.get("duration_ms") or tool_meta.get("durationMs")
+            stderr = str(tool_meta.get("stderr") or "")
+            detail["error"] = stderr[:160] if stderr else ""
+            tool_call_details.append(detail)
 
         elif etype == "result":
             final_data = event
             answer = str(event.get("result") or "").strip()
 
+    if not answer and assistant_text_parts:
+        answer = "\n".join(assistant_text_parts).strip()
+
+    final_data["_tool_call_details"] = tool_call_details
     return answer, tool_calls, tool_summaries, retrieval_texts, final_data
 
 
