@@ -277,6 +277,9 @@ export BENCHMARK_LIFECYCLE_PREPASS_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_LLM_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_REVIEW_WORKERS=$(printf %q "$PARALLEL")
 export AGENTLIFE_ASSETS_DIR=$(printf %q "$REMOTE_BENCH_ROOT")/data/sessions
+if [[ -n "${QUAID_ROUTER_DOMAIN_BOOST_FACTOR:-}" ]]; then
+  export QUAID_ROUTER_DOMAIN_BOOST_FACTOR=$(printf %q "$QUAID_ROUTER_DOMAIN_BOOST_FACTOR")
+fi
 if [[ -f eval/run_production_benchmark.py ]]; then
   RUNNER=eval/run_production_benchmark.py
 elif [[ -f agentlife/eval/run_production_benchmark.py ]]; then
