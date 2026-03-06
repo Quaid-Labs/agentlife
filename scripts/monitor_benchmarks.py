@@ -26,7 +26,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 
 @dataclass
@@ -76,7 +76,23 @@ def atomic_write_text(path: Path, text: str) -> None:
             os.unlink(tmp_path)
 
 
-def detect_active_runs(root: Path, runs_dir: Path) -> Dict[str, int]:
+def _iter_visible_run_dirs(runs_dirs: Iterable[Path]) -> Iterable[Path]:
+    seen_names: set[str] = set()
+    for runs_dir in runs_dirs:
+        if not runs_dir.exists():
+            continue
+        for p in runs_dir.iterdir():
+            if not p.is_dir():
+                continue
+            if p.name in ("successful-runs", "failed-runs"):
+                continue
+            if p.name in seen_names:
+                continue
+            seen_names.add(p.name)
+            yield p
+
+
+def detect_active_runs(root: Path, runs_dirs: List[Path]) -> Dict[str, int]:
     """Return mapping run_name -> pid for known benchmark processes."""
     proc = run_cmd(["ps", "-eo", "pid,cmd"])
     active: Dict[str, int] = {}
@@ -113,15 +129,10 @@ def detect_active_runs(root: Path, runs_dir: Path) -> Dict[str, int]:
             continue
 
         # Fallback: any run dir name embedded in command.
-        if runs_dir.exists():
-            for p in runs_dir.iterdir():
-                if not p.is_dir():
-                    continue
-                if p.name in ("successful-runs", "failed-runs"):
-                    continue
-                if p.name in cmd:
-                    active[p.name] = pid
-                    break
+        for p in _iter_visible_run_dirs(runs_dirs):
+            if p.name in cmd:
+                active[p.name] = pid
+                break
 
     return active
 
@@ -187,16 +198,17 @@ def has_completion(run_dir: Path, kind: str) -> bool:
     return (run_dir / "scores.json").exists()
 
 
-def find_log_files(runs_dir: Path, run_name: str) -> List[Path]:
+def find_log_files(runs_dirs: List[Path], run_name: str) -> List[Path]:
     out: List[Path] = []
-    sidecar = runs_dir / f"{run_name}.launch.log"
-    if sidecar.exists():
-        out.append(sidecar)
-    run_dir = runs_dir / run_name
-    for rel in ("launch.log", "launcher.log", "run.log", "resume.launch.log"):
-        p = run_dir / rel
-        if p.exists():
-            out.append(p)
+    for runs_dir in runs_dirs:
+        sidecar = runs_dir / f"{run_name}.launch.log"
+        if sidecar.exists():
+            out.append(sidecar)
+        run_dir = runs_dir / run_name
+        for rel in ("launch.log", "launcher.log", "run.log", "resume.launch.log"):
+            p = run_dir / rel
+            if p.exists():
+                out.append(p)
     return out
 
 
@@ -212,7 +224,7 @@ def failure_marker(log_text: str) -> bool:
     return any(m in log_text for m in markers)
 
 
-def classify_run(run_dir: Path, runs_dir: Path, active: Dict[str, int]) -> RunStatus:
+def classify_run(run_dir: Path, runs_dirs: List[Path], active: Dict[str, int]) -> RunStatus:
     name = run_dir.name
     kind = detect_kind(run_dir)
     score = parse_score(run_dir, kind)
@@ -223,7 +235,7 @@ def classify_run(run_dir: Path, runs_dir: Path, active: Dict[str, int]) -> RunSt
     if has_completion(run_dir, kind):
         return RunStatus(name, run_dir, kind, "complete", "completion artifact present", score=score)
 
-    logs = find_log_files(runs_dir, name)
+    logs = find_log_files(runs_dirs, name)
     log_blob = ""
     for p in logs:
         try:
@@ -473,6 +485,12 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Benchmark monitor + queue launcher")
     p.add_argument("--root", default=os.environ.get("BENCHMARK_ROOT", str(Path.home() / "agentlife-benchmark")))
     p.add_argument("--runs-dir", default="runs")
+    p.add_argument(
+        "--extra-runs-dir",
+        action="append",
+        default=[],
+        help="Additional runs directories to include in the dashboard view",
+    )
     p.add_argument("--queue", default="runs/benchmark-queue.json")
     p.add_argument("--status-out", default="runs/monitor-status.json")
     p.add_argument("--summary-out", default="runs/monitor-summary.txt")
@@ -560,6 +578,8 @@ def main() -> int:
     args = parse_args()
     root = Path(args.root).resolve()
     runs_dir = (root / args.runs_dir).resolve()
+    extra_runs_dirs = [Path(p).expanduser().resolve() for p in args.extra_runs_dir]
+    visible_runs_dirs = [runs_dir, *extra_runs_dirs]
     queue_path = (root / args.queue).resolve()
     status_out = (root / args.status_out).resolve()
     summary_out = (root / args.summary_out).resolve()
@@ -568,14 +588,11 @@ def main() -> int:
         print(f"runs dir not found: {runs_dir}", file=sys.stderr)
         return 2
 
-    active_map = detect_active_runs(root, runs_dir)
-    run_dirs = [
-        p for p in runs_dir.iterdir()
-        if p.is_dir() and p.name not in ("successful-runs", "failed-runs")
-    ]
+    active_map = detect_active_runs(root, visible_runs_dirs)
+    run_dirs = list(_iter_visible_run_dirs(visible_runs_dirs))
     run_dirs.sort(key=run_start_sort_key, reverse=True)
 
-    statuses = [classify_run(p, runs_dir, active_map) for p in run_dirs]
+    statuses = [classify_run(p, visible_runs_dirs, active_map) for p in run_dirs]
     by_state: Dict[str, List[RunStatus]] = {"active": [], "complete": [], "failed": [], "incomplete": []}
     for st in statuses:
         by_state.setdefault(st.state, []).append(st)
@@ -617,6 +634,7 @@ def main() -> int:
         "timestamp": utc_now_iso(),
         "root": str(root),
         "runs_dir": str(runs_dir),
+        "visible_runs_dirs": [str(p) for p in visible_runs_dirs],
         "counts": {k: len(v) for k, v in by_state.items()},
         "actions": actions,
         "runs": [
