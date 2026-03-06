@@ -138,7 +138,26 @@ def detect_kind(run_dir: Path) -> str:
 
 
 def parse_score(run_dir: Path, kind: str) -> Optional[float]:
-    if kind in ("agentlife", "locomo"):
+    if kind == "agentlife":
+        p = run_dir / "scores.json"
+        if p.exists():
+            d = load_json(p)
+            if d:
+                try:
+                    return float(d["scores"]["overall"]["accuracy"])
+                except Exception:
+                    return None
+    if kind == "locomo":
+        # Prefer native LoCoMo result schema.
+        lp = run_dir / "locomo_results.json"
+        if lp.exists():
+            d = load_json(lp)
+            if d:
+                try:
+                    return float(d["scores"]["overall"]["llm_judge"])
+                except Exception:
+                    pass
+        # Back-compat fallback if a scores.json was produced.
         p = run_dir / "scores.json"
         if p.exists():
             d = load_json(p)

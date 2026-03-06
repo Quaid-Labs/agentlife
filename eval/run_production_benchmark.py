@@ -166,6 +166,32 @@ def _env_truthy(name: str) -> bool:
     return v in {"1", "true", "yes", "on"}
 
 
+def _simulated_day_iso(session_date: str, end_of_day: bool = True) -> Optional[str]:
+    """Normalize YYYY-MM-DD session date to ISO datetime for QUAID_NOW."""
+    if not session_date or session_date == "unknown":
+        return None
+    try:
+        day = datetime.strptime(session_date, "%Y-%m-%d")
+    except ValueError:
+        return None
+    if end_of_day:
+        day = day.replace(hour=23, minute=59, second=59)
+    else:
+        day = day.replace(hour=0, minute=0, second=0)
+    return day.isoformat()
+
+
+def _with_quaid_now(env: dict, session_date: str) -> dict:
+    """Return env copy with QUAID_NOW set to the simulated session day."""
+    scoped = dict(env)
+    simulated = _simulated_day_iso(session_date)
+    if simulated:
+        scoped["QUAID_NOW"] = simulated
+    else:
+        scoped.pop("QUAID_NOW", None)
+    return scoped
+
+
 def _read_dataset_version(assets_dir: Path) -> str:
     """Read dataset version from assets metadata."""
     candidates = [
@@ -1453,7 +1479,7 @@ def run_extraction(
     # Store facts into DB
     facts = cached.get("facts", [])
     last_date = SESSION_DATES.get(reviews[-1].session_num, "unknown") if reviews else "unknown"
-    stored, edges = _store_facts(workspace, facts, env, 0, last_date)
+    stored, edges = _store_facts(workspace, facts, _with_quaid_now(env, last_date), 0, last_date)
     domain_missing = int(_LAST_STORE_METRICS.get("domain_missing", 0))
 
     # Write snippets and journal entries
@@ -1585,6 +1611,9 @@ def _store_facts(
         else:
             domain_missing += 1
             print(f"      WARN: missing domains for fact; leaving untagged text={text[:80]!r}")
+        simulated = _simulated_day_iso(session_date)
+        if simulated:
+            cmd.extend(["--created-at", simulated, "--accessed-at", simulated])
 
         try:
             result = None
@@ -1983,7 +2012,8 @@ def run_per_day_extraction(
 
         # Store facts
         facts = cached.get("facts", [])
-        stored, edges = _store_facts(workspace, facts, env, snums[0], date)
+        day_env = _with_quaid_now(env, date)
+        stored, edges = _store_facts(workspace, facts, day_env, snums[0], date)
         day_domain_missing = int(_LAST_STORE_METRICS.get("domain_missing", 0))
         total_facts += len(facts)
         total_stored += stored
@@ -2040,7 +2070,7 @@ def run_per_day_extraction(
             )
             result = subprocess.run(
                 janitor_cmd + ["--task", "all", "--apply"],
-                env=env, cwd=str(_QUAID_DIR),
+                env=day_env, cwd=str(_QUAID_DIR),
                 capture_output=True, text=True, timeout=900,
             )
             if result.returncode != 0:
@@ -2063,7 +2093,7 @@ def run_per_day_extraction(
                 print(f"  Weekly distillation ({current_week}): janitor --task journal --apply --force-distill")
                 dres = subprocess.run(
                     janitor_cmd + ["--task", "journal", "--apply", "--force-distill"],
-                    env=env, cwd=str(_QUAID_DIR),
+                    env=day_env, cwd=str(_QUAID_DIR),
                     capture_output=True, text=True, timeout=600,
                 )
                 if dres.returncode != 0:
@@ -2224,7 +2254,7 @@ def verify_post_janitor(workspace: Path) -> None:
 
 def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
              eval_model: str = "claude-haiku-4-5-20251001",
-             context_inject: bool = False,
+             context_inject: bool = True,
              judge_model: str = "gpt-4o-mini") -> List[dict]:
     """Evaluate using tool use (memory_recall + search_project_docs).
 
@@ -2252,9 +2282,9 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     # Dataset integrity gate (full/eval runs): fail fast if query-set drifts.
     # Smoke/sample runs can bypass via BENCHMARK_MAX_QUERIES>0.
     try:
-        required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", "255") or "255")
+        required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", "268") or "268")
     except Exception:
-        required_query_count = 255
+        required_query_count = 268
     if required_query_count > 0 and max_queries_env <= 0 and len(all_queries) != required_query_count:
         raise RuntimeError(
             f"Dataset integrity gate failed: expected {required_query_count} eval queries, got {len(all_queries)}. "
@@ -2269,8 +2299,27 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "Set AGENTLIFE_ASSETS_DIR to the benchmark assets path."
         )
 
-    # Build eval context from evolved workspace files
-    eval_context = _build_eval_context(workspace)
+    _eval_core_context_preflight(
+        workspace,
+        max_sessions=max_sessions,
+        max_queries_env=max_queries_env,
+    )
+
+    # Build eval context from evolved workspace files.
+    # Default to lean context when pre-injection is enabled to reduce
+    # per-turn token replay of large static docs.
+    profile = (os.environ.get("BENCHMARK_EVAL_CONTEXT_PROFILE", "") or "").strip().lower()
+    if profile not in {"full", "lean"}:
+        profile = "full"
+    if profile == "lean":
+        eval_context = _build_eval_context(
+            workspace,
+            core_files=["SOUL.md", "USER.md", "MEMORY.md"],
+            include_project_bootstrap=False,
+        )
+    else:
+        eval_context = _build_eval_context(workspace)
+    print(f"  Eval context profile: {profile}")
     print(f"  Eval context: {len(eval_context)} chars ({len(eval_context)//4} est tokens)")
 
     # Switch DB for recall
@@ -2464,9 +2513,9 @@ def run_fc_baseline(
     all_queries = get_all_eval_queries(reviews)
     # Keep baseline aligned with canonical benchmark query-set.
     try:
-        required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", "255") or "255")
+        required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", "268") or "268")
     except Exception:
-        required_query_count = 255
+        required_query_count = 268
     if required_query_count > 0 and len(all_queries) != required_query_count:
         raise RuntimeError(
             f"Dataset integrity gate failed (fc): expected {required_query_count} eval queries, got {len(all_queries)}. "
@@ -2593,27 +2642,121 @@ def run_fc_baseline(
     return results
 
 
-def _build_eval_context(workspace: Path) -> str:
-    """Build eval system context from evolved core markdowns + project bootstrap files."""
+def _build_eval_context(
+    workspace: Path,
+    core_files: Optional[List[str]] = None,
+    include_project_bootstrap: bool = True,
+) -> str:
+    """Build eval system context from evolved markdowns.
+
+    `core_files` controls which root markdowns are injected.
+    `include_project_bootstrap` toggles projects/*/{TOOLS,AGENTS}.md injection.
+    """
     parts = []
 
-    # Core markdowns (like production: always in context)
-    for md in ["SOUL.md", "USER.md", "MEMORY.md", "TOOLS.md"]:
+    if core_files is None:
+        core_files = ["SOUL.md", "USER.md", "MEMORY.md", "TOOLS.md"]
+
+    # Core markdowns: include both root and projects/quaid variants for
+    # SOUL/USER/MEMORY to mirror production prompt construction.
+    for md in core_files:
+        if md in {"SOUL.md", "USER.md", "MEMORY.md"}:
+            seen = set()
+            for path in [workspace / md, workspace / "projects" / "quaid" / md]:
+                if not path.exists():
+                    continue
+                content = path.read_text().strip()
+                if not content or content in seen:
+                    continue
+                rel = path.relative_to(workspace) if path.is_absolute() else path
+                parts.append(f"--- {rel} ---\n{content}")
+                seen.add(content)
+            continue
+
         path = workspace / md
         if path.exists():
             content = path.read_text().strip()
             if content:
-                parts.append(f"--- {md} ---\n{content}")
-
-    # Project bootstrap files (like production: extraBootstrapFiles globs)
-    for pattern in ["projects/*/TOOLS.md", "projects/*/AGENTS.md"]:
-        for f in sorted(workspace.glob(pattern)):
-            content = f.read_text().strip()
-            if content:
-                rel = f.relative_to(workspace)
+                rel = path.relative_to(workspace) if path.is_absolute() else path
                 parts.append(f"--- {rel} ---\n{content}")
 
+    if include_project_bootstrap:
+        # Project bootstrap files (like production: extraBootstrapFiles globs)
+        for pattern in ["projects/*/TOOLS.md", "projects/*/AGENTS.md"]:
+            for f in sorted(workspace.glob(pattern)):
+                content = f.read_text().strip()
+                if content:
+                    rel = f.relative_to(workspace)
+                    parts.append(f"--- {rel} ---\n{content}")
+
     return "\n\n".join(parts)
+
+
+def _resolve_eval_core_path(workspace: Path, md_name: str) -> Path:
+    """Resolve the best source file for eval core markdown context.
+
+    For SOUL/USER/MEMORY, prefer projects/quaid/<file> when it exists and has
+    at least as much content as the root file. This avoids missing distilled
+    context when janitor writes evolved docs under projects/quaid.
+    """
+    root = workspace / md_name
+    project = workspace / "projects" / "quaid" / md_name
+    if md_name not in {"SOUL.md", "USER.md", "MEMORY.md"}:
+        return root
+    if project.exists() and root.exists():
+        try:
+            plen = len(project.read_text().strip())
+            rlen = len(root.read_text().strip())
+            return project if plen >= rlen else root
+        except Exception:
+            return project
+    if project.exists():
+        return project
+    return root
+
+
+def _eval_core_context_preflight(
+    workspace: Path,
+    *,
+    max_sessions: Optional[int],
+    max_queries_env: int,
+) -> None:
+    """Fail fast when eval would run without rich core markdown context."""
+    # Smoke runs intentionally allow thin context.
+    if max_queries_env > 0:
+        return
+    if max_sessions is not None and max_sessions < 20:
+        return
+    if os.environ.get("BENCHMARK_SKIP_CONTEXT_PREFLIGHT", "").strip().lower() in {"1", "true", "yes"}:
+        return
+
+    min_chars = {
+        "SOUL.md": 1200,
+        "USER.md": 1200,
+        "MEMORY.md": 800,
+    }
+    stats = []
+    for md in ["SOUL.md", "USER.md", "MEMORY.md"]:
+        chosen = _resolve_eval_core_path(workspace, md)
+        cchars = len(chosen.read_text().strip()) if chosen.exists() else 0
+        root = workspace / md
+        rchars = len(root.read_text().strip()) if root.exists() else 0
+        proj = workspace / "projects" / "quaid" / md
+        pchars = len(proj.read_text().strip()) if proj.exists() else 0
+        stats.append((md, chosen, cchars, rchars, pchars))
+
+    too_thin = [s for s in stats if s[2] < min_chars[s[0]]]
+    if too_thin:
+        detail = "; ".join(
+            f"{md}: chosen={chosen.relative_to(workspace) if chosen.exists() else chosen} "
+            f"chars={cchars} root={rchars} project={pchars} min={min_chars[md]}"
+            for md, chosen, cchars, rchars, pchars in stats
+        )
+        raise RuntimeError(
+            "Eval context preflight failed: core markdown context is too thin "
+            f"for a full-size run. {detail}. "
+            "Set BENCHMARK_SKIP_CONTEXT_PREFLIGHT=1 only for intentional diagnostics."
+        )
 
 
 def _pre_recall(
@@ -2645,7 +2788,7 @@ def _tool_use_loop(
     model: str = "claude-haiku-4-5-20251001",
     date_to: Optional[str] = None,
     max_session: Optional[int] = None,
-    context_inject: bool = False,
+    context_inject: bool = True,
 ) -> Tuple[str, List[str], List[str], List[str], dict]:
     """Run model with tool use, executing memory_recall and search_project_docs.
 
@@ -3633,6 +3776,71 @@ def run_tier5_fc_baseline(
 # Helpers
 # ---------------------------------------------------------------------------
 
+
+def _summarize_tier5_weighted(tier5_results: List[dict]) -> dict:
+    """Summarize Tier-5 EI with balanced weighting: full=1, partial=0.5."""
+    count = len(tier5_results)
+    if count == 0:
+        return {
+            "count": 0,
+            "scored": 0,
+            "accuracy": 0.0,
+            "correct": 0,
+            "partial": 0,
+            "wrong": 0,
+            "error": 0,
+            "points": 0.0,
+            "max_points": 0.0,
+        }
+
+    correct = sum(1 for r in tier5_results if int(r.get("ei_score", 0)) >= 2)
+    partial = sum(1 for r in tier5_results if int(r.get("ei_score", 0)) == 1)
+    wrong = sum(1 for r in tier5_results if int(r.get("ei_score", 0)) <= 0)
+    scored = correct + partial + wrong
+    points = correct + 0.5 * partial
+    accuracy = (points / scored * 100.0) if scored > 0 else 0.0
+    return {
+        "count": count,
+        "scored": scored,
+        "accuracy": round(accuracy, 2),
+        "correct": correct,
+        "partial": partial,
+        "wrong": wrong,
+        "error": 0,
+        "points": round(points, 2),
+        "max_points": float(scored),
+    }
+
+
+def _merge_tier5_into_scores(scores: dict, tier5_results: List[dict]) -> dict:
+    """Fold Tier-5 into scores with balanced weighted overall."""
+    overall = dict(scores.get("overall", {}))
+    tier5_summary = _summarize_tier5_weighted(tier5_results)
+
+    merged_correct = int(overall.get("correct", 0)) + int(tier5_summary.get("correct", 0))
+    merged_partial = int(overall.get("partial", 0)) + int(tier5_summary.get("partial", 0))
+    merged_wrong = int(overall.get("wrong", 0)) + int(tier5_summary.get("wrong", 0))
+    merged_error = int(overall.get("error", 0)) + int(tier5_summary.get("error", 0))
+    merged_scored = int(overall.get("scored", 0)) + int(tier5_summary.get("scored", 0))
+    merged_count = int(overall.get("count", 0)) + int(tier5_summary.get("count", 0))
+    merged_points = merged_correct + 0.5 * merged_partial
+    merged_accuracy = (merged_points / merged_scored * 100.0) if merged_scored > 0 else 0.0
+
+    scores["overall_t1_t4"] = overall
+    scores["tier5"] = tier5_summary
+    scores["overall"] = {
+        "count": merged_count,
+        "scored": merged_scored,
+        "accuracy": round(merged_accuracy, 2),
+        "correct": merged_correct,
+        "partial": merged_partial,
+        "wrong": merged_wrong,
+        "error": merged_error,
+        "points": round(merged_points, 2),
+        "max_points": float(merged_scored),
+    }
+    return scores
+
 def _make_env(workspace: Path) -> dict:
     """Build env dict for subprocess calls pointing at the benchmark workspace."""
     env = os.environ.copy()
@@ -3912,7 +4120,7 @@ def _tool_use_loop_claude_code(
     model: str = "claude-sonnet-4-6",
     date_to: Optional[str] = None,
     max_session: Optional[int] = None,
-    context_inject: bool = False,
+    context_inject: bool = True,
 ) -> Tuple[str, List[str], List[str], List[str], dict]:
     """Eval answer loop using Claude Code CLI with Bash tool for memory search.
 
@@ -4331,8 +4539,10 @@ def main():
                         help="Eval answer model (default: claude-haiku-4-5-20251001)")
     parser.add_argument("--skip-janitor", action="store_true",
                         help="Skip janitor (debug extraction only)")
-    parser.add_argument("--context-inject", action="store_true",
-                        help="Pre-inject recall results into context (hybrid approach)")
+    parser.add_argument("--context-inject", dest="context_inject", action="store_true", default=True,
+                        help="Pre-inject recall results into context (default: on)")
+    parser.add_argument("--no-context-inject", dest="context_inject", action="store_false",
+                        help="Disable pre-inject recall results into context")
     parser.add_argument("--judge", type=str, default="gpt-4o-mini",
                         choices=["gpt-4o-mini", "haiku"],
                         help="Judge model (default: gpt-4o-mini for cross-vendor fairness)")
@@ -4357,6 +4567,7 @@ def main():
     print(f"  Max sessions: {args.max_sessions or 'all'}")
     print(f"  No-cache: {args.no_cache}")
     print(f"  Skip-janitor: {args.skip_janitor}")
+    print(f"  Context-inject: {args.context_inject}")
     print(f"  Judge: {args.judge}")
     print()
 
@@ -4428,20 +4639,21 @@ def main():
         print(f"  Avg tools/query: {avg_tools:.1f}")
 
         scores_path = workspace / "scores.json"
+        scores_payload = {
+            "scores": scores,
+            "tool_stats": tool_stats,
+            "metadata": {
+                "timestamp": datetime.now().isoformat(),
+                "mode": "per-day",
+                "extraction_model": args.model,
+                "eval_model": args.eval_model,
+                "judge_model": args.judge,
+                "tool_use": True,
+                "max_sessions": args.max_sessions,
+            },
+        }
         with open(scores_path, "w") as f:
-            json.dump({
-                "scores": scores,
-                "tool_stats": tool_stats,
-                "metadata": {
-                    "timestamp": datetime.now().isoformat(),
-                    "mode": "per-day",
-                    "extraction_model": args.model,
-                    "eval_model": args.eval_model,
-                    "judge_model": args.judge,
-                    "tool_use": True,
-                    "max_sessions": args.max_sessions,
-                },
-            }, f, indent=2)
+            json.dump(scores_payload, f, indent=2)
 
         # Save token usage summary
         _save_token_usage(results, workspace, args.eval_model)
@@ -4461,6 +4673,14 @@ def main():
         max_score = len(tier5_results) * 2
         pct = (total / max_score * 100.0) if max_score else 0.0
         print(f"Tier 5 EI Score: {total}/{max_score} ({pct:.1f}%)")
+        scores_payload["scores"] = _merge_tier5_into_scores(scores_payload["scores"], tier5_results)
+        with open(scores_path, "w") as f:
+            json.dump(scores_payload, f, indent=2)
+        merged = scores_payload["scores"]["overall"]
+        print(
+            "Combined Weighted Accuracy (T1-5): "
+            f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
+        )
 
     # --- Ingestion ---
     if args.mode in ("full", "ingest"):
@@ -4530,20 +4750,21 @@ def main():
 
         # Save scores
         scores_path = workspace / "scores.json"
+        scores_payload = {
+            "scores": scores,
+            "tool_stats": tool_stats,
+            "metadata": {
+                "timestamp": datetime.now().isoformat(),
+                "mode": args.mode,
+                "extraction_model": args.model,
+                "eval_model": args.eval_model,
+                "judge_model": args.judge,
+                "tool_use": True,
+                "max_sessions": args.max_sessions,
+            },
+        }
         with open(scores_path, "w") as f:
-            json.dump({
-                "scores": scores,
-                "tool_stats": tool_stats,
-                "metadata": {
-                    "timestamp": datetime.now().isoformat(),
-                    "mode": args.mode,
-                    "extraction_model": args.model,
-                    "eval_model": args.eval_model,
-                    "judge_model": args.judge,
-                    "tool_use": True,
-                    "max_sessions": args.max_sessions,
-                },
-            }, f, indent=2)
+            json.dump(scores_payload, f, indent=2)
 
         # Save token usage summary
         _save_token_usage(results, workspace, args.eval_model)
@@ -4563,6 +4784,14 @@ def main():
         max_score = len(tier5_results) * 2
         pct = (total / max_score * 100.0) if max_score else 0.0
         print(f"Tier 5 EI Score: {total}/{max_score} ({pct:.1f}%)")
+        scores_payload["scores"] = _merge_tier5_into_scores(scores_payload["scores"], tier5_results)
+        with open(scores_path, "w") as f:
+            json.dump(scores_payload, f, indent=2)
+        merged = scores_payload["scores"]["overall"]
+        print(
+            "Combined Weighted Accuracy (T1-5): "
+            f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
+        )
 
     # --- Full-context baselines ---
     if args.mode == "fc":

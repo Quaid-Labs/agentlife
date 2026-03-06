@@ -518,6 +518,43 @@ class TestResolveProjectSessionSnapshot:
         assert out is None
 
 
+class TestTier5ScoreFolding:
+    def test_merge_tier5_into_scores_uses_weighted_partial(self):
+        base_scores = {
+            "overall": {
+                "count": 4,
+                "scored": 4,
+                "accuracy": 62.5,
+                "correct": 2,
+                "partial": 1,
+                "wrong": 1,
+                "error": 0,
+            },
+            "per_type": {},
+            "per_difficulty": {},
+            "per_session": {},
+            "retrieval": None,
+        }
+        # EI: one full hit, one partial, one miss => 1.5/3 = 50%
+        tier5_results = [{"ei_score": 2}, {"ei_score": 1}, {"ei_score": 0}]
+
+        merged = rpb._merge_tier5_into_scores(base_scores, tier5_results)
+
+        assert merged["tier5"]["correct"] == 1
+        assert merged["tier5"]["partial"] == 1
+        assert merged["tier5"]["wrong"] == 1
+        assert merged["tier5"]["accuracy"] == 50.0
+
+        # Combined: (2+1) correct, (1+1) partial, (1+1) wrong over 7 scored
+        # points = 3 + 0.5*2 = 4.0 => 57.14%
+        assert merged["overall"]["scored"] == 7
+        assert merged["overall"]["correct"] == 3
+        assert merged["overall"]["partial"] == 2
+        assert merged["overall"]["wrong"] == 2
+        assert merged["overall"]["accuracy"] == 57.14
+        assert merged["overall_t1_t4"]["accuracy"] == 62.5
+
+
 class TestMainTier5Auto:
     def test_eval_runs_tier5_without_flag(self, tmp_path, monkeypatch):
         workspace = tmp_path / "run"
@@ -556,6 +593,85 @@ class TestMainTier5Auto:
         rpb.main()
         assert called["eval"] == 1
         assert called["tier5"] == 1
+
+
+class TestMainContextInjectDefault:
+    def test_context_inject_defaults_on(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "run"
+        (workspace / "data").mkdir(parents=True)
+        (workspace / "data" / "memory.db").write_text("")
+
+        seen = {"eval": None, "tier5": None}
+
+        def _fake_run_eval(*_a, **kwargs):
+            seen["eval"] = kwargs.get("context_inject")
+            return []
+
+        def _fake_run_tier5(*_a, **kwargs):
+            seen["tier5"] = kwargs.get("context_inject")
+            return []
+
+        monkeypatch.setattr(rpb, "run_eval", _fake_run_eval)
+        monkeypatch.setattr(rpb, "run_tier5_eval", _fake_run_tier5)
+        monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            rpb,
+            "score_results",
+            lambda _results: {
+                "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+                "per_type": {},
+                "per_difficulty": {},
+            },
+        )
+        monkeypatch.setattr(sys, "argv", [
+            "run_production_benchmark.py",
+            "--mode", "eval",
+            "--results-dir", str(workspace),
+            "--backend", "claude-code",
+        ])
+
+        rpb.main()
+        assert seen["eval"] is True
+        assert seen["tier5"] is True
+
+    def test_context_inject_can_be_disabled(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "run"
+        (workspace / "data").mkdir(parents=True)
+        (workspace / "data" / "memory.db").write_text("")
+
+        seen = {"eval": None, "tier5": None}
+
+        def _fake_run_eval(*_a, **kwargs):
+            seen["eval"] = kwargs.get("context_inject")
+            return []
+
+        def _fake_run_tier5(*_a, **kwargs):
+            seen["tier5"] = kwargs.get("context_inject")
+            return []
+
+        monkeypatch.setattr(rpb, "run_eval", _fake_run_eval)
+        monkeypatch.setattr(rpb, "run_tier5_eval", _fake_run_tier5)
+        monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            rpb,
+            "score_results",
+            lambda _results: {
+                "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+                "per_type": {},
+                "per_difficulty": {},
+            },
+        )
+        monkeypatch.setattr(sys, "argv", [
+            "run_production_benchmark.py",
+            "--mode", "eval",
+            "--results-dir", str(workspace),
+            "--backend", "claude-code",
+            "--no-context-inject",
+        ])
+
+        rpb.main()
+        assert seen["eval"] is False
+        assert seen["tier5"] is False
 
 
 # ===================================================================
@@ -1038,6 +1154,51 @@ class TestLoadActiveDomainIds:
         workspace = self._setup_db(tmp_path, [("only", 0)])
         with pytest.raises(RuntimeError, match="No active domains"):
             rpb._load_active_domain_ids(workspace)
+
+
+# ===================================================================
+# Eval context source selection + preflight
+# ===================================================================
+
+
+class TestEvalContextCoreSelection:
+    def test_prefers_projects_quaid_core_when_richer(self, tmp_path):
+        ws = tmp_path / "ws"
+        (ws / "projects" / "quaid").mkdir(parents=True, exist_ok=True)
+        (ws / "SOUL.md").write_text("# Soul\nthin")
+        (ws / "projects" / "quaid" / "SOUL.md").write_text("# Soul\n" + ("rich\n" * 200))
+
+        chosen = rpb._resolve_eval_core_path(ws, "SOUL.md")
+        assert chosen == ws / "projects" / "quaid" / "SOUL.md"
+
+    def test_build_eval_context_includes_projects_quaid_headers(self, tmp_path):
+        ws = tmp_path / "ws"
+        (ws / "projects" / "quaid").mkdir(parents=True, exist_ok=True)
+        (ws / "SOUL.md").write_text("# root soul")
+        (ws / "USER.md").write_text("# root user")
+        (ws / "MEMORY.md").write_text("# root memory")
+        (ws / "TOOLS.md").write_text("# tools")
+        (ws / "projects" / "quaid" / "SOUL.md").write_text("# project soul\n" + ("x\n" * 50))
+        (ws / "projects" / "quaid" / "USER.md").write_text("# project user\n" + ("x\n" * 50))
+        (ws / "projects" / "quaid" / "MEMORY.md").write_text("# project memory\n" + ("x\n" * 50))
+
+        ctx = rpb._build_eval_context(ws, include_project_bootstrap=False)
+        assert "--- SOUL.md ---" in ctx
+        assert "--- USER.md ---" in ctx
+        assert "--- MEMORY.md ---" in ctx
+        assert "--- projects/quaid/SOUL.md ---" in ctx
+        assert "--- projects/quaid/USER.md ---" in ctx
+        assert "--- projects/quaid/MEMORY.md ---" in ctx
+
+    def test_preflight_fails_when_core_is_too_thin(self, tmp_path):
+        ws = tmp_path / "ws"
+        ws.mkdir(parents=True, exist_ok=True)
+        (ws / "SOUL.md").write_text("# Soul\nthin")
+        (ws / "USER.md").write_text("# User\nthin")
+        (ws / "MEMORY.md").write_text("# Memory\nthin")
+
+        with pytest.raises(RuntimeError, match="core markdown context is too thin"):
+            rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
 
 
 # ===================================================================

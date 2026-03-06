@@ -33,11 +33,29 @@ if str(_RUNNER_DIR) not in sys.path:
 from claude_backend import call_claude
 from dataset import SESSION_DATES
 from injector import transcript_to_messages, count_tokens
-from run_production_benchmark import _judge, _judge_tier5, _get_api_key
+from run_production_benchmark import _judge, _judge_tier5, _get_api_key, _get_openai_key
 
 # ---------------------------------------------------------------------------
 # Mem0 wrapper
 # ---------------------------------------------------------------------------
+
+_TZ_ALIASES = {
+    "US/Pacific": "America/Los_Angeles",
+    "US/Mountain": "America/Denver",
+    "US/Central": "America/Chicago",
+    "US/Eastern": "America/New_York",
+}
+
+
+def _normalize_tz_for_mem0() -> None:
+    """Normalize legacy TZ aliases that can break downstream timezone parsing."""
+    current_tz = os.environ.get("TZ", "").strip()
+    if current_tz in _TZ_ALIASES:
+        os.environ["TZ"] = _TZ_ALIASES[current_tz]
+    elif not current_tz:
+        os.environ["TZ"] = "UTC"
+    if hasattr(time, "tzset"):
+        time.tzset()
 
 class Mem0Adapter:
     """Adapter for Mem0 open-source memory system.
@@ -77,6 +95,7 @@ class Mem0Adapter:
         """Lazy-load Mem0 to avoid import errors when not installed."""
         if self._mem0 is None:
             try:
+                _normalize_tz_for_mem0()
                 from mem0 import Memory
                 # Use persistent Qdrant storage so data survives across method calls.
                 # Qdrant local uses exclusive file locks — only one Memory() instance
@@ -299,6 +318,62 @@ class Mem0Adapter:
         }
         model_id = model_map.get(self.answer_model, self.answer_model)
         usage_total = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
+        is_openai_model = model_id.startswith("gpt-") or model_id.startswith("o")
+
+        # OpenAI path: one-pass answer with retrieved context.
+        if is_openai_model:
+            openai_key = _get_openai_key()
+            if not openai_key:
+                return "Error: OPENAI_API_KEY not found", [], usage_total
+
+            memories = self.search(question, limit=10)
+            tool_call_names = ["mem0_search"] if memories else []
+            context = "\n".join(
+                f"{idx}. {m['text']}" for idx, m in enumerate(memories, 1)
+            ) if memories else "No relevant memories found."
+
+            system_prompt = (
+                "You are an AI assistant answering questions about a user named Maya "
+                "based on memory search results. Answer directly and concisely from the "
+                "provided memory context. If information is missing, say "
+                "\"I don't have information about that.\""
+            )
+            user_prompt = (
+                f"Question:\n{question}\n\n"
+                f"Memory context:\n{context}\n\n"
+                "Answer:"
+            )
+
+            payload = {
+                "model": model_id,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "max_completion_tokens": 1024,
+            }
+            req = urllib.request.Request(
+                "https://api.openai.com/v1/chat/completions",
+                data=json.dumps(payload).encode(),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {openai_key}",
+                },
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    data = json.loads(resp.read())
+            except Exception as e:
+                return f"Error: {e}", tool_call_names, usage_total
+
+            usage = data.get("usage", {})
+            usage_total["input_tokens"] += usage.get("prompt_tokens", 0)
+            usage_total["output_tokens"] += usage.get("completion_tokens", 0)
+            usage_total["api_calls"] += 1
+            choice = (data.get("choices") or [{}])[0]
+            message = choice.get("message") or {}
+            text = message.get("content", "")
+            return str(text).strip(), tool_call_names, usage_total
 
         tools = [{
             "name": "mem0_search",
@@ -553,7 +628,17 @@ def main():
                               qdrant_dir=args.qdrant_dir)
 
         # Load sessions
-        assets_dir = _DIR.parent.parent.parent / "assets"
+        assets_dir_env = os.environ.get("AGENTLIFE_ASSETS_DIR", "").strip()
+        if assets_dir_env:
+            assets_dir = Path(assets_dir_env).expanduser()
+        else:
+            candidates = [
+                _RUNNER_DIR / "assets",
+                _DIR.parent / "data" / "sessions",
+                _DIR.parent / "assets",
+                _DIR.parent.parent.parent / "assets",
+            ]
+            assets_dir = next((p for p in candidates if p.exists()), candidates[1])
         reviews = load_all_reviews(assets_dir)
         queries = get_all_eval_queries(reviews)
 
