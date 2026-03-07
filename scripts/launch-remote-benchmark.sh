@@ -223,6 +223,28 @@ run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" \
   "mkdir -p $REMOTE_BENCH_ROOT $REMOTE_CHECKPOINT_ROOT $REMOTE_CHECKPOINT_PLUGIN_ROOT"
 
 echo ""
+echo "--- 1b) Sync fresh Claude Code credentials when backend is claude-code ---"
+BACKEND_ARG=""
+for ((i=0; i<${#LAUNCH_ARGS[@]}; i++)); do
+  if [[ "${LAUNCH_ARGS[$i]}" == "--backend" ]] && (( i + 1 < ${#LAUNCH_ARGS[@]} )); then
+    BACKEND_ARG="${LAUNCH_ARGS[$((i+1))]}"
+    break
+  fi
+done
+if [[ "$BACKEND_ARG" == "claude-code" ]]; then
+  LOCAL_CLAUDE_CREDS="$HOME/.claude/.credentials.json"
+  if [[ -f "$LOCAL_CLAUDE_CREDS" ]]; then
+    run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" "mkdir -p ~/.claude"
+    run_cmd scp -p "$LOCAL_CLAUDE_CREDS" "$REMOTE:~/.claude/.credentials.json"
+    echo "  synced ~/.claude/.credentials.json to $REMOTE"
+  else
+    echo "  local ~/.claude/.credentials.json not found; skipping credential sync"
+  fi
+else
+  echo "  backend is not claude-code; skipping credential sync"
+fi
+
+echo ""
 echo "--- 2) Sync canonical benchmark repo ---"
 RSYNC_COMMON=(
   -az
@@ -277,6 +299,49 @@ export BENCHMARK_LIFECYCLE_PREPASS_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_LLM_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_REVIEW_WORKERS=$(printf %q "$PARALLEL")
 export AGENTLIFE_ASSETS_DIR=$(printf %q "$REMOTE_BENCH_ROOT")/data/sessions
+if [[ -z \"\${ANTHROPIC_API_KEY:-}\" && -f \"/home/solomon/clawd/.env\" ]]; then
+  export ANTHROPIC_API_KEY=\$(python3 - <<'PY'
+from pathlib import Path
+path = Path('/home/solomon/clawd/.env')
+value = ''
+try:
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, raw = line.split('=', 1)
+        if key.strip() != 'ANTHROPIC_API_KEY':
+            continue
+        value = raw.strip().strip('\"').strip(\"'\")
+        break
+except Exception:
+    value = ''
+print(value)
+PY
+)
+fi
+if [[ -z \"\${CLAUDE_CODE_OAUTH_TOKEN:-}\" && -f \"\$HOME/.claude/.credentials.json\" ]]; then
+  export CLAUDE_CODE_OAUTH_TOKEN=\$(python3 - <<'PY'
+import json
+from pathlib import Path
+path = Path.home() / '.claude' / '.credentials.json'
+try:
+    data = json.loads(path.read_text())
+except Exception:
+    print('')
+else:
+    print(str((data.get('claudeAiOauth') or {}).get('accessToken') or '').strip())
+PY
+)
+fi
+if [[ -n \"\${CLAUDE_CODE_OAUTH_TOKEN:-}\" ]]; then
+  echo \"Claude Code token: present\"
+else
+  echo \"Claude Code token: missing\"
+fi
+if [[ $(printf %q "$BACKEND_ARG") == "claude-code" ]]; then
+  export CLAUDE_CODE_TIMEOUT_MULTIPLIER=2
+fi
 if [[ -f eval/run_production_benchmark.py ]]; then
   RUNNER=eval/run_production_benchmark.py
 elif [[ -f agentlife/eval/run_production_benchmark.py ]]; then

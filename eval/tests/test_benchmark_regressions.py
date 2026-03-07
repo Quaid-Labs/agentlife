@@ -343,10 +343,20 @@ class TestParseJudgeLabel:
         assert label == "WRONG"
         assert score == 0.0
 
+    def test_json_partial(self):
+        label, score = rpb._parse_judge_label('{"label": "PARTIAL"}')
+        assert label == "PARTIAL"
+        assert score == 0.5
+
     def test_text_correct(self):
         label, score = rpb._parse_judge_label("The answer is CORRECT because ...")
         assert label == "CORRECT"
         assert score == 1.0
+
+    def test_text_partial(self):
+        label, score = rpb._parse_judge_label("This is PARTIAL because it is safe but overlong")
+        assert label == "PARTIAL"
+        assert score == 0.5
 
     def test_text_wrong(self):
         label, score = rpb._parse_judge_label("This is WRONG")
@@ -357,6 +367,10 @@ class TestParseJudgeLabel:
         # If text mentions both, last position wins
         label, _ = rpb._parse_judge_label("Initially WRONG, but actually CORRECT")
         assert label == "CORRECT"
+
+        label, score = rpb._parse_judge_label("Seems WRONG at first, but on reflection PARTIAL")
+        assert label == "PARTIAL"
+        assert score == 0.5
 
         label, _ = rpb._parse_judge_label("Seems CORRECT but on reflection WRONG")
         assert label == "WRONG"
@@ -481,6 +495,49 @@ class TestMakeEnv:
 
         env = rpb._make_env(workspace)
         assert str(quaid_dir.resolve()) in env.get("PYTHONPATH", "")
+
+
+class TestSetupWorkspaceConfig:
+    def test_claude_code_workspace_forces_split_tiers(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(
+            json.dumps(
+                {
+                    "models": {
+                        "llmProvider": "openai-compatible",
+                        "deepReasoning": "gpt-4o-mini",
+                        "fastReasoning": "gpt-4o-mini",
+                        "baseUrl": "https://api.openai.com",
+                        "apiKeyEnv": "OPENAI_API_KEY",
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "claude-code")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        monkeypatch.delenv("BENCHMARK_REASONING_MODEL", raising=False)
+        monkeypatch.delenv("BENCHMARK_DEEP_REASONING_MODEL", raising=False)
+        monkeypatch.delenv("BENCHMARK_FAST_REASONING_MODEL", raising=False)
+
+        rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        models = cfg["models"]
+        assert models["llmProvider"] == "claude-code"
+        assert models["deepReasoningProvider"] == "claude-code"
+        assert models["fastReasoningProvider"] == "anthropic"
+        assert models["deepReasoning"] == "claude-sonnet-4-6"
+        assert models["fastReasoning"] == "claude-haiku-4-5-20251001"
+        assert "baseUrl" not in models
+        assert "apiKeyEnv" not in models
 
 
 class TestRequireProjectSourceRepo:
@@ -1201,6 +1258,117 @@ class TestEvalContextCoreSelection:
             rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
 
 
+class TestRunEvalProviderGuard:
+    def test_split_eval_does_not_require_claude_code_calls_for_anthropic_fast_lane(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True, exist_ok=True)
+        (ws / "logs").mkdir(parents=True, exist_ok=True)
+        (ws / "config" / "memory.json").write_text(
+            json.dumps(
+                {
+                    "models": {
+                        "llmProvider": "claude-code",
+                        "deepReasoningProvider": "claude-code",
+                        "deepReasoning": "claude-sonnet-4-6",
+                        "fastReasoningProvider": "anthropic",
+                        "fastReasoning": "claude-haiku-4-5-20251001",
+                    }
+                }
+            )
+        )
+        monkeypatch.setattr(rpb, "_BACKEND", "claude-code")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+        monkeypatch.setattr(
+            rpb,
+            "get_all_eval_queries",
+            lambda _reviews: [{"question": "Q?", "ground_truth": "A", "query_type": "factual_recall"}],
+        )
+        monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
+        monkeypatch.setattr(rpb, "_make_env", lambda _ws: {})
+        monkeypatch.setattr(
+            rpb,
+            "_tool_use_loop",
+            lambda **kwargs: (
+                "answer",
+                [],
+                [],
+                [],
+                {"input_tokens": 10, "output_tokens": 5, "api_calls": 0, "tool_call_details": []},
+            ),
+        )
+        monkeypatch.setattr(rpb, "_judge", lambda *a, **k: ("CORRECT", 1.0))
+        monkeypatch.setattr(rpb, "_judge_non_question", lambda *a, **k: ("CORRECT", 1.0))
+        monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "1")
+        monkeypatch.setenv("BENCHMARK_PARALLEL", "1")
+
+        results = rpb.run_eval(
+            ws,
+            api_key="dummy",
+            max_sessions=1,
+            eval_model="claude-haiku-4-5-20251001",
+            context_inject=False,
+            judge_model="gpt-4o-mini",
+        )
+        assert len(results) == 1
+        assert results[0]["prediction"] == "answer"
+
+    def test_claude_code_eval_still_requires_nonzero_claude_calls(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True, exist_ok=True)
+        (ws / "logs").mkdir(parents=True, exist_ok=True)
+        (ws / "config" / "memory.json").write_text(
+            json.dumps(
+                {
+                    "models": {
+                        "llmProvider": "claude-code",
+                        "deepReasoningProvider": "claude-code",
+                        "deepReasoning": "claude-sonnet-4-6",
+                        "fastReasoningProvider": "anthropic",
+                        "fastReasoning": "claude-haiku-4-5-20251001",
+                    }
+                }
+            )
+        )
+        monkeypatch.setattr(rpb, "_BACKEND", "claude-code")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+        monkeypatch.setattr(
+            rpb,
+            "get_all_eval_queries",
+            lambda _reviews: [{"question": "Q?", "ground_truth": "A", "query_type": "factual_recall"}],
+        )
+        monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
+        monkeypatch.setattr(rpb, "_make_env", lambda _ws: {})
+        monkeypatch.setattr(
+            rpb,
+            "_tool_use_loop",
+            lambda **kwargs: (
+                "answer",
+                [],
+                [],
+                [],
+                {"input_tokens": 10, "output_tokens": 5, "api_calls": 0, "tool_call_details": []},
+            ),
+        )
+        monkeypatch.setattr(rpb, "_judge", lambda *a, **k: ("CORRECT", 1.0))
+        monkeypatch.setattr(rpb, "_judge_non_question", lambda *a, **k: ("CORRECT", 1.0))
+        monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "1")
+        monkeypatch.setenv("BENCHMARK_PARALLEL", "1")
+
+        with pytest.raises(RuntimeError, match="zero Claude API calls"):
+            rpb.run_eval(
+                ws,
+                api_key="dummy",
+                max_sessions=1,
+                eval_model="claude-sonnet-4-6",
+                context_inject=False,
+                judge_model="gpt-4o-mini",
+            )
+
+
 # ===================================================================
 # Integration: per-day extraction orchestration
 # ===================================================================
@@ -1272,6 +1440,9 @@ class TestPerDayExtraction:
         assert progress["completed_days"] == 3
         assert progress["total_days"] == 3
         assert progress["state"] == "completed"
+        resume_state = json.loads((workspace / "lifecycle_resume" / "latest.json").read_text())
+        assert resume_state["completed_days"] == 3
+        assert (workspace / "lifecycle_resume" / "day-03-2026-03-04" / "data" / "memory.db").exists()
 
     def test_skip_janitor(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
@@ -1311,3 +1482,175 @@ class TestPerDayExtraction:
         assert len(jan_calls) == 0
         assert result["janitor_runs"] == 0
         assert result["weekly_distill_runs"] == 0
+
+    def test_daily_janitor_failure_is_fatal(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+
+        fake_dates = {1: "2026-03-01"}
+        monkeypatch.setattr(rpb, "SESSION_DATES", fake_dates)
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+        monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
+        monkeypatch.setattr(
+            rpb, "parse_extraction_response",
+            lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
+        )
+        monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_project_logs", lambda *a, **k: {})
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
+
+        calls = []
+
+        def _run(cmd, **kwargs):
+            calls.append(list(cmd))
+            result = _FakeSubprocessResult()
+            result.returncode = 1
+            result.stderr = "janitor exploded"
+            result.stdout = "janitor stdout"
+            return result
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+
+        with pytest.raises(RuntimeError, match="Janitor cycle failed") as excinfo:
+            rpb.run_per_day_extraction(
+                workspace=workspace, api_key="dummy", no_cache=True,
+                run_janitor_each_day=True,
+            )
+
+        progress = json.loads((workspace / "logs" / "janitor_progress.json").read_text())
+        assert progress["state"] == "failed"
+        jan_calls = [c for c in calls if "--task" in c and "all" in c]
+        assert len(jan_calls) == 1
+        failure_files = sorted((workspace / "logs").glob("janitor_failure_all_*.json"))
+        assert len(failure_files) == 1
+        failure_payload = json.loads(failure_files[0].read_text())
+        assert failure_payload["returncode"] == 1
+        assert failure_payload["stderr"] == "janitor exploded"
+        assert failure_payload["stdout"] == "janitor stdout"
+        assert "artifact=" in str(excinfo.value)
+
+    def test_weekly_distillation_failure_is_fatal(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+
+        fake_reviews = [_FakeReview(1), _FakeReview(2)]
+        fake_dates = {1: "2026-03-01", 2: "2026-03-03"}
+        monkeypatch.setattr(rpb, "SESSION_DATES", fake_dates)
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: fake_reviews)
+        monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
+        monkeypatch.setattr(
+            rpb, "parse_extraction_response",
+            lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
+        )
+        monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_project_logs", lambda *a, **k: {})
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
+
+        calls = []
+
+        def _run(cmd, **kwargs):
+            calls.append(list(cmd))
+            result = _FakeSubprocessResult()
+            if "--task" in cmd and "journal" in cmd:
+                result.returncode = 1
+                result.stderr = "weekly distillation exploded"
+                result.stdout = "weekly stdout"
+            return result
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+
+        with pytest.raises(RuntimeError, match="Weekly journal distillation failed") as excinfo:
+            rpb.run_per_day_extraction(
+                workspace=workspace, api_key="dummy", no_cache=True,
+                model="claude-haiku-4-5-20251001", max_sessions=2,
+                run_janitor_each_day=True,
+            )
+
+        journal_calls = [c for c in calls if "--task" in c and "journal" in c and "--force-distill" in c]
+        assert len(journal_calls) == 1
+        failure_files = sorted((workspace / "logs").glob("janitor_failure_journal_*.json"))
+        assert len(failure_files) == 1
+        failure_payload = json.loads(failure_files[0].read_text())
+        assert failure_payload["returncode"] == 1
+        assert failure_payload["stderr"] == "weekly distillation exploded"
+        assert failure_payload["stdout"] == "weekly stdout"
+        assert "artifact=" in str(excinfo.value)
+
+    def test_resume_day_lifecycle_skips_completed_days(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+        for rel in ["config", "journal", "projects/quaid"]:
+            (workspace / rel).mkdir(parents=True, exist_ok=True)
+        for rel in ["IDENTITY.md", "MEMORY.md", "SOUL.md", "TOOLS.md", "USER.md"]:
+            (workspace / rel).write_text(f"{rel}\n")
+
+        fake_reviews = [_FakeReview(1), _FakeReview(2), _FakeReview(3)]
+        fake_dates = {1: "2026-03-01", 2: "2026-03-03", 3: "2026-03-04"}
+        monkeypatch.setattr(rpb, "SESSION_DATES", fake_dates)
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: fake_reviews)
+        monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
+        monkeypatch.setattr(
+            rpb, "parse_extraction_response",
+            lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
+        )
+        processed_dates = []
+        monkeypatch.setattr(rpb, "_store_facts", lambda _ws, _facts, _env, _snum, date: (processed_dates.append(date), (0, 0))[1])
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_project_logs", lambda *a, **k: {})
+        fake_repo = tmp_path / "recipe-app"
+        (fake_repo / ".git").mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(rpb, "_resolve_project_source_repo", lambda _p: fake_repo)
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable, "-m", "stub"])
+        monkeypatch.setattr(rpb.subprocess, "run", lambda cmd, **kwargs: _FakeSubprocessResult())
+
+        rpb._save_lifecycle_resume_checkpoint(
+            workspace,
+            completed_days=1,
+            total_days=3,
+            current_day="2026-03-01",
+            counters={"janitor_runs": 1, "weekly_distill_runs": 1},
+        )
+        state = rpb.restore_lifecycle_resume_checkpoint(workspace)
+        assert state is not None
+
+        result = rpb.run_per_day_extraction(
+            workspace=workspace,
+            api_key="dummy",
+            no_cache=True,
+            model="claude-haiku-4-5-20251001",
+            max_sessions=3,
+            run_janitor_each_day=True,
+            resume_state=state,
+        )
+
+        assert processed_dates == ["2026-03-03", "2026-03-04"]
+        assert result["janitor_runs"] == 3

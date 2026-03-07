@@ -168,6 +168,15 @@ def parse_score(run_dir: Path, kind: str) -> Optional[float]:
                     return float(d["scores"]["overall"]["llm_judge"])
                 except Exception:
                     pass
+        # Active-run preview: deterministic partial metrics during eval, before final judge.
+        pp = run_dir / "locomo_results.partial.json"
+        if pp.exists():
+            d = load_json(pp)
+            if d:
+                try:
+                    return float(d["scores"]["overall"]["token_f1"])
+                except Exception:
+                    pass
         # Back-compat fallback if a scores.json was produced.
         p = run_dir / "scores.json"
         if p.exists():
