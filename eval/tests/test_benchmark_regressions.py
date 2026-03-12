@@ -541,6 +541,8 @@ class TestMakeEnv:
         assert env["MEMORY_DB_PATH"] == str(workspace.resolve() / "data" / "memory.db")
         assert env["QUAID_DISABLE_NOTIFICATIONS"] == "1"
         assert (workspace / "benchrunner" / "config" / "memory.json").exists()
+        assert (workspace / "benchrunner" / "projects").is_symlink()
+        assert (workspace / "benchrunner" / "projects").resolve() == (workspace / "projects").resolve()
 
     def test_pythonpath_set(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"

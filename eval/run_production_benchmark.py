@@ -4505,6 +4505,23 @@ def _ensure_quaid_instance_layout(workspace: Path, instance_id: str = _BENCHMARK
     elif not instance_cfg.exists():
         instance_cfg.write_text(json.dumps({"adapter": {"type": "standalone"}}), encoding="utf-8")
 
+    # Runtime project tooling resolves PROJECT.md under the instance root. Mirror
+    # the shared benchmark project tree there so project updates and log appends
+    # operate on the seeded workspace files rather than a disconnected empty tree.
+    flat_projects = workspace / "projects"
+    instance_projects = instance_root / "projects"
+    if instance_projects.is_symlink():
+        current_target = instance_projects.resolve(strict=False)
+        if current_target != flat_projects:
+            instance_projects.unlink()
+    elif instance_projects.exists():
+        if instance_projects.is_dir():
+            shutil.rmtree(instance_projects)
+        else:
+            instance_projects.unlink()
+    if not instance_projects.exists():
+        instance_projects.symlink_to(flat_projects, target_is_directory=True)
+
     return instance_root
 
 
