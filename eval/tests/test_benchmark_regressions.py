@@ -1277,6 +1277,7 @@ class TestWriteProjectLogs:
             captured["workspace_env"] = os.environ.get("CLAWDBOT_WORKSPACE")
             captured["quaid_home_env"] = os.environ.get("QUAID_HOME")
             captured["memory_db_env"] = os.environ.get("MEMORY_DB_PATH")
+            captured["instance_env"] = os.environ.get("QUAID_INSTANCE")
             return {
                 "projects_seen": 1, "projects_updated": 1,
                 "entries_seen": 2, "entries_written": 2,
@@ -1294,12 +1295,14 @@ class TestWriteProjectLogs:
             project_logs={"recipe-app": ["note one", "note two"]},
             trigger="Compaction",
             date_str="2026-03-15",
+            quaid_instance="benchrunner",
         )
 
         assert metrics["entries_written"] == 2
         assert captured["workspace_env"] == str(workspace)
         assert captured["quaid_home_env"] == str(workspace)
         assert captured["memory_db_env"] == str(workspace / "data" / "memory.db")
+        assert captured["instance_env"] == "benchrunner"
         assert captured["project_logs"]["recipe-app"] == ["note one", "note two"]
 
     def test_legacy_fallback_positional_only(self, tmp_path, monkeypatch):
@@ -1326,6 +1329,7 @@ class TestWriteProjectLogs:
             project_logs={"recipe-app": ["note 1"], "portfolio": ["note 2"]},
             trigger="Compaction",
             date_str="2026-03-15",
+            quaid_instance="benchrunner",
         )
 
         assert len(calls) == 2
@@ -1363,6 +1367,7 @@ class TestWriteProjectLogs:
         ec.write_project_logs(
             str(workspace),
             {"app": ["dup", "dup", "  ", "real"]},
+            quaid_instance="benchrunner",
         )
         assert captured["logs"] == {"app": ["dup", "real"]}
 
@@ -1382,12 +1387,30 @@ class TestWriteProjectLogs:
         monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
 
         original_ws = "ORIGINAL_WS"
+        original_instance = "ORIGINAL_INSTANCE"
         monkeypatch.setenv("CLAWDBOT_WORKSPACE", original_ws)
+        monkeypatch.setenv("QUAID_INSTANCE", original_instance)
 
-        ec.write_project_logs(str(workspace), {"app": ["note"]})
+        ec.write_project_logs(str(workspace), {"app": ["note"]}, quaid_instance="benchrunner")
 
         # Must restore original env
         assert os.environ.get("CLAWDBOT_WORKSPACE") == original_ws
+        assert os.environ.get("QUAID_INSTANCE") == original_instance
+
+    def test_requires_quaid_instance(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = workspace / "modules" / "quaid"
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        quaid_dir.mkdir(parents=True, exist_ok=True)
+
+        ds, ddb, upd = _fake_updater_module("append_project_logs", lambda *a, **k: {})
+        monkeypatch.setitem(sys.modules, "datastore", ds)
+        monkeypatch.setitem(sys.modules, "datastore.docsdb", ddb)
+        monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
+        monkeypatch.delenv("QUAID_INSTANCE", raising=False)
+
+        with pytest.raises(RuntimeError, match="QUAID_INSTANCE"):
+            ec.write_project_logs(str(workspace), {"app": ["note"]})
 
 
 # ===================================================================
@@ -1732,6 +1755,99 @@ class TestPerDayExtraction:
         assert len(jan_calls) == 0
         assert result["janitor_runs"] == 0
         assert result["weekly_distill_runs"] == 0
+
+    def test_project_log_writes_use_benchmark_instance(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+
+        fake_dates = {1: "2026-03-01"}
+        monkeypatch.setattr(rpb, "SESSION_DATES", fake_dates)
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+        monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["project"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
+        monkeypatch.setattr(
+            rpb, "parse_extraction_response",
+            lambda _raw: {
+                "facts": [],
+                "soul_snippets": {},
+                "journal_entries": {},
+                "project_logs": {"recipe-app": ["note"]},
+            },
+        )
+        monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
+        monkeypatch.setattr(rpb.subprocess, "run", lambda cmd, **k: _FakeSubprocessResult())
+
+        captured = {}
+
+        def _write_project_logs(*args, **kwargs):
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return {}
+
+        monkeypatch.setattr(rpb, "write_project_logs", _write_project_logs)
+
+        rpb.run_per_day_extraction(
+            workspace=workspace,
+            api_key="dummy",
+            no_cache=True,
+            run_janitor_each_day=False,
+        )
+
+        assert captured["kwargs"]["quaid_instance"] == rpb._BENCHMARK_QUAID_INSTANCE
+
+    def test_project_log_failure_is_fatal(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+
+        fake_dates = {1: "2026-03-01"}
+        monkeypatch.setattr(rpb, "SESSION_DATES", fake_dates)
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+        monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["project"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
+        monkeypatch.setattr(
+            rpb, "parse_extraction_response",
+            lambda _raw: {
+                "facts": [],
+                "soul_snippets": {},
+                "journal_entries": {},
+                "project_logs": {"recipe-app": ["note"]},
+            },
+        )
+        monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
+        monkeypatch.setattr(rpb.subprocess, "run", lambda cmd, **k: _FakeSubprocessResult())
+        monkeypatch.setattr(
+            rpb,
+            "write_project_logs",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("project logs exploded")),
+        )
+
+        with pytest.raises(RuntimeError, match="project logs exploded"):
+            rpb.run_per_day_extraction(
+                workspace=workspace,
+                api_key="dummy",
+                no_cache=True,
+                run_janitor_each_day=False,
+            )
 
     def test_daily_janitor_failure_is_fatal(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"

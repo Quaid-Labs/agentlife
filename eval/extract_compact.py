@@ -735,6 +735,7 @@ def write_project_logs(
     project_logs: dict,
     trigger: str = "Compaction",
     date_str: str | None = None,
+    quaid_instance: str | None = None,
 ) -> dict:
     """Append project logs to PROJECT.md via core project_updater."""
     if not isinstance(project_logs, dict) or not project_logs:
@@ -785,8 +786,7 @@ def write_project_logs(
                 quaid_dir = str(candidate)
                 break
     if not quaid_dir:
-        print("  Project log append failed: unable to resolve quaid module path", file=sys.stderr)
-        return {}
+        raise RuntimeError("Project log append failed: unable to resolve quaid module path")
 
     quaid_pkg_root = str(Path(quaid_dir))
     if quaid_pkg_root not in sys.path:
@@ -796,10 +796,17 @@ def write_project_logs(
         prev_workspace = os.environ.get("CLAWDBOT_WORKSPACE")
         prev_quaid_home = os.environ.get("QUAID_HOME")
         prev_memory_db = os.environ.get("MEMORY_DB_PATH")
+        prev_instance = os.environ.get("QUAID_INSTANCE")
         try:
             os.environ["CLAWDBOT_WORKSPACE"] = workspace
             os.environ["QUAID_HOME"] = workspace
             os.environ["MEMORY_DB_PATH"] = str(Path(workspace) / "data" / "memory.db")
+            resolved_instance = str(quaid_instance or os.environ.get("QUAID_INSTANCE", "")).strip()
+            if not resolved_instance:
+                raise RuntimeError(
+                    "Project log append failed: QUAID_INSTANCE environment variable is not set"
+                )
+            os.environ["QUAID_INSTANCE"] = resolved_instance
             import datastore.docsdb.project_updater as _project_updater  # type: ignore
 
             append_fn = getattr(_project_updater, "append_project_logs", None)
@@ -830,17 +837,14 @@ def write_project_logs(
                         if written > 0:
                             metrics["projects_updated"] += 1
                     except Exception as exc:
-                        print(f"  Legacy project log append failed for {project_name}: {exc}", file=sys.stderr)
+                        raise RuntimeError(
+                            f"Legacy project log append failed for {project_name}: {exc}"
+                        ) from exc
                 return metrics
 
-            print(
-                "  Project log append failed: no append_project_logs/append_project_log_entries symbol",
-                file=sys.stderr,
+            raise RuntimeError(
+                "Project log append failed: no append_project_logs/append_project_log_entries symbol"
             )
-            return {}
-        except Exception as e:
-            print(f"  Project log append failed: {e}", file=sys.stderr)
-            return {}
         finally:
             if prev_workspace is None:
                 os.environ.pop("CLAWDBOT_WORKSPACE", None)
@@ -854,6 +858,10 @@ def write_project_logs(
                 os.environ.pop("MEMORY_DB_PATH", None)
             else:
                 os.environ["MEMORY_DB_PATH"] = prev_memory_db
+            if prev_instance is None:
+                os.environ.pop("QUAID_INSTANCE", None)
+            else:
+                os.environ["QUAID_INSTANCE"] = prev_instance
 
 
 def truncate_session(session_file: str, summary: str | None = None):

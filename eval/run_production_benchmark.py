@@ -1746,15 +1746,13 @@ def run_extraction(
         if content and write_journal_entry(ws, filename, content, "Compaction", last_date):
             total_journals += 1
 
-    try:
-        project_log_metrics = write_project_logs(
-            ws,
-            extraction_project_logs,
-            trigger="Compaction",
-            date_str=last_date,
-        )
-    except Exception as e:
-        print(f"    WARN: project log append failed: {e}")
+    project_log_metrics = write_project_logs(
+        ws,
+        extraction_project_logs,
+        trigger="Compaction",
+        date_str=last_date,
+        quaid_instance=_BENCHMARK_QUAID_INSTANCE,
+    )
 
     # DB verify
     db_path = workspace / "data" / "memory.db"
@@ -2331,28 +2329,26 @@ def run_per_day_extraction(
         total_edges += edges
         total_domain_missing += day_domain_missing
 
-        try:
-            ws = str(workspace)
-            pl_metrics = write_project_logs(
-                ws,
-                day_project_logs,
-                trigger="Compaction",
-                date_str=date,
+        ws = str(workspace)
+        pl_metrics = write_project_logs(
+            ws,
+            day_project_logs,
+            trigger="Compaction",
+            date_str=date,
+            quaid_instance=_BENCHMARK_QUAID_INSTANCE,
+        )
+        if isinstance(pl_metrics, dict) and pl_metrics:
+            total_project_logs_written += int(pl_metrics.get("entries_written", 0))
+            total_project_logs_seen += int(pl_metrics.get("entries_seen", 0))
+            total_project_logs_projects_updated += int(pl_metrics.get("projects_updated", 0))
+            print(
+                "  Project logs: "
+                f"seen={pl_metrics.get('entries_seen', 0)} "
+                f"written={pl_metrics.get('entries_written', 0)} "
+                f"projects_updated={pl_metrics.get('projects_updated', 0)} "
+                f"unknown={pl_metrics.get('projects_unknown', 0)} "
+                f"missing={pl_metrics.get('projects_missing_file', 0)}"
             )
-            if isinstance(pl_metrics, dict) and pl_metrics:
-                total_project_logs_written += int(pl_metrics.get("entries_written", 0))
-                total_project_logs_seen += int(pl_metrics.get("entries_seen", 0))
-                total_project_logs_projects_updated += int(pl_metrics.get("projects_updated", 0))
-                print(
-                    "  Project logs: "
-                    f"seen={pl_metrics.get('entries_seen', 0)} "
-                    f"written={pl_metrics.get('entries_written', 0)} "
-                    f"projects_updated={pl_metrics.get('projects_updated', 0)} "
-                    f"unknown={pl_metrics.get('projects_unknown', 0)} "
-                    f"missing={pl_metrics.get('projects_missing_file', 0)}"
-                )
-        except Exception as e:
-            print(f"    WARN: project log append failed: {e}")
 
         print(f"  Stored: {stored} facts, {edges} edges, domain_missing={day_domain_missing}")
 
