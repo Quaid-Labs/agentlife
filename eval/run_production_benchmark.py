@@ -417,6 +417,7 @@ PROJECT_SESSIONS = sorted(
 
 _DOMAIN_ALIASES = {
     "projects": "project",
+    "financial": "finance",
 }
 
 def _normalize_domain_list(raw_domains: list) -> List[str]:

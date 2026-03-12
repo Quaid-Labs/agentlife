@@ -88,6 +88,10 @@ class TestNormalizeDomainList:
         out = rpb._normalize_domain_list(["projects"])
         assert out == ["project"]
 
+    def test_alias_financial_to_finance(self):
+        out = rpb._normalize_domain_list(["financial", "work", "finance"])
+        assert out == ["finance", "work"]
+
     def test_project_and_projects_dedup(self):
         out = rpb._normalize_domain_list(["project", "projects"])
         assert out == ["project"]
