@@ -641,6 +641,54 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
     assert data["preinject_recall_telemetry"]["parallel_speedup_x"]["avg"] == 2.18
     assert data["preinject_recall_telemetry"]["parallel_efficiency_pct"]["avg"] == 72.7
     assert data["preinject_recall_telemetry"]["parallel_overhead_ms"]["avg"] == 8
+    assert data["preinject_usage"] == {
+        "enabled": 0,
+        "attempted": 0,
+        "surfaced": 0,
+        "not_surfaced": 0,
+    }
+    assert data["repeated_memory_recall"]["queries"] == 0
+
+
+def test_analyze_tool_call_details_flags_quality_gate_followups():
+    details = [
+        {
+            "tool": "memory_recall",
+            "query": "Maya career TechFlow Stripe",
+            "result_chars": 1700,
+            "recall_meta": {"stop_reason": "quality_gate_met"},
+        },
+        {
+            "tool": "memory_recall",
+            "query": "Maya resignation timeline",
+            "result_chars": 900,
+            "recall_meta": {"stop_reason": "quality_gate_met"},
+        },
+        {
+            "tool": "search_project_docs",
+            "query": "stripe onboarding",
+        },
+    ]
+
+    out = rpb._analyze_tool_call_details(details)
+
+    assert out["memory_recall_count"] == 2
+    assert out["repeated_memory_recall"] is True
+    assert out["followup_after_quality_gate"] == 1
+    assert out["repeated_memory_recall_classes"] == {"time_slice_split": 1}
+
+
+def test_build_eval_context_sources_dedupes_duplicate_core_variants(tmp_path):
+    workspace = tmp_path / "ws"
+    (workspace / "projects" / "quaid").mkdir(parents=True)
+    (workspace / "SOUL.md").write_text("same content")
+    (workspace / "projects" / "quaid" / "SOUL.md").write_text("same content")
+    (workspace / "TOOLS.md").write_text("tools root")
+
+    sources = rpb._build_eval_context_sources(workspace, core_files=["SOUL.md", "TOOLS.md"], include_project_bootstrap=False)
+
+    assert [s["path"] for s in sources] == ["SOUL.md", "TOOLS.md"]
+    assert sources[0]["chars"] == len("same content")
 
 
 def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatch):
@@ -1658,6 +1706,20 @@ def test_canonical_eval_query_count_is_268():
     )
 
     assert total == 268
+
+
+def test_statement_context_grounding_query_set_is_opt_in():
+    import importlib.util
+    from pathlib import Path
+
+    dataset_path = Path("~/<username>/agentlife-benchmark/eval/dataset.py")
+    spec = importlib.util.spec_from_file_location("benchmark_dataset", dataset_path)
+    assert spec is not None and spec.loader is not None
+    dataset = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dataset)
+
+    assert len(dataset.get_statement_context_queries()) == 6
+    assert all(q["query_type"] == "statement_context_grounding" for q in dataset.get_statement_context_queries())
 
 
 # ===================================================================

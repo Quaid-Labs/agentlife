@@ -29,6 +29,7 @@ Usage:
 import argparse
 import concurrent.futures
 import hashlib
+import importlib.util
 import json
 import os
 import random
@@ -375,10 +376,17 @@ def _load_reviews_with_dataset_gate(max_sessions: Optional[int]) -> Tuple[Path, 
     return assets_dir, reviews, current_version, expected_queries
 
 sys.path.insert(0, str(_DIR))
-from dataset import (
-    load_all_reviews, get_all_eval_queries, format_transcript_for_extraction,
-    SESSION_DATES, SESSION_TRACKS,
-)
+_DATASET_SPEC = importlib.util.spec_from_file_location("agentlife_benchmark_dataset", _DIR / "dataset.py")
+if _DATASET_SPEC is None or _DATASET_SPEC.loader is None:
+    raise RuntimeError(f"Unable to load dataset module from {_DIR / 'dataset.py'}")
+_DATASET = importlib.util.module_from_spec(_DATASET_SPEC)
+_DATASET_SPEC.loader.exec_module(_DATASET)
+load_all_reviews = _DATASET.load_all_reviews
+get_all_eval_queries = _DATASET.get_all_eval_queries
+get_statement_context_queries = _DATASET.get_statement_context_queries
+format_transcript_for_extraction = _DATASET.format_transcript_for_extraction
+SESSION_DATES = _DATASET.SESSION_DATES
+SESSION_TRACKS = _DATASET.SESSION_TRACKS
 from extract_compact import (
     build_extraction_prompt, parse_extraction_response,
     write_snippet_entry, write_journal_entry, write_project_logs,
@@ -2596,7 +2604,8 @@ def verify_post_janitor(workspace: Path) -> None:
 def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
              eval_model: str = "claude-haiku-4-5-20251001",
              context_inject: bool = True,
-             judge_model: str = "gpt-4o-mini") -> List[dict]:
+             judge_model: str = "gpt-4o-mini",
+             include_statement_grounding: bool = False) -> List[dict]:
     """Evaluate using tool use (memory_recall + search_project_docs).
 
     If context_inject=True, pre-recalls memories and injects them into the
@@ -2613,6 +2622,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
     reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
     all_queries = get_all_eval_queries(reviews)
+    if include_statement_grounding:
+        all_queries.extend(get_statement_context_queries())
     try:
         max_queries_env = int(os.environ.get("BENCHMARK_MAX_QUERIES", "0") or "0")
     except Exception:
@@ -2622,10 +2633,11 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
 
     # Dataset integrity gate (full/eval runs): fail fast if query-set drifts.
     # Smoke/sample runs can bypass via BENCHMARK_MAX_QUERIES>0.
+    default_query_count = 268 + (len(get_statement_context_queries()) if include_statement_grounding else 0)
     try:
-        required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", "268") or "268")
+        required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", str(default_query_count)) or str(default_query_count))
     except Exception:
-        required_query_count = 268
+        required_query_count = default_query_count
     if required_query_count > 0 and max_queries_env <= 0 and len(all_queries) != required_query_count:
         raise RuntimeError(
             f"Dataset integrity gate failed: expected {required_query_count} eval queries, got {len(all_queries)}. "
@@ -2634,6 +2646,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         )
     print(f"  Assets dir: {assets_dir}")
     print(f"  {len(all_queries)} queries to evaluate (from {len(reviews)} sessions)")
+    if include_statement_grounding:
+        print(f"  Statement-grounding experiment: +{len(get_statement_context_queries())} queries")
     if len(reviews) == 0:
         raise RuntimeError(
             f"No review sessions found in assets directory: {assets_dir}. "
@@ -2658,8 +2672,14 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             core_files=["SOUL.md", "USER.md", "MEMORY.md"],
             include_project_bootstrap=False,
         )
+        eval_context_sources = _build_eval_context_sources(
+            workspace,
+            core_files=["SOUL.md", "USER.md", "MEMORY.md"],
+            include_project_bootstrap=False,
+        )
     else:
         eval_context = _build_eval_context(workspace)
+        eval_context_sources = _build_eval_context_sources(workspace)
     print(f"  Eval context profile: {profile}")
     print(f"  Eval context: {len(eval_context)} chars ({len(eval_context)//4} est tokens)")
     eval_provider = _resolve_eval_provider(workspace, eval_model)
@@ -2717,9 +2737,31 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             context_inject=context_inject,
         )
         answer_duration = time.time() - t0
+        tool_analysis = _analyze_tool_call_details(q_usage.get("tool_call_details", []) or [])
+        provenance = {
+            "eval_context_sources": eval_context_sources,
+            "preinject": q_usage.get("preinject") or {},
+            "tool_calls": q_usage.get("tool_call_details", []) or [],
+            "tool_analysis": tool_analysis,
+        }
+        audit_response = ""
         if query_type == "non_question":
             label, score = _judge_non_question(
                 question, ground_truth, prediction, api_key, judge_model=None
+            )
+        elif query_type == "statement_context_grounding":
+            audit_response = _run_no_tool_followup(
+                _statement_grounding_audit_prompt(question, prediction),
+                api_key=api_key,
+                model=eval_model,
+            )
+            label, score = _judge_statement_context_grounding(
+                query=query,
+                prediction=prediction,
+                audit_response=audit_response,
+                provenance=provenance,
+                api_key=api_key,
+                judge_model=None,
             )
         else:
             label, score = _judge(question, ground_truth, prediction, api_key, judge_model=judge_model)
@@ -2732,6 +2774,15 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 )
             else:
                 ret_label, ret_score = "CORRECT", 1.0
+        elif query_type == "statement_context_grounding":
+            ret_label, ret_score = _judge_statement_context_grounding(
+                query=query,
+                prediction=retrieval_context or "",
+                audit_response=audit_response,
+                provenance=provenance,
+                api_key=api_key,
+                judge_model=None,
+            ) if retrieval_context else ("WRONG", 0.0)
         elif retrieval_context:
             ret_label, ret_score = _judge(
                 question, ground_truth, retrieval_context, api_key, judge_model=judge_model)
@@ -2754,6 +2805,11 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "tool_calls": tool_calls,
             "tool_call_details": q_usage.get("tool_call_details", []),
             "tool_results_summary": tool_results_log,
+            "tool_analysis": tool_analysis,
+            "statement_context_audit": audit_response,
+            "provenance": provenance,
+            "required_context": query.get("required_context", []),
+            "retrieval_texts": recall_texts,
             "answer_duration_s": round(answer_duration, 2),
             "preinject_duration_ms": q_usage.get("preinject_duration_ms"),
             "eval_tokens": q_usage,
@@ -3042,6 +3098,56 @@ def _iter_eval_core_markdown_variants(workspace: Path, md_name: str) -> List[Tup
     return variants
 
 
+def _build_eval_context_sources(
+    workspace: Path,
+    core_files: Optional[List[str]] = None,
+    include_project_bootstrap: bool = True,
+) -> List[Dict[str, Any]]:
+    """Return structured provenance for injected eval markdown context."""
+    sources: List[Dict[str, Any]] = []
+
+    if core_files is None:
+        core_files = ["SOUL.md", "USER.md", "MEMORY.md", "TOOLS.md"]
+
+    for md in core_files:
+        if md in {"SOUL.md", "USER.md", "MEMORY.md"}:
+            for rel, content in _iter_eval_core_markdown_variants(workspace, md):
+                sources.append({
+                    "path": str(rel),
+                    "chars": len(content),
+                    "est_tokens": len(content) // 4,
+                    "source_group": "core_markdown",
+                })
+            continue
+
+        path = workspace / md
+        if path.exists():
+            content = path.read_text().strip()
+            if content:
+                rel = path.relative_to(workspace) if path.is_absolute() else path
+                sources.append({
+                    "path": str(rel),
+                    "chars": len(content),
+                    "est_tokens": len(content) // 4,
+                    "source_group": "core_markdown",
+                })
+
+    if include_project_bootstrap:
+        for pattern in ["projects/*/TOOLS.md", "projects/*/AGENTS.md"]:
+            for f in sorted(workspace.glob(pattern)):
+                content = f.read_text().strip()
+                if content:
+                    rel = f.relative_to(workspace)
+                    sources.append({
+                        "path": str(rel),
+                        "chars": len(content),
+                        "est_tokens": len(content) // 4,
+                        "source_group": "project_bootstrap",
+                    })
+
+    return sources
+
+
 def _resolve_eval_core_path(workspace: Path, md_name: str) -> Path:
     """Resolve the best source file for eval core markdown context.
 
@@ -3131,6 +3237,123 @@ def _pre_recall(
     return recall_text, question, recall_meta
 
 
+def _query_terms(query: str) -> set[str]:
+    return {
+        tok
+        for tok in re.findall(r"[a-z0-9]+", (query or "").lower())
+        if len(tok) >= 3
+    }
+
+
+def _classify_recall_followup(previous: dict, current: dict) -> str:
+    """Classify why an agent issued another memory_recall in the same answer turn."""
+    prev_query = str(previous.get("query") or "")
+    curr_query = str(current.get("query") or "")
+    prev_terms = _query_terms(prev_query)
+    curr_terms = _query_terms(curr_query)
+    added_terms = curr_terms - prev_terms
+    prev_chars = int(previous.get("result_chars") or 0)
+    prev_stop = str(((previous.get("recall_meta") or {}).get("stop_reason")) or "")
+
+    if prev_chars <= 80 or prev_stop in {"planner_returned_empty", "empty_query"}:
+        return "empty_result_retry"
+    if {"week", "today", "tonight", "tomorrow", "date", "timeline"} & added_terms:
+        return "time_slice_split"
+    if {"relationship", "related", "parent", "brother", "sister", "nephew", "niece"} & added_terms:
+        return "graph_hop_split"
+    if prev_terms & curr_terms:
+        return "facet_split"
+    return "new_probe"
+
+
+def _analyze_tool_call_details(tool_call_details: List[dict]) -> Dict[str, Any]:
+    """Summarize multi-tool behavior and repeated memory-recall patterns."""
+    tool_counts: Dict[str, int] = {}
+    recall_calls = [d for d in tool_call_details if str(d.get("tool") or "") == "memory_recall"]
+    repeated_classes: Dict[str, int] = {}
+    repeated_examples: List[Dict[str, Any]] = []
+    followup_after_quality_gate = 0
+    followup_after_empty = 0
+    first_recall = recall_calls[0] if recall_calls else None
+
+    for detail in tool_call_details:
+        tool = str(detail.get("tool") or "unknown")
+        tool_counts[tool] = tool_counts.get(tool, 0) + 1
+
+    for idx in range(1, len(recall_calls)):
+        prev_detail = recall_calls[idx - 1]
+        curr_detail = recall_calls[idx]
+        followup_class = _classify_recall_followup(prev_detail, curr_detail)
+        repeated_classes[followup_class] = repeated_classes.get(followup_class, 0) + 1
+        prev_stop = str(((prev_detail.get("recall_meta") or {}).get("stop_reason")) or "")
+        if prev_stop == "quality_gate_met":
+            followup_after_quality_gate += 1
+        if prev_stop in {"planner_returned_empty", "empty_query"} or int(prev_detail.get("result_chars") or 0) <= 80:
+            followup_after_empty += 1
+        repeated_examples.append({
+            "class": followup_class,
+            "previous_query": prev_detail.get("query"),
+            "previous_result_chars": int(prev_detail.get("result_chars") or 0),
+            "previous_stop_reason": prev_stop,
+            "next_query": curr_detail.get("query"),
+        })
+
+    return {
+        "tool_counts": tool_counts,
+        "memory_recall_count": len(recall_calls),
+        "repeated_memory_recall": len(recall_calls) > 1,
+        "repeated_memory_recall_count": max(0, len(recall_calls) - 1),
+        "followup_after_quality_gate": followup_after_quality_gate,
+        "followup_after_empty": followup_after_empty,
+        "repeated_memory_recall_classes": repeated_classes,
+        "repeated_memory_recall_examples": repeated_examples,
+        "first_memory_recall": {
+            "query": first_recall.get("query") if first_recall else "",
+            "result_chars": int(first_recall.get("result_chars") or 0) if first_recall else 0,
+            "stop_reason": str(((first_recall.get("recall_meta") or {}).get("stop_reason")) or "") if first_recall else "",
+        },
+    }
+
+
+def _statement_grounding_audit_prompt(question: str, prediction: str) -> str:
+    return (
+        "Do not use tools for this response.\n"
+        "You previously handled the following user statement/task.\n\n"
+        f"Statement: {question}\n\n"
+        f"Your response: {prediction}\n\n"
+        "Audit yourself. Explain what context you relied on and where it came from.\n"
+        "Be concrete about whether it came from retrieved memories, project docs, or injected markdown context.\n"
+        "If you are unsure, say so instead of inventing provenance."
+    )
+
+
+def _run_no_tool_followup(prompt: str, api_key: str, model: str) -> str:
+    """Run a no-tool audit follow-up with the eval model when API backend is active."""
+    if _BACKEND != "api":
+        return ""
+    payload = {
+        "model": model,
+        "max_tokens": 512,
+        "system": "Answer the user's audit prompt directly. Do not use tools.",
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=json.dumps(payload).encode(),
+        headers=_anthropic_headers(api_key, prompt_caching=False),
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read())
+    except Exception:
+        return ""
+    parts = []
+    for block in data.get("content", []) or []:
+        if isinstance(block, dict) and block.get("type") == "text":
+            parts.append(str(block.get("text") or ""))
+    return "\n".join(p.strip() for p in parts if p.strip()).strip()
+
+
 def _tool_use_loop(
     question: str,
     eval_context: str,
@@ -3165,6 +3388,15 @@ def _tool_use_loop(
         "output_tokens": 0,
         "api_calls": 0,
         "tool_call_details": [],
+        "preinject_duration_ms": None,
+        "preinject": {
+            "enabled": context_inject,
+            "attempted": False,
+            "surfaced": False,
+            "skip_reason": "disabled" if not context_inject else "",
+            "query": "",
+            "result_chars": 0,
+        },
     }
     tools = [
         {
@@ -3172,6 +3404,8 @@ def _tool_use_loop(
             "description": (
                 "Search the memory database for facts about Maya — personal, project, technical, everything. "
                 "ALWAYS try this tool first before search_project_docs. "
+                "Start with one broad query when the task has multiple facets; memory_recall already fans out internally. "
+                "Only call memory_recall again if a specific facet is still missing after the first result. "
                 "Results include dates showing when each fact was recorded. "
                 "Use entity names (e.g. 'Maya', 'Liam', 'recipe app') not roles ('the user', 'her boyfriend')."
             ),
@@ -3227,13 +3461,21 @@ def _tool_use_loop(
 
     if context_inject:
         pre_t0 = time.time()
+        usage_total["preinject"]["attempted"] = True
         recall_text, query_used, recall_meta = _pre_recall(
             question, workspace, env,
             max_session=max_session, date_to=date_to,
         )
         pre_duration_ms = int((time.time() - pre_t0) * 1000)
         usage_total["preinject_duration_ms"] = pre_duration_ms
+        usage_total["preinject"]["query"] = query_used
+        usage_total["preinject"]["result_chars"] = len(recall_text or "")
+        if isinstance(recall_meta, dict):
+            usage_total["preinject"]["stop_reason"] = recall_meta.get("stop_reason")
+            usage_total["preinject"]["skip_reason"] = recall_meta.get("stop_reason") or ""
         if recall_text and "No memories found" not in recall_text:
+            usage_total["preinject"]["surfaced"] = True
+            usage_total["preinject"]["skip_reason"] = ""
             injected_context = (
                 f"\n\n## Retrieved Memories\n"
                 f"Query used: \"{query_used}\"\n\n"
@@ -3251,6 +3493,7 @@ def _tool_use_loop(
                 "duration_ms": pre_duration_ms,
                 "result_chars": len(recall_text or ""),
                 "result_preview_30": str(recall_text or "").strip().splitlines()[0][:30] if recall_text else "",
+                "result_excerpt_200": str(recall_text or "").strip()[:200],
                 "error": "",
                 "source": "preinject",
                 "recall_meta": recall_meta,
@@ -3346,7 +3589,9 @@ def _tool_use_loop(
                         "duration_ms": duration_ms,
                         "result_chars": len(result_text or ""),
                         "result_preview_30": str(result_text or "").strip().splitlines()[0][:30] if result_text else "",
+                        "result_excerpt_200": str(result_text or "").strip()[:200],
                         "error": str(result_text or "")[:80] if str(result_text).startswith("Error:") else "",
+                        "source": "tool",
                         "recall_meta": recall_meta if tool_name == "memory_recall" else None,
                     })
 
@@ -3626,6 +3871,33 @@ _NON_QUESTION_JUDGE_PROMPT = (
     "Return strict JSON only: {{\"label\": \"CORRECT\"}}, {{\"label\": \"PARTIAL\"}}, or {{\"label\": \"WRONG\"}}"
 )
 
+_STATEMENT_GROUNDING_JUDGE_PROMPT = (
+    "You are grading whether an assistant properly grounded a response to a shorthand statement/task.\n\n"
+    "This is NOT a direct question benchmark. The key issue is whether the assistant pulled in the right remembered "
+    "context and used it appropriately.\n\n"
+    "Grade CORRECT, PARTIAL, or WRONG.\n\n"
+    "Inputs:\n"
+    "- Statement/task from the user\n"
+    "- Expected grounding behavior\n"
+    "- Assistant response\n"
+    "- Assistant self-audit of what context it used\n"
+    "- Actual provenance surfaced during the run\n\n"
+    "Scoring rubric:\n"
+    "- CORRECT: The response is appropriately grounded in the needed context, the provenance shows the relevant context "
+    "was surfaced, and the self-audit is broadly consistent with that provenance.\n"
+    "- PARTIAL: The response is somewhat helpful but generic, misses part of the needed context, or the self-audit / "
+    "provenance alignment is weak.\n"
+    "- WRONG: The response clearly misses the required context, uses the wrong context, hallucinates provenance, or "
+    "behaves as if it had no relevant memory when the task depended on it.\n\n"
+    "Statement/task: {question}\n"
+    "Expected grounding behavior: {ground_truth}\n"
+    "Required context hints: {required_context}\n"
+    "Assistant response: {prediction}\n"
+    "Assistant self-audit: {audit_response}\n"
+    "Actual provenance: {provenance}\n\n"
+    "Return strict JSON only: {{\"label\": \"CORRECT\"}}, {{\"label\": \"PARTIAL\"}}, or {{\"label\": \"WRONG\"}}"
+)
+
 
 # Cost per 1M tokens (Feb 2026)
 _MODEL_COSTS = {
@@ -3799,6 +4071,40 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
 
     preinject_recall_metas = _collect_recall_metas("preinject")
     tool_recall_metas = _collect_recall_metas("tool")
+    repeated_recall_queries = 0
+    repeated_recall_classes: Dict[str, int] = {}
+    followup_after_quality_gate = 0
+    followup_after_empty = 0
+    preinject_counts = {"enabled": 0, "attempted": 0, "surfaced": 0, "not_surfaced": 0}
+    statement_grounding = {"count": 0, "correct": 0, "partial": 0, "wrong": 0}
+    for r in results:
+        tool_analysis = r.get("tool_analysis") or {}
+        if tool_analysis.get("repeated_memory_recall"):
+            repeated_recall_queries += 1
+        followup_after_quality_gate += int(tool_analysis.get("followup_after_quality_gate") or 0)
+        followup_after_empty += int(tool_analysis.get("followup_after_empty") or 0)
+        for key, value in (tool_analysis.get("repeated_memory_recall_classes") or {}).items():
+            repeated_recall_classes[str(key)] = repeated_recall_classes.get(str(key), 0) + int(value)
+
+        preinject = (r.get("eval_tokens", {}) or {}).get("preinject") or {}
+        if preinject.get("enabled"):
+            preinject_counts["enabled"] += 1
+        if preinject.get("attempted"):
+            preinject_counts["attempted"] += 1
+        if preinject.get("surfaced"):
+            preinject_counts["surfaced"] += 1
+        elif preinject.get("attempted"):
+            preinject_counts["not_surfaced"] += 1
+
+        if r.get("query_type") == "statement_context_grounding":
+            statement_grounding["count"] += 1
+            label = str(r.get("judge_label") or "")
+            if label == "CORRECT":
+                statement_grounding["correct"] += 1
+            elif label == "PARTIAL":
+                statement_grounding["partial"] += 1
+            else:
+                statement_grounding["wrong"] += 1
 
     usage = {
         "eval": {
@@ -3821,6 +4127,14 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
         },
         "preinject_recall_telemetry": _aggregate_recall_phase_metas(preinject_recall_metas),
         "tool_recall_telemetry": _aggregate_recall_phase_metas(tool_recall_metas),
+        "preinject_usage": preinject_counts,
+        "repeated_memory_recall": {
+            "queries": repeated_recall_queries,
+            "followup_after_quality_gate": followup_after_quality_gate,
+            "followup_after_empty": followup_after_empty,
+            "classes": repeated_recall_classes,
+        },
+        "statement_context_grounding": statement_grounding,
     }
 
     with open(workspace / "token_usage.json", "w") as f:
@@ -3868,6 +4182,32 @@ def _judge_non_question(
         prediction=prediction,
     )
     effective_model = (judge_model or os.environ.get("NON_QUESTION_JUDGE_MODEL", "gpt-4o")).strip()
+    if not effective_model.startswith("gpt-"):
+        effective_model = "gpt-4o"
+    return _judge_openai(prompt, model=effective_model)
+
+
+def _judge_statement_context_grounding(
+    query: dict,
+    prediction: str,
+    audit_response: str,
+    provenance: dict,
+    api_key: str,
+    judge_model: Optional[str] = None,
+) -> Tuple[str, float]:
+    """Judge whether a shorthand statement/task was properly grounded in context."""
+    if not prediction or prediction.strip().lower() in ("", "n/a"):
+        return "WRONG", 0.0
+
+    prompt = _STATEMENT_GROUNDING_JUDGE_PROMPT.format(
+        question=query.get("question", ""),
+        ground_truth=query.get("ground_truth", ""),
+        required_context=", ".join(query.get("required_context", []) or []) or "<none>",
+        prediction=prediction,
+        audit_response=audit_response or "<missing>",
+        provenance=json.dumps(provenance, ensure_ascii=True, sort_keys=True),
+    )
+    effective_model = (judge_model or os.environ.get("STATEMENT_GROUNDING_JUDGE_MODEL", "gpt-4o")).strip()
     if not effective_model.startswith("gpt-"):
         effective_model = "gpt-4o"
     return _judge_openai(prompt, model=effective_model)
@@ -4157,15 +4497,13 @@ def run_tier5_eval(
     Uses Sonnet for both answering and judging (3-point rubric).
     Returns list of result dicts with ei_score (0/1/2).
     """
-    from dataset import get_tier5_queries
-
     print("=" * 60)
     print(f"TIER 5: EMOTIONAL INTELLIGENCE ({eval_model})")
     print("=" * 60)
     resolved_judge_model = (judge_model or os.environ.get("TIER5_JUDGE_MODEL") or eval_model).strip()
     print(f"  Tier 5 judge model: {resolved_judge_model}")
 
-    queries = get_tier5_queries()
+    queries = _DATASET.get_tier5_queries()
     print(f"  {len(queries)} EI queries")
 
     eval_context = _build_eval_context(workspace)
@@ -4250,13 +4588,11 @@ def run_tier5_fc_baseline(
 ) -> List[dict]:
     """Full-context Tier 5 baseline: answer EI queries with all transcripts."""
     from collections import defaultdict
-    from dataset import get_tier5_queries
-
     print("=" * 60)
     print(f"TIER 5 FC BASELINE ({answer_model})")
     print("=" * 60)
 
-    queries = get_tier5_queries()
+    queries = _DATASET.get_tier5_queries()
     assets_dir = _resolve_assets_dir()
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
     reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
@@ -4739,6 +5075,14 @@ def _tool_use_loop_claude_code(
         "api_calls": 0,
         "tool_call_details": [],
         "preinject_duration_ms": None,
+        "preinject": {
+            "enabled": context_inject,
+            "attempted": False,
+            "surfaced": False,
+            "skip_reason": "disabled" if not context_inject else "",
+            "query": "",
+            "result_chars": 0,
+        },
     }
     tool_call_names = []
     tool_result_summaries = []
@@ -4748,13 +5092,21 @@ def _tool_use_loop_claude_code(
     injected_context = ""
     if context_inject:
         pre_t0 = time.time()
+        usage_total["preinject"]["attempted"] = True
         recall_text, query_used, recall_meta = _pre_recall(
             question, workspace, env,
             max_session=max_session, date_to=date_to,
         )
         pre_duration_ms = int((time.time() - pre_t0) * 1000)
         usage_total["preinject_duration_ms"] = pre_duration_ms
+        usage_total["preinject"]["query"] = query_used
+        usage_total["preinject"]["result_chars"] = len(recall_text or "")
+        if isinstance(recall_meta, dict):
+            usage_total["preinject"]["stop_reason"] = recall_meta.get("stop_reason")
+            usage_total["preinject"]["skip_reason"] = recall_meta.get("stop_reason") or ""
         if recall_text and "No memories found" not in recall_text:
+            usage_total["preinject"]["surfaced"] = True
+            usage_total["preinject"]["skip_reason"] = ""
             injected_context = (
                 f"\n\n## Retrieved Memories\n"
                 f"Query used: \"{query_used}\"\n\n"
@@ -4772,6 +5124,7 @@ def _tool_use_loop_claude_code(
                 "duration_ms": pre_duration_ms,
                 "result_chars": len(recall_text or ""),
                 "result_preview_30": str(recall_text or "").strip().splitlines()[0][:30] if recall_text else "",
+                "result_excerpt_200": str(recall_text or "").strip()[:200],
                 "error": "",
                 "source": "preinject",
                 "recall_meta": recall_meta,
@@ -4938,6 +5291,7 @@ def _tool_use_loop_claude_code(
                     "duration_ms": None,
                     "result_chars": len(replay),
                     "result_preview_30": replay.strip().splitlines()[0][:30] if replay else "",
+                    "result_excerpt_200": replay.strip()[:200] if replay else "",
                     "error": "",
                     "source": "fallback_replay",
                     "recall_meta": replay_meta,
@@ -5110,9 +5464,11 @@ def _parse_claude_stream_output(stdout_text: str) -> Tuple[str, List[str], List[
                     retrieval_texts.append(stdout)
             detail["result_chars"] = len(stdout or "")
             detail["result_preview_30"] = str(stdout or "").strip().splitlines()[0][:30] if stdout else ""
+            detail["result_excerpt_200"] = str(stdout or "").strip()[:200]
             detail["duration_ms"] = tool_meta.get("duration_ms") or tool_meta.get("durationMs")
             stderr = str(tool_meta.get("stderr") or "")
             detail["error"] = stderr[:160] if stderr else ""
+            detail["source"] = "tool"
             tool_call_details.append(detail)
 
         elif etype == "result":
@@ -5161,6 +5517,8 @@ def main():
                         help="LLM backend: claude-code (free, uses subscription) or api (direct Anthropic API, costs money)")
     parser.add_argument("--resume-day-lifecycle", action="store_true",
                         help="Resume ingest/day-janitor from latest successful day checkpoint in results-dir")
+    parser.add_argument("--include-statement-grounding", action="store_true",
+                        help="Include the opt-in statement-context-grounding eval set (dataset experiment)")
     args = parser.parse_args()
 
     workspace = Path(args.results_dir).resolve()
@@ -5179,6 +5537,7 @@ def main():
     print(f"  Skip-janitor: {args.skip_janitor}")
     print(f"  Resume-day-lifecycle: {args.resume_day_lifecycle}")
     print(f"  Context-inject: {args.context_inject}")
+    print(f"  Include statement grounding: {args.include_statement_grounding}")
     print(f"  Judge: {args.judge}")
     print()
 
@@ -5219,7 +5578,8 @@ def main():
         results = run_eval(workspace, api_key, max_sessions=args.max_sessions,
                           eval_model=args.eval_model,
                           context_inject=args.context_inject,
-                          judge_model=args.judge)
+                          judge_model=args.judge,
+                          include_statement_grounding=args.include_statement_grounding)
 
         results_path = workspace / "evaluation_results.json"
         with open(results_path, "w") as f:
@@ -5270,6 +5630,8 @@ def main():
                 "judge_model": args.judge,
                 "tool_use": True,
                 "max_sessions": args.max_sessions,
+                "include_statement_grounding": args.include_statement_grounding,
+                "dataset_variant": "canonical+statement_grounding" if args.include_statement_grounding else "canonical",
             },
         }
         with open(scores_path, "w") as f:
@@ -5332,7 +5694,8 @@ def main():
         results = run_eval(workspace, api_key, max_sessions=args.max_sessions,
                           eval_model=args.eval_model,
                           context_inject=args.context_inject,
-                          judge_model=args.judge)
+                          judge_model=args.judge,
+                          include_statement_grounding=args.include_statement_grounding)
 
         # Save results
         results_path = workspace / "evaluation_results.json"
@@ -5390,6 +5753,8 @@ def main():
                 "judge_model": args.judge,
                 "tool_use": True,
                 "max_sessions": args.max_sessions,
+                "include_statement_grounding": args.include_statement_grounding,
+                "dataset_variant": "canonical+statement_grounding" if args.include_statement_grounding else "canonical",
             },
         }
         with open(scores_path, "w") as f:

@@ -494,6 +494,11 @@ def get_all_eval_queries(reviews: List[SessionReview]) -> List[dict]:
     return all_queries
 
 
+def get_statement_context_queries() -> List[dict]:
+    """Return opt-in statement-grounding queries for preinject experiments."""
+    return list(STATEMENT_CONTEXT_GROUNDING_QUERIES)
+
+
 def get_tier5_queries() -> List[dict]:
     """Return Tier 5 Emotional Intelligence queries.
 
@@ -1617,6 +1622,144 @@ NON_QUESTION_QUERIES: List[dict] = [
         "source_session": 20,
         "query_num": 1111,
         "supporting_evidence": ["Non-question: casual greeting, no memory retrieval needed"],
+    },
+]
+
+
+# ---------------------------------------------------------------------------
+# Statement-grounding queries — commands/observations that need context
+# ---------------------------------------------------------------------------
+
+STATEMENT_CONTEXT_GROUNDING_QUERIES: List[dict] = [
+    {
+        "question": "help me plan around race week",
+        "ground_truth": (
+            "Should ground the response in Maya's current half marathon context: the race is on May 18, "
+            "2026, and Stripe starts on May 19, 2026. A strong response helps her taper, reduce overload, "
+            "and sequence race recovery against the job transition instead of giving generic productivity advice."
+        ),
+        "query_type": "statement_context_grounding",
+        "recall_difficulty": "Hard",
+        "evidence_sessions": [10, 20],
+        "source_session": 20,
+        "query_num": 1120,
+        "supporting_evidence": [
+            "Half marathon timing still matters",
+            "Stripe starts immediately after race week",
+            "This is a command, not a direct factual question",
+        ],
+        "required_context": [
+            "half marathon on May 18, 2026",
+            "Stripe starts May 19, 2026",
+            "needs taper / avoid overload",
+        ],
+    },
+    {
+        "question": "help me figure out what to say to David tonight about the house stuff",
+        "ground_truth": (
+            "Should use the remembered house-budget tension with David and the fact that he tends to process "
+            "internally. A strong response helps Maya approach the conversation calmly and concretely without "
+            "turning into an unsolicited recap dump."
+        ),
+        "query_type": "statement_context_grounding",
+        "recall_difficulty": "Hard",
+        "evidence_sessions": [18, 19, 20],
+        "source_session": 20,
+        "query_num": 1121,
+        "supporting_evidence": [
+            "David and Maya had house-budget tension",
+            "David tends to process internally",
+        ],
+        "required_context": [
+            "house budget / home-buying stress",
+            "David processes internally",
+            "Maya needs help framing the conversation",
+        ],
+    },
+    {
+        "question": "tighten up the recipe app plan for me",
+        "ground_truth": (
+            "Should recognize that recipe-app is Maya's active side project and respond with a grounded plan "
+            "rather than a generic software roadmap. Strong answers mention concrete recipe-app work or next "
+            "steps already present in memory/project context."
+        ),
+        "query_type": "statement_context_grounding",
+        "recall_difficulty": "Medium",
+        "evidence_sessions": [5, 12, 20],
+        "source_session": 20,
+        "query_num": 1122,
+        "supporting_evidence": [
+            "recipe-app is an active project",
+            "The prompt assumes project context without spelling it out",
+        ],
+        "required_context": [
+            "recipe-app is Maya's project",
+            "should give project-specific next steps",
+        ],
+    },
+    {
+        "question": "help me sort out the Stripe transition this week",
+        "ground_truth": (
+            "Should ground in Maya's transition into Stripe and the surrounding workload instead of treating this "
+            "as an abstract career question. Strong answers frame onboarding, timing, and adjacent stressors in a "
+            "way that matches her actual situation."
+        ),
+        "query_type": "statement_context_grounding",
+        "recall_difficulty": "Hard",
+        "evidence_sessions": [15, 20],
+        "source_session": 20,
+        "query_num": 1123,
+        "supporting_evidence": [
+            "Maya is transitioning to Stripe",
+            "The task is planning-oriented, not direct recall",
+        ],
+        "required_context": [
+            "Stripe transition / onboarding",
+            "current-week planning",
+        ],
+    },
+    {
+        "question": "I should probably skip yoga again",
+        "ground_truth": (
+            "Should pick up that Maya reliably hates yoga and respond with context-aware support rather than "
+            "treating yoga as a neutral habit she wants to build. Strong answers can redirect toward alternatives "
+            "that better match her training preferences."
+        ),
+        "query_type": "statement_context_grounding",
+        "recall_difficulty": "Medium",
+        "evidence_sessions": [2, 11],
+        "source_session": 20,
+        "query_num": 1124,
+        "supporting_evidence": [
+            "Maya has repeatedly said she hates yoga",
+            "A grounded response should not push yoga generically",
+        ],
+        "required_context": [
+            "Maya hates yoga",
+            "prefer alternatives that fit her training",
+        ],
+    },
+    {
+        "question": "keep me from spiraling about mom and the house tonight",
+        "ground_truth": (
+            "Should recognize that Maya is carrying both family worry and house stress, then respond with a "
+            "calming, context-aware plan. Strong answers use the remembered concerns to prioritize emotional "
+            "grounding and concrete next steps instead of generic reassurance."
+        ),
+        "query_type": "statement_context_grounding",
+        "recall_difficulty": "Hard",
+        "evidence_sessions": [18, 19, 20],
+        "source_session": 20,
+        "query_num": 1125,
+        "supporting_evidence": [
+            "Mom health worry is active context",
+            "House stress is active context",
+        ],
+        "required_context": [
+            "mom health worry",
+            "house stress",
+            "needs calming, concrete guidance",
+        ],
     },
 ]
 
