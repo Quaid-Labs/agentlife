@@ -667,6 +667,49 @@ def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatc
     assert "Quaid likes espresso coffee" in text
     assert meta == {"mode": "deliberate", "total_ms": 42}
 
+
+def test_call_anthropic_cached_retries_http_520(monkeypatch):
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({
+                "content": [{"text": "ok"}],
+                "usage": {"input_tokens": 1, "output_tokens": 2},
+            }).encode()
+
+    attempts = {"n": 0}
+
+    def _urlopen(req, timeout=300):
+        attempts["n"] += 1
+        if attempts["n"] == 1:
+            raise urllib.error.HTTPError(
+                url=req.full_url,
+                code=520,
+                msg="edge failure",
+                hdrs=None,
+                fp=io.BytesIO(b"error code: 520"),
+            )
+        return _Resp()
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _urlopen)
+    monkeypatch.setattr(rpb.random, "uniform", lambda a, b: 0.0)
+    monkeypatch.setattr(rpb.time, "sleep", lambda _s: None)
+    monkeypatch.setenv("ANTHROPIC_RETRY_ATTEMPTS", "2")
+    monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_S", "0.5")
+    monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_CAP_S", "0.5")
+    monkeypatch.setattr(rpb, "_BACKEND", "api")
+
+    text, usage = rpb._call_anthropic_cached("system", "user", "claude-haiku-4-5-20251001", "sk-test")
+
+    assert attempts["n"] == 2
+    assert text == "ok"
+    assert usage["output_tokens"] == 2
+
     def test_api_backend_prefers_benchmark_oauth_token(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         workspace.mkdir()

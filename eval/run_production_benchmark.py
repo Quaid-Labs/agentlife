@@ -4536,7 +4536,7 @@ def _call_anthropic_cached(
                 body = (exc.read() or b"").decode("utf-8", errors="ignore")
             except Exception:
                 body = ""
-            retriable = exc.code in {408, 429, 500, 502, 503, 504, 529}
+            retriable = exc.code in {408, 429, 500, 502, 503, 504, 520, 529}
             if not retriable or attempt == retry_attempts:
                 raise RuntimeError(f"Anthropic HTTP {exc.code}: {body[:300]}") from exc
             delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
