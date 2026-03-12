@@ -3000,20 +3000,10 @@ def _build_eval_context(
     if core_files is None:
         core_files = ["SOUL.md", "USER.md", "MEMORY.md", "TOOLS.md"]
 
-    # Core markdowns: include both root and projects/quaid variants for
-    # SOUL/USER/MEMORY to mirror production prompt construction.
     for md in core_files:
         if md in {"SOUL.md", "USER.md", "MEMORY.md"}:
-            seen = set()
-            for path in [workspace / md, workspace / "projects" / "quaid" / md]:
-                if not path.exists():
-                    continue
-                content = path.read_text().strip()
-                if not content or content in seen:
-                    continue
-                rel = path.relative_to(workspace) if path.is_absolute() else path
+            for rel, content in _iter_eval_core_markdown_variants(workspace, md):
                 parts.append(f"--- {rel} ---\n{content}")
-                seen.add(content)
             continue
 
         path = workspace / md
@@ -3033,6 +3023,22 @@ def _build_eval_context(
                     parts.append(f"--- {rel} ---\n{content}")
 
     return "\n\n".join(parts)
+
+
+def _iter_eval_core_markdown_variants(workspace: Path, md_name: str) -> List[Tuple[Path, str]]:
+    """Return deduped core markdown variants in the same order eval injects them."""
+    variants: List[Tuple[Path, str]] = []
+    seen_contents = set()
+    for path in [workspace / md_name, workspace / "projects" / "quaid" / md_name]:
+        if not path.exists():
+            continue
+        content = path.read_text().strip()
+        if not content or content in seen_contents:
+            continue
+        rel = path.relative_to(workspace) if path.is_absolute() else path
+        variants.append((rel, content))
+        seen_contents.add(content)
+    return variants
 
 
 def _resolve_eval_core_path(workspace: Path, md_name: str) -> Path:
@@ -3080,20 +3086,21 @@ def _eval_core_context_preflight(
     }
     stats = []
     for md in ["SOUL.md", "USER.md", "MEMORY.md"]:
-        chosen = _resolve_eval_core_path(workspace, md)
-        cchars = len(chosen.read_text().strip()) if chosen.exists() else 0
+        variants = _iter_eval_core_markdown_variants(workspace, md)
+        combined_chars = sum(len(content) for _, content in variants)
         root = workspace / md
         rchars = len(root.read_text().strip()) if root.exists() else 0
         proj = workspace / "projects" / "quaid" / md
         pchars = len(proj.read_text().strip()) if proj.exists() else 0
-        stats.append((md, chosen, cchars, rchars, pchars))
+        variants_label = ",".join(str(rel) for rel, _ in variants) if variants else "<missing>"
+        stats.append((md, variants_label, combined_chars, rchars, pchars))
 
     too_thin = [s for s in stats if s[2] < min_chars[s[0]]]
     if too_thin:
         detail = "; ".join(
-            f"{md}: chosen={chosen.relative_to(workspace) if chosen.exists() else chosen} "
-            f"chars={cchars} root={rchars} project={pchars} min={min_chars[md]}"
-            for md, chosen, cchars, rchars, pchars in stats
+            f"{md}: combined={cchars} variants={variants_label} "
+            f"root={rchars} project={pchars} min={min_chars[md]}"
+            for md, variants_label, cchars, rchars, pchars in stats
         )
         raise RuntimeError(
             "Eval context preflight failed: core markdown context is too thin "

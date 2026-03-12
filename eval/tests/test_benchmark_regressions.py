@@ -1510,6 +1510,18 @@ class TestEvalContextCoreSelection:
         with pytest.raises(RuntimeError, match="core markdown context is too thin"):
             rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
 
+    def test_preflight_uses_combined_root_and_projects_quaid_content(self, tmp_path):
+        ws = tmp_path / "ws"
+        (ws / "projects" / "quaid").mkdir(parents=True, exist_ok=True)
+        (ws / "SOUL.md").write_text("s" * 1300)
+        (ws / "USER.md").write_text("u" * 740)
+        (ws / "MEMORY.md").write_text("m" * 422)
+        (ws / "projects" / "quaid" / "SOUL.md").write_text("p" * 767)
+        (ws / "projects" / "quaid" / "USER.md").write_text("q" * 813)
+        (ws / "projects" / "quaid" / "MEMORY.md").write_text("r" * 740)
+
+        rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
+
 
 class TestRunEvalProviderGuard:
     def test_split_eval_does_not_require_claude_code_calls_for_anthropic_fast_lane(self, tmp_path, monkeypatch):
