@@ -531,13 +531,16 @@ class TestMakeEnv:
         monkeypatch.setattr(rpb, "_CLAWD", tmp_path)
         monkeypatch.setattr(rpb, "_BACKEND", "api")
         (tmp_path / "plugins" / "quaid").mkdir(parents=True)
+        (workspace / "config").mkdir(parents=True, exist_ok=True)
+        (workspace / "config" / "memory.json").write_text('{"adapter":{"type":"standalone"}}', encoding="utf-8")
 
         env = rpb._make_env(workspace)
         assert env["CLAWDBOT_WORKSPACE"] == str(workspace.resolve())
         assert env["QUAID_HOME"] == str(workspace.resolve())
-        assert env["QUAID_INSTANCE"] == "benchmark"
+        assert env["QUAID_INSTANCE"] == "benchrunner"
         assert env["MEMORY_DB_PATH"] == str(workspace.resolve() / "data" / "memory.db")
         assert env["QUAID_DISABLE_NOTIFICATIONS"] == "1"
+        assert (workspace / "benchrunner" / "config" / "memory.json").exists()
 
     def test_pythonpath_set(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"

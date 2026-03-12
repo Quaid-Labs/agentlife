@@ -1005,6 +1005,7 @@ def setup_workspace(workspace: Path) -> None:
 
     config_path = workspace / "config" / "memory.json"
     config_path.write_text(json.dumps(prod_config, indent=2))
+    _ensure_quaid_instance_layout(workspace)
     print(f"  Config written: {config_path}")
 
     # 3. Seed core markdowns (v12 — knowledge activation approach)
@@ -4416,11 +4417,12 @@ def _make_env(workspace: Path, *, mock_embeddings: Optional[bool] = None) -> dic
     """Build env dict for subprocess calls pointing at the benchmark workspace."""
     env = os.environ.copy()
     workspace = workspace.resolve()
+    _ensure_quaid_instance_layout(workspace)
     env["CLAWDBOT_WORKSPACE"] = str(workspace)
     # Quaid config loader resolves config relative to QUAID_HOME for standalone adapter.
     # Without this, janitor can read ~/quaid/config/memory.json instead of run workspace config.
     env["QUAID_HOME"] = str(workspace)
-    env["QUAID_INSTANCE"] = "benchmark"
+    env["QUAID_INSTANCE"] = _BENCHMARK_QUAID_INSTANCE
     env["MEMORY_DB_PATH"] = str(workspace / "data" / "memory.db")
     env["QUAID_DISABLE_NOTIFICATIONS"] = "1"
     # Ensure Quaid root imports (e.g., `lib.*`) resolve even when entry scripts
@@ -4489,6 +4491,25 @@ def _get_openai_key() -> Optional[str]:
 
 
 _BACKEND = "api"  # Set to "claude-code" in main() to use subscription
+_BENCHMARK_QUAID_INSTANCE = "benchrunner"
+
+
+def _ensure_quaid_instance_layout(workspace: Path, instance_id: str = _BENCHMARK_QUAID_INSTANCE) -> Path:
+    """Materialize a minimal per-instance layout for checkpoint subprocesses."""
+    workspace = workspace.resolve()
+    instance_root = workspace / instance_id
+    for rel in ["config", "data", "identity", "journal", "logs"]:
+        (instance_root / rel).mkdir(parents=True, exist_ok=True)
+
+    flat_cfg = workspace / "config" / "memory.json"
+    instance_cfg = instance_root / "config" / "memory.json"
+    if flat_cfg.exists():
+        if (not instance_cfg.exists()) or flat_cfg.read_text() != instance_cfg.read_text():
+            shutil.copy2(flat_cfg, instance_cfg)
+    elif not instance_cfg.exists():
+        instance_cfg.write_text(json.dumps({"adapter": {"type": "standalone"}}), encoding="utf-8")
+
+    return instance_root
 
 
 def _call_anthropic_cached(
