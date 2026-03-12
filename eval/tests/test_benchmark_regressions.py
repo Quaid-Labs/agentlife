@@ -9,12 +9,14 @@ import io
 import os
 import re
 import sqlite3
+import subprocess
 import sys
 import urllib.error
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
+from types import SimpleNamespace
 from typing import Optional
 
 import pytest
@@ -583,8 +585,23 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
         {"eval_tokens": {"input_tokens": 10, "output_tokens": 2, "api_calls": 1, "preinject_duration_ms": 100}},
         {"eval_tokens": {"input_tokens": 20, "output_tokens": 3, "api_calls": 2, "preinject_duration_ms": 300,
                          "tool_call_details": [{"tool": "memory_recall(pre-inject)", "source": "preinject", "recall_meta": {
-                             "phases_ms": {"hyde_ms": 11, "graph_traversal_ms": 22, "total_ms": 55},
-                             "turns": 1, "fanout_count": 3, "turn_details": [{"fanout": {"branch_total_ms": {"spread_ms": 7}}}],
+                             "phases_ms": {"planner_ms": 9, "fanout_wall_ms": 55, "total_ms": 70},
+                             "turns": 1, "fanout_count": 3, "turn_details": [{
+                                 "fanout": {
+                                     "wall_ms": 55,
+                                     "serial_sum_ms": 120,
+                                     "parallel_speedup_x": 2.18,
+                                     "parallel_efficiency_pct": 72.7,
+                                     "overhead_vs_slowest_ms": 8,
+                                     "branch_total_ms": {"spread_ms": 7},
+                                     "fastest_branch": {"total_ms": 33},
+                                     "slowest_branch": {"total_ms": 47},
+                                     "branches": [
+                                         {"phases_ms": {"hyde_ms": 11, "graph_traversal_ms": 22, "total_ms": 47}},
+                                         {"phases_ms": {"hyde_ms": 7, "graph_traversal_ms": 0, "total_ms": 33}},
+                                     ],
+                                 }
+                             }],
                              "stop_reason": "quality_gate_met", "bailout_counts": {"planner_returned_empty": 0}
                          }}]}},
         {"eval_tokens": {"input_tokens": 30, "output_tokens": 4, "api_calls": 3}},
@@ -603,9 +620,52 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
         "max": 300,
     }
     assert data["preinject_recall_telemetry"]["count"] == 1
-    assert data["preinject_recall_telemetry"]["phases_ms"]["hyde_ms"]["avg"] == 11
-    assert data["preinject_recall_telemetry"]["phases_ms"]["graph_traversal_ms"]["avg"] == 22
+    assert data["preinject_recall_telemetry"]["phases_ms"]["planner_ms"]["avg"] == 9
+    assert data["preinject_recall_telemetry"]["phases_ms"]["branch_hyde_ms"]["avg"] == 9
+    assert data["preinject_recall_telemetry"]["phases_ms"]["branch_graph_traversal_ms"]["avg"] == 11
     assert data["preinject_recall_telemetry"]["fanout_count"]["avg"] == 3
+    assert data["preinject_recall_telemetry"]["fanout_wall_ms"]["avg"] == 55
+    assert data["preinject_recall_telemetry"]["fanout_serial_ms"]["avg"] == 120
+    assert data["preinject_recall_telemetry"]["slowest_branch_ms"]["avg"] == 47
+    assert data["preinject_recall_telemetry"]["fastest_branch_ms"]["avg"] == 33
+    assert data["preinject_recall_telemetry"]["parallel_speedup_x"]["avg"] == 2.18
+    assert data["preinject_recall_telemetry"]["parallel_efficiency_pct"]["avg"] == 72.7
+    assert data["preinject_recall_telemetry"]["parallel_overhead_ms"]["avg"] == 8
+
+
+def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    captured: dict[str, object] = {}
+
+    def _fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(
+            stdout=json.dumps({
+                "results": [{
+                    "text": "Quaid likes espresso coffee",
+                    "category": "fact",
+                    "similarity": 0.91,
+                    "id": "n1",
+                    "privacy": "shared",
+                    "owner_id": "maya",
+                }],
+                "meta": {"mode": "deliberate", "total_ms": 42},
+            }),
+            stderr="",
+            returncode=0,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    text, meta = rpb._tool_memory_recall("coffee", workspace, {"PATH": os.environ.get("PATH", "")})
+
+    assert "recall" in captured["cmd"]
+    assert "--json" in captured["cmd"]
+    assert "Quaid likes espresso coffee" in text
+    assert meta == {"mode": "deliberate", "total_ms": 42}
 
     def test_api_backend_prefers_benchmark_oauth_token(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"

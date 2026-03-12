@@ -3672,6 +3672,13 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
         turns: list[float] = []
         fanouts: list[float] = []
         fan_spreads: list[float] = []
+        fan_walls: list[float] = []
+        fan_serials: list[float] = []
+        slowest_fans: list[float] = []
+        fastest_fans: list[float] = []
+        speedups: list[float] = []
+        efficiencies: list[float] = []
+        overheads: list[float] = []
         stop_reasons: dict[str, int] = {}
         bailout_counts: dict[str, int] = {}
         for meta in metas:
@@ -3687,6 +3694,31 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
                 spread = fan.get("spread_ms")
                 if isinstance(spread, (int, float)):
                     fan_spreads.append(float(spread))
+                wall = (turn.get("fanout") or {}).get("wall_ms")
+                if isinstance(wall, (int, float)):
+                    fan_walls.append(float(wall))
+                serial = (turn.get("fanout") or {}).get("serial_sum_ms")
+                if isinstance(serial, (int, float)):
+                    fan_serials.append(float(serial))
+                slowest = ((turn.get("fanout") or {}).get("slowest_branch") or {}).get("total_ms")
+                if isinstance(slowest, (int, float)):
+                    slowest_fans.append(float(slowest))
+                fastest = ((turn.get("fanout") or {}).get("fastest_branch") or {}).get("total_ms")
+                if isinstance(fastest, (int, float)):
+                    fastest_fans.append(float(fastest))
+                speedup = (turn.get("fanout") or {}).get("parallel_speedup_x")
+                if isinstance(speedup, (int, float)):
+                    speedups.append(float(speedup))
+                efficiency = (turn.get("fanout") or {}).get("parallel_efficiency_pct")
+                if isinstance(efficiency, (int, float)):
+                    efficiencies.append(float(efficiency))
+                overhead = (turn.get("fanout") or {}).get("overhead_vs_slowest_ms")
+                if isinstance(overhead, (int, float)):
+                    overheads.append(float(overhead))
+                for branch in (turn.get("fanout") or {}).get("branches", []) or []:
+                    for phase, value in (branch.get("phases_ms") or {}).items():
+                        if isinstance(value, (int, float)):
+                            phase_buckets.setdefault(f"branch_{phase}", []).append(float(value))
             reason = meta.get("stop_reason")
             if reason:
                 stop_reasons[str(reason)] = stop_reasons.get(str(reason), 0) + 1
@@ -3710,6 +3742,41 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
                 "avg": round(sum(fan_spreads) / len(fan_spreads)) if fan_spreads else 0,
                 "p95": _pct(fan_spreads, 0.95) if fan_spreads else 0,
                 "max": round(max(fan_spreads)) if fan_spreads else 0,
+            },
+            "fanout_wall_ms": {
+                "avg": round(sum(fan_walls) / len(fan_walls)) if fan_walls else 0,
+                "p95": _pct(fan_walls, 0.95) if fan_walls else 0,
+                "max": round(max(fan_walls)) if fan_walls else 0,
+            },
+            "fanout_serial_ms": {
+                "avg": round(sum(fan_serials) / len(fan_serials)) if fan_serials else 0,
+                "p95": _pct(fan_serials, 0.95) if fan_serials else 0,
+                "max": round(max(fan_serials)) if fan_serials else 0,
+            },
+            "slowest_branch_ms": {
+                "avg": round(sum(slowest_fans) / len(slowest_fans)) if slowest_fans else 0,
+                "p95": _pct(slowest_fans, 0.95) if slowest_fans else 0,
+                "max": round(max(slowest_fans)) if slowest_fans else 0,
+            },
+            "fastest_branch_ms": {
+                "avg": round(sum(fastest_fans) / len(fastest_fans)) if fastest_fans else 0,
+                "p95": _pct(fastest_fans, 0.95) if fastest_fans else 0,
+                "max": round(max(fastest_fans)) if fastest_fans else 0,
+            },
+            "parallel_speedup_x": {
+                "avg": round(sum(speedups) / len(speedups), 2) if speedups else 0,
+                "p95": round(_pct(speedups, 0.95), 2) if speedups else 0,
+                "max": round(max(speedups), 2) if speedups else 0,
+            },
+            "parallel_efficiency_pct": {
+                "avg": round(sum(efficiencies) / len(efficiencies), 1) if efficiencies else 0,
+                "p95": round(_pct(efficiencies, 0.95), 1) if efficiencies else 0,
+                "max": round(max(efficiencies), 1) if efficiencies else 0,
+            },
+            "parallel_overhead_ms": {
+                "avg": round(sum(overheads) / len(overheads)) if overheads else 0,
+                "p95": _pct(overheads, 0.95) if overheads else 0,
+                "max": round(max(overheads)) if overheads else 0,
             },
             "stop_reasons": stop_reasons,
             "bailout_counts": bailout_counts,
