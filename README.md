@@ -79,6 +79,26 @@ cp .env.example .env
 # Edit .env with your API keys
 ```
 
+### Benchmark OAuth Token
+
+For benchmark direct Anthropic API runs, prefer an explicit benchmark token instead of
+relying on local Claude Code login state:
+
+1. On the machine that will run benchmarks, generate a token with:
+   ```bash
+   claude setup-token
+   ```
+2. Put the issued token in that machine's benchmark env as:
+   ```bash
+   BENCHMARK_ANTHROPIC_OAUTH_TOKEN=sk-ant-oat01-...
+   ```
+
+Notes:
+- This is benchmark-only harness behavior.
+- The token is sent as `Authorization: Bearer ...` with the required Anthropic OAuth beta header.
+- If `BENCHMARK_ANTHROPIC_OAUTH_TOKEN` is absent, the harness falls back to `ANTHROPIC_API_KEY`.
+- The harness does not need to sync your local Claude credentials to a remote host for `api` runs.
+
 ### Run Evaluation
 
 ```bash

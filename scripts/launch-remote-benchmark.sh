@@ -299,7 +299,32 @@ export BENCHMARK_LIFECYCLE_PREPASS_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_LLM_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_REVIEW_WORKERS=$(printf %q "$PARALLEL")
 export AGENTLIFE_ASSETS_DIR=$(printf %q "$REMOTE_BENCH_ROOT")/data/sessions
-if [[ -z \"\${ANTHROPIC_API_KEY:-}\" && -f \"/home/solomon/clawd/.env\" ]]; then
+BENCHMARK_OAUTH_TOKEN=""
+if [[ -f \"/home/solomon/clawd/.env\" ]]; then
+  BENCHMARK_OAUTH_TOKEN=\$(python3 - <<'PY'
+from pathlib import Path
+path = Path('/home/solomon/clawd/.env')
+value = ''
+try:
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, raw = line.split('=', 1)
+        if key.strip() != 'BENCHMARK_ANTHROPIC_OAUTH_TOKEN':
+            continue
+        value = raw.strip().strip('\"').strip(\"'\")
+        break
+except Exception:
+    value = ''
+print(value)
+PY
+)
+fi
+if [[ -n \"\$BENCHMARK_OAUTH_TOKEN\" ]]; then
+  export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=\"\$BENCHMARK_OAUTH_TOKEN\"
+  export ANTHROPIC_API_KEY=\"\$BENCHMARK_OAUTH_TOKEN\"
+elif [[ -z \"\${ANTHROPIC_API_KEY:-}\" && -f \"/home/solomon/clawd/.env\" ]]; then
   export ANTHROPIC_API_KEY=\$(python3 - <<'PY'
 from pathlib import Path
 path = Path('/home/solomon/clawd/.env')
@@ -319,6 +344,11 @@ except Exception:
 print(value)
 PY
 )
+fi
+if [[ -n \"\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}\" ]]; then
+  echo \"Benchmark Anthropic OAuth: present\"
+else
+  echo \"Benchmark Anthropic OAuth: missing\"
 fi
 if [[ -z \"\${CLAUDE_CODE_OAUTH_TOKEN:-}\" && -f \"\$HOME/.claude/.credentials.json\" ]]; then
   export CLAUDE_CODE_OAUTH_TOKEN=\$(python3 - <<'PY'

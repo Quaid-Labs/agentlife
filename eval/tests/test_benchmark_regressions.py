@@ -216,6 +216,16 @@ class TestSplitSessionBlocksOnGap:
         assert [len(c) for c in result] == [2, 2, 1]
 
 
+class TestOperationalDay:
+    def test_before_4am_rolls_back_to_prior_day(self):
+        review = _FakeReview(1, timestamp="2026-03-02 03:59:59 UTC")
+        assert rpb._operational_day(review) == "2026-03-01"
+
+    def test_at_4am_stays_on_same_day(self):
+        review = _FakeReview(1, timestamp="2026-03-02 04:00:00 UTC")
+        assert rpb._operational_day(review) == "2026-03-02"
+
+
 class TestAnthropicCachedRetries:
     """Tests for _call_anthropic_cached HTTP retry behavior."""
 
@@ -264,15 +274,19 @@ class TestAnthropicCachedRetries:
 class TestGroupSessionsByDate:
     """Tests for _group_sessions_by_date: session grouping."""
 
-    def test_groups_by_date(self, monkeypatch):
-        monkeypatch.setattr(rpb, "SESSION_DATES", {1: "2026-03-01", 2: "2026-03-01", 3: "2026-03-03"})
-        reviews = [_FakeReview(1), _FakeReview(2), _FakeReview(3)]
+    def test_groups_by_4am_operational_day(self, monkeypatch):
+        monkeypatch.setattr(rpb, "SESSION_DATES", {})
+        reviews = [
+            _FakeReview(1, timestamp="2026-03-02 03:00:00 UTC"),
+            _FakeReview(2, timestamp="2026-03-02 12:00:00 UTC"),
+            _FakeReview(3, timestamp="2026-03-03 02:30:00 UTC"),
+        ]
         days = rpb._group_sessions_by_date(reviews)
         assert len(days) == 2
         assert days[0][0] == "2026-03-01"
-        assert len(days[0][1]) == 2
-        assert days[1][0] == "2026-03-03"
-        assert len(days[1][1]) == 1
+        assert [r.session_num for r in days[0][1]] == [1]
+        assert days[1][0] == "2026-03-02"
+        assert [r.session_num for r in days[1][1]] == [2, 3]
 
     def test_empty_reviews(self, monkeypatch):
         monkeypatch.setattr(rpb, "SESSION_DATES", {})
@@ -282,7 +296,7 @@ class TestGroupSessionsByDate:
         monkeypatch.setattr(rpb, "SESSION_DATES", {})
         reviews = [_FakeReview(99)]
         days = rpb._group_sessions_by_date(reviews)
-        assert days[0][0] == "unknown"
+        assert days[0][0] == "1970-01-01"
 
 
 class TestDomainBlockMarkdown:
@@ -391,10 +405,16 @@ class TestClaudeStreamToolParsing:
 
     def test_classifies_bash_search_commands(self):
         label, query = rpb._classify_claude_bash_command(
-            'python3 memory_graph.py search "maya partner name" --owner maya --limit 5'
+            'python3 memory_graph.py recall "maya partner name" --owner maya --limit 5'
         )
         assert label == "memory_recall"
         assert query == "maya partner name"
+
+        label, query = rpb._classify_claude_bash_command(
+            'python3 memory_graph.py recall-fast "where does maya live" --owner maya --limit 5'
+        )
+        assert label == "memory_recall"
+        assert query == "where does maya live"
 
         label, query = rpb._classify_claude_bash_command(
             'python3 memory_graph.py search-all "recipe app test suites"'
@@ -414,7 +434,7 @@ class TestClaudeStreamToolParsing:
                                 "id": "toolu_1",
                                 "name": "Bash",
                                 "input": {
-                                    "command": 'python3 memory_graph.py search "maya partner" --owner maya --limit 5'
+                                    "command": 'python3 memory_graph.py recall "maya partner" --owner maya --limit 5'
                                 },
                             },
                             {
@@ -469,6 +489,37 @@ class TestClaudeStreamToolParsing:
         assert final_data.get("num_turns") == 3
 
 
+def test_pre_recall_uses_fast_memory_recall_path(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    captured = {}
+
+    def _fake_tool_memory_recall(query, _workspace, _env, **kwargs):
+        captured["query"] = query
+        captured["fast"] = kwargs.get("fast")
+        captured["max_session"] = kwargs.get("max_session")
+        return "hit", {"mode": "fast", "stop_reason": "quality_gate_met"}
+
+    monkeypatch.setattr(rpb, "_tool_memory_recall", _fake_tool_memory_recall)
+
+    recall_text, query_used, recall_meta = rpb._pre_recall(
+        "Where does Maya live?",
+        workspace,
+        {},
+        max_session=7,
+    )
+
+    assert recall_text == "hit"
+    assert query_used == "Where does Maya live?"
+    assert recall_meta == {"mode": "fast", "stop_reason": "quality_gate_met"}
+    assert captured == {
+        "query": "Where does Maya live?",
+        "fast": True,
+        "max_session": 7,
+    }
+
+
 class TestMakeEnv:
     """Tests for _make_env: environment variable wiring."""
 
@@ -495,6 +546,76 @@ class TestMakeEnv:
 
         env = rpb._make_env(workspace)
         assert str(quaid_dir.resolve()) in env.get("PYTHONPATH", "")
+
+    def test_does_not_default_mock_embeddings_for_benchmark_subprocesses(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.delenv("MOCK_EMBEDDINGS", raising=False)
+
+        env = rpb._make_env(workspace)
+        assert "MOCK_EMBEDDINGS" not in env
+
+    def test_preserves_explicit_mock_embeddings_override(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setenv("MOCK_EMBEDDINGS", "0")
+
+        env = rpb._make_env(workspace)
+        assert env["MOCK_EMBEDDINGS"] == "0"
+
+    def test_can_force_mock_embeddings_for_targeted_subprocesses(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.delenv("MOCK_EMBEDDINGS", raising=False)
+
+        env = rpb._make_env(workspace, mock_embeddings=True)
+        assert env["MOCK_EMBEDDINGS"] == "1"
+
+
+def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    results = [
+        {"eval_tokens": {"input_tokens": 10, "output_tokens": 2, "api_calls": 1, "preinject_duration_ms": 100}},
+        {"eval_tokens": {"input_tokens": 20, "output_tokens": 3, "api_calls": 2, "preinject_duration_ms": 300,
+                         "tool_call_details": [{"tool": "memory_recall(pre-inject)", "source": "preinject", "recall_meta": {
+                             "phases_ms": {"hyde_ms": 11, "graph_traversal_ms": 22, "total_ms": 55},
+                             "turns": 1, "fanout_count": 3, "turn_details": [{"fanout": {"branch_total_ms": {"spread_ms": 7}}}],
+                             "stop_reason": "quality_gate_met", "bailout_counts": {"planner_returned_empty": 0}
+                         }}]}},
+        {"eval_tokens": {"input_tokens": 30, "output_tokens": 4, "api_calls": 3}},
+    ]
+
+    rpb._save_token_usage(results, workspace, "claude-haiku-4-5-20251001")
+
+    data = json.loads((workspace / "token_usage.json").read_text())
+    assert data["eval"]["total_tokens"] == 69
+    assert data["preinject_timing_ms"] == {
+        "count": 2,
+        "avg": 200,
+        "p50": 100,
+        "p95": 100,
+        "p99": 100,
+        "max": 300,
+    }
+    assert data["preinject_recall_telemetry"]["count"] == 1
+    assert data["preinject_recall_telemetry"]["phases_ms"]["hyde_ms"]["avg"] == 11
+    assert data["preinject_recall_telemetry"]["phases_ms"]["graph_traversal_ms"]["avg"] == 22
+    assert data["preinject_recall_telemetry"]["fanout_count"]["avg"] == 3
+
+    def test_api_backend_prefers_benchmark_oauth_token(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
+
+        env = rpb._make_env(workspace)
+        assert env["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] == "sk-ant-oat01-test-token"
+        assert env["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
 
 
 class TestSetupWorkspaceConfig:
@@ -1314,59 +1435,81 @@ class TestRunEvalProviderGuard:
         assert len(results) == 1
         assert results[0]["prediction"] == "answer"
 
-    def test_claude_code_eval_still_requires_nonzero_claude_calls(self, tmp_path, monkeypatch):
-        ws = tmp_path / "ws"
-        (ws / "config").mkdir(parents=True, exist_ok=True)
-        (ws / "logs").mkdir(parents=True, exist_ok=True)
-        (ws / "config" / "memory.json").write_text(
-            json.dumps(
-                {
-                    "models": {
-                        "llmProvider": "claude-code",
-                        "deepReasoningProvider": "claude-code",
-                        "deepReasoning": "claude-sonnet-4-6",
-                        "fastReasoningProvider": "anthropic",
-                        "fastReasoning": "claude-haiku-4-5-20251001",
-                    }
+def test_claude_code_eval_still_requires_nonzero_claude_calls(tmp_path, monkeypatch):
+    ws = tmp_path / "ws"
+    (ws / "config").mkdir(parents=True, exist_ok=True)
+    (ws / "logs").mkdir(parents=True, exist_ok=True)
+    (ws / "config" / "memory.json").write_text(
+        json.dumps(
+            {
+                "models": {
+                    "llmProvider": "claude-code",
+                    "deepReasoningProvider": "claude-code",
+                    "deepReasoning": "claude-sonnet-4-6",
+                    "fastReasoningProvider": "anthropic",
+                    "fastReasoning": "claude-haiku-4-5-20251001",
                 }
-            )
+            }
         )
-        monkeypatch.setattr(rpb, "_BACKEND", "claude-code")
-        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
-        monkeypatch.setattr(
-            rpb,
-            "get_all_eval_queries",
-            lambda _reviews: [{"question": "Q?", "ground_truth": "A", "query_type": "factual_recall"}],
-        )
-        monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
-        monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
-        monkeypatch.setattr(rpb, "_make_env", lambda _ws: {})
-        monkeypatch.setattr(
-            rpb,
-            "_tool_use_loop",
-            lambda **kwargs: (
-                "answer",
-                [],
-                [],
-                [],
-                {"input_tokens": 10, "output_tokens": 5, "api_calls": 0, "tool_call_details": []},
-            ),
-        )
-        monkeypatch.setattr(rpb, "_judge", lambda *a, **k: ("CORRECT", 1.0))
-        monkeypatch.setattr(rpb, "_judge_non_question", lambda *a, **k: ("CORRECT", 1.0))
-        monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "1")
-        monkeypatch.setenv("BENCHMARK_PARALLEL", "1")
+    )
+    monkeypatch.setattr(rpb, "_BACKEND", "claude-code")
+    monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+    monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+    monkeypatch.setattr(
+        rpb,
+        "get_all_eval_queries",
+        lambda _reviews: [{"question": "Q?", "ground_truth": "A", "query_type": "factual_recall"}],
+    )
+    monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+    monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
+    monkeypatch.setattr(rpb, "_make_env", lambda _ws: {})
+    monkeypatch.setattr(
+        rpb,
+        "_tool_use_loop",
+        lambda **kwargs: (
+            "answer",
+            [],
+            [],
+            [],
+            {"input_tokens": 10, "output_tokens": 5, "api_calls": 0, "tool_call_details": []},
+        ),
+    )
+    monkeypatch.setattr(rpb, "_judge", lambda *a, **k: ("CORRECT", 1.0))
+    monkeypatch.setattr(rpb, "_judge_non_question", lambda *a, **k: ("CORRECT", 1.0))
+    monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "1")
+    monkeypatch.setenv("BENCHMARK_PARALLEL", "1")
 
-        with pytest.raises(RuntimeError, match="zero Claude API calls"):
-            rpb.run_eval(
-                ws,
-                api_key="dummy",
-                max_sessions=1,
-                eval_model="claude-sonnet-4-6",
-                context_inject=False,
-                judge_model="gpt-4o-mini",
-            )
+    with pytest.raises(RuntimeError, match="zero Claude API calls"):
+        rpb.run_eval(
+            ws,
+            api_key="dummy",
+            max_sessions=1,
+            eval_model="claude-sonnet-4-6",
+            context_inject=False,
+            judge_model="gpt-4o-mini",
+        )
+
+
+def test_canonical_eval_query_count_is_268():
+    import importlib.util
+    from pathlib import Path
+
+    dataset_path = Path("~/<username>/agentlife-benchmark/eval/dataset.py")
+    spec = importlib.util.spec_from_file_location("benchmark_dataset", dataset_path)
+    assert spec is not None and spec.loader is not None
+    dataset = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dataset)
+
+    base_count = 156
+    total = (
+        base_count
+        + len(dataset.ADVERSARIAL_QUERIES)
+        + len(dataset.NON_QUESTION_QUERIES)
+        + len(dataset.ARCHITECTURE_QUERIES)
+        + len(dataset.HARDENING_V2_QUERIES)
+    )
+
+    assert total == 268
 
 
 # ===================================================================

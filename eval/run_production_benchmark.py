@@ -36,12 +36,13 @@ import re
 import shlex
 import shutil
 import sqlite3
+import statistics
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -150,9 +151,22 @@ def _load_claude_code_oauth_token() -> Optional[str]:
     return None
 
 
+def _find_benchmark_anthropic_oauth_token() -> str:
+    """Best-effort benchmark OAuth token lookup without exiting."""
+    token = os.environ.get("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", "").strip()
+    if token:
+        return token
+    for env_path in [_CLAWD / ".env", Path.home() / ".openclaw" / ".env"]:
+        if env_path.exists():
+            for line in env_path.read_text().split("\n"):
+                if line.startswith("BENCHMARK_ANTHROPIC_OAUTH_TOKEN="):
+                    return line.split("=", 1)[1].strip()
+    return ""
+
+
 def _find_anthropic_api_key() -> str:
-    """Best-effort Anthropic key lookup without exiting."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    """Best-effort Anthropic API key lookup without exiting."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if api_key:
         return api_key
     for env_path in [_CLAWD / ".env", Path.home() / ".openclaw" / ".env"]:
@@ -161,6 +175,33 @@ def _find_anthropic_api_key() -> str:
                 if line.startswith("ANTHROPIC_API_KEY="):
                     return line.split("=", 1)[1].strip()
     return ""
+
+
+def _find_anthropic_credential() -> str:
+    """Prefer benchmark OAuth token, then fall back to Anthropic API key."""
+    return _find_benchmark_anthropic_oauth_token() or _find_anthropic_api_key()
+
+
+def _is_anthropic_oauth_token(token: str) -> bool:
+    return str(token or "").strip().startswith("sk-ant-oat")
+
+
+def _anthropic_headers(credential: str, *, prompt_caching: bool = True) -> dict:
+    headers = {
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+    }
+    betas = []
+    if prompt_caching:
+        betas.append("prompt-caching-2024-07-31")
+    if _is_anthropic_oauth_token(credential):
+        headers["Authorization"] = f"Bearer {credential}"
+        betas.append("oauth-2025-04-20")
+    else:
+        headers["x-api-key"] = credential
+    if betas:
+        headers["anthropic-beta"] = ",".join(betas)
+    return headers
 
 
 def _resolve_assets_dir() -> Path:
@@ -486,6 +527,40 @@ def _split_session_blocks_on_gap(session_blocks: list, gap_seconds: int) -> list
         else:
             chunks[-1].append(item)
     return chunks
+
+
+def _operational_day(review_or_ts, cutoff_hour: int = 4) -> str:
+    """Map a timestamp to the benchmark's simulated day with a nightly 4am cutoff."""
+    if isinstance(review_or_ts, datetime):
+        ts = review_or_ts
+    else:
+        ts = _parse_review_timestamp(review_or_ts)
+    shifted = ts - timedelta(hours=cutoff_hour)
+    return shifted.date().isoformat()
+
+
+def _build_session_blocks(reviews: list) -> list:
+    """Build ordered extraction blocks with parsed timestamps."""
+    session_blocks = []
+    for review in reviews:
+        snum = review.session_num
+        track_label = "Personal" if review.track == 1 else "Project"
+        transcript = format_transcript_for_extraction(review)
+        if not transcript.strip():
+            continue
+        ts = _parse_review_timestamp(review)
+        session_blocks.append(
+            {
+                "session_num": snum,
+                "block": (
+                    f"=== Session {snum} ({track_label}) — "
+                    f"{_operational_day(ts)} @ {ts.isoformat()} ===\n{transcript}"
+                ),
+                "timestamp": ts,
+                "review": review,
+            }
+        )
+    return sorted(session_blocks, key=lambda x: (x["timestamp"], x["session_num"]))
 
 
 def _default_domain_descriptions() -> dict:
@@ -1418,22 +1493,7 @@ def run_extraction(
         except Exception:
             pass
     else:
-        # Build ordered session blocks with parsed timestamps for gap-aware splitting.
-        session_blocks = []
-        for review in reviews:
-            snum = review.session_num
-            date = SESSION_DATES.get(snum, "unknown")
-            track_label = "Personal" if review.track == 1 else "Project"
-            transcript = format_transcript_for_extraction(review)
-            if transcript.strip():
-                block = f"=== Session {snum} ({track_label}) — {date} ===\n{transcript}"
-                session_blocks.append(
-                    {
-                        "session_num": snum,
-                        "block": block,
-                        "timestamp": _parse_review_timestamp(review),
-                    }
-                )
+        session_blocks = _build_session_blocks(reviews)
 
         def _normalize_bullets(value):
             if isinstance(value, list):
@@ -1444,7 +1504,7 @@ def run_extraction(
             return []
 
         if parallel_workers > 1 and len(session_blocks) > 1:
-            gap_seconds = max(0, int(os.environ.get("BENCHMARK_SPLIT_GAP_SECONDS", "7200")))
+            gap_seconds = max(0, int(os.environ.get("BENCHMARK_SPLIT_GAP_SECONDS", "3600")))
             chunks = _split_session_blocks_on_gap(session_blocks, gap_seconds)
             chunk_count = min(parallel_workers, len(chunks))
             print(f"  Parallel extraction workers: {chunk_count}")
@@ -1747,7 +1807,7 @@ def _store_facts(
 
     store_failures = 0
     store_failure_samples: list[str] = []
-    store_timeout_s = max(5, int(os.environ.get("BENCHMARK_STORE_TIMEOUT_SECONDS", "90")))
+    store_timeout_s = max(5, int(os.environ.get("BENCHMARK_STORE_TIMEOUT_SECONDS", "300")))
     store_retries = max(0, int(os.environ.get("BENCHMARK_STORE_RETRIES", "2")))
     store_retry_backoff_s = max(0.0, float(os.environ.get("BENCHMARK_STORE_RETRY_BACKOFF_SECONDS", "1.5")))
     edge_timeout_s = max(30, int(os.environ.get("BENCHMARK_EDGE_TIMEOUT_SECONDS", "90")))
@@ -1931,11 +1991,11 @@ def _store_facts(
 # ---------------------------------------------------------------------------
 
 def _group_sessions_by_date(reviews: list) -> list:
-    """Group sessions by date. Returns list of (date, [reviews]) sorted chronologically."""
+    """Group sessions by simulated day using a nightly 4am cutoff."""
     from collections import OrderedDict
     by_date = OrderedDict()
     for review in reviews:
-        date = SESSION_DATES.get(review.session_num, "unknown")
+        date = _operational_day(review)
         by_date.setdefault(date, []).append(review)
     return list(by_date.items())
 
@@ -1972,11 +2032,15 @@ def run_per_day_extraction(
             "Set AGENTLIFE_ASSETS_DIR to the benchmark assets path."
         )
 
+    session_blocks = _build_session_blocks(reviews)
+    gap_seconds = max(0, int(os.environ.get("BENCHMARK_SPLIT_GAP_SECONDS", "3600")))
+    extracted_chunks = _split_session_blocks_on_gap(session_blocks, gap_seconds)
     days = _group_sessions_by_date(reviews)
     print(f"  Grouped into {len(days)} days:")
     for date, day_reviews in days:
         snums = [r.session_num for r in day_reviews]
         print(f"    {date}: sessions {snums}")
+    print(f"  Extraction chunks: {len(extracted_chunks)} (gap threshold: {gap_seconds}s)")
     print()
 
     domain_ids = _load_active_domain_ids(workspace)
@@ -2002,6 +2066,7 @@ def run_per_day_extraction(
 
     janitor_progress_path = workspace / "logs" / "janitor_progress.json"
     janitor_progress_path.parent.mkdir(parents=True, exist_ok=True)
+    extraction_checkpoint_path = workspace / "logs" / "extraction_checkpoint.json"
 
     def _week_key(day_str: str) -> str:
         try:
@@ -2044,54 +2109,51 @@ def run_per_day_extraction(
             janitor_runs = int(counters.get("janitor_runs", janitor_runs))
             weekly_distill_runs = int(counters.get("weekly_distill_runs", weekly_distill_runs))
 
-    # Step A: pre-extract all day chunks first (parallel), cache per day.
-    day_cache: Dict[str, dict] = {}
+    # Step A: pre-extract all timeout chunks first (parallel), cache per chunk.
+    day_cache: Dict[str, List[dict]] = {}
     preextract_jobs = []
     if resume_completed_days:
         print(f"  Resuming day lifecycle from checkpoint: completed_days={resume_completed_days}/{len(days)}")
 
-    for day_idx, (date, day_reviews) in enumerate(days):
-        snums = [r.session_num for r in day_reviews]
-        cache_path = cache_dir / f"day-{date}.json"
+    for chunk_idx, chunk_blocks in enumerate(extracted_chunks):
+        day_keys = [_operational_day(item["timestamp"]) for item in chunk_blocks]
+        chunk_day = day_keys[0] if day_keys else "unknown"
+        cache_path = cache_dir / f"chunk-{chunk_idx:03d}.json"
         if not no_cache and cache_path.exists():
             cached = json.loads(cache_path.read_text())
-            day_cache[date] = cached
-            print(f"  Cached day {day_idx + 1}/{len(days)} ({date}): {len(cached.get('facts', []))} facts")
+            day_cache.setdefault(chunk_day, []).append(cached)
+            print(
+                f"  Cached chunk {chunk_idx + 1}/{len(extracted_chunks)} "
+                f"({chunk_day} sessions {cached.get('sessions', [])}): "
+                f"{len(cached.get('facts', []))} facts"
+            )
             continue
 
-        transcript_parts = []
-        for review in day_reviews:
-            snum = review.session_num
-            track_label = "Personal" if review.track == 1 else "Project"
-            transcript = format_transcript_for_extraction(review)
-            if transcript.strip():
-                transcript_parts.append(
-                    f"=== Session {snum} ({track_label}) — {date} ===\n{transcript}"
-                )
-        combined_transcript = "\n\n".join(transcript_parts)
-        day_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
-        _write_prompt_trace(workspace, f"per-day-{date}", model, domain_ids, day_prompt)
+        combined_transcript = "\n\n".join(item["block"] for item in chunk_blocks)
+        chunk_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
+        _write_prompt_trace(workspace, f"per-chunk-{chunk_idx:03d}", model, domain_ids, chunk_prompt)
         user_message = (
             f"Extract memorable facts from these conversation sessions "
-            f"with Maya on {date}.\n\n{combined_transcript}"
+            f"with Maya.\n\n{combined_transcript}"
         )
         preextract_jobs.append(
             {
-                "day_idx": day_idx,
-                "date": date,
-                "snums": snums,
+                "chunk_idx": chunk_idx,
+                "date": chunk_day,
+                "snums": [item["session_num"] for item in chunk_blocks],
                 "cache_path": cache_path,
-                "prompt": day_prompt,
+                "prompt": chunk_prompt,
                 "user_message": user_message,
                 "chars": len(combined_transcript),
+                "day_keys": sorted(set(day_keys)),
             }
         )
 
     if preextract_jobs:
         workers = min(max(1, int(os.environ.get("BENCHMARK_PARALLEL", "1"))), len(preextract_jobs))
-        print(f"\n  Parallel day extraction workers: {workers} ({len(preextract_jobs)} day jobs)")
+        print(f"\n  Parallel chunk extraction workers: {workers} ({len(preextract_jobs)} chunk jobs)")
 
-        def _extract_day(job: dict) -> dict:
+        def _extract_chunk(job: dict) -> dict:
             t0 = time.time()
             raw_response, usage = _call_anthropic_cached(
                 job["prompt"], job["user_message"], model, api_key, max_tokens=16384
@@ -2107,10 +2169,12 @@ def run_per_day_extraction(
                 "model": model,
                 "sessions": job["snums"],
                 "date": job["date"],
+                "day_keys": job["day_keys"],
+                "chunk_idx": job["chunk_idx"],
                 "timestamp": datetime.now().isoformat(),
             }
             return {
-                "day_idx": job["day_idx"],
+                "chunk_idx": job["chunk_idx"],
                 "date": job["date"],
                 "cache_path": job["cache_path"],
                 "cached": cached,
@@ -2119,17 +2183,26 @@ def run_per_day_extraction(
             }
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-            futs = [ex.submit(_extract_day, job) for job in preextract_jobs]
+            futs = [ex.submit(_extract_chunk, job) for job in preextract_jobs]
             for fut in concurrent.futures.as_completed(futs):
                 out = fut.result()
                 out["cache_path"].write_text(json.dumps(out["cached"], indent=2))
-                day_cache[out["date"]] = out["cached"]
+                day_cache.setdefault(out["date"], []).append(out["cached"])
                 usage = out["cached"].get("usage", {}) or {}
                 print(
-                    f"  Day extract {out['day_idx'] + 1}/{len(days)} ({out['date']}): "
+                    f"  Chunk extract {out['chunk_idx'] + 1}/{len(extracted_chunks)} ({out['date']}): "
                     f"{out['elapsed']:.1f}s, {usage.get('input_tokens', 0)} in + {usage.get('output_tokens', 0)} out, "
-                    f"{len(out['cached'].get('facts', []))} facts, transcript={out['chars']} chars"
+                    f"{len(out['cached'].get('facts', []))} facts, sessions={out['cached'].get('sessions', [])}, "
+                    f"transcript={out['chars']} chars"
                 )
+
+    extraction_checkpoint = {
+        "state": "completed",
+        "total_chunks": len(extracted_chunks),
+        "total_days": len(days),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    extraction_checkpoint_path.write_text(json.dumps(extraction_checkpoint, indent=2))
 
     # Step B: replay days in order: apply/store snippets+journal+project logs then janitor cycle.
     for day_idx, (date, day_reviews) in enumerate(days):
@@ -2204,45 +2277,61 @@ def run_per_day_extraction(
         # Harness purity: do not run session-aware project doc enrichment here.
         # Project documentation intelligence belongs in checkpoint runtime/janitor.
 
-        cached = day_cache.get(date)
-        if cached is None:
-            cache_path = cache_dir / f"day-{date}.json"
-            if cache_path.exists():
+        cached_list = day_cache.get(date)
+        if cached_list is None:
+            cached_list = []
+            for cache_path in sorted(cache_dir.glob("chunk-*.json")):
                 cached = json.loads(cache_path.read_text())
-                day_cache[date] = cached
-            else:
-                raise RuntimeError(f"Missing day cache for {date}; pre-extraction failed")
-        print(f"  Apply cached extraction: {len(cached.get('facts', []))} facts")
+                if date in [str(v) for v in cached.get("day_keys", [])]:
+                    cached_list.append(cached)
+            if not cached_list:
+                raise RuntimeError(f"Missing chunk caches for {date}; pre-extraction failed")
+            day_cache[date] = cached_list
 
-        day_project_logs = _normalize_project_logs(cached.get("project_logs", {}))
+        facts = []
+        day_project_logs_input = {}
+        total_day_sessions = []
+        for cached in sorted(cached_list, key=lambda item: int(item.get("chunk_idx", 0))):
+            if date not in [str(v) for v in cached.get("day_keys", [cached.get("date", "")])]:
+                continue
+            facts.extend(cached.get("facts", []))
+            total_day_sessions.extend(int(s) for s in cached.get("sessions", []) if str(s).strip())
+            for project, entries in _normalize_project_logs(cached.get("project_logs", {})).items():
+                day_project_logs_input.setdefault(project, []).extend(entries)
+            for filename, bullets in cached.get("soul_snippets", {}).items():
+                if isinstance(bullets, str):
+                    bullets = [bullets] if bullets.strip() else []
+                if bullets and write_snippet_entry(str(workspace), filename, bullets, "Compaction", date):
+                    total_snippets += len(bullets)
+            for filename, content in cached.get("journal_entries", {}).items():
+                if isinstance(content, list):
+                    content = "\n\n".join(str(c) for c in content if c)
+                if content and write_journal_entry(str(workspace), filename, content, "Compaction", date):
+                    total_journals += 1
+
+        if not total_day_sessions:
+            total_day_sessions = snums
+        facts_count = len(facts)
+        print(
+            f"  Apply cached extraction: {facts_count} facts "
+            f"from {len(cached_list)} chunk(s)"
+        )
+
+        day_project_logs = _normalize_project_logs(day_project_logs_input)
         day_log_entries = sum(len(v) for v in day_project_logs.values())
         print(f"  Day project logs: projects={len(day_project_logs)} entries={day_log_entries}")
 
         # Store facts
-        facts = cached.get("facts", [])
         day_env = _with_quaid_now(env, date)
-        stored, edges = _store_facts(workspace, facts, day_env, snums[0], date)
+        stored, edges = _store_facts(workspace, facts, day_env, min(total_day_sessions), date)
         day_domain_missing = int(_LAST_STORE_METRICS.get("domain_missing", 0))
         total_facts += len(facts)
         total_stored += stored
         total_edges += edges
         total_domain_missing += day_domain_missing
 
-        # Write snippets and journal entries
-        ws = str(workspace)
-        for filename, bullets in cached.get("soul_snippets", {}).items():
-            if isinstance(bullets, str):
-                bullets = [bullets] if bullets.strip() else []
-            if bullets and write_snippet_entry(ws, filename, bullets, "Compaction", date):
-                total_snippets += len(bullets)
-
-        for filename, content in cached.get("journal_entries", {}).items():
-            if isinstance(content, list):
-                content = "\n\n".join(str(c) for c in content if c)
-            if content and write_journal_entry(ws, filename, content, "Compaction", date):
-                total_journals += 1
-
         try:
+            ws = str(workspace)
             pl_metrics = write_project_logs(
                 ws,
                 day_project_logs,
@@ -2668,6 +2757,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "tool_call_details": q_usage.get("tool_call_details", []),
             "tool_results_summary": tool_results_log,
             "answer_duration_s": round(answer_duration, 2),
+            "preinject_duration_ms": q_usage.get("preinject_duration_ms"),
             "eval_tokens": q_usage,
         }
         return i, result, marker, query_type, tool_calls
@@ -3021,17 +3111,19 @@ def _pre_recall(
     env: dict,
     max_session: Optional[int] = None,
     date_to: Optional[str] = None,
-) -> Tuple[str, str]:
+) -> Tuple[str, str, Optional[dict]]:
     """Pre-recall memories for a question before the model sees it.
 
     Returns (recall_text, query_used).
     """
-    # Use the question directly as the recall query
-    recall_result = _tool_memory_recall(
+    # Use the question directly as the user query; checkpoint recall-fast
+    # handles HyDE/fanout planning internally.
+    recall_text, recall_meta = _tool_memory_recall(
         question, workspace, env,
         max_session=max_session,
+        fast=True,
     )
-    return recall_result, question
+    return recall_text, question, recall_meta
 
 
 def _tool_use_loop(
@@ -3129,10 +3221,13 @@ def _tool_use_loop(
     retrieval_texts = []  # Raw recall text for retrieval-only metric
 
     if context_inject:
-        recall_text, query_used = _pre_recall(
+        pre_t0 = time.time()
+        recall_text, query_used, recall_meta = _pre_recall(
             question, workspace, env,
             max_session=max_session, date_to=date_to,
         )
+        pre_duration_ms = int((time.time() - pre_t0) * 1000)
+        usage_total["preinject_duration_ms"] = pre_duration_ms
         if recall_text and "No memories found" not in recall_text:
             injected_context = (
                 f"\n\n## Retrieved Memories\n"
@@ -3144,6 +3239,17 @@ def _tool_use_loop(
                 f"pre-inject({query_used[:40]}): {len(recall_text)} chars"
             )
             retrieval_texts.append(recall_text)
+            usage_total["tool_call_details"].append({
+                "tool": "memory_recall(pre-inject)",
+                "query": query_used,
+                "query_preview_30": query_used[:30],
+                "duration_ms": pre_duration_ms,
+                "result_chars": len(recall_text or ""),
+                "result_preview_30": str(recall_text or "").strip().splitlines()[0][:30] if recall_text else "",
+                "error": "",
+                "source": "preinject",
+                "recall_meta": recall_meta,
+            })
 
     if context_inject:
         system_prompt = (
@@ -3176,11 +3282,7 @@ def _tool_use_loop(
         req = urllib.request.Request(
             "https://api.anthropic.com/v1/messages",
             data=json.dumps(payload).encode(),
-            headers={
-                "Content-Type": "application/json",
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-            },
+            headers=_anthropic_headers(api_key, prompt_caching=False),
         )
 
         try:
@@ -3215,7 +3317,7 @@ def _tool_use_loop(
                     t0 = time.time()
 
                     # Execute tool (inject session filter for temporal filtering)
-                    result_text = _execute_tool(
+                    result_text, recall_meta = _execute_tool(
                         tool_name, tool_input, workspace, env,
                         max_session=max_session, date_to=date_to,
                     )
@@ -3240,6 +3342,7 @@ def _tool_use_loop(
                         "result_chars": len(result_text or ""),
                         "result_preview_30": str(result_text or "").strip().splitlines()[0][:30] if result_text else "",
                         "error": str(result_text or "")[:80] if str(result_text).startswith("Error:") else "",
+                        "recall_meta": recall_meta if tool_name == "memory_recall" else None,
                     })
 
                     tool_results.append({
@@ -3273,7 +3376,7 @@ def _execute_tool(
     env: dict,
     max_session: Optional[int] = None,
     date_to: Optional[str] = None,
-) -> str:
+) -> Tuple[str, Optional[dict]]:
     """Execute a tool and return the result text.
 
     max_session: source session number — filters recall to facts from this
@@ -3292,16 +3395,44 @@ def _execute_tool(
         )
     elif tool_name == "search_project_docs":
         project = tool_input.get("project")
-        return _tool_search_project_docs(query, workspace, env, project, date_to=date_to)
+        return _tool_search_project_docs(query, workspace, env, project, date_to=date_to), None
     else:
-        return f"Unknown tool: {tool_name}"
+        return f"Unknown tool: {tool_name}", None
+
+
+def _render_recall_results(results: list[dict]) -> str:
+    """Render recall JSON results back into the legacy plain-text format."""
+    lines: list[str] = []
+    for r in results:
+        try:
+            flags = []
+            if r.get("verified"):
+                flags.append("V")
+            if r.get("pinned"):
+                flags.append("P")
+            flag_str = f"[{''.join(flags)}]" if flags else ""
+            conf = float(r.get("extraction_confidence", 0.5) or 0.5)
+            created = str(r.get("created_at", "") or "")
+            privacy = str(r.get("privacy", "shared") or "shared")
+            owner = str(r.get("owner_id", "") or "")
+            text = str(r.get("text", "") or "")
+            rid = str(r.get("id", "") or "")
+            similarity = float(r.get("similarity", 0.0) or 0.0)
+            category = str(r.get("category", "fact") or "fact")
+        except Exception:
+            continue
+        lines.append(
+            f"[{similarity:.2f}] [{category}]{flag_str}[C:{conf:.1f}] {text} |ID:{rid}|T:{created}|P:{privacy}|O:{owner}"
+        )
+    return "\n".join(lines).strip()
 
 
 def _tool_memory_recall(
     query: str, workspace: Path, env: dict,
     date_from: Optional[str] = None, date_to: Optional[str] = None,
     max_session: Optional[int] = None,
-) -> str:
+    fast: bool = False,
+) -> Tuple[str, Optional[dict]]:
     """Execute memory_recall via subprocess.
 
     max_session: if set, post-filter results to only include facts from
@@ -3312,7 +3443,7 @@ def _tool_memory_recall(
     # Request extra results when filtering so we still get enough after post-filter
     limit = 20 if max_session else 10
     cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT) + [
-        "search", query, "--owner", "maya", "--limit", str(limit),
+        "recall-fast" if fast else "recall", query, "--owner", "maya", "--limit", str(limit), "--json",
     ]
     if date_from:
         cmd.extend(["--date-from", date_from])
@@ -3325,33 +3456,38 @@ def _tool_memory_recall(
         )
         output = result.stdout.strip()
         if not output:
-            return "No memories found."
+            return "No memories found.", None
+
+        payload = json.loads(output)
+        results = payload.get("results", []) if isinstance(payload, dict) else []
+        recall_meta = payload.get("meta") if isinstance(payload, dict) else None
 
         # Post-filter by session number if max_session is set
         if max_session is not None:
             filtered_lines = []
+            filtered_results = []
             # Extract fact IDs from output and check their session_id in DB
             import sqlite3 as _sqlite3
             db_path = workspace / "data" / "memory.db"
             conn = _sqlite3.connect(str(db_path))
             try:
-                for line in output.split("\n"):
-                    # Output format includes |ID:xxx| — extract the ID
-                    id_match = re.search(r'\|ID:([^|]+)\|', line)
-                    if id_match:
-                        node_id = id_match.group(1)
-                        row = conn.execute(
+                for result_row in results:
+                    if not isinstance(result_row, dict):
+                        continue
+                    node_id = str(result_row.get("id") or "")
+                    if node_id:
+                        db_row = conn.execute(
                             "SELECT session_id FROM nodes WHERE id = ?",
                             (node_id,)
                         ).fetchone()
-                        if row and row[0]:
+                        if db_row and db_row[0]:
                             # Parse session number from "session-N"
                             try:
-                                sess_num = int(row[0].replace("session-", ""))
+                                sess_num = int(db_row[0].replace("session-", ""))
                                 if sess_num <= max_session:
-                                    filtered_lines.append(line)
+                                    filtered_results.append(result_row)
                             except ValueError:
-                                filtered_lines.append(line)  # Unknown format, keep
+                                filtered_results.append(result_row)  # Unknown format, keep
                         else:
                             # No session_id — check node type. Entity nodes
                             # (Person, Place, Org) pass through. Fact/Event/
@@ -3363,20 +3499,21 @@ def _tool_memory_recall(
                             ).fetchone()
                             node_type = type_row[0] if type_row else "Fact"
                             if node_type in ("Person", "Place", "Organization"):
-                                filtered_lines.append(line)
+                                filtered_results.append(result_row)
                             # else: Fact/Event/Preference with no session — skip
-                    else:
-                        filtered_lines.append(line)  # Non-result line, keep
             finally:
                 conn.close()
 
-            output = "\n".join(filtered_lines).strip()
+            results = filtered_results
+            output = _render_recall_results(results)
             if not output:
-                return "No memories found for this time period."
+                return "No memories found for this time period.", recall_meta
 
-        return output
+        if not output:
+            output = _render_recall_results(results)
+        return output or "No memories found.", recall_meta
     except Exception as e:
-        return f"Memory recall error: {e}"
+        return f"Memory recall error: {e}", None
 
 
 def _tool_search_project_docs(
@@ -3498,9 +3635,98 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
     eval_in = sum(r.get("eval_tokens", {}).get("input_tokens", 0) for r in results)
     eval_out = sum(r.get("eval_tokens", {}).get("output_tokens", 0) for r in results)
     eval_calls = sum(r.get("eval_tokens", {}).get("api_calls", 0) for r in results)
+    preinject_durations = [
+        float(r.get("eval_tokens", {}).get("preinject_duration_ms"))
+        for r in results
+        if isinstance(r.get("eval_tokens", {}).get("preinject_duration_ms"), (int, float))
+    ]
 
     costs = _MODEL_COSTS.get(eval_model, _MODEL_COSTS["claude-haiku-4-5-20251001"])
     eval_cost = (eval_in * costs["input"] + eval_out * costs["output"]) / 1_000_000
+
+    def _pct(values: list[float], q: float) -> int:
+        if not values:
+            return 0
+        vals = sorted(values)
+        idx = min(len(vals) - 1, max(0, int((len(vals) - 1) * q)))
+        return round(vals[idx])
+
+    def _collect_recall_metas(source: str) -> list[dict]:
+        metas: list[dict] = []
+        for r in results:
+            eval_tokens = r.get("eval_tokens", {}) or {}
+            for detail in eval_tokens.get("tool_call_details", []) or []:
+                if not isinstance(detail, dict):
+                    continue
+                if source == "preinject" and detail.get("source") != "preinject":
+                    continue
+                if source == "tool" and detail.get("tool") != "memory_recall":
+                    continue
+                meta = detail.get("recall_meta")
+                if isinstance(meta, dict):
+                    metas.append(meta)
+        return metas
+
+    def _aggregate_recall_phase_metas(metas: list[dict]) -> dict:
+        phase_buckets: dict[str, list[float]] = {}
+        turns: list[float] = []
+        fanouts: list[float] = []
+        fan_spreads: list[float] = []
+        stop_reasons: dict[str, int] = {}
+        bailout_counts: dict[str, int] = {}
+        for meta in metas:
+            for phase, value in (meta.get("phases_ms") or {}).items():
+                if isinstance(value, (int, float)):
+                    phase_buckets.setdefault(phase, []).append(float(value))
+            if isinstance(meta.get("turns"), (int, float)):
+                turns.append(float(meta["turns"]))
+            if isinstance(meta.get("fanout_count"), (int, float)):
+                fanouts.append(float(meta["fanout_count"]))
+            for turn in meta.get("turn_details", []) or []:
+                fan = (turn.get("fanout") or {}).get("branch_total_ms") or {}
+                spread = fan.get("spread_ms")
+                if isinstance(spread, (int, float)):
+                    fan_spreads.append(float(spread))
+            reason = meta.get("stop_reason")
+            if reason:
+                stop_reasons[str(reason)] = stop_reasons.get(str(reason), 0) + 1
+            for key, value in (meta.get("bailout_counts") or {}).items():
+                if isinstance(value, (int, float)):
+                    bailout_counts[str(key)] = bailout_counts.get(str(key), 0) + int(value)
+
+        out = {
+            "count": len(metas),
+            "turns": {
+                "avg": round(sum(turns) / len(turns), 2) if turns else 0,
+                "p95": _pct(turns, 0.95) if turns else 0,
+                "max": round(max(turns)) if turns else 0,
+            },
+            "fanout_count": {
+                "avg": round(sum(fanouts) / len(fanouts), 2) if fanouts else 0,
+                "p95": _pct(fanouts, 0.95) if fanouts else 0,
+                "max": round(max(fanouts)) if fanouts else 0,
+            },
+            "fanout_spread_ms": {
+                "avg": round(sum(fan_spreads) / len(fan_spreads)) if fan_spreads else 0,
+                "p95": _pct(fan_spreads, 0.95) if fan_spreads else 0,
+                "max": round(max(fan_spreads)) if fan_spreads else 0,
+            },
+            "stop_reasons": stop_reasons,
+            "bailout_counts": bailout_counts,
+            "phases_ms": {},
+        }
+        for phase, values in sorted(phase_buckets.items()):
+            out["phases_ms"][phase] = {
+                "avg": round(sum(values) / len(values)) if values else 0,
+                "p50": _pct(values, 0.50) if values else 0,
+                "p95": _pct(values, 0.95) if values else 0,
+                "p99": _pct(values, 0.99) if values else 0,
+                "max": round(max(values)) if values else 0,
+            }
+        return out
+
+    preinject_recall_metas = _collect_recall_metas("preinject")
+    tool_recall_metas = _collect_recall_metas("tool")
 
     usage = {
         "eval": {
@@ -3513,6 +3739,16 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
         },
         "queries": len(results),
         "avg_tokens_per_query": round((eval_in + eval_out) / len(results)) if results else 0,
+        "preinject_timing_ms": {
+            "count": len(preinject_durations),
+            "avg": round(sum(preinject_durations) / len(preinject_durations)) if preinject_durations else 0,
+            "p50": _pct(preinject_durations, 0.50),
+            "p95": _pct(preinject_durations, 0.95),
+            "p99": _pct(preinject_durations, 0.99),
+            "max": round(max(preinject_durations)) if preinject_durations else 0,
+        },
+        "preinject_recall_telemetry": _aggregate_recall_phase_metas(preinject_recall_metas),
+        "tool_recall_telemetry": _aggregate_recall_phase_metas(tool_recall_metas),
     }
 
     with open(workspace / "token_usage.json", "w") as f:
@@ -3625,11 +3861,7 @@ def _judge_anthropic(
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
         data=json.dumps(payload).encode(),
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
+        headers=_anthropic_headers(api_key, prompt_caching=False),
     )
 
     try:
@@ -4113,7 +4345,7 @@ def _merge_tier5_into_scores(scores: dict, tier5_results: List[dict]) -> dict:
     }
     return scores
 
-def _make_env(workspace: Path) -> dict:
+def _make_env(workspace: Path, *, mock_embeddings: Optional[bool] = None) -> dict:
     """Build env dict for subprocess calls pointing at the benchmark workspace."""
     env = os.environ.copy()
     workspace = workspace.resolve()
@@ -4133,6 +4365,10 @@ def _make_env(workspace: Path) -> dict:
     env["BENCHMARK_LIFECYCLE_PREPASS_WORKERS"] = str(
         max(1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", env["BENCHMARK_PARALLEL"])))
     )
+    if mock_embeddings is True:
+        env["MOCK_EMBEDDINGS"] = "1"
+    elif mock_embeddings is False:
+        env.pop("MOCK_EMBEDDINGS", None)
     # Route janitor LLM calls through Claude Code when using that backend
     if _BACKEND == "claude-code":
         env["QUAID_USE_CLAUDE_CODE"] = "1"
@@ -4154,26 +4390,20 @@ def _make_env(workspace: Path) -> dict:
                     "quaid subprocess LLM calls may fail-hard."
                 )
     else:
-        # Ensure API key is available for direct API calls
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            env_file = _CLAWD / ".env"
-            if env_file.exists():
-                for line in env_file.read_text().split("\n"):
-                    if line.startswith("ANTHROPIC_API_KEY="):
-                        api_key = line.split("=", 1)[1].strip()
-                        break
-        if api_key:
-            env["ANTHROPIC_API_KEY"] = api_key
+        credential = _find_anthropic_credential()
+        if _is_anthropic_oauth_token(credential):
+            env["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] = credential
+        if credential:
+            env["ANTHROPIC_API_KEY"] = credential
     return env
 
 
 def _get_api_key() -> str:
-    """Get Anthropic API key from env or .env file."""
-    api_key = _find_anthropic_api_key()
-    if api_key:
-        return api_key
-    print("ERROR: ANTHROPIC_API_KEY not found", file=sys.stderr)
+    """Get benchmark Anthropic credential, preferring OAuth token."""
+    credential = _find_anthropic_credential()
+    if credential:
+        return credential
+    print("ERROR: BENCHMARK_ANTHROPIC_OAUTH_TOKEN/ANTHROPIC_API_KEY not found", file=sys.stderr)
     sys.exit(1)
 
 
@@ -4220,12 +4450,7 @@ def _call_anthropic_cached(
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
         data=json.dumps(payload).encode(),
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-            "anthropic-beta": "prompt-caching-2024-07-31",
-        },
+        headers=_anthropic_headers(api_key, prompt_caching=True),
     )
 
     retry_attempts = max(1, int(os.environ.get("ANTHROPIC_RETRY_ATTEMPTS", "8")))
@@ -4403,6 +4628,7 @@ def _tool_use_loop_claude_code(
         "output_tokens": 0,
         "api_calls": 0,
         "tool_call_details": [],
+        "preinject_duration_ms": None,
     }
     tool_call_names = []
     tool_result_summaries = []
@@ -4411,10 +4637,13 @@ def _tool_use_loop_claude_code(
     # Pre-inject recall results (Python/subprocess, no LLM cost)
     injected_context = ""
     if context_inject:
-        recall_text, query_used = _pre_recall(
+        pre_t0 = time.time()
+        recall_text, query_used, recall_meta = _pre_recall(
             question, workspace, env,
             max_session=max_session, date_to=date_to,
         )
+        pre_duration_ms = int((time.time() - pre_t0) * 1000)
+        usage_total["preinject_duration_ms"] = pre_duration_ms
         if recall_text and "No memories found" not in recall_text:
             injected_context = (
                 f"\n\n## Retrieved Memories\n"
@@ -4426,6 +4655,17 @@ def _tool_use_loop_claude_code(
                 f"pre-inject({query_used[:40]}): {len(recall_text)} chars"
             )
             retrieval_texts.append(recall_text)
+            usage_total["tool_call_details"].append({
+                "tool": "memory_recall(pre-inject)",
+                "query": query_used,
+                "query_preview_30": query_used[:30],
+                "duration_ms": pre_duration_ms,
+                "result_chars": len(recall_text or ""),
+                "result_preview_30": str(recall_text or "").strip().splitlines()[0][:30] if recall_text else "",
+                "error": "",
+                "source": "preinject",
+                "recall_meta": recall_meta,
+            })
 
     # Build system prompt
     db_path = workspace / "data" / "memory.db"
@@ -4443,7 +4683,7 @@ def _tool_use_loop_claude_code(
             "If the retrieved memories don't have enough info, you can search for more "
             "using the Bash tool with this command:\n"
             f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
-            f"python3 {mg_path} search \"YOUR QUERY\" --owner maya --limit 5{date_filter}\n\n"
+            f"python3 {mg_path} recall \"YOUR QUERY\" --owner maya --limit 5{date_filter}\n\n"
             "For project source code, search with:\n"
             f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
             f"CLAWDBOT_WORKSPACE={workspace} python3 {mg_path} search-all \"YOUR QUERY\"\n\n"
@@ -4461,7 +4701,7 @@ def _tool_use_loop_claude_code(
             "You will receive the question and eval context in stdin. Search your memory if needed.\n\n"
             "To search memory, use Bash:\n"
             f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
-            f"python3 {mg_path} search \"YOUR QUERY\" --owner maya --limit 5{date_filter}\n\n"
+            f"python3 {mg_path} recall \"YOUR QUERY\" --owner maya --limit 5{date_filter}\n\n"
             "For project source code:\n"
             f"  QUAID_HOME={workspace} PYTHONPATH={quaid_root} MEMORY_DB_PATH={db_path} "
             f"CLAWDBOT_WORKSPACE={workspace} python3 {mg_path} search-all \"YOUR QUERY\"\n\n"
@@ -4576,7 +4816,7 @@ def _tool_use_loop_claude_code(
         # Claude stream occasionally omits explicit tool events; synthesize a fallback
         # recall trace to keep retrieval evaluation from collapsing to all WRONG.
         if not retrieval_texts:
-            replay = _tool_memory_recall(question, workspace, env, max_session=max_session)
+            replay, replay_meta = _tool_memory_recall(question, workspace, env, max_session=max_session)
             if replay:
                 tool_call_names.append("memory_recall(replay)")
                 tool_result_summaries.append(f"memory_recall(replay:{question[:40]}): {len(replay)} chars")
@@ -4590,6 +4830,7 @@ def _tool_use_loop_claude_code(
                     "result_preview_30": replay.strip().splitlines()[0][:30] if replay else "",
                     "error": "",
                     "source": "fallback_replay",
+                    "recall_meta": replay_meta,
                 })
 
     except subprocess.TimeoutExpired:
@@ -4617,13 +4858,13 @@ def _classify_claude_bash_command(command: str) -> Tuple[str, str]:
     if m:
         query = m.group(1)
     else:
-        m = re.search(r'\bsearch\s+"([^"]+)"', cmd)
+        m = re.search(r'\brecall(?:-fast)?\s+"([^"]+)"', cmd)
         if m:
             query = m.group(1)
 
     if " search-all " in lower:
         return "search_project_docs", query
-    if " search " in lower:
+    if " recall-fast " in lower or " recall " in lower:
         return "memory_recall", query
     return "memory_recall", query
 
