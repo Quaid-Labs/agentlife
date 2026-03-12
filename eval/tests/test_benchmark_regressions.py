@@ -535,6 +535,7 @@ class TestMakeEnv:
         env = rpb._make_env(workspace)
         assert env["CLAWDBOT_WORKSPACE"] == str(workspace.resolve())
         assert env["QUAID_HOME"] == str(workspace.resolve())
+        assert env["QUAID_INSTANCE"] == "benchmark"
         assert env["MEMORY_DB_PATH"] == str(workspace.resolve() / "data" / "memory.db")
         assert env["QUAID_DISABLE_NOTIFICATIONS"] == "1"
 

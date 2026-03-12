@@ -4420,6 +4420,7 @@ def _make_env(workspace: Path, *, mock_embeddings: Optional[bool] = None) -> dic
     # Quaid config loader resolves config relative to QUAID_HOME for standalone adapter.
     # Without this, janitor can read ~/quaid/config/memory.json instead of run workspace config.
     env["QUAID_HOME"] = str(workspace)
+    env["QUAID_INSTANCE"] = "benchmark"
     env["MEMORY_DB_PATH"] = str(workspace / "data" / "memory.db")
     env["QUAID_DISABLE_NOTIFICATIONS"] = "1"
     # Ensure Quaid root imports (e.g., `lib.*`) resolve even when entry scripts
