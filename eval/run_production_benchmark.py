@@ -2605,7 +2605,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
              eval_model: str = "claude-haiku-4-5-20251001",
              context_inject: bool = True,
              judge_model: str = "gpt-4o-mini",
-             include_statement_grounding: bool = False) -> List[dict]:
+             include_statement_grounding: bool = False,
+             preinject_planner_profile: str = "fast") -> List[dict]:
     """Evaluate using tool use (memory_recall + search_project_docs).
 
     If context_inject=True, pre-recalls memories and injects them into the
@@ -2735,6 +2736,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             date_to=session_date,
             max_session=source_session,
             context_inject=context_inject,
+            preinject_planner_profile=preinject_planner_profile,
         )
         answer_duration = time.time() - t0
         tool_analysis = _analyze_tool_call_details(q_usage.get("tool_call_details", []) or [])
@@ -3222,6 +3224,7 @@ def _pre_recall(
     env: dict,
     max_session: Optional[int] = None,
     date_to: Optional[str] = None,
+    planner_profile: str = "fast",
 ) -> Tuple[str, str, Optional[dict]]:
     """Pre-recall memories for a question before the model sees it.
 
@@ -3233,6 +3236,7 @@ def _pre_recall(
         question, workspace, env,
         max_session=max_session,
         fast=True,
+        planner_profile=planner_profile,
     )
     return recall_text, question, recall_meta
 
@@ -3365,6 +3369,7 @@ def _tool_use_loop(
     date_to: Optional[str] = None,
     max_session: Optional[int] = None,
     context_inject: bool = True,
+    preinject_planner_profile: str = "fast",
 ) -> Tuple[str, List[str], List[str], List[str], dict]:
     """Run model with tool use, executing memory_recall and search_project_docs.
 
@@ -3381,6 +3386,7 @@ def _tool_use_loop(
             question, eval_context, workspace, api_key, env,
             max_turns=max_turns, model=model, date_to=date_to,
             max_session=max_session, context_inject=context_inject,
+            preinject_planner_profile=preinject_planner_profile,
         )
 
     usage_total = {
@@ -3465,6 +3471,7 @@ def _tool_use_loop(
         recall_text, query_used, recall_meta = _pre_recall(
             question, workspace, env,
             max_session=max_session, date_to=date_to,
+            planner_profile=preinject_planner_profile,
         )
         pre_duration_ms = int((time.time() - pre_t0) * 1000)
         usage_total["preinject_duration_ms"] = pre_duration_ms
@@ -3682,6 +3689,7 @@ def _tool_memory_recall(
     date_from: Optional[str] = None, date_to: Optional[str] = None,
     max_session: Optional[int] = None,
     fast: bool = False,
+    planner_profile: Optional[str] = None,
 ) -> Tuple[str, Optional[dict]]:
     """Execute memory_recall via subprocess.
 
@@ -3695,6 +3703,8 @@ def _tool_memory_recall(
     cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT) + [
         "recall-fast" if fast else "recall", query, "--owner", "maya", "--limit", str(limit), "--json",
     ]
+    if planner_profile:
+        cmd.extend(["--planner-profile", planner_profile])
     if date_from:
         cmd.extend(["--date-from", date_from])
     if date_to:
@@ -5063,6 +5073,7 @@ def _tool_use_loop_claude_code(
     date_to: Optional[str] = None,
     max_session: Optional[int] = None,
     context_inject: bool = True,
+    preinject_planner_profile: str = "fast",
 ) -> Tuple[str, List[str], List[str], List[str], dict]:
     """Eval answer loop using Claude Code CLI with Bash tool for memory search.
 
@@ -5096,6 +5107,7 @@ def _tool_use_loop_claude_code(
         recall_text, query_used, recall_meta = _pre_recall(
             question, workspace, env,
             max_session=max_session, date_to=date_to,
+            planner_profile=preinject_planner_profile,
         )
         pre_duration_ms = int((time.time() - pre_t0) * 1000)
         usage_total["preinject_duration_ms"] = pre_duration_ms
@@ -5519,6 +5531,8 @@ def main():
                         help="Resume ingest/day-janitor from latest successful day checkpoint in results-dir")
     parser.add_argument("--include-statement-grounding", action="store_true",
                         help="Include the opt-in statement-context-grounding eval set (dataset experiment)")
+    parser.add_argument("--preinject-planner-profile", choices=["fast", "aggressive"], default="fast",
+                        help="Planner fanout profile for preinject recall-fast (default: fast)")
     args = parser.parse_args()
 
     workspace = Path(args.results_dir).resolve()
@@ -5537,6 +5551,7 @@ def main():
     print(f"  Skip-janitor: {args.skip_janitor}")
     print(f"  Resume-day-lifecycle: {args.resume_day_lifecycle}")
     print(f"  Context-inject: {args.context_inject}")
+    print(f"  Preinject planner profile: {args.preinject_planner_profile}")
     print(f"  Include statement grounding: {args.include_statement_grounding}")
     print(f"  Judge: {args.judge}")
     print()
@@ -5579,7 +5594,8 @@ def main():
                           eval_model=args.eval_model,
                           context_inject=args.context_inject,
                           judge_model=args.judge,
-                          include_statement_grounding=args.include_statement_grounding)
+                          include_statement_grounding=args.include_statement_grounding,
+                          preinject_planner_profile=args.preinject_planner_profile)
 
         results_path = workspace / "evaluation_results.json"
         with open(results_path, "w") as f:
@@ -5695,7 +5711,8 @@ def main():
                           eval_model=args.eval_model,
                           context_inject=args.context_inject,
                           judge_model=args.judge,
-                          include_statement_grounding=args.include_statement_grounding)
+                          include_statement_grounding=args.include_statement_grounding,
+                          preinject_planner_profile=args.preinject_planner_profile)
 
         # Save results
         results_path = workspace / "evaluation_results.json"

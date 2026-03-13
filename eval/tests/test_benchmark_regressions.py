@@ -505,6 +505,7 @@ def test_pre_recall_uses_fast_memory_recall_path(tmp_path, monkeypatch):
         captured["query"] = query
         captured["fast"] = kwargs.get("fast")
         captured["max_session"] = kwargs.get("max_session")
+        captured["planner_profile"] = kwargs.get("planner_profile")
         return "hit", {"mode": "fast", "stop_reason": "quality_gate_met"}
 
     monkeypatch.setattr(rpb, "_tool_memory_recall", _fake_tool_memory_recall)
@@ -523,6 +524,7 @@ def test_pre_recall_uses_fast_memory_recall_path(tmp_path, monkeypatch):
         "query": "Where does Maya live?",
         "fast": True,
         "max_session": 7,
+        "planner_profile": "fast",
     }
 
 
@@ -724,6 +726,31 @@ def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatc
     assert "--json" in captured["cmd"]
     assert "Quaid likes espresso coffee" in text
     assert meta == {"mode": "deliberate", "total_ms": 42}
+
+
+def test_tool_memory_recall_passes_planner_profile_for_fast_calls(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    captured: dict[str, object] = {}
+
+    def _fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return SimpleNamespace(stdout=json.dumps({"results": [], "meta": {"mode": "fast"}}), stderr="", returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    _text, meta = rpb._tool_memory_recall(
+        "coffee",
+        workspace,
+        {"PATH": os.environ.get("PATH", "")},
+        fast=True,
+        planner_profile="aggressive",
+    )
+
+    assert captured["cmd"].count("--planner-profile") == 1
+    assert "aggressive" in captured["cmd"]
+    assert meta == {"mode": "fast"}
 
 
 def test_call_anthropic_cached_retries_http_520(monkeypatch):
