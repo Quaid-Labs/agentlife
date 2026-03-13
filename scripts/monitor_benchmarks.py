@@ -199,7 +199,7 @@ def parse_score(run_dir: Path, kind: str) -> Optional[float]:
 
 def has_completion(run_dir: Path, kind: str) -> bool:
     if kind == "agentlife":
-        return (run_dir / "scores.json").exists()
+        return (run_dir / "scores.json").exists() or (run_dir / "ingest_complete.json").exists()
     if kind == "locomo":
         return (run_dir / "locomo_results.json").exists() or (run_dir / "scores.json").exists()
     if kind == "longmemeval":

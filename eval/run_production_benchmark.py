@@ -820,6 +820,183 @@ def _write_prompt_trace(
         pass
 
 
+def _usage_log_path(workspace: Path) -> Path:
+    return workspace / "logs" / "llm-usage-events.jsonl"
+
+
+def _benchmark_env(workspace: Path, phase: str) -> dict:
+    """Compatibility wrapper so old test stubs of _make_env still work."""
+    try:
+        return _make_env(workspace, llm_usage_phase=phase, llm_usage_source="runtime")
+    except TypeError:
+        return _make_env(workspace)
+
+
+def _empty_usage_summary() -> Dict[str, Any]:
+    return {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "api_calls": 0,
+        "cost_usd": 0.0,
+        "by_model": {},
+        "by_tier": {},
+        "by_source": {},
+    }
+
+
+def _merge_usage_counts(summary: Dict[str, Any], *, model: Optional[str], tier: Optional[str], source: Optional[str], input_tokens: int, output_tokens: int, api_calls: int, cost_usd: float = 0.0) -> None:
+    summary["input_tokens"] += int(input_tokens)
+    summary["output_tokens"] += int(output_tokens)
+    summary["total_tokens"] += int(input_tokens) + int(output_tokens)
+    summary["api_calls"] += int(api_calls)
+    summary["cost_usd"] = round(float(summary.get("cost_usd", 0.0)) + float(cost_usd), 4)
+
+    if model:
+        by_model = summary.setdefault("by_model", {})
+        row = by_model.setdefault(model, {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "api_calls": 0, "cost_usd": 0.0})
+        row["input_tokens"] += int(input_tokens)
+        row["output_tokens"] += int(output_tokens)
+        row["total_tokens"] += int(input_tokens) + int(output_tokens)
+        row["api_calls"] += int(api_calls)
+        row["cost_usd"] = round(float(row.get("cost_usd", 0.0)) + float(cost_usd), 4)
+
+    if tier:
+        by_tier = summary.setdefault("by_tier", {})
+        row = by_tier.setdefault(tier, {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "api_calls": 0, "cost_usd": 0.0})
+        row["input_tokens"] += int(input_tokens)
+        row["output_tokens"] += int(output_tokens)
+        row["total_tokens"] += int(input_tokens) + int(output_tokens)
+        row["api_calls"] += int(api_calls)
+        row["cost_usd"] = round(float(row.get("cost_usd", 0.0)) + float(cost_usd), 4)
+
+    if source:
+        by_source = summary.setdefault("by_source", {})
+        row = by_source.setdefault(source, {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "api_calls": 0, "cost_usd": 0.0})
+        row["input_tokens"] += int(input_tokens)
+        row["output_tokens"] += int(output_tokens)
+        row["total_tokens"] += int(input_tokens) + int(output_tokens)
+        row["api_calls"] += int(api_calls)
+        row["cost_usd"] = round(float(row.get("cost_usd", 0.0)) + float(cost_usd), 4)
+
+
+def _estimate_model_cost(model: Optional[str], input_tokens: int, output_tokens: int) -> float:
+    if not model:
+        return 0.0
+    costs = _MODEL_COSTS.get(model, _MODEL_COSTS.get("claude-haiku-4-5-20251001", {"input": 0.0, "output": 0.0}))
+    return round((int(input_tokens) * costs["input"] + int(output_tokens) * costs["output"]) / 1_000_000, 4)
+
+
+def _append_usage_event(
+    workspace: Path,
+    *,
+    phase: str,
+    source: str,
+    model: str,
+    usage: Dict[str, Any],
+    tier: Optional[str] = None,
+    provider: str = "",
+) -> None:
+    """Append a benchmark-side LLM usage event to the shared JSONL log."""
+    try:
+        usage_file = _usage_log_path(workspace)
+        usage_file.parent.mkdir(parents=True, exist_ok=True)
+        in_tok = int(
+            usage.get("input_tokens", 0)
+            + usage.get("cache_read_input_tokens", 0)
+            + usage.get("cache_creation_input_tokens", 0)
+        )
+        out_tok = int(usage.get("output_tokens", 0))
+        model_usage = usage.get("model_usage") if isinstance(usage.get("model_usage"), dict) else None
+        if not model_usage:
+            model_usage = {
+                model: {
+                    "input_tokens": in_tok,
+                    "output_tokens": out_tok,
+                    "total_tokens": in_tok + out_tok,
+                }
+            }
+        row = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "phase": phase,
+            "source": source,
+            "provider": provider,
+            "tier": tier or "",
+            "requested_model": model,
+            "resolved_model": model,
+            "input_tokens": in_tok,
+            "output_tokens": out_tok,
+            "total_tokens": in_tok + out_tok,
+            "cache_read_tokens": int(usage.get("cache_read_input_tokens", 0)),
+            "cache_creation_tokens": int(usage.get("cache_creation_input_tokens", 0)),
+            "api_calls": int(usage.get("api_calls", 1) or 1),
+            "model_usage": model_usage,
+        }
+        with usage_file.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
+
+
+def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> Dict[str, Any]:
+    """Aggregate benchmark/runtime LLM usage events for a workspace."""
+    summary = _empty_usage_summary()
+    path = _usage_log_path(workspace)
+    if not path.exists():
+        return summary
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except Exception:
+            continue
+        if not isinstance(event, dict):
+            continue
+        if phase and str(event.get("phase") or "") != phase:
+            continue
+        api_calls = int(event.get("api_calls", 1) or 1)
+        source = str(event.get("source") or "")
+        tier = str(event.get("tier") or "")
+        model_usage = event.get("model_usage") or {}
+        if isinstance(model_usage, dict) and model_usage:
+            tracked_any = False
+            for model_name, counts in model_usage.items():
+                if not isinstance(counts, dict):
+                    continue
+                in_tok = int(counts.get("input_tokens", counts.get("input", 0)) or 0)
+                out_tok = int(counts.get("output_tokens", counts.get("output", 0)) or 0)
+                _merge_usage_counts(
+                    summary,
+                    model=str(model_name),
+                    tier=tier or None,
+                    source=source or None,
+                    input_tokens=in_tok,
+                    output_tokens=out_tok,
+                    api_calls=api_calls,
+                    cost_usd=_estimate_model_cost(str(model_name), in_tok, out_tok),
+                )
+                tracked_any = True
+            if tracked_any:
+                continue
+        model = str(event.get("resolved_model") or event.get("requested_model") or "")
+        in_tok = int(event.get("input_tokens", 0) or 0)
+        out_tok = int(event.get("output_tokens", 0) or 0)
+        _merge_usage_counts(
+            summary,
+            model=model or None,
+            tier=tier or None,
+            source=source or None,
+            input_tokens=in_tok,
+            output_tokens=out_tok,
+            api_calls=api_calls,
+            cost_usd=_estimate_model_cost(model or None, in_tok, out_tok),
+        )
+    summary["cost_usd"] = round(float(summary.get("cost_usd", 0.0)), 4)
+    return summary
+
+
 # ---------------------------------------------------------------------------
 # Phase 1: Workspace setup
 # ---------------------------------------------------------------------------
@@ -1417,7 +1594,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
 
         # Run RAG reindex + journal/snippets/workspace via janitor subprocess
         # This mirrors production: project file changes trigger doc updates and journal reflection
-        env = _make_env(workspace)
+        env = _benchmark_env(workspace, "ingest")
         for task in ["rag", "workspace", "snippets", "journal"]:
             extra = ["--force-distill"] if task == "journal" else []
             result = subprocess.run(
@@ -1489,7 +1666,7 @@ def run_extraction(
     print(f"  Domain registry: {', '.join(domain_ids)}")
     system_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
     _write_prompt_trace(workspace, "single-call", model, domain_ids, system_prompt)
-    env = _make_env(workspace)
+    env = _benchmark_env(workspace, "ingest")
 
     # Check cache
     if not no_cache and cache_path.exists():
@@ -1550,6 +1727,14 @@ def run_extraction(
                 t0 = time.time()
                 raw, usage = _call_anthropic_cached(
                     system_prompt, user_msg, model, api_key, max_tokens=32768,
+                )
+                _append_usage_event(
+                    workspace,
+                    phase="ingest",
+                    source="extraction",
+                    model=model,
+                    usage=usage,
+                    provider=_BACKEND,
                 )
                 elapsed = time.time() - t0
                 parsed = parse_extraction_response(raw)
@@ -1701,6 +1886,14 @@ def run_extraction(
             raw_response, usage = _call_anthropic_cached(
                 system_prompt, user_message, model, api_key,
                 max_tokens=32768,
+            )
+            _append_usage_event(
+                workspace,
+                phase="ingest",
+                source="extraction",
+                model=model,
+                usage=usage,
+                provider=_BACKEND,
             )
             elapsed = time.time() - t0
             in_tok = usage.get("input_tokens", 0)
@@ -2062,7 +2255,7 @@ def run_per_day_extraction(
     print(f"  Domain registry: {', '.join(domain_ids)}")
     system_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
     _write_prompt_trace(workspace, "per-day-template", model, domain_ids, system_prompt)
-    env = _make_env(workspace)
+    env = _benchmark_env(workspace, "ingest")
     cache_dir = workspace / "extraction_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2172,6 +2365,14 @@ def run_per_day_extraction(
             t0 = time.time()
             raw_response, usage = _call_anthropic_cached(
                 job["prompt"], job["user_message"], model, api_key, max_tokens=16384
+            )
+            _append_usage_event(
+                workspace,
+                phase="ingest",
+                source="extraction",
+                model=model,
+                usage=usage,
+                provider=_BACKEND,
             )
             elapsed = time.time() - t0
             result = parse_extraction_response(raw_response)
@@ -2509,7 +2710,7 @@ def run_janitor(workspace: Path) -> None:
     print("PHASE 4: FULL JANITOR")
     print("=" * 60)
 
-    env = _make_env(workspace)
+    env = _benchmark_env(workspace, "eval")
     janitor_cmd = _python_cmd_for_quaid_script(_JANITOR_SCRIPT)
 
     print("  Running: janitor --task all --apply --force-distill")
@@ -2696,7 +2897,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
 
     # Switch DB for recall
     db_path = workspace / "data" / "memory.db"
-    env = _make_env(workspace)
+    env = _benchmark_env(workspace, "eval")
 
     results = []
     correct = 0
@@ -2760,11 +2961,20 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 question, ground_truth, prediction, api_key, judge_model=None
             )
         elif query_type == "statement_context_grounding":
-            audit_response = _run_no_tool_followup(
+            audit_response, audit_usage = _run_no_tool_followup(
                 _statement_grounding_audit_prompt(question, prediction),
                 api_key=api_key,
                 model=eval_model,
             )
+            if audit_usage:
+                _append_usage_event(
+                    workspace,
+                    phase="eval",
+                    source="audit_followup",
+                    model=eval_model,
+                    usage=audit_usage,
+                    provider=_BACKEND,
+                )
             label, score = _judge_statement_context_grounding(
                 query=query,
                 prediction=prediction,
@@ -2878,6 +3088,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     scored = correct + partial_count + wrong
     accuracy = (correct + 0.5 * partial_count) / scored * 100 if scored > 0 else 0
 
+    eval_usage = _summarize_usage_events(workspace, phase="eval")
+
     if eval_provider == "claude-code" and len(all_queries) > 0 and eval_usage.get("api_calls", 0) == 0:
         raise RuntimeError(
             "Eval produced zero Claude API calls under claude-code backend; "
@@ -2894,7 +3106,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         print(f"  Retrieval accuracy: {ret_acc:.1f}% ({ret_c}C/{ret_p}P/{len(ret_scored)-ret_c-ret_p}W)")
     else:
         print(f"\n  Evaluation complete: {accuracy:.1f}% ({correct}C/{partial_count}P/{wrong}W)")
-    total_tok = eval_usage["input_tokens"] + eval_usage["output_tokens"]
+    total_tok = eval_usage["total_tokens"]
     print(f"  Tokens: {eval_usage['input_tokens']:,} in + {eval_usage['output_tokens']:,} out = {total_tok:,}")
     print(f"  API calls: {eval_usage['api_calls']}")
     print(f"  Elapsed: {elapsed:.1f}s")
@@ -2976,6 +3188,14 @@ def run_fc_baseline(
             raw_response, usage = _call_anthropic_cached(
                 system_prompt, user_message, answer_model, api_key,
                 max_tokens=512,
+            )
+            _append_usage_event(
+                results_dir or _PROJECT_DIR,
+                phase="eval",
+                source="fc_answer",
+                model=answer_model,
+                usage=usage,
+                provider=_BACKEND,
             )
             prediction = raw_response.strip()
             fc_usage["input_tokens"] += usage.get("input_tokens", 0)
@@ -3365,10 +3585,10 @@ def _statement_grounding_audit_prompt(question: str, prediction: str) -> str:
     )
 
 
-def _run_no_tool_followup(prompt: str, api_key: str, model: str) -> str:
+def _run_no_tool_followup(prompt: str, api_key: str, model: str) -> Tuple[str, dict]:
     """Run a no-tool audit follow-up with the eval model when API backend is active."""
     if _BACKEND != "api":
-        return ""
+        return "", {}
     payload = {
         "model": model,
         "max_tokens": 512,
@@ -3384,12 +3604,29 @@ def _run_no_tool_followup(prompt: str, api_key: str, model: str) -> str:
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read())
     except Exception:
-        return ""
+        return "", {}
     parts = []
     for block in data.get("content", []) or []:
         if isinstance(block, dict) and block.get("type") == "text":
             parts.append(str(block.get("text") or ""))
-    return "\n".join(p.strip() for p in parts if p.strip()).strip()
+    usage = data.get("usage", {}) if isinstance(data, dict) else {}
+    if isinstance(usage, dict):
+        usage = dict(usage)
+        in_tok = int(
+            usage.get("input_tokens", 0)
+            + usage.get("cache_read_input_tokens", 0)
+            + usage.get("cache_creation_input_tokens", 0)
+        )
+        out_tok = int(usage.get("output_tokens", 0))
+        usage["api_calls"] = int(usage.get("api_calls", 1) or 1)
+        usage["model_usage"] = {
+            model: {
+                "input_tokens": in_tok,
+                "output_tokens": out_tok,
+                "total_tokens": in_tok + out_tok,
+            }
+        }
+    return "\n".join(p.strip() for p in parts if p.strip()).strip(), usage
 
 
 def _tool_use_loop(
@@ -3427,6 +3664,7 @@ def _tool_use_loop(
         "input_tokens": 0,
         "output_tokens": 0,
         "api_calls": 0,
+        "model_usage": {},
         "tool_call_details": [],
         "preinject_duration_ms": None,
         "preinject": {
@@ -3582,9 +3820,27 @@ def _tool_use_loop(
 
         # Track token usage
         _usage = data.get("usage", {})
-        usage_total["input_tokens"] += _usage.get("input_tokens", 0)
-        usage_total["output_tokens"] += _usage.get("output_tokens", 0)
+        in_tok = int(
+            _usage.get("input_tokens", 0)
+            + _usage.get("cache_read_input_tokens", 0)
+            + _usage.get("cache_creation_input_tokens", 0)
+        )
+        out_tok = int(_usage.get("output_tokens", 0))
+        usage_total["input_tokens"] += in_tok
+        usage_total["output_tokens"] += out_tok
         usage_total["api_calls"] += 1
+        model_row = usage_total["model_usage"].setdefault(model, {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0})
+        model_row["input_tokens"] += in_tok
+        model_row["output_tokens"] += out_tok
+        model_row["total_tokens"] += in_tok + out_tok
+        _append_usage_event(
+            workspace,
+            phase="eval",
+            source="answer_model",
+            model=model,
+            usage=_usage,
+            provider=_BACKEND,
+        )
 
         # Check stop reason
         stop_reason = data.get("stop_reason", "end_turn")
@@ -3744,9 +4000,12 @@ def _tool_memory_recall(
     if date_to:
         cmd.extend(["--date-to", date_to])
     try:
+        recall_env = dict(env)
+        recall_env["QUAID_LLM_USAGE_PHASE"] = "eval"
+        recall_env["QUAID_LLM_USAGE_SOURCE"] = "preinject_recall" if fast else "tool_recall"
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=30,
-            cwd=str(_QUAID_DIR), env=env,
+            cwd=str(_QUAID_DIR), env=recall_env,
         )
         output = result.stdout.strip()
         if not output:
@@ -3953,17 +4212,38 @@ _MODEL_COSTS = {
 
 def _save_token_usage(results: list, workspace: Path, eval_model: str):
     """Save aggregated token usage to token_usage.json."""
-    eval_in = sum(r.get("eval_tokens", {}).get("input_tokens", 0) for r in results)
-    eval_out = sum(r.get("eval_tokens", {}).get("output_tokens", 0) for r in results)
-    eval_calls = sum(r.get("eval_tokens", {}).get("api_calls", 0) for r in results)
+    eval_usage_summary = _summarize_usage_events(workspace, phase="eval")
+    if int(eval_usage_summary.get("total_tokens", 0) or 0) == 0:
+        fallback_in = sum(r.get("eval_tokens", {}).get("input_tokens", 0) for r in results)
+        fallback_out = sum(r.get("eval_tokens", {}).get("output_tokens", 0) for r in results)
+        fallback_calls = sum(r.get("eval_tokens", {}).get("api_calls", 0) for r in results)
+        fallback_cost = _estimate_model_cost(eval_model, fallback_in, fallback_out)
+        eval_usage_summary = {
+            "input_tokens": fallback_in,
+            "output_tokens": fallback_out,
+            "total_tokens": fallback_in + fallback_out,
+            "api_calls": fallback_calls,
+            "cost_usd": fallback_cost,
+            "by_model": {
+                eval_model: {
+                    "input_tokens": fallback_in,
+                    "output_tokens": fallback_out,
+                    "total_tokens": fallback_in + fallback_out,
+                    "api_calls": fallback_calls,
+                    "cost_usd": fallback_cost,
+                }
+            } if (fallback_in or fallback_out) else {},
+            "by_tier": {},
+            "by_source": {},
+        }
+    eval_in = int(eval_usage_summary.get("input_tokens", 0))
+    eval_out = int(eval_usage_summary.get("output_tokens", 0))
+    eval_calls = int(eval_usage_summary.get("api_calls", 0))
     preinject_durations = [
         float(r.get("eval_tokens", {}).get("preinject_duration_ms"))
         for r in results
         if isinstance(r.get("eval_tokens", {}).get("preinject_duration_ms"), (int, float))
     ]
-
-    costs = _MODEL_COSTS.get(eval_model, _MODEL_COSTS["claude-haiku-4-5-20251001"])
-    eval_cost = (eval_in * costs["input"] + eval_out * costs["output"]) / 1_000_000
 
     def _pct(values: list[float], q: float) -> int:
         if not values:
@@ -4177,7 +4457,10 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
             "total_tokens": eval_in + eval_out,
             "api_calls": eval_calls,
             "model": eval_model,
-            "cost_usd": round(eval_cost, 4),
+            "cost_usd": round(float(eval_usage_summary.get("cost_usd", 0.0)), 4),
+            "by_model": eval_usage_summary.get("by_model", {}),
+            "by_tier": eval_usage_summary.get("by_tier", {}),
+            "by_source": eval_usage_summary.get("by_source", {}),
         },
         "queries": len(results),
         "avg_tokens_per_query": round((eval_in + eval_out) / len(results)) if results else 0,
@@ -4215,6 +4498,28 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
     with open(workspace / "token_usage.json", "w") as f:
         json.dump(usage, f, indent=2)
     print(f"  Token usage saved to {workspace / 'token_usage.json'}")
+
+
+def _save_ingest_usage(workspace: Path, ingest_stats: dict, extraction_model: str) -> None:
+    """Save aggregated ingest token usage to ingest_usage.json."""
+    ingest_usage = _summarize_usage_events(workspace, phase="ingest")
+    payload = {
+        "ingest": {
+            "input_tokens": int(ingest_usage.get("input_tokens", 0)),
+            "output_tokens": int(ingest_usage.get("output_tokens", 0)),
+            "total_tokens": int(ingest_usage.get("total_tokens", 0)),
+            "api_calls": int(ingest_usage.get("api_calls", 0)),
+            "model": extraction_model,
+            "cost_usd": round(float(ingest_usage.get("cost_usd", 0.0)), 4),
+            "by_model": ingest_usage.get("by_model", {}),
+            "by_tier": ingest_usage.get("by_tier", {}),
+            "by_source": ingest_usage.get("by_source", {}),
+        },
+        "stats": dict(ingest_stats or {}),
+    }
+    with open(workspace / "ingest_usage.json", "w") as f:
+        json.dump(payload, f, indent=2)
+    print(f"  Ingest token usage saved to {workspace / 'ingest_usage.json'}")
 
 
 def _judge(
@@ -4828,7 +5133,13 @@ def _merge_tier5_into_scores(scores: dict, tier5_results: List[dict]) -> dict:
     }
     return scores
 
-def _make_env(workspace: Path, *, mock_embeddings: Optional[bool] = None) -> dict:
+def _make_env(
+    workspace: Path,
+    *,
+    mock_embeddings: Optional[bool] = None,
+    llm_usage_phase: Optional[str] = None,
+    llm_usage_source: Optional[str] = None,
+) -> dict:
     """Build env dict for subprocess calls pointing at the benchmark workspace."""
     env = os.environ.copy()
     workspace = workspace.resolve()
@@ -4840,6 +5151,15 @@ def _make_env(workspace: Path, *, mock_embeddings: Optional[bool] = None) -> dic
     env["QUAID_INSTANCE"] = _BENCHMARK_QUAID_INSTANCE
     env["MEMORY_DB_PATH"] = str(workspace / "data" / "memory.db")
     env["QUAID_DISABLE_NOTIFICATIONS"] = "1"
+    env["QUAID_LLM_USAGE_LOG_PATH"] = str(_usage_log_path(workspace))
+    if llm_usage_phase:
+        env["QUAID_LLM_USAGE_PHASE"] = llm_usage_phase
+    else:
+        env.pop("QUAID_LLM_USAGE_PHASE", None)
+    if llm_usage_source:
+        env["QUAID_LLM_USAGE_SOURCE"] = llm_usage_source
+    else:
+        env.pop("QUAID_LLM_USAGE_SOURCE", None)
     # Ensure Quaid root imports (e.g., `lib.*`) resolve even when entry scripts
     # are symlinked into nested paths like datastore/memorydb.
     quaid_root = str(_QUAID_DIR.resolve())
@@ -5010,6 +5330,22 @@ def _call_anthropic_cached(
 
     text = data.get("content", [{}])[0].get("text", "").strip()
     usage = data.get("usage", {})
+    if isinstance(usage, dict):
+        usage = dict(usage)
+        in_tok = int(
+            usage.get("input_tokens", 0)
+            + usage.get("cache_read_input_tokens", 0)
+            + usage.get("cache_creation_input_tokens", 0)
+        )
+        out_tok = int(usage.get("output_tokens", 0))
+        usage["api_calls"] = int(usage.get("api_calls", 1) or 1)
+        usage["model_usage"] = {
+            model: {
+                "input_tokens": in_tok,
+                "output_tokens": out_tok,
+                "total_tokens": in_tok + out_tok,
+            }
+        }
     return text, usage
 
 
@@ -5112,18 +5448,25 @@ def _call_claude_code(
     text = (data.get("result") or "").strip()
 
     # Aggregate token usage across models
-    usage = {"input_tokens": 0, "output_tokens": 0}
+    usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 1, "model_usage": {}}
     model_usage = data.get("modelUsage", {})
     if isinstance(model_usage, dict):
         for _m, u in model_usage.items():
             if not isinstance(u, dict):
                 continue
-            usage["input_tokens"] += int(
+            in_tok = int(
                 u.get("inputTokens", 0)
                 + u.get("cacheReadInputTokens", 0)
                 + u.get("cacheCreationInputTokens", 0)
             )
-            usage["output_tokens"] += int(u.get("outputTokens", 0))
+            out_tok = int(u.get("outputTokens", 0))
+            usage["input_tokens"] += in_tok
+            usage["output_tokens"] += out_tok
+            usage["model_usage"][str(_m)] = {
+                "input_tokens": in_tok,
+                "output_tokens": out_tok,
+                "total_tokens": in_tok + out_tok,
+            }
 
     return text, usage
 
@@ -5149,6 +5492,7 @@ def _tool_use_loop_claude_code(
         "input_tokens": 0,
         "output_tokens": 0,
         "api_calls": 0,
+        "model_usage": {},
         "tool_call_details": [],
         "preinject_duration_ms": None,
         "preinject": {
@@ -5324,12 +5668,19 @@ def _tool_use_loop_claude_code(
             for _m, u in model_usage.items():
                 if not isinstance(u, dict):
                     continue
-                usage_total["input_tokens"] += int(
+                in_tok = int(
                     u.get("inputTokens", 0)
                     + u.get("cacheReadInputTokens", 0)
                     + u.get("cacheCreationInputTokens", 0)
                 )
-                usage_total["output_tokens"] += int(u.get("outputTokens", 0))
+                out_tok = int(u.get("outputTokens", 0))
+                usage_total["input_tokens"] += in_tok
+                usage_total["output_tokens"] += out_tok
+                usage_total["model_usage"][str(_m)] = {
+                    "input_tokens": usage_total["model_usage"].get(str(_m), {}).get("input_tokens", 0) + in_tok,
+                    "output_tokens": usage_total["model_usage"].get(str(_m), {}).get("output_tokens", 0) + out_tok,
+                    "total_tokens": usage_total["model_usage"].get(str(_m), {}).get("total_tokens", 0) + in_tok + out_tok,
+                }
         usage_total["api_calls"] = int(final_data.get("num_turns", 1)) if final_data else 1
         if (usage_total["input_tokens"] + usage_total["output_tokens"]) == 0 and final_data:
             fallback_usage = final_data.get("usage", {}) or {}
@@ -5339,6 +5690,20 @@ def _tool_use_loop_claude_code(
                 + fallback_usage.get("cache_creation_input_tokens", 0)
             )
             usage_total["output_tokens"] += int(fallback_usage.get("output_tokens", 0))
+            usage_total["model_usage"][model] = {
+                "input_tokens": int(fallback_usage.get("input_tokens", 0) + fallback_usage.get("cache_read_input_tokens", 0) + fallback_usage.get("cache_creation_input_tokens", 0)),
+                "output_tokens": int(fallback_usage.get("output_tokens", 0)),
+                "total_tokens": int(fallback_usage.get("input_tokens", 0) + fallback_usage.get("cache_read_input_tokens", 0) + fallback_usage.get("cache_creation_input_tokens", 0) + fallback_usage.get("output_tokens", 0)),
+            }
+        if usage_total["input_tokens"] or usage_total["output_tokens"]:
+            _append_usage_event(
+                workspace,
+                phase="eval",
+                source="answer_model",
+                model=model,
+                usage=usage_total,
+                provider="claude-code",
+            )
 
         if not answer or not answer.strip():
             err_tail = (result.stderr or "")[-220:]
@@ -5641,7 +6006,7 @@ def main():
             )
         else:
             setup_workspace(workspace)
-        run_per_day_extraction(
+        ingest_stats = run_per_day_extraction(
             workspace, api_key, args.no_cache,
             model=args.model,
             max_sessions=args.max_sessions,
@@ -5650,6 +6015,7 @@ def main():
         )
 
         verify_post_janitor(workspace)
+        _save_ingest_usage(workspace, ingest_stats, args.model)
 
         # Harness purity: skip post-hoc semantic tagging in benchmark harness.
         # Any tagging intelligence must live in checkpoint runtime.
@@ -5756,7 +6122,7 @@ def main():
             )
         else:
             setup_workspace(workspace)
-        run_per_day_extraction(
+        ingest_stats = run_per_day_extraction(
             workspace, api_key, args.no_cache,
             model=args.model,
             max_sessions=args.max_sessions,
@@ -5765,6 +6131,18 @@ def main():
         )
 
         verify_post_janitor(workspace)
+        _save_ingest_usage(workspace, ingest_stats, args.model)
+
+        if args.mode == "ingest":
+            ingest_complete = {
+                "timestamp": datetime.now().isoformat(),
+                "mode": "ingest",
+                "extraction_model": args.model,
+                "max_sessions": args.max_sessions,
+                "stats": ingest_stats,
+            }
+            with open(workspace / "ingest_complete.json", "w") as f:
+                json.dump(ingest_complete, f, indent=2)
 
     # --- Evaluation ---
     if args.mode in ("full", "eval"):
