@@ -4086,6 +4086,7 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
     followup_after_quality_gate = 0
     followup_after_empty = 0
     preinject_counts = {"enabled": 0, "attempted": 0, "surfaced": 0, "not_surfaced": 0}
+    preinject_by_query_type: Dict[str, Dict[str, int]] = {}
     statement_grounding = {"count": 0, "correct": 0, "partial": 0, "wrong": 0}
     for r in results:
         tool_analysis = r.get("tool_analysis") or {}
@@ -4097,14 +4098,33 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
             repeated_recall_classes[str(key)] = repeated_recall_classes.get(str(key), 0) + int(value)
 
         preinject = (r.get("eval_tokens", {}) or {}).get("preinject") or {}
+        qtype = str(r.get("query_type") or "unknown")
+        bucket = preinject_by_query_type.setdefault(qtype, {
+            "count": 0,
+            "enabled": 0,
+            "attempted": 0,
+            "surfaced": 0,
+            "not_surfaced": 0,
+            "duration_ms_sum": 0,
+            "duration_ms_count": 0,
+        })
+        bucket["count"] += 1
         if preinject.get("enabled"):
             preinject_counts["enabled"] += 1
+            bucket["enabled"] += 1
         if preinject.get("attempted"):
             preinject_counts["attempted"] += 1
+            bucket["attempted"] += 1
         if preinject.get("surfaced"):
             preinject_counts["surfaced"] += 1
+            bucket["surfaced"] += 1
         elif preinject.get("attempted"):
             preinject_counts["not_surfaced"] += 1
+            bucket["not_surfaced"] += 1
+        duration_ms = (r.get("eval_tokens", {}) or {}).get("preinject_duration_ms")
+        if isinstance(duration_ms, (int, float)):
+            bucket["duration_ms_sum"] += int(duration_ms)
+            bucket["duration_ms_count"] += 1
 
         if r.get("query_type") == "statement_context_grounding":
             statement_grounding["count"] += 1
@@ -4138,6 +4158,17 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
         "preinject_recall_telemetry": _aggregate_recall_phase_metas(preinject_recall_metas),
         "tool_recall_telemetry": _aggregate_recall_phase_metas(tool_recall_metas),
         "preinject_usage": preinject_counts,
+        "preinject_by_query_type": {
+            qtype: {
+                "count": bucket["count"],
+                "enabled": bucket["enabled"],
+                "attempted": bucket["attempted"],
+                "surfaced": bucket["surfaced"],
+                "not_surfaced": bucket["not_surfaced"],
+                "avg_duration_ms": round(bucket["duration_ms_sum"] / bucket["duration_ms_count"]) if bucket["duration_ms_count"] else 0,
+            }
+            for qtype, bucket in sorted(preinject_by_query_type.items())
+        },
         "repeated_memory_recall": {
             "queries": repeated_recall_queries,
             "followup_after_quality_gate": followup_after_quality_gate,

@@ -649,6 +649,14 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
         "surfaced": 0,
         "not_surfaced": 0,
     }
+    assert data["preinject_by_query_type"]["unknown"] == {
+        "count": 3,
+        "enabled": 0,
+        "attempted": 0,
+        "surfaced": 0,
+        "not_surfaced": 0,
+        "avg_duration_ms": 200,
+    }
     assert data["repeated_memory_recall"]["queries"] == 0
 
 
