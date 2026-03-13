@@ -47,6 +47,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    import tiktoken  # type: ignore
+except Exception:  # pragma: no cover - optional dependency in some environments
+    tiktoken = None
+
 _DIR = Path(__file__).resolve().parent
 _PROJECT_DIR = _DIR.parent
 _CLAWD = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
@@ -105,6 +110,8 @@ _JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py
 _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
 # Last store telemetry (updated by _store_facts for extraction summaries).
 _LAST_STORE_METRICS: Dict[str, int] = {"domain_missing": 0}
+_EVAL_CORE_TOKEN_CAP = 1500
+_EVAL_TOKEN_ENCODER = None
 
 
 def _python_cmd_for_quaid_script(script_path: Path) -> List[str]:
@@ -947,9 +954,9 @@ def setup_workspace(workspace: Path) -> None:
     if not isinstance(prod_config["docs"].get("coreMarkdown"), dict):
         prod_config["docs"]["coreMarkdown"] = {}
     prod_config["docs"]["coreMarkdown"]["files"] = {
-        "SOUL.md": {"purpose": "Personality and values", "maxLines": 80},
-        "USER.md": {"purpose": "User biography", "maxLines": 150},
-        "MEMORY.md": {"purpose": "Core memories", "maxLines": 100},
+        "SOUL.md": {"purpose": "Personality and values", "maxLines": 80, "maxTokens": 1500},
+        "USER.md": {"purpose": "User biography", "maxLines": 150, "maxTokens": 1500},
+        "MEMORY.md": {"purpose": "Core memories", "maxLines": 100, "maxTokens": 1500},
         "IDENTITY.md": {"purpose": "Name and identity", "maxLines": 20},
         "TOOLS.md": {"purpose": "Tool reference", "maxLines": 150},
     }
@@ -2682,6 +2689,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         eval_context = _build_eval_context(workspace)
         eval_context_sources = _build_eval_context_sources(workspace)
     print(f"  Eval context profile: {profile}")
+    print(f"  Eval core token cap: {_EVAL_CORE_TOKEN_CAP} tokens per SOUL/USER/MEMORY")
     print(f"  Eval context: {len(eval_context)} chars ({len(eval_context)//4} est tokens)")
     eval_provider = _resolve_eval_provider(workspace, eval_model)
     print(f"  Eval provider: {eval_provider or 'unknown'}")
@@ -3061,7 +3069,7 @@ def _build_eval_context(
 
     for md in core_files:
         if md in {"SOUL.md", "USER.md", "MEMORY.md"}:
-            for rel, content in _iter_eval_core_markdown_variants(workspace, md):
+            for rel, content in _collect_eval_core_markdown_variants(workspace, md):
                 parts.append(f"--- {rel} ---\n{content}")
             continue
 
@@ -3084,8 +3092,31 @@ def _build_eval_context(
     return "\n\n".join(parts)
 
 
-def _iter_eval_core_markdown_variants(workspace: Path, md_name: str) -> List[Tuple[Path, str]]:
-    """Return deduped core markdown variants in the same order eval injects them."""
+def _get_eval_token_encoder():
+    global _EVAL_TOKEN_ENCODER
+    if _EVAL_TOKEN_ENCODER is not None:
+        return _EVAL_TOKEN_ENCODER
+    if tiktoken is None:
+        return None
+    try:
+        _EVAL_TOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")
+    except Exception:
+        _EVAL_TOKEN_ENCODER = False
+    return _EVAL_TOKEN_ENCODER if _EVAL_TOKEN_ENCODER is not False else None
+
+
+def _count_eval_tokens(text: str) -> int:
+    encoder = _get_eval_token_encoder()
+    if encoder is not None:
+        try:
+            return len(encoder.encode(text))
+        except Exception:
+            pass
+    return max(1, len(text) // 4) if text else 0
+
+
+def _collect_eval_core_markdown_variants(workspace: Path, md_name: str) -> List[Tuple[Path, str]]:
+    """Return deduped raw core markdown variants in the same order eval injects them."""
     variants: List[Tuple[Path, str]] = []
     seen_contents = set()
     for path in [workspace / md_name, workspace / "projects" / "quaid" / md_name]:
@@ -3113,11 +3144,14 @@ def _build_eval_context_sources(
 
     for md in core_files:
         if md in {"SOUL.md", "USER.md", "MEMORY.md"}:
-            for rel, content in _iter_eval_core_markdown_variants(workspace, md):
+            for rel, content in _collect_eval_core_markdown_variants(workspace, md):
+                est_tokens = _count_eval_tokens(content)
                 sources.append({
                     "path": str(rel),
                     "chars": len(content),
-                    "est_tokens": len(content) // 4,
+                    "est_tokens": est_tokens,
+                    "token_target": _EVAL_CORE_TOKEN_CAP,
+                    "over_token_target": est_tokens > _EVAL_CORE_TOKEN_CAP,
                     "source_group": "core_markdown",
                 })
             continue
@@ -3195,7 +3229,7 @@ def _eval_core_context_preflight(
     }
     stats = []
     for md in ["SOUL.md", "USER.md", "MEMORY.md"]:
-        variants = _iter_eval_core_markdown_variants(workspace, md)
+        variants = _collect_eval_core_markdown_variants(workspace, md)
         combined_chars = sum(len(content) for _, content in variants)
         root = workspace / md
         rchars = len(root.read_text().strip()) if root.exists() else 0

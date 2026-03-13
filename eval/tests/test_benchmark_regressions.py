@@ -699,6 +699,23 @@ def test_build_eval_context_sources_dedupes_duplicate_core_variants(tmp_path):
 
     assert [s["path"] for s in sources] == ["SOUL.md", "TOOLS.md"]
     assert sources[0]["chars"] == len("same content")
+    assert sources[0]["over_token_target"] is False
+
+
+def test_build_eval_context_sources_report_token_target_status(tmp_path):
+    workspace = tmp_path / "ws"
+    (workspace / "projects" / "quaid").mkdir(parents=True)
+    (workspace / "SOUL.md").write_text(" ".join(f"root{i}" for i in range(1200)))
+    (workspace / "projects" / "quaid" / "SOUL.md").write_text(" ".join(f"proj{i}" for i in range(1200)))
+
+    ctx = rpb._build_eval_context(workspace, core_files=["SOUL.md"], include_project_bootstrap=False)
+    sources = rpb._build_eval_context_sources(workspace, core_files=["SOUL.md"], include_project_bootstrap=False)
+
+    assert "--- SOUL.md ---" in ctx
+    assert "--- projects/quaid/SOUL.md ---" in ctx
+    assert len(sources) >= 1
+    assert all("token_target" in s for s in sources)
+    assert any(s["over_token_target"] for s in sources)
 
 
 def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatch):
