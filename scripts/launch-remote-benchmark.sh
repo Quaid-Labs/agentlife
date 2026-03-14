@@ -21,6 +21,7 @@ REMOTE_CHECKPOINT_PLUGIN_ROOT=""
 DRY_RUN=false
 SKIP_LOCAL_CHECKS=false
 PARALLEL="${BENCHMARK_PARALLEL:-6}"
+SCALE="${BENCHMARK_SCALE:-s}"
 
 usage() {
   cat <<'USAGE'
@@ -42,11 +43,13 @@ Options:
   --dry-run                        Print actions without running rsync/ssh
   --skip-local-checks              Skip local compile/test gate before sync+launch
   --parallel N                     Parallel workers hint (default: 6)
+  --scale s|l                      AgentLife scale for naming/env (default: s)
   -h, --help                       Show help
 
 Examples:
   ./scripts/launch-remote-benchmark.sh --remote spark -- --mode full --backend claude-code
   ./scripts/launch-remote-benchmark.sh --remote spark --dry-run -- --mode eval --results-dir runs/quaid-s-r500
+  ./scripts/launch-remote-benchmark.sh --remote spark --scale l -- --mode full --backend api
 USAGE
 }
 
@@ -60,6 +63,7 @@ while [[ $# -gt 0 ]]; do
     --dry-run) DRY_RUN=true; shift ;;
     --skip-local-checks) SKIP_LOCAL_CHECKS=true; shift ;;
     --parallel) PARALLEL="$2"; shift 2 ;;
+    --scale) SCALE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     --) shift; break ;;
     *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
@@ -74,6 +78,10 @@ fi
 
 if ! [[ "$PARALLEL" =~ ^[0-9]+$ ]] || [[ "$PARALLEL" -lt 1 ]]; then
   echo "ERROR: --parallel must be a positive integer" >&2
+  exit 1
+fi
+if [[ "$SCALE" != "s" && "$SCALE" != "l" ]]; then
+  echo "ERROR: --scale must be one of: s, l" >&2
   exit 1
 fi
 
@@ -180,14 +188,14 @@ SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=10)
 if $AUTO_RESULTS_DIR; then
   ts="$(date +%Y%m%d-%H%M%S)"
   if $DRY_RUN; then
-    RESULTS_DIR="runs/quaid-s-r000-${ts}"
+    RESULTS_DIR="runs/quaid-${SCALE}-r000-${ts}"
   else
     next_run="$(
       ssh "${SSH_OPTS[@]}" "$REMOTE" '
         set -euo pipefail
         mkdir -p ~/agentlife-benchmark/runs
         ls -1 ~/agentlife-benchmark/runs 2>/dev/null \
-          | sed -n "s/^quaid-s-r\\([0-9]\\+\\)-.*/\\1/p" \
+          | sed -n "s/^quaid-[sl]-r\\([0-9]\\+\\)-.*/\\1/p" \
           | sort -n \
           | tail -1
       ' | tr -d '[:space:]'
@@ -198,7 +206,7 @@ if $AUTO_RESULTS_DIR; then
       next_run=$((10#$next_run + 1))
     fi
     printf -v run_id "r%03d" "$next_run"
-    RESULTS_DIR="runs/quaid-s-${run_id}-${ts}"
+    RESULTS_DIR="runs/quaid-${SCALE}-${run_id}-${ts}"
   fi
 fi
 
@@ -284,6 +292,26 @@ fi
 
 echo ""
 echo "--- 6) Launch remote benchmark ---"
+OPTIONAL_BENCH_ENV=""
+if [[ -n "${BENCHMARK_MAX_QUERIES:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_MAX_QUERIES=$(printf %q "$BENCHMARK_MAX_QUERIES")"$'\n'
+fi
+if [[ -n "${BENCHMARK_REQUIRE_QUERY_COUNT:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_REQUIRE_QUERY_COUNT=$(printf %q "$BENCHMARK_REQUIRE_QUERY_COUNT")"$'\n'
+fi
+if [[ -n "${BENCHMARK_FAST_REASONING_MODEL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_FAST_REASONING_MODEL=$(printf %q "$BENCHMARK_FAST_REASONING_MODEL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_DEEP_REASONING_MODEL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_DEEP_REASONING_MODEL=$(printf %q "$BENCHMARK_DEEP_REASONING_MODEL")"$'\n'
+fi
+OPTIONAL_BENCH_ENV+="export BENCHMARK_SCALE=$(printf %q "$SCALE")"$'\n'
+if [[ "$SCALE" == "l" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_INCLUDE_FILLER=1"$'\n'
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_FILLER_DIR=$(printf %q "${BENCHMARK_FILLER_DIR:-$REMOTE_BENCH_ROOT/data/filler-sessions}")"$'\n'
+else
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_INCLUDE_FILLER=0"$'\n'
+fi
 REMOTE_PY_CMD="
 set -euo pipefail
 cd $REMOTE_BENCH_ROOT
@@ -298,6 +326,7 @@ export BENCHMARK_PARALLEL=$(printf %q "$PARALLEL")
 export BENCHMARK_LIFECYCLE_PREPASS_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_LLM_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_REVIEW_WORKERS=$(printf %q "$PARALLEL")
+$OPTIONAL_BENCH_ENV
 export AGENTLIFE_ASSETS_DIR=$(printf %q "$REMOTE_BENCH_ROOT")/data/sessions
 BENCHMARK_OAUTH_TOKEN=""
 if [[ -f \"/home/solomon/clawd/.env\" ]]; then

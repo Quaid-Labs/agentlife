@@ -1,0 +1,8 @@
+{
+  "latest": "canonical-20260313",
+  "versions": {
+    "canonical-20260313": {
+      "expected_queries": 268
+    }
+  }
+}

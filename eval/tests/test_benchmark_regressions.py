@@ -57,6 +57,12 @@ def _fake_updater_module(fn_name="append_project_logs", fn=None):
     return datastore_mod, docsdb_mod, updater_mod
 
 
+@pytest.fixture(autouse=True)
+def _stub_dataset_version_gate(monkeypatch):
+    monkeypatch.setattr(rpb, "_enforce_dataset_version", lambda _assets: ("v-test", 268))
+    monkeypatch.setattr(rpb, "_read_dataset_version", lambda _assets: "v-test")
+
+
 # ===================================================================
 # run_production_benchmark.py — Pure Functions
 # ===================================================================
@@ -136,6 +142,92 @@ class TestNormalizeProjectLogs:
     def test_preserves_order(self):
         out = rpb._normalize_project_logs({"app": ["c", "a", "b"]})
         assert out == {"app": ["c", "a", "b"]}
+
+
+class TestParseFcModels:
+    def test_default_models(self):
+        assert rpb._parse_fc_models(None) == ["claude-sonnet-4-6", "claude-opus-4-6"]
+
+    def test_preserves_order_and_dedups(self):
+        out = rpb._parse_fc_models("claude-haiku-4-5-20251001, claude-sonnet-4-6, claude-haiku-4-5-20251001")
+        assert out == ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]
+
+    def test_empty_string_raises(self):
+        with pytest.raises(ValueError):
+            rpb._parse_fc_models(" , , ")
+
+
+class TestFcBaselinesFailHard:
+    def test_run_fc_baseline_raises_on_answer_failure(self, monkeypatch, tmp_path):
+        assets_dir = tmp_path / "assets"
+        assets_dir.mkdir()
+        monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "0")
+
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda max_sessions: (assets_dir, [_FakeReview(1)], [_FakeReview(1)], "v-test", 268),
+        )
+        monkeypatch.setattr(
+            rpb,
+            "get_all_eval_queries",
+            lambda _reviews: [
+                {
+                    "question": "What does Maya do for work?",
+                    "ground_truth": "Product manager at TechFlow",
+                    "query_type": "factual_recall",
+                }
+            ],
+        )
+        monkeypatch.setattr(
+            rpb,
+            "format_transcript_for_extraction",
+            lambda _review: "session transcript",
+        )
+
+        def _boom(*_args, **_kwargs):
+            raise RuntimeError("Anthropic HTTP 429: over limit")
+
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", _boom)
+
+        with pytest.raises(RuntimeError, match=r"FC answer failed.*What does Maya do for work"):
+            rpb.run_fc_baseline(api_key="test-key", answer_model="claude-sonnet-4-6")
+
+    def test_run_tier5_fc_baseline_raises_on_answer_failure(self, monkeypatch, tmp_path):
+        assets_dir = tmp_path / "assets"
+        assets_dir.mkdir()
+        monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "0")
+
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda max_sessions: (assets_dir, [_FakeReview(1)], [_FakeReview(1)], "v-test", 268),
+        )
+        monkeypatch.setattr(
+            rpb._DATASET,
+            "get_tier5_queries",
+            lambda: [
+                {
+                    "ei_id": "EI-01",
+                    "question": "How are you feeling about your mom?",
+                    "sensitivity_context": "",
+                    "rubric": {},
+                }
+            ],
+        )
+        monkeypatch.setattr(
+            rpb,
+            "format_transcript_for_extraction",
+            lambda _review: "session transcript",
+        )
+
+        def _boom(*_args, **_kwargs):
+            raise RuntimeError("Anthropic HTTP 429: over limit")
+
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", _boom)
+
+        with pytest.raises(RuntimeError, match=r"Tier 5 FC answer failed.*How are you feeling about your mom"):
+            rpb.run_tier5_fc_baseline(api_key="test-key", answer_model="claude-sonnet-4-6")
 
 
 class TestParseReviewTimestamp:
@@ -594,8 +686,9 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
     workspace.mkdir()
 
     results = [
-        {"eval_tokens": {"input_tokens": 10, "output_tokens": 2, "api_calls": 1, "preinject_duration_ms": 100}},
+        {"eval_tokens": {"input_tokens": 10, "output_tokens": 2, "api_calls": 1, "preinject_duration_ms": 100, "query_duration_ms": 900}},
         {"eval_tokens": {"input_tokens": 20, "output_tokens": 3, "api_calls": 2, "preinject_duration_ms": 300,
+                         "query_duration_ms": 1200,
                          "tool_call_details": [{"tool": "memory_recall(pre-inject)", "source": "preinject", "recall_meta": {
                              "phases_ms": {"planner_ms": 9, "fanout_wall_ms": 55, "total_ms": 70},
                              "turns": 1, "fanout_count": 3, "turn_details": [{
@@ -616,13 +709,21 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
                              }],
                              "stop_reason": "quality_gate_met", "bailout_counts": {"planner_returned_empty": 0}
                          }}]}},
-        {"eval_tokens": {"input_tokens": 30, "output_tokens": 4, "api_calls": 3}},
+        {"eval_tokens": {"input_tokens": 30, "output_tokens": 4, "api_calls": 3, "query_duration_ms": 1500}},
     ]
 
     rpb._save_token_usage(results, workspace, "claude-haiku-4-5-20251001")
 
     data = json.loads((workspace / "token_usage.json").read_text())
     assert data["eval"]["total_tokens"] == 69
+    assert data["query_completion_ms"] == {
+        "count": 3,
+        "avg": 1200,
+        "p50": 1200,
+        "p95": 1200,
+        "p99": 1200,
+        "max": 1500,
+    }
     assert data["preinject_timing_ms"] == {
         "count": 2,
         "avg": 200,
@@ -658,6 +759,95 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
         "avg_duration_ms": 200,
     }
     assert data["repeated_memory_recall"]["queries"] == 0
+
+
+def test_summarize_usage_events_infers_tier_for_harness_logged_models(tmp_path):
+    workspace = tmp_path / "ws"
+    (workspace / "logs").mkdir(parents=True, exist_ok=True)
+
+    rpb._append_usage_event(
+        workspace,
+        phase="eval",
+        source="answer_model",
+        model="claude-haiku-4-5-20251001",
+        usage={"input_tokens": 100, "output_tokens": 20, "api_calls": 1},
+        provider="api",
+    )
+    rpb._append_usage_event(
+        workspace,
+        phase="eval",
+        source="judge",
+        model="gpt-4o-mini",
+        usage={"input_tokens": 40, "output_tokens": 10, "api_calls": 1},
+        provider="openai",
+    )
+    rpb._append_usage_event(
+        workspace,
+        phase="ingest",
+        source="extraction",
+        model="claude-sonnet-4-6",
+        usage={"input_tokens": 70, "output_tokens": 30, "api_calls": 1},
+        provider="api",
+    )
+
+    eval_summary = rpb._summarize_usage_events(workspace, phase="eval")
+    ingest_summary = rpb._summarize_usage_events(workspace, phase="ingest")
+
+    assert eval_summary["total_tokens"] == 170
+    assert eval_summary["by_tier"]["fast"]["total_tokens"] == 170
+    assert ingest_summary["total_tokens"] == 100
+    assert ingest_summary["by_tier"]["deep"]["total_tokens"] == 100
+
+
+def test_load_reviews_with_dataset_gate_includes_fillers_for_al_l(monkeypatch, tmp_path):
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    filler_dir = tmp_path / "filler-sessions-L"
+    filler_dir.mkdir()
+
+    arc_reviews = [_FakeReview(1), _FakeReview(2)]
+    filler_reviews = [_FakeReview(-1), _FakeReview(-2)]
+    merged_reviews = [arc_reviews[0], filler_reviews[0], arc_reviews[1], filler_reviews[1]]
+
+    monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: assets)
+    monkeypatch.setattr(rpb, "_enforce_dataset_version", lambda _assets: ("v-test", 268))
+    monkeypatch.setattr(rpb, "_read_dataset_version", lambda _assets: "v-test")
+    monkeypatch.setattr(rpb, "load_all_reviews", lambda _assets, sessions=None: list(arc_reviews))
+    monkeypatch.setattr(rpb, "load_filler_reviews", lambda _filler_dir: list(filler_reviews))
+    monkeypatch.setattr(rpb, "merge_sessions_chronologically", lambda arcs, fillers: list(merged_reviews))
+    monkeypatch.setenv("BENCHMARK_INCLUDE_FILLER", "1")
+    monkeypatch.setenv("BENCHMARK_FILLER_DIR", str(filler_dir))
+
+    assets_dir, arc, all_reviews, version, expected = rpb._load_reviews_with_dataset_gate(None)
+
+    assert assets_dir == assets
+    assert arc == arc_reviews
+    assert all_reviews == merged_reviews
+    assert version == "v-test"
+    assert expected == 268
+
+
+def test_load_reviews_with_dataset_gate_excludes_fillers_by_default(monkeypatch, tmp_path):
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    arc_reviews = [_FakeReview(1), _FakeReview(2)]
+
+    monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: assets)
+    monkeypatch.setattr(rpb, "_enforce_dataset_version", lambda _assets: ("v-test", 268))
+    monkeypatch.setattr(rpb, "_read_dataset_version", lambda _assets: "v-test")
+    monkeypatch.setattr(rpb, "load_all_reviews", lambda _assets, sessions=None: list(arc_reviews))
+    monkeypatch.setattr(rpb, "load_filler_reviews", lambda _filler_dir: pytest.fail("load_filler_reviews should not run"))
+    monkeypatch.setattr(rpb, "merge_sessions_chronologically", lambda arcs, fillers: pytest.fail("merge_sessions_chronologically should not run"))
+    monkeypatch.delenv("BENCHMARK_INCLUDE_FILLER", raising=False)
+    monkeypatch.delenv("BENCHMARK_FILLER_DIR", raising=False)
+
+    assets_dir, arc, all_reviews, version, expected = rpb._load_reviews_with_dataset_gate(None)
+
+    assert assets_dir == assets
+    assert arc == arc_reviews
+    assert all_reviews == arc_reviews
+    assert version == "v-test"
+    assert expected == 268
 
 
 def test_analyze_tool_call_details_flags_quality_gate_followups():

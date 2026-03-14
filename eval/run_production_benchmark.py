@@ -371,7 +371,16 @@ def _enforce_dataset_version(assets_dir: Path) -> Tuple[str, Optional[int]]:
     return current, expected_queries_int
 
 
-def _load_reviews_with_dataset_gate(max_sessions: Optional[int]) -> Tuple[Path, list, str, Optional[int]]:
+def _resolve_filler_dir() -> Path:
+    raw = os.environ.get("BENCHMARK_FILLER_DIR", "").strip()
+    if raw:
+        return Path(raw).expanduser()
+    return _PROJECT_DIR / "data" / "filler-sessions"
+
+
+def _load_reviews_with_dataset_gate(
+    max_sessions: Optional[int],
+) -> Tuple[Path, list, list, str, Optional[int]]:
     assets_dir = _resolve_assets_dir()
     if _env_truthy("BENCHMARK_ALLOW_STALE_DATASET"):
         current_version = _read_dataset_version(assets_dir)
@@ -379,8 +388,13 @@ def _load_reviews_with_dataset_gate(max_sessions: Optional[int]) -> Tuple[Path, 
     else:
         current_version, expected_queries = _enforce_dataset_version(assets_dir)
     sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
-    reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
-    return assets_dir, reviews, current_version, expected_queries
+    arc_reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
+    if _env_truthy("BENCHMARK_INCLUDE_FILLER"):
+        filler_reviews = load_filler_reviews(_resolve_filler_dir())
+        all_reviews = merge_sessions_chronologically(arc_reviews, filler_reviews)
+    else:
+        all_reviews = arc_reviews
+    return assets_dir, arc_reviews, all_reviews, current_version, expected_queries
 
 sys.path.insert(0, str(_DIR))
 _DATASET_SPEC = importlib.util.spec_from_file_location("agentlife_benchmark_dataset", _DIR / "dataset.py")
@@ -389,6 +403,8 @@ if _DATASET_SPEC is None or _DATASET_SPEC.loader is None:
 _DATASET = importlib.util.module_from_spec(_DATASET_SPEC)
 _DATASET_SPEC.loader.exec_module(_DATASET)
 load_all_reviews = _DATASET.load_all_reviews
+load_filler_reviews = _DATASET.load_filler_reviews
+merge_sessions_chronologically = _DATASET.merge_sessions_chronologically
 get_all_eval_queries = _DATASET.get_all_eval_queries
 get_statement_context_queries = _DATASET.get_statement_context_queries
 format_transcript_for_extraction = _DATASET.format_transcript_for_extraction
@@ -698,6 +714,23 @@ def _normalize_project_logs(project_logs: object) -> dict:
     return normalized
 
 
+def _parse_fc_models(raw: Optional[str]) -> List[str]:
+    """Parse comma-separated FC answer models while preserving order."""
+    if not raw:
+        return ["claude-sonnet-4-6", "claude-opus-4-6"]
+    out: List[str] = []
+    seen: set[str] = set()
+    for part in str(raw).split(","):
+        model = part.strip()
+        if not model or model in seen:
+            continue
+        seen.add(model)
+        out.append(model)
+    if not out:
+        raise ValueError("fc model list is empty")
+    return out
+
+
 def _domain_block_markdown(domains: List[Tuple[str, str]]) -> str:
     """Render TOOLS.md domain block with canonical markers."""
     lines = [
@@ -845,6 +878,17 @@ def _empty_usage_summary() -> Dict[str, Any]:
     }
 
 
+def _infer_usage_tier(model: Optional[str]) -> Optional[str]:
+    model_name = str(model or "").strip().lower()
+    if not model_name:
+        return None
+    if any(marker in model_name for marker in ("haiku", "mini", "qwen")):
+        return "fast"
+    if any(marker in model_name for marker in ("sonnet", "opus", "gpt-4o", "o1", "o3", "o4")):
+        return "deep"
+    return None
+
+
 def _merge_usage_counts(summary: Dict[str, Any], *, model: Optional[str], tier: Optional[str], source: Optional[str], input_tokens: int, output_tokens: int, api_calls: int, cost_usd: float = 0.0) -> None:
     summary["input_tokens"] += int(input_tokens)
     summary["output_tokens"] += int(output_tokens)
@@ -887,6 +931,26 @@ def _estimate_model_cost(model: Optional[str], input_tokens: int, output_tokens:
     return round((int(input_tokens) * costs["input"] + int(output_tokens) * costs["output"]) / 1_000_000, 4)
 
 
+def _openai_usage_dict(data: Dict[str, Any], model: str) -> Dict[str, Any]:
+    usage = data.get("usage", {}) if isinstance(data, dict) else {}
+    if not isinstance(usage, dict):
+        return {}
+    usage = dict(usage)
+    in_tok = int(usage.get("prompt_tokens", 0) or 0)
+    out_tok = int(usage.get("completion_tokens", 0) or 0)
+    usage["input_tokens"] = in_tok
+    usage["output_tokens"] = out_tok
+    usage["api_calls"] = int(usage.get("api_calls", 1) or 1)
+    usage["model_usage"] = {
+        model: {
+            "input_tokens": in_tok,
+            "output_tokens": out_tok,
+            "total_tokens": in_tok + out_tok,
+        }
+    }
+    return usage
+
+
 def _append_usage_event(
     workspace: Path,
     *,
@@ -921,7 +985,7 @@ def _append_usage_event(
             "phase": phase,
             "source": source,
             "provider": provider,
-            "tier": tier or "",
+            "tier": tier or _infer_usage_tier(model) or "",
             "requested_model": model,
             "resolved_model": model,
             "input_tokens": in_tok,
@@ -967,10 +1031,11 @@ def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> 
                     continue
                 in_tok = int(counts.get("input_tokens", counts.get("input", 0)) or 0)
                 out_tok = int(counts.get("output_tokens", counts.get("output", 0)) or 0)
+                tier_for_model = tier or _infer_usage_tier(str(model_name))
                 _merge_usage_counts(
                     summary,
                     model=str(model_name),
-                    tier=tier or None,
+                    tier=tier_for_model,
                     source=source or None,
                     input_tokens=in_tok,
                     output_tokens=out_tok,
@@ -983,10 +1048,11 @@ def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> 
         model = str(event.get("resolved_model") or event.get("requested_model") or "")
         in_tok = int(event.get("input_tokens", 0) or 0)
         out_tok = int(event.get("output_tokens", 0) or 0)
+        tier_for_model = tier or _infer_usage_tier(model or None)
         _merge_usage_counts(
             summary,
             model=model or None,
-            tier=tier or None,
+            tier=tier_for_model,
             source=source or None,
             input_tokens=in_tok,
             output_tokens=out_tok,
@@ -1640,9 +1706,7 @@ def run_extraction(
     into one document and make a single Opus call.
     """
     # Load reviews
-    assets_dir = _resolve_assets_dir()
-    sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
-    reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
+    assets_dir, _arc_reviews, reviews, _dataset_version, _expected_queries = _load_reviews_with_dataset_gate(max_sessions)
     parallel_workers = max(1, int(os.environ.get("BENCHMARK_PARALLEL", "1")))
     extraction_mode = "PARALLEL CHUNKED CALLS" if (parallel_workers > 1 and len(reviews) > 1) else "SINGLE CALL"
 
@@ -2230,9 +2294,7 @@ def run_per_day_extraction(
     print("PHASE 3b: PER-DAY EXTRACTION + JANITOR")
     print("=" * 60)
 
-    assets_dir = _resolve_assets_dir()
-    sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
-    reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
+    assets_dir, _arc_reviews, reviews, _dataset_version, _expected_queries = _load_reviews_with_dataset_gate(max_sessions)
     print(f"  Loaded {len(reviews)} sessions (model: {model})")
     if len(reviews) == 0:
         raise RuntimeError(
@@ -2827,10 +2889,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     print("=" * 60)
 
     # Load reviews and queries
-    assets_dir = _resolve_assets_dir()
-    sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
-    reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
-    all_queries = get_all_eval_queries(reviews)
+    assets_dir, arc_reviews, reviews, _dataset_version, _expected_queries = _load_reviews_with_dataset_gate(max_sessions)
+    all_queries = get_all_eval_queries(arc_reviews)
     if include_statement_grounding:
         all_queries.extend(get_statement_context_queries())
     try:
@@ -2947,7 +3007,9 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             context_inject=context_inject,
             preinject_planner_profile=preinject_planner_profile,
         )
-        answer_duration = time.time() - t0
+        query_duration_ms = int((time.time() - t0) * 1000)
+        answer_duration = query_duration_ms / 1000.0
+        q_usage["query_duration_ms"] = query_duration_ms
         tool_analysis = _analyze_tool_call_details(q_usage.get("tool_call_details", []) or [])
         provenance = {
             "eval_context_sources": eval_context_sources,
@@ -2958,7 +3020,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         audit_response = ""
         if query_type == "non_question":
             label, score = _judge_non_question(
-                question, ground_truth, prediction, api_key, judge_model=None
+                question, ground_truth, prediction, api_key, judge_model=None, workspace=workspace
             )
         elif query_type == "statement_context_grounding":
             audit_response, audit_usage = _run_no_tool_followup(
@@ -2982,15 +3044,16 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 provenance=provenance,
                 api_key=api_key,
                 judge_model=None,
+                workspace=workspace,
             )
         else:
-            label, score = _judge(question, ground_truth, prediction, api_key, judge_model=judge_model)
+            label, score = _judge(question, ground_truth, prediction, api_key, judge_model=judge_model, workspace=workspace)
 
         retrieval_context = "\n\n".join(recall_texts) if recall_texts else ""
         if query_type == "non_question":
             if retrieval_context:
                 ret_label, ret_score = _judge_non_question(
-                    question, ground_truth, retrieval_context, api_key, judge_model=None
+                    question, ground_truth, retrieval_context, api_key, judge_model=None, workspace=workspace
                 )
             else:
                 ret_label, ret_score = "CORRECT", 1.0
@@ -3002,10 +3065,11 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 provenance=provenance,
                 api_key=api_key,
                 judge_model=None,
+                workspace=workspace,
             ) if retrieval_context else ("WRONG", 0.0)
         elif retrieval_context:
             ret_label, ret_score = _judge(
-                question, ground_truth, retrieval_context, api_key, judge_model=judge_model)
+                question, ground_truth, retrieval_context, api_key, judge_model=judge_model, workspace=workspace)
         else:
             ret_label, ret_score = "WRONG", 0.0
 
@@ -3031,6 +3095,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "required_context": query.get("required_context", []),
             "retrieval_texts": recall_texts,
             "answer_duration_s": round(answer_duration, 2),
+            "query_duration_ms": query_duration_ms,
             "preinject_duration_ms": q_usage.get("preinject_duration_ms"),
             "eval_tokens": q_usage,
         }
@@ -3129,10 +3194,8 @@ def run_fc_baseline(
     print(f"FULL-CONTEXT BASELINE ({answer_model})")
     print("=" * 60)
 
-    assets_dir = _resolve_assets_dir()
-    sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
-    reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
-    all_queries = get_all_eval_queries(reviews)
+    assets_dir, arc_reviews, reviews, _dataset_version, _expected_queries = _load_reviews_with_dataset_gate(max_sessions)
+    all_queries = get_all_eval_queries(arc_reviews)
     # Keep baseline aligned with canonical benchmark query-set.
     try:
         required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", "268") or "268")
@@ -3202,7 +3265,10 @@ def run_fc_baseline(
             fc_usage["output_tokens"] += usage.get("output_tokens", 0)
             fc_usage["api_calls"] += 1
         except Exception as e:
-            prediction = f"Error: {e}"
+            raise RuntimeError(
+                f"FC answer failed for query {i+1}/{len(all_queries)} "
+                f"({query_type}) {question[:120]!r}: {e}"
+            ) from e
 
         # Judge
         label, score = _judge(question, ground_truth, prediction, api_key, judge_model=judge_model)
@@ -4239,6 +4305,18 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
     eval_in = int(eval_usage_summary.get("input_tokens", 0))
     eval_out = int(eval_usage_summary.get("output_tokens", 0))
     eval_calls = int(eval_usage_summary.get("api_calls", 0))
+    query_completion_durations = [
+        float(
+            r.get("eval_tokens", {}).get("query_duration_ms")
+            or r.get("query_duration_ms")
+        )
+        for r in results
+        if isinstance(
+            r.get("eval_tokens", {}).get("query_duration_ms")
+            or r.get("query_duration_ms"),
+            (int, float),
+        )
+    ]
     preinject_durations = [
         float(r.get("eval_tokens", {}).get("preinject_duration_ms"))
         for r in results
@@ -4464,6 +4542,14 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
         },
         "queries": len(results),
         "avg_tokens_per_query": round((eval_in + eval_out) / len(results)) if results else 0,
+        "query_completion_ms": {
+            "count": len(query_completion_durations),
+            "avg": round(sum(query_completion_durations) / len(query_completion_durations)) if query_completion_durations else 0,
+            "p50": _pct(query_completion_durations, 0.50),
+            "p95": _pct(query_completion_durations, 0.95),
+            "p99": _pct(query_completion_durations, 0.99),
+            "max": round(max(query_completion_durations)) if query_completion_durations else 0,
+        },
         "preinject_timing_ms": {
             "count": len(preinject_durations),
             "avg": round(sum(preinject_durations) / len(preinject_durations)) if preinject_durations else 0,
@@ -4528,6 +4614,7 @@ def _judge(
     prediction: str,
     api_key: str,
     judge_model: str = "gpt-4o-mini",
+    workspace: Optional[Path] = None,
 ) -> Tuple[str, float]:
     """Judge prediction against ground truth.
 
@@ -4542,7 +4629,7 @@ def _judge(
         ground_truth=ground_truth,
         prediction=prediction,
     )
-    return _judge_with_prompt(prompt, api_key, judge_model=judge_model)
+    return _judge_with_prompt(prompt, api_key, judge_model=judge_model, workspace=workspace)
 
 
 def _judge_non_question(
@@ -4551,6 +4638,7 @@ def _judge_non_question(
     prediction: str,
     api_key: str,
     judge_model: Optional[str] = None,
+    workspace: Optional[Path] = None,
 ) -> Tuple[str, float]:
     """Judge non-question prompts with safety-aware criteria and stronger default model."""
     if not prediction or prediction.strip().lower() in ("", "n/a"):
@@ -4564,7 +4652,7 @@ def _judge_non_question(
     effective_model = (judge_model or os.environ.get("NON_QUESTION_JUDGE_MODEL", "gpt-4o")).strip()
     if not effective_model.startswith("gpt-"):
         effective_model = "gpt-4o"
-    return _judge_openai(prompt, model=effective_model)
+    return _judge_openai(prompt, model=effective_model, workspace=workspace)
 
 
 def _judge_statement_context_grounding(
@@ -4574,6 +4662,7 @@ def _judge_statement_context_grounding(
     provenance: dict,
     api_key: str,
     judge_model: Optional[str] = None,
+    workspace: Optional[Path] = None,
 ) -> Tuple[str, float]:
     """Judge whether a shorthand statement/task was properly grounded in context."""
     if not prediction or prediction.strip().lower() in ("", "n/a"):
@@ -4590,22 +4679,23 @@ def _judge_statement_context_grounding(
     effective_model = (judge_model or os.environ.get("STATEMENT_GROUNDING_JUDGE_MODEL", "gpt-4o")).strip()
     if not effective_model.startswith("gpt-"):
         effective_model = "gpt-4o"
-    return _judge_openai(prompt, model=effective_model)
+    return _judge_openai(prompt, model=effective_model, workspace=workspace)
 
 
 def _judge_with_prompt(
     prompt: str,
     api_key: str,
     judge_model: str = "gpt-4o-mini",
+    workspace: Optional[Path] = None,
 ) -> Tuple[str, float]:
     """Route judge call by model/provider."""
     model = (judge_model or "gpt-4o-mini").strip()
     if model.startswith("gpt-"):
-        return _judge_openai(prompt, model=model)
-    return _judge_anthropic(prompt, api_key, model=model)
+        return _judge_openai(prompt, model=model, workspace=workspace)
+    return _judge_anthropic(prompt, api_key, model=model, workspace=workspace)
 
 
-def _judge_openai(prompt: str, model: str = "gpt-4o-mini") -> Tuple[str, float]:
+def _judge_openai(prompt: str, model: str = "gpt-4o-mini", workspace: Optional[Path] = None) -> Tuple[str, float]:
     """Call OpenAI model for judging."""
     openai_key = _get_openai_key()
     if not openai_key:
@@ -4631,6 +4721,17 @@ def _judge_openai(prompt: str, model: str = "gpt-4o-mini") -> Tuple[str, float]:
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read())
+        usage = _openai_usage_dict(data, model)
+        if workspace is not None and usage:
+            _append_usage_event(
+                workspace,
+                phase="eval",
+                source="judge",
+                model=model,
+                usage=usage,
+                tier=_infer_usage_tier(model),
+                provider="openai",
+            )
         text = data["choices"][0]["message"]["content"].strip().upper()
         return _parse_judge_label(text)
     except Exception as e:
@@ -4642,6 +4743,7 @@ def _judge_anthropic(
     prompt: str,
     api_key: str,
     model: str = "claude-haiku-4-5-20251001",
+    workspace: Optional[Path] = None,
 ) -> Tuple[str, float]:
     """Call Anthropic model for judging."""
     payload = {
@@ -4659,6 +4761,33 @@ def _judge_anthropic(
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read())
+        usage = data.get("usage", {}) if isinstance(data, dict) else {}
+        if isinstance(usage, dict):
+            usage = dict(usage)
+            in_tok = int(
+                usage.get("input_tokens", 0)
+                + usage.get("cache_read_input_tokens", 0)
+                + usage.get("cache_creation_input_tokens", 0)
+            )
+            out_tok = int(usage.get("output_tokens", 0))
+            usage["api_calls"] = int(usage.get("api_calls", 1) or 1)
+            usage["model_usage"] = {
+                model: {
+                    "input_tokens": in_tok,
+                    "output_tokens": out_tok,
+                    "total_tokens": in_tok + out_tok,
+                }
+            }
+            if workspace is not None:
+                _append_usage_event(
+                    workspace,
+                    phase="eval",
+                    source="judge",
+                    model=model,
+                    usage=usage,
+                    tier=_infer_usage_tier(model),
+                    provider="anthropic",
+                )
         text = data.get("content", [{}])[0].get("text", "").strip().upper()
         return _parse_judge_label(text)
     except Exception as e:
@@ -4767,7 +4896,7 @@ _TIER5_JUDGE_OPENAI_PROMPT = (
 )
 
 
-def _judge_tier5_openai(query: dict, prediction: str) -> Tuple[int, str]:
+def _judge_tier5_openai(query: dict, prediction: str, workspace: Optional[Path] = None) -> Tuple[int, str]:
     """OpenAI fallback Tier-5 judge; returns (score, reasoning)."""
     openai_key = _get_openai_key()
     if not openai_key:
@@ -4799,6 +4928,17 @@ def _judge_tier5_openai(query: dict, prediction: str) -> Tuple[int, str]:
     try:
         with urllib.request.urlopen(req, timeout=45) as resp:
             data = json.loads(resp.read())
+        usage = _openai_usage_dict(data, str(payload["model"]))
+        if workspace is not None and usage:
+            _append_usage_event(
+                workspace,
+                phase="eval",
+                source="tier5_judge",
+                model=str(payload["model"]),
+                usage=usage,
+                tier=_infer_usage_tier(str(payload["model"])),
+                provider="openai",
+            )
         text = data["choices"][0]["message"]["content"].strip()
         parsed = json.loads(text)
         score = int(parsed.get("score", 0))
@@ -4814,6 +4954,7 @@ def _judge_tier5(
     prediction: str,
     api_key: str,
     judge_model: str = "claude-sonnet-4-6",
+    workspace: Optional[Path] = None,
 ) -> Tuple[int, str]:
     """Judge a Tier 5 EI query using Sonnet (3-point rubric).
 
@@ -4840,6 +4981,16 @@ def _judge_tier5(
             api_key=api_key,
             max_tokens=300,
         )
+        if workspace is not None and _usage:
+            _append_usage_event(
+                workspace,
+                phase="eval",
+                source="tier5_judge",
+                model=judge_model,
+                usage=_usage,
+                tier=_infer_usage_tier(judge_model),
+                provider=_BACKEND,
+            )
 
         # Parse score from JSON
         try:
@@ -4862,7 +5013,7 @@ def _judge_tier5(
     except Exception as e:
         print(f"    Tier 5 judge error: {e}")
         # Reliability fallback: avoid zeroing all EI scores due transient Claude Code judge failures.
-        return _judge_tier5_openai(query, prediction)
+        return _judge_tier5_openai(query, prediction, workspace=workspace)
 
 
 def run_tier5_eval(
@@ -4914,7 +5065,7 @@ def run_tier5_eval(
 
         # Judge with Tier 5 rubric (Sonnet)
         ei_score, reasoning = _judge_tier5(
-            query, prediction, api_key, judge_model=resolved_judge_model
+            query, prediction, api_key, judge_model=resolved_judge_model, workspace=workspace
         )
         total_score += ei_score
 
@@ -4973,9 +5124,7 @@ def run_tier5_fc_baseline(
     print("=" * 60)
 
     queries = _DATASET.get_tier5_queries()
-    assets_dir = _resolve_assets_dir()
-    sessions_to_load = list(range(1, max_sessions + 1)) if max_sessions else None
-    reviews = load_all_reviews(assets_dir, sessions=sessions_to_load)
+    assets_dir, _arc_reviews, reviews, _dataset_version, _expected_queries = _load_reviews_with_dataset_gate(max_sessions)
 
     # Build full transcript context
     transcript_parts = []
@@ -5017,7 +5166,10 @@ def run_tier5_fc_baseline(
             )
             prediction = raw_response.strip()
         except Exception as e:
-            prediction = f"Error: {e}"
+            raise RuntimeError(
+                f"Tier 5 FC answer failed for query {i+1}/{len(queries)} "
+                f"({query.get('ei_id', '')}) {question[:120]!r}: {e}"
+            ) from e
 
         ei_score, reasoning = _judge_tier5(query, prediction, api_key)
         total_score += ei_score
@@ -5963,6 +6115,8 @@ def main():
                         help="Include the opt-in statement-context-grounding eval set (dataset experiment)")
     parser.add_argument("--preinject-planner-profile", choices=["fast", "aggressive"], default="fast",
                         help="Planner fanout profile for preinject recall-fast (default: fast)")
+    parser.add_argument("--fc-models", type=str, default=None,
+                        help="Comma-separated answer models for --mode fc (default: claude-sonnet-4-6,claude-opus-4-6)")
     args = parser.parse_args()
 
     workspace = Path(args.results_dir).resolve()
@@ -6084,9 +6238,6 @@ def main():
         with open(scores_path, "w") as f:
             json.dump(scores_payload, f, indent=2)
 
-        # Save token usage summary
-        _save_token_usage(results, workspace, args.eval_model)
-
         # Tier 5 runs automatically whenever eval runs.
         tier5_results = run_tier5_eval(
             workspace, api_key,
@@ -6110,6 +6261,7 @@ def main():
             "Combined Weighted Accuracy (T1-5): "
             f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
         )
+        _save_token_usage(results, workspace, args.eval_model)
 
     # --- Ingestion ---
     if args.mode in ("full", "ingest"):
@@ -6220,9 +6372,6 @@ def main():
         with open(scores_path, "w") as f:
             json.dump(scores_payload, f, indent=2)
 
-        # Save token usage summary
-        _save_token_usage(results, workspace, args.eval_model)
-
         # Tier 5 runs automatically whenever eval runs.
         tier5_results = run_tier5_eval(
             workspace, api_key,
@@ -6246,13 +6395,14 @@ def main():
             "Combined Weighted Accuracy (T1-5): "
             f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
         )
+        _save_token_usage(results, workspace, args.eval_model)
 
     # --- Full-context baselines ---
     if args.mode == "fc":
         fc_results_dir = workspace / "fc_baselines"
         fc_results_dir.mkdir(parents=True, exist_ok=True)
 
-        for fc_model in ["claude-sonnet-4-6", "claude-opus-4-6"]:
+        for fc_model in _parse_fc_models(args.fc_models):
             fc_results = run_fc_baseline(
                 api_key, answer_model=fc_model,
                 max_sessions=args.max_sessions,

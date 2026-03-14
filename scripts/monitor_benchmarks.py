@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""Cron-safe benchmark monitor + queue launcher.
+"""Cron-safe benchmark monitor.
 
 Runs one pass (no internal sleep). Intended to be invoked periodically, e.g.:
-  */20 * * * * /usr/bin/python3 /path/to/monitor_benchmarks.py --execute
+  */20 * * * * /usr/bin/python3 /path/to/monitor_benchmarks.py
 
 Behavior:
 1) Inspect runs/ for active/completed/failed/incomplete runs.
-2) Optionally auto-remediate recoverable incomplete runs (agentlife + locomo).
-3) Optionally launch next queued benchmark job when no runs are active.
-4) Emit machine-readable status JSON and a compact text summary.
+2) Reports status only. It does not launch or resume benchmark runs.
+3) Emit machine-readable status JSON and a compact text summary.
 """
 
 from __future__ import annotations
@@ -378,20 +377,6 @@ def build_locomo_resume_cmd(run_dir: Path) -> List[str]:
     ]
 
 
-def launch_background(root: Path, runs_dir: Path, cmd: List[str], run_name: str) -> Tuple[bool, str]:
-    log_path = runs_dir / f"{run_name}.restart.log"
-    shell = " ".join(shlex.quote(c) for c in cmd)
-    launch = (
-        "set -euo pipefail; "
-        f"cd {shlex.quote(str(root))}; "
-        f"nohup env PYTHONUNBUFFERED=1 {shell} >> {shlex.quote(str(log_path))} 2>&1 < /dev/null & echo $!"
-    )
-    proc = run_cmd(["bash", "-lc", launch], cwd=root)
-    if proc.returncode != 0:
-        return False, (proc.stderr or proc.stdout).strip()[-400:]
-    return True, proc.stdout.strip()
-
-
 def read_queue(queue_path: Path) -> List[dict]:
     if not queue_path.exists():
         return []
@@ -413,85 +398,8 @@ def default_queue_item_valid(item: dict) -> bool:
     return True
 
 
-def maybe_launch_from_queue(
-    root: Path,
-    runs_dir: Path,
-    queue_path: Path,
-    any_active: bool,
-    execute: bool,
-) -> Optional[str]:
-    if any_active:
-        return None
-    queue_path.parent.mkdir(parents=True, exist_ok=True)
-    queue_path.touch(exist_ok=True)
-    with queue_path.open("r+", encoding="utf-8") as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-        try:
-            raw = f.read().strip()
-            data = json.loads(raw) if raw else []
-            items = [x for x in data if isinstance(x, dict)] if isinstance(data, list) else []
-            if not items:
-                return None
-            item = items[0]
-            if not default_queue_item_valid(item):
-                items.pop(0)
-                f.seek(0)
-                f.truncate()
-                f.write(json.dumps(items, indent=2))
-                f.write("\n")
-                f.flush()
-                os.fsync(f.fileno())
-                return "queue item invalid; dropped first item"
-
-            cmd = item["cmd"]
-            if isinstance(cmd, str):
-                cmd_list = shlex.split(cmd)
-            elif isinstance(cmd, list):
-                cmd_list = [str(x) for x in cmd]
-            else:
-                items.pop(0)
-                f.seek(0)
-                f.truncate()
-                f.write(json.dumps(items, indent=2))
-                f.write("\n")
-                f.flush()
-                os.fsync(f.fileno())
-                return "queue item cmd invalid type; dropped first item"
-            if not cmd_list:
-                items.pop(0)
-                f.seek(0)
-                f.truncate()
-                f.write(json.dumps(items, indent=2))
-                f.write("\n")
-                f.flush()
-                os.fsync(f.fileno())
-                return "queue item cmd empty; dropped first item"
-
-            run_name = Path(str(item["results_dir"])).name
-            if execute:
-                # Recheck active runs under queue lock to avoid double-launch races
-                # when multiple monitor instances run concurrently.
-                active_now = detect_active_runs(root, runs_dir)
-                if active_now:
-                    return "queue launch skipped: active run detected during lock recheck"
-                ok, detail = launch_background(root, runs_dir, cmd_list, run_name)
-                if not ok:
-                    return f"queue launch failed: {detail}"
-                items.pop(0)
-                f.seek(0)
-                f.truncate()
-                f.write(json.dumps(items, indent=2))
-                f.write("\n")
-                f.flush()
-                os.fsync(f.fileno())
-                return f"launched queued job {run_name} pid={detail}"
-            return f"would launch queued job {run_name}"
-        finally:
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-
-
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Benchmark monitor + queue launcher")
+    p = argparse.ArgumentParser(description="Benchmark monitor")
     p.add_argument("--root", default=os.environ.get("BENCHMARK_ROOT", str(Path.home() / "agentlife-benchmark")))
     p.add_argument("--runs-dir", default="runs")
     p.add_argument(
@@ -500,12 +408,8 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="Additional runs directories to include in the dashboard view",
     )
-    p.add_argument("--queue", default="runs/benchmark-queue.json")
     p.add_argument("--status-out", default="runs/monitor-status.json")
     p.add_argument("--summary-out", default="runs/monitor-summary.txt")
-    p.add_argument("--auto-fix", action="store_true", help="attempt safe auto-resume for incomplete runs")
-    p.add_argument("--launch-queue", action="store_true", help="launch next queued job when idle")
-    p.add_argument("--execute", action="store_true", help="apply actions; default is dry-run")
     p.add_argument(
         "--notify-thread-id",
         default=os.environ.get("CODEX_THREAD_ID", ""),
@@ -589,7 +493,6 @@ def main() -> int:
     runs_dir = (root / args.runs_dir).resolve()
     extra_runs_dirs = [Path(p).expanduser().resolve() for p in args.extra_runs_dir]
     visible_runs_dirs = [runs_dir, *extra_runs_dirs]
-    queue_path = (root / args.queue).resolve()
     status_out = (root / args.status_out).resolve()
     summary_out = (root / args.summary_out).resolve()
 
@@ -607,37 +510,6 @@ def main() -> int:
         by_state.setdefault(st.state, []).append(st)
 
     actions: List[str] = []
-
-    if args.auto_fix:
-        for st in by_state.get("incomplete", []):
-            cmd: Optional[List[str]] = None
-            if st.kind == "agentlife":
-                cmd = build_agentlife_resume_cmd(st.path)
-            elif st.kind == "locomo":
-                cmd = build_locomo_resume_cmd(st.path)
-
-            if not cmd:
-                continue
-
-            if args.execute:
-                ok, detail = launch_background(root, runs_dir, cmd, st.name)
-                if ok:
-                    actions.append(f"resumed {st.name} pid={detail}")
-                else:
-                    actions.append(f"resume failed {st.name}: {detail}")
-            else:
-                actions.append(f"would resume {st.name}: {' '.join(shlex.quote(c) for c in cmd)}")
-
-    if args.launch_queue:
-        q_action = maybe_launch_from_queue(
-            root,
-            runs_dir,
-            queue_path,
-            any_active=bool(by_state.get("active")),
-            execute=args.execute,
-        )
-        if q_action:
-            actions.append(q_action)
 
     report = {
         "timestamp": utc_now_iso(),
