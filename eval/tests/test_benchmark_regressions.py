@@ -146,7 +146,7 @@ class TestNormalizeProjectLogs:
 
 class TestParseFcModels:
     def test_default_models(self):
-        assert rpb._parse_fc_models(None) == ["claude-sonnet-4-6", "claude-opus-4-6"]
+        assert rpb._parse_fc_models(None) == ["claude-haiku-4-5-20251001"]
 
     def test_preserves_order_and_dedups(self):
         out = rpb._parse_fc_models("claude-haiku-4-5-20251001, claude-sonnet-4-6, claude-haiku-4-5-20251001")
@@ -155,6 +155,42 @@ class TestParseFcModels:
     def test_empty_string_raises(self):
         with pytest.raises(ValueError):
             rpb._parse_fc_models(" , , ")
+
+
+class TestAnswerModelPolicy:
+    def test_allows_default_eval_model(self):
+        rpb._validate_answer_model_policy(
+            mode="eval",
+            eval_model="claude-haiku-4-5-20251001",
+            fc_models=[],
+            allow_non_haiku=False,
+        )
+
+    def test_rejects_non_haiku_eval_model_without_override(self):
+        with pytest.raises(SystemExit, match="must be Haiku by default"):
+            rpb._validate_answer_model_policy(
+                mode="eval",
+                eval_model="claude-sonnet-4-6",
+                fc_models=[],
+                allow_non_haiku=False,
+            )
+
+    def test_rejects_non_haiku_fc_model_without_override(self):
+        with pytest.raises(SystemExit, match="FC answer model 'claude-opus-4-6'"):
+            rpb._validate_answer_model_policy(
+                mode="fc",
+                eval_model="claude-haiku-4-5-20251001",
+                fc_models=["claude-opus-4-6"],
+                allow_non_haiku=False,
+            )
+
+    def test_allows_override(self):
+        rpb._validate_answer_model_policy(
+            mode="fc",
+            eval_model="claude-sonnet-4-6",
+            fc_models=["claude-opus-4-6"],
+            allow_non_haiku=True,
+        )
 
 
 class TestFcBaselinesFailHard:
@@ -228,6 +264,107 @@ class TestFcBaselinesFailHard:
 
         with pytest.raises(RuntimeError, match=r"Tier 5 FC answer failed.*How are you feeling about your mom"):
             rpb.run_tier5_fc_baseline(api_key="test-key", answer_model="claude-sonnet-4-6")
+
+
+class TestClaudeCodeEvalFailHard:
+    def test_tool_use_loop_claude_code_raises_on_nonzero_return(self, monkeypatch, tmp_path):
+        ws = tmp_path / "ws"
+        (ws / "data").mkdir(parents=True, exist_ok=True)
+
+        monkeypatch.setattr(rpb, "_pre_recall", lambda *a, **k: ("", "", {}))
+        monkeypatch.setattr(
+            rpb,
+            "_parse_claude_stream_output",
+            lambda _stdout: (
+                "",
+                [],
+                [],
+                [],
+                {"is_error": True, "result": "OAuth token has expired"},
+            ),
+        )
+        monkeypatch.setattr(
+            subprocess,
+            "run",
+            lambda *a, **k: SimpleNamespace(
+                returncode=1,
+                stdout='{"type":"result"}',
+                stderr="oauth expired",
+            ),
+        )
+
+        with pytest.raises(RuntimeError, match=r"Claude Code failed rc=1.*OAuth token has expired"):
+            rpb._tool_use_loop_claude_code(
+                question="What does Maya do for work?",
+                eval_context="ctx",
+                workspace=ws,
+                api_key="unused",
+                env={},
+                model="claude-sonnet-4-6",
+                context_inject=False,
+            )
+
+class TestFcContextCompaction:
+    def test_build_fc_context_skips_compaction_when_under_threshold(self, monkeypatch, tmp_path):
+        reviews = [_FakeReview(1), _FakeReview(2)]
+        monkeypatch.setattr(rpb, "SESSION_DATES", {1: "2026-03-01", 2: "2026-03-02"})
+        monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda review: f"session {review.session_num}")
+        monkeypatch.setattr(rpb, "_estimate_text_tokens", lambda text: 1000)
+
+        def _boom(*_args, **_kwargs):
+            raise AssertionError("compaction should not run")
+
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", _boom)
+
+        context, stats = rpb._build_fc_transcript_context(
+            reviews,
+            api_key="test-key",
+            answer_model="claude-haiku-4-5-20251001",
+            results_dir=tmp_path,
+        )
+
+        assert "Session 1" in context
+        assert "Session 2" in context
+        assert stats["compaction_count"] == 0
+        assert stats["api_calls"] == 0
+
+    def test_build_fc_context_compacts_when_over_threshold(self, monkeypatch, tmp_path):
+        reviews = [_FakeReview(1), _FakeReview(2), _FakeReview(3)]
+        monkeypatch.setattr(rpb, "SESSION_DATES", {1: "2026-03-01", 2: "2026-03-02", 3: "2026-03-03"})
+        monkeypatch.setattr(
+            rpb,
+            "format_transcript_for_extraction",
+            lambda review: f"transcript for session {review.session_num}",
+        )
+
+        state = {"calls": 0}
+
+        def _estimate(text):
+            if "Compacted History" in text:
+                return 1000
+            return 170000
+
+        def _compact(_system, user_message, _model, _api_key, max_tokens=0):
+            state["calls"] += 1
+            return ("- summarized older context", {"input_tokens": 120, "output_tokens": 30, "api_calls": 1})
+
+        monkeypatch.setattr(rpb, "_estimate_text_tokens", _estimate)
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", _compact)
+        monkeypatch.setattr(rpb, "_append_usage_event", lambda *a, **k: None)
+
+        context, stats = rpb._build_fc_transcript_context(
+            reviews,
+            api_key="test-key",
+            answer_model="claude-haiku-4-5-20251001",
+            results_dir=tmp_path,
+        )
+
+        assert "Compacted History #1" in context
+        assert stats["compaction_count"] == 1
+        assert stats["input_tokens"] == 120
+        assert stats["output_tokens"] == 30
+        assert stats["api_calls"] == 1
+        assert state["calls"] == 1
 
 
 class TestParseReviewTimestamp:
@@ -939,6 +1076,10 @@ def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatc
 
     assert "recall" in captured["cmd"]
     assert "--json" in captured["cmd"]
+    assert "--owner" not in captured["cmd"]
+    cfg = json.loads(captured["cmd"][captured["cmd"].index("coffee") + 1])
+    assert cfg["owner"] == "maya"
+    assert cfg["limit"] == 10
     assert "Quaid likes espresso coffee" in text
     assert meta == {"mode": "deliberate", "total_ms": 42}
 
@@ -966,6 +1107,146 @@ def test_tool_memory_recall_passes_planner_profile_for_fast_calls(tmp_path, monk
     assert captured["cmd"].count("--planner-profile") == 1
     assert "aggressive" in captured["cmd"]
     assert meta == {"mode": "fast"}
+
+
+def test_tool_memory_recall_raises_on_nonzero_exit(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    def _fake_run(_cmd, **_kwargs):
+        return SimpleNamespace(stdout="", stderr="unrecognized arguments: --owner", returncode=2)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    with pytest.raises(RuntimeError, match="recall failed rc=2"):
+        rpb._tool_memory_recall("coffee", workspace, {"PATH": os.environ.get("PATH", "")})
+
+
+def test_tool_memory_recall_parses_graph_direct_results_payload(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    def _fake_run(_cmd, **_kwargs):
+        return SimpleNamespace(
+            stdout=json.dumps({
+                "direct_results": [{
+                    "text": "Maya works at TechFlow",
+                    "category": "fact",
+                    "similarity": 0.88,
+                    "id": "n42",
+                    "privacy": "shared",
+                    "owner_id": "maya",
+                }],
+                "source_breakdown": {"vector_count": 1, "graph_count": 0},
+            }),
+            stderr="",
+            returncode=0,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    text, meta = rpb._tool_memory_recall("work", workspace, {"PATH": os.environ.get("PATH", "")})
+
+    assert "Maya works at TechFlow" in text
+    assert meta == {"source_breakdown": {"vector_count": 1, "graph_count": 0}, "entities_found": None}
+
+
+def test_tool_memory_recall_docs_only_uses_plaintext_cli(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    captured: dict[str, object] = {}
+
+    def _fake_run(cmd, **_kwargs):
+        captured["cmd"] = cmd
+        return SimpleNamespace(
+            stdout=json.dumps({
+                "contract": "quaid.recall.v1",
+                "results": [],
+                "docs": {
+                    "chunks": [
+                        {
+                            "content": "Express + PostgreSQL + React",
+                            "source": "/tmp/workspace/projects/recipe-app/README.md",
+                            "section_header": "## Stack",
+                            "similarity": 0.91,
+                            "chunk_index": 0,
+                            "project": "recipe-app",
+                        }
+                    ],
+                    "project": "recipe-app",
+                    "project_md": "# Project: Recipe App\n",
+                    "telemetry": {"chunk_count": 1, "resolved_project": "recipe-app"},
+                },
+            }),
+            stderr="",
+            returncode=0,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    text, meta = rpb._tool_memory_recall(
+        "tech stack",
+        workspace,
+        {"PATH": os.environ.get("PATH", "")},
+        stores=["docs"],
+        project="recipe-app",
+    )
+
+    assert "--json" in captured["cmd"]
+    assert "Express + PostgreSQL + React" in text
+    assert "# Project: Recipe App" in text
+    assert meta == {"docs_telemetry": {"chunk_count": 1, "resolved_project": "recipe-app"}}
+
+
+def test_tool_memory_recall_mixed_json_payload_merges_docs_and_results(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    def _fake_run(_cmd, **_kwargs):
+        return SimpleNamespace(
+            stdout=json.dumps({
+                "contract": "quaid.recall.v1",
+                "results": [{
+                    "text": "Maya built the recipe app in Express",
+                    "category": "fact",
+                    "similarity": 0.87,
+                    "id": "n1",
+                    "privacy": "shared",
+                    "owner_id": "maya",
+                }],
+                "docs": {
+                    "chunks": [{
+                        "content": "tests/recipe.test.js covers recipe CRUD flows",
+                        "source": "/tmp/workspace/projects/recipe-app/tests/recipe.test.js",
+                        "section_header": None,
+                        "similarity": 0.89,
+                        "chunk_index": 0,
+                        "project": "recipe-app",
+                    }],
+                    "project": "recipe-app",
+                    "project_md": "# Project: Recipe App\n",
+                },
+                "meta": {"mode": "deliberate", "total_ms": 55},
+            }),
+            stderr="",
+            returncode=0,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    text, meta = rpb._tool_memory_recall(
+        "recipe app tests",
+        workspace,
+        {"PATH": os.environ.get("PATH", "")},
+        stores=["vector", "graph", "docs"],
+        project="recipe-app",
+    )
+
+    assert "Maya built the recipe app in Express" in text
+    assert "tests/recipe.test.js covers recipe CRUD flows" in text
+    assert "# Project: Recipe App" in text
+    assert meta == {"mode": "deliberate", "total_ms": 55}
 
 
 def test_call_anthropic_cached_retries_http_520(monkeypatch):

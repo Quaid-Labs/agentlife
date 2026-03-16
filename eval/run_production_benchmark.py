@@ -112,6 +112,9 @@ _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py
 _LAST_STORE_METRICS: Dict[str, int] = {"domain_missing": 0}
 _EVAL_CORE_TOKEN_CAP = 1500
 _EVAL_TOKEN_ENCODER = None
+_FC_CONTEXT_WINDOW_TOKENS = 200_000
+_FC_CONTEXT_COMPACT_TRIGGER_TOKENS = int(_FC_CONTEXT_WINDOW_TOKENS * 0.80)
+_FC_CONTEXT_TARGET_TOKENS = 120_000
 
 
 def _python_cmd_for_quaid_script(script_path: Path) -> List[str]:
@@ -717,7 +720,7 @@ def _normalize_project_logs(project_logs: object) -> dict:
 def _parse_fc_models(raw: Optional[str]) -> List[str]:
     """Parse comma-separated FC answer models while preserving order."""
     if not raw:
-        return ["claude-sonnet-4-6", "claude-opus-4-6"]
+        return ["claude-haiku-4-5-20251001"]
     out: List[str] = []
     seen: set[str] = set()
     for part in str(raw).split(","):
@@ -729,6 +732,127 @@ def _parse_fc_models(raw: Optional[str]) -> List[str]:
     if not out:
         raise ValueError("fc model list is empty")
     return out
+
+
+def _is_haiku_answer_model(model: str) -> bool:
+    return "haiku" in (model or "").strip().lower()
+
+
+def _allow_non_haiku_answer_model(cli_override: bool) -> bool:
+    if cli_override:
+        return True
+    return os.environ.get("BENCHMARK_ALLOW_NON_HAIKU_ANSWER_MODEL", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _validate_answer_model_policy(
+    *,
+    mode: str,
+    eval_model: str,
+    fc_models: List[str],
+    allow_non_haiku: bool,
+) -> None:
+    if allow_non_haiku:
+        return
+    violations: List[str] = []
+    if mode in {"full", "eval", "per-day"} and not _is_haiku_answer_model(eval_model):
+        violations.append(f"eval model '{eval_model}'")
+    if mode == "fc":
+        for model in fc_models:
+            if not _is_haiku_answer_model(model):
+                violations.append(f"FC answer model '{model}'")
+    if not violations:
+        return
+    detail = ", ".join(violations)
+    raise SystemExit(
+        "Answer model policy violation: benchmark answer/eval models must be Haiku by default. "
+        f"Found {detail}. "
+        "Use --allow-non-haiku-answer-model or BENCHMARK_ALLOW_NON_HAIKU_ANSWER_MODEL=1 "
+        "only for an intentional answer-model experiment."
+    )
+
+
+def _fc_result_stem(answer_model: str) -> str:
+    return f"fc_{answer_model.replace('-', '_')}"
+
+
+def _tier5_fc_result_stem(answer_model: str) -> str:
+    return f"tier5_fc_{answer_model.replace('-', '_')}"
+
+
+def _fc_resume_checkpoint_path(results_dir: Path, stem: str) -> Path:
+    return results_dir / f"{stem}_resume.json"
+
+
+def _load_fc_resume_checkpoint(
+    checkpoint_path: Optional[Path],
+    *,
+    answer_model: str,
+    questions: List[dict],
+) -> Tuple[List[dict], dict]:
+    empty_usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
+    if checkpoint_path is None or not checkpoint_path.exists():
+        return [], empty_usage
+    payload = json.loads(checkpoint_path.read_text())
+    if payload.get("answer_model") != answer_model:
+        raise RuntimeError(
+            f"FC resume checkpoint model mismatch: expected {answer_model}, "
+            f"got {payload.get('answer_model')!r}"
+        )
+    expected_total = len(questions)
+    saved_total = int(payload.get("total_queries", expected_total) or 0)
+    if saved_total != expected_total:
+        raise RuntimeError(
+            f"FC resume checkpoint query-count mismatch: expected {expected_total}, got {saved_total}"
+        )
+    results = payload.get("results", [])
+    if not isinstance(results, list):
+        raise RuntimeError("FC resume checkpoint is invalid: results must be a list")
+    for idx, row in enumerate(results):
+        if not isinstance(row, dict):
+            raise RuntimeError(f"FC resume checkpoint row {idx} is invalid")
+        if idx >= len(questions):
+            raise RuntimeError("FC resume checkpoint contains too many rows")
+        if row.get("question") != questions[idx].get("question"):
+            raise RuntimeError(
+                "FC resume checkpoint question mismatch at "
+                f"{idx + 1}: {row.get('question')!r} != {questions[idx].get('question')!r}"
+            )
+    usage = payload.get("usage", {})
+    normalized_usage = {
+        "input_tokens": int(usage.get("input_tokens", 0) or 0),
+        "output_tokens": int(usage.get("output_tokens", 0) or 0),
+        "api_calls": int(usage.get("api_calls", 0) or 0),
+    }
+    return results, normalized_usage
+
+
+def _save_fc_resume_checkpoint(
+    checkpoint_path: Optional[Path],
+    *,
+    answer_model: str,
+    total_queries: int,
+    results: List[dict],
+    usage: dict,
+) -> None:
+    if checkpoint_path is None:
+        return
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "answer_model": answer_model,
+        "total_queries": total_queries,
+        "results": results,
+        "usage": {
+            "input_tokens": int(usage.get("input_tokens", 0) or 0),
+            "output_tokens": int(usage.get("output_tokens", 0) or 0),
+            "api_calls": int(usage.get("api_calls", 0) or 0),
+        },
+    }
+    checkpoint_path.write_text(json.dumps(payload, indent=2))
 
 
 def _domain_block_markdown(domains: List[Tuple[str, str]]) -> str:
@@ -788,9 +912,10 @@ def _load_quaid_tools_template() -> str:
         "## Available Tools\n\n"
         "| Tool | Purpose |\n"
         "|------|---------|\n"
-        "| `memory_recall` | Search memory database for facts, preferences, events, relationships |\n"
-        "| `search_project_docs` | Search project source files and documentation |\n\n"
-        "Use domain filters and boosts in `memory_recall` for better retrieval targeting.\n"
+        "| `recall` | Unified recall across memory and docs stores |\n\n"
+        "Use `recall \"query\" '{\"stores\": [\"vector\", \"graph\", \"docs\"]}'` "
+        "for mixed memory + docs retrieval, and `{\"stores\": [\"docs\"], "
+        "\"project\": \"quaid\"}` for docs-only lookup.\n"
     )
 
 
@@ -814,7 +939,7 @@ def _seed_quaid_project_docs(workspace: Path) -> None:
         )
         (target / "TOOLS.md").write_text(
             "# Quaid Tools\n\n"
-            "Use `memory_recall` for memory retrieval and `projects_search` for docs lookup.\n"
+            "Use `quaid recall` with stores/project config for memory and docs retrieval.\n"
         )
         return
     shutil.copytree(source_dir, target, dirs_exist_ok=True)
@@ -3182,6 +3307,97 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     return results
 
 
+def _estimate_text_tokens(text: str) -> int:
+    global _EVAL_TOKEN_ENCODER
+    if not text:
+        return 0
+    if tiktoken is None:
+        return max(1, len(text) // 4)
+    if _EVAL_TOKEN_ENCODER is None:
+        _EVAL_TOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")
+    return len(_EVAL_TOKEN_ENCODER.encode(text))
+
+
+def _build_fc_transcript_context(
+    reviews: List[Any],
+    *,
+    api_key: str,
+    answer_model: str,
+    results_dir: Optional[Path],
+) -> Tuple[str, dict]:
+    transcript_blocks: List[str] = []
+    usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
+    compaction_count = 0
+
+    for review in reviews:
+        snum = review.session_num
+        date = SESSION_DATES.get(snum, "unknown")
+        track_label = "Personal" if review.track == 1 else "Project"
+        transcript = format_transcript_for_extraction(review)
+        if not transcript.strip():
+            continue
+        transcript_blocks.append(f"=== Session {snum} ({track_label}) — {date} ===\n{transcript}")
+
+        while _estimate_text_tokens("\n\n".join(transcript_blocks)) > _FC_CONTEXT_COMPACT_TRIGGER_TOKENS:
+            if len(transcript_blocks) < 2:
+                break
+            compact_upto = max(1, len(transcript_blocks) // 2)
+            prefix_blocks = transcript_blocks[:compact_upto]
+            suffix_blocks = transcript_blocks[compact_upto:]
+            prefix_text = "\n\n".join(prefix_blocks)
+            suffix_text = "\n\n".join(suffix_blocks)
+
+            system_prompt = (
+                "You are compacting older conversation history for a full-context benchmark.\n\n"
+                "Summarize densely and faithfully. Preserve people, relationships, temporal changes, "
+                "project architecture, commitments, plans, and state transitions. Use concise markdown "
+                "bullets. Do not invent facts. This summary will replace the raw older transcript."
+            )
+            user_message = (
+                "Compact this older conversation history into a factual summary that preserves answerable details.\n\n"
+                f"{prefix_text}\n\n"
+                "Keep chronology when facts changed over time."
+            )
+            raw_summary, compaction_usage = _call_anthropic_cached(
+                system_prompt,
+                user_message,
+                answer_model,
+                api_key,
+                max_tokens=3000,
+            )
+            _append_usage_event(
+                results_dir or _PROJECT_DIR,
+                phase="eval",
+                source="fc_compaction",
+                model=answer_model,
+                usage=compaction_usage,
+                provider=_BACKEND,
+            )
+            usage["input_tokens"] += int(compaction_usage.get("input_tokens", 0) or 0)
+            usage["output_tokens"] += int(compaction_usage.get("output_tokens", 0) or 0)
+            usage["api_calls"] += 1
+            compaction_count += 1
+            summary_block = (
+                f"=== Compacted History #{compaction_count} ===\n"
+                f"{raw_summary.strip()}\n"
+            )
+            transcript_blocks = [summary_block] + suffix_blocks
+
+            if _estimate_text_tokens("\n\n".join(transcript_blocks)) <= _FC_CONTEXT_TARGET_TOKENS:
+                break
+            if not suffix_blocks:
+                break
+
+    final_context = "\n\n".join(transcript_blocks)
+    return final_context, {
+        "compaction_count": compaction_count,
+        "input_tokens": usage["input_tokens"],
+        "output_tokens": usage["output_tokens"],
+        "api_calls": usage["api_calls"],
+        "context_tokens": _estimate_text_tokens(final_context),
+    }
+
+
 def run_fc_baseline(
     api_key: str,
     answer_model: str = "claude-opus-4-6",
@@ -3208,25 +3424,26 @@ def run_fc_baseline(
         )
     print(f"  {len(all_queries)} queries, {len(reviews)} sessions")
 
-    # Build full transcript context
-    transcript_parts = []
-    for review in reviews:
-        snum = review.session_num
-        date = SESSION_DATES.get(snum, "unknown")
-        track_label = "Personal" if review.track == 1 else "Project"
-        transcript = format_transcript_for_extraction(review)
-        if transcript.strip():
-            transcript_parts.append(
-                f"=== Session {snum} ({track_label}) — {date} ===\n{transcript}"
-            )
-    full_transcripts = "\n\n".join(transcript_parts)
-    print(f"  Transcript context: {len(full_transcripts)} chars (~{len(full_transcripts)//4} tokens)")
+    full_transcripts, compaction_stats = _build_fc_transcript_context(
+        reviews,
+        api_key=api_key,
+        answer_model=answer_model,
+        results_dir=results_dir,
+    )
+    print(
+        f"  Transcript context: {len(full_transcripts)} chars "
+        f"(~{compaction_stats['context_tokens']} tokens, {compaction_stats['compaction_count']} compactions)"
+    )
 
     results = []
     correct = 0
     partial_count = 0
     wrong = 0
-    fc_usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
+    fc_usage = {
+        "input_tokens": int(compaction_stats.get("input_tokens", 0) or 0),
+        "output_tokens": int(compaction_stats.get("output_tokens", 0) or 0),
+        "api_calls": int(compaction_stats.get("api_calls", 0) or 0),
+    }
     t_start = time.time()
 
     for i, query in enumerate(all_queries):
@@ -3708,7 +3925,7 @@ def _tool_use_loop(
     context_inject: bool = True,
     preinject_planner_profile: str = "fast",
 ) -> Tuple[str, List[str], List[str], List[str], dict]:
-    """Run model with tool use, executing memory_recall and search_project_docs.
+    """Run model with tool use, executing unified Quaid recall.
 
     Routes through Claude Code CLI when _BACKEND == "claude-code".
 
@@ -3744,40 +3961,15 @@ def _tool_use_loop(
     }
     tools = [
         {
-            "name": "memory_recall",
+            "name": "recall",
             "description": (
-                "Search the memory database for facts about Maya — personal, project, technical, everything. "
-                "ALWAYS try this tool first before search_project_docs. "
-                "Start with one broad query when the task has multiple facets; memory_recall already fans out internally. "
-                "Only call memory_recall again if a specific facet is still missing after the first result. "
-                "Results include dates showing when each fact was recorded. "
-                "Use entity names (e.g. 'Maya', 'Liam', 'recipe app') not roles ('the user', 'her boyfriend')."
-            ),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Search query — use specific names and topics",
-                    },
-                    "date_from": {
-                        "type": "string",
-                        "description": "Only return memories from this date onward (YYYY-MM-DD)",
-                    },
-                    "date_to": {
-                        "type": "string",
-                        "description": "Only return memories up to this date (YYYY-MM-DD)",
-                    },
-                },
-                "required": ["query"],
-            },
-        },
-        {
-            "name": "search_project_docs",
-            "description": (
-                "Search project source code and documentation files. "
-                "Use AFTER memory_recall if you need source-level details like exact code, file contents, or implementation specifics. "
-                "Always specify project name when known."
+                "Unified Quaid recall across memory and docs stores. "
+                "Use one broad query first. Defaults to memory stores (vector + graph). "
+                "For codebase, architecture, schema, tests, stack, API, or source-file questions, "
+                "set stores=['docs'] and set project when known. "
+                "Use stores=['vector','graph','docs'] only when you need both memory and docs in one pass. "
+                "Set project when scoping docs to a known project like recipe-app, portfolio-site, or quaid. "
+                "Use entity names (e.g. 'Maya', 'Liam', 'recipe app') not vague roles."
             ),
             "input_schema": {
                 "type": "object",
@@ -3786,10 +3978,34 @@ def _tool_use_loop(
                         "type": "string",
                         "description": "Search query for project files",
                     },
+                    "stores": {
+                        "type": "array",
+                        "description": "Datastores to search. Omit for default memory stores.",
+                        "items": {
+                            "type": "string",
+                            "enum": ["vector", "graph", "docs"],
+                        },
+                    },
                     "project": {
                         "type": "string",
-                        "description": "Project name (recipe-app or portfolio-site)",
-                        "enum": ["recipe-app", "portfolio-site"],
+                        "description": "Optional project scope for docs recall (recipe-app, portfolio-site, quaid)",
+                    },
+                    "domain_filter": {
+                        "type": "object",
+                        "description": "Hard domain filter map, e.g. {\"technical\": true}",
+                    },
+                    "domain_boost": {
+                        "type": "array",
+                        "description": "Soft domain boosts, e.g. [\"technical\", \"project\"]",
+                        "items": {"type": "string"},
+                    },
+                    "date_from": {
+                        "type": "string",
+                        "description": "Only return memories from this date onward (YYYY-MM-DD)",
+                    },
+                    "date_to": {
+                        "type": "string",
+                        "description": "Only return memories up to this date (YYYY-MM-DD)",
                     },
                 },
                 "required": ["query"],
@@ -3936,7 +4152,7 @@ def _tool_use_loop(
                     tool_result_summaries.append(
                         f"{tool_name}({tool_input.get('query', '')[:40]}): {len(result_text)} chars"
                     )
-                    if tool_name == "memory_recall":
+                    if tool_name in {"recall", "memory_recall"}:
                         retrieval_texts.append(result_text)
                     usage_total["tool_call_details"].append({
                         "tool": tool_name,
@@ -3955,7 +4171,8 @@ def _tool_use_loop(
                         "result_excerpt_200": str(result_text or "").strip()[:200],
                         "error": str(result_text or "")[:80] if str(result_text).startswith("Error:") else "",
                         "source": "tool",
-                        "recall_meta": recall_meta if tool_name == "memory_recall" else None,
+                        "stores": tool_input.get("stores"),
+                        "recall_meta": recall_meta if tool_name in {"recall", "memory_recall"} else None,
                     })
 
                     tool_results.append({
@@ -3998,17 +4215,29 @@ def _execute_tool(
     """
     query = tool_input.get("query", "")
 
-    if tool_name == "memory_recall":
+    if tool_name in ("recall", "memory_recall"):
         date_from = tool_input.get("date_from")
         model_date_to = tool_input.get("date_to")
         return _tool_memory_recall(
             query, workspace, env,
             date_from=date_from, date_to=model_date_to,
             max_session=max_session,
+            stores=tool_input.get("stores"),
+            project=tool_input.get("project"),
+            domain_filter=tool_input.get("domain_filter"),
+            domain_boost=tool_input.get("domain_boost"),
         )
     elif tool_name == "search_project_docs":
         project = tool_input.get("project")
-        return _tool_search_project_docs(query, workspace, env, project, date_to=date_to), None
+        return _tool_memory_recall(
+            query,
+            workspace,
+            env,
+            date_to=date_to,
+            max_session=max_session,
+            stores=["docs"],
+            project=project,
+        )
     else:
         return f"Unknown tool: {tool_name}", None
 
@@ -4040,12 +4269,55 @@ def _render_recall_results(results: list[dict]) -> str:
     return "\n".join(lines).strip()
 
 
+def _render_recall_docs_bundle(bundle: Any) -> str:
+    """Render unified recall docs bundle into model-facing plain text."""
+    if not isinstance(bundle, dict):
+        return ""
+
+    lines: list[str] = []
+    chunks = bundle.get("chunks")
+    if isinstance(chunks, list) and chunks:
+        lines.append("=== Documentation ===")
+        for i, chunk in enumerate(chunks, 1):
+            if not isinstance(chunk, dict):
+                continue
+            source = str(chunk.get("source") or "")
+            header = str(chunk.get("section_header") or "")
+            similarity = chunk.get("similarity")
+            similarity_str = ""
+            try:
+                similarity_str = f" (similarity: {float(similarity):.3f})"
+            except Exception:
+                similarity_str = ""
+            header_str = f" > {header}" if header else ""
+            lines.append(f"{i}. {source}{header_str}{similarity_str}")
+            content = str(chunk.get("content") or "")
+            for line in content.splitlines():
+                lines.append(f"   {line}")
+            lines.append("")
+
+    project_md = bundle.get("project_md")
+    if isinstance(project_md, str) and project_md.strip():
+        if lines:
+            lines.append("")
+        lines.append("=== PROJECT.md ===")
+        lines.append(project_md[:1000])
+        if len(project_md) > 1000:
+            lines.append("  ... (truncated)")
+
+    return "\n".join(line for line in lines if line is not None).strip()
+
+
 def _tool_memory_recall(
     query: str, workspace: Path, env: dict,
     date_from: Optional[str] = None, date_to: Optional[str] = None,
     max_session: Optional[int] = None,
     fast: bool = False,
     planner_profile: Optional[str] = None,
+    stores: Optional[List[str]] = None,
+    project: Optional[str] = None,
+    domain_filter: Optional[Dict[str, Any]] = None,
+    domain_boost: Optional[List[str]] = None,
 ) -> Tuple[str, Optional[dict]]:
     """Execute memory_recall via subprocess.
 
@@ -4056,34 +4328,132 @@ def _tool_memory_recall(
     """
     # Request extra results when filtering so we still get enough after post-filter
     limit = 20 if max_session else 10
-    cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT) + [
-        "recall-fast" if fast else "recall", query, "--owner", "maya", "--limit", str(limit), "--json",
-    ]
-    if planner_profile:
-        cmd.extend(["--planner-profile", planner_profile])
-    if date_from:
-        cmd.extend(["--date-from", date_from])
-    if date_to:
-        cmd.extend(["--date-to", date_to])
+    requested_stores = list(stores or [])
+    docs_requested = "docs" in requested_stores
+    memory_requested = (not requested_stores) or any(s != "docs" for s in requested_stores)
+
+    # For mixed memory+docs calls with temporal filtering, split the work so memory
+    # stays filterable while docs still surface through the canonical recall path.
+    if (not fast) and docs_requested and memory_requested and max_session is not None:
+        memory_stores = [s for s in requested_stores if s != "docs"] or ["vector", "graph"]
+        memory_text, memory_meta = _tool_memory_recall(
+            query,
+            workspace,
+            env,
+            date_from=date_from,
+            date_to=date_to,
+            max_session=max_session,
+            fast=False,
+            planner_profile=planner_profile,
+            stores=memory_stores,
+            project=project,
+            domain_filter=domain_filter,
+            domain_boost=domain_boost,
+        )
+        docs_text, _ = _tool_memory_recall(
+            query,
+            workspace,
+            env,
+            fast=False,
+            stores=["docs"],
+            project=project,
+        )
+        parts = []
+        if memory_text and "No memories found" not in memory_text:
+            parts.append(memory_text.strip())
+        if docs_text and "No project documentation found." not in docs_text and "No memories found" not in docs_text:
+            parts.append(docs_text.strip())
+        if parts:
+            return "\n\n".join(parts), memory_meta
+        return memory_text or docs_text or "No memories found.", memory_meta
+
+    cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT)
+    if fast:
+        cmd += ["recall-fast", query, "--owner", "maya", "--limit", str(limit), "--json"]
+        if planner_profile:
+            cmd.extend(["--planner-profile", planner_profile])
+        if date_from:
+            cmd.extend(["--date-from", date_from])
+        if date_to:
+            cmd.extend(["--date-to", date_to])
+        if project:
+            cmd.extend(["--project", project])
+        if domain_filter:
+            cmd.extend(["--domain-filter", json.dumps(domain_filter)])
+        if domain_boost:
+            cmd.extend(["--domain-boost", json.dumps(domain_boost)])
+    else:
+        cfg: Dict[str, Any] = {
+            "owner": "maya",
+            "limit": limit,
+        }
+        if stores:
+            cfg["stores"] = list(stores)
+        if project:
+            cfg["project"] = project
+        if date_from:
+            cfg["date_from"] = date_from
+        if date_to:
+            cfg["date_to"] = date_to
+        if domain_filter:
+            cfg["domain_filter"] = domain_filter
+        if domain_boost:
+            cfg["domain_boost"] = list(domain_boost)
+        if planner_profile:
+            cfg["planner_profile"] = planner_profile
+        cmd += ["recall", query, json.dumps(cfg), "--json"]
     try:
         recall_env = dict(env)
         recall_env["QUAID_LLM_USAGE_PHASE"] = "eval"
         recall_env["QUAID_LLM_USAGE_SOURCE"] = "preinject_recall" if fast else "tool_recall"
+        recall_env["QUAID_RECALL_TELEMETRY"] = str(
+            recall_env.get("BENCHMARK_RECALL_TELEMETRY")
+            or os.environ.get("BENCHMARK_RECALL_TELEMETRY")
+            or "1"
+        )
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=30,
             cwd=str(_QUAID_DIR), env=recall_env,
         )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip().replace("\n", " ")
+            raise RuntimeError(
+                f"recall failed rc={result.returncode} detail={detail[:240]!r}"
+            )
         output = result.stdout.strip()
         if not output:
-            return "No memories found.", None
+            return ("No project documentation found." if docs_requested and not memory_requested else "No memories found."), None
 
         payload = json.loads(output)
-        results = payload.get("results", []) if isinstance(payload, dict) else []
-        recall_meta = payload.get("meta") if isinstance(payload, dict) else None
+        if isinstance(payload, dict):
+            contract = payload.get("contract")
+            if contract is not None and contract != "quaid.recall.v1":
+                raise RuntimeError(f"unexpected recall contract: {contract!r}")
+            results = payload.get("results")
+            if not isinstance(results, list):
+                results = payload.get("direct_results", [])
+            recall_meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else None
+            if recall_meta is None and isinstance(payload.get("source_breakdown"), dict):
+                recall_meta = {
+                    "source_breakdown": payload.get("source_breakdown"),
+                    "entities_found": payload.get("entities_found"),
+                }
+            docs_bundle = payload.get("docs") if isinstance(payload.get("docs"), dict) else None
+            if docs_bundle and isinstance(docs_bundle.get("telemetry"), dict):
+                if recall_meta is None:
+                    recall_meta = {}
+                recall_meta["docs_telemetry"] = docs_bundle.get("telemetry")
+        elif isinstance(payload, list):
+            results = payload
+            recall_meta = None
+            docs_bundle = None
+        else:
+            results = []
+            recall_meta = None
+            docs_bundle = None
 
         # Post-filter by session number if max_session is set
         if max_session is not None:
-            filtered_lines = []
             filtered_results = []
             # Extract fact IDs from output and check their session_id in DB
             import sqlite3 as _sqlite3
@@ -4124,14 +4494,23 @@ def _tool_memory_recall(
                 conn.close()
 
             results = filtered_results
-            output = _render_recall_results(results)
+            memory_text = _render_recall_results(results)
+            docs_text = _render_recall_docs_bundle(docs_bundle)
+            output = "\n\n".join(part for part in [memory_text, docs_text] if part)
             if not output:
                 return "No memories found for this time period.", recall_meta
 
-        if not output:
-            output = _render_recall_results(results)
-        return output or "No memories found.", recall_meta
+        memory_text = _render_recall_results(results)
+        docs_text = _render_recall_docs_bundle(docs_bundle)
+        output = "\n\n".join(part for part in [memory_text, docs_text] if part)
+        if output:
+            return output, recall_meta
+        if docs_requested and not memory_requested:
+            return "No project documentation found.", recall_meta
+        return "No memories found.", recall_meta
     except Exception as e:
+        if isinstance(e, RuntimeError):
+            raise
         return f"Memory recall error: {e}", None
 
 
@@ -5126,19 +5505,17 @@ def run_tier5_fc_baseline(
     queries = _DATASET.get_tier5_queries()
     assets_dir, _arc_reviews, reviews, _dataset_version, _expected_queries = _load_reviews_with_dataset_gate(max_sessions)
 
-    # Build full transcript context
-    transcript_parts = []
-    for review in reviews:
-        snum = review.session_num
-        date = SESSION_DATES.get(snum, "unknown")
-        track_label = "Personal" if review.track == 1 else "Project"
-        transcript = format_transcript_for_extraction(review)
-        if transcript.strip():
-            transcript_parts.append(
-                f"=== Session {snum} ({track_label}) — {date} ===\n{transcript}"
-            )
-    full_transcripts = "\n\n".join(transcript_parts)
+    full_transcripts, compaction_stats = _build_fc_transcript_context(
+        reviews,
+        api_key=api_key,
+        answer_model=answer_model,
+        results_dir=results_dir,
+    )
     print(f"  {len(queries)} EI queries, {len(reviews)} sessions")
+    print(
+        f"  Transcript context: {len(full_transcripts)} chars "
+        f"(~{compaction_stats['context_tokens']} tokens, {compaction_stats['compaction_count']} compactions)"
+    )
 
     results = []
     total_score = 0
@@ -5806,12 +6183,8 @@ def _tool_use_loop_claude_code(
             if final_data and final_data.get("is_error"):
                 out = (final_data.get("result") or out)[-300:]
             tool_result_summaries.append(f"claude_code_rc={result.returncode}")
-            return (
-                f"Error: Claude Code failed rc={result.returncode} stderr={err} stdout={out}",
-                tool_call_names,
-                tool_result_summaries,
-                retrieval_texts,
-                usage_total,
+            raise RuntimeError(
+                f"Claude Code failed rc={result.returncode} stderr={err} stdout={out}"
             )
 
         # Aggregate usage
@@ -5861,13 +6234,9 @@ def _tool_use_loop_claude_code(
             err_tail = (result.stderr or "")[-220:]
             out_tail = (result.stdout or "")[-220:]
             tool_result_summaries.append("claude_code_empty_answer")
-            return (
-                f"Error: Claude Code returned empty answer (rc={result.returncode}) "
-                f"stderr={err_tail} stdout={out_tail}",
-                tool_call_names,
-                tool_result_summaries,
-                retrieval_texts,
-                usage_total,
+            raise RuntimeError(
+                f"Claude Code returned empty answer (rc={result.returncode}) "
+                f"stderr={err_tail} stdout={out_tail}"
             )
 
         # Claude stream occasionally omits explicit tool events; synthesize a fallback
@@ -5891,17 +6260,11 @@ def _tool_use_loop_claude_code(
                     "recall_meta": replay_meta,
                 })
 
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
         tool_result_summaries.append(f"claude_code_timeout={timeout_s}s")
-        return (
-            f"Error: claude-code timeout after {timeout_s}s",
-            tool_call_names,
-            tool_result_summaries,
-            retrieval_texts,
-            usage_total,
-        )
+        raise RuntimeError(f"claude-code timeout after {timeout_s}s") from exc
     except Exception as e:
-        return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+        raise RuntimeError(str(e)) from e
 
     return answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total
 
@@ -6109,6 +6472,8 @@ def main():
     parser.add_argument("--backend", type=str, default="claude-code",
                         choices=["claude-code", "api"],
                         help="LLM backend: claude-code (free, uses subscription) or api (direct Anthropic API, costs money)")
+    parser.add_argument("--allow-non-haiku-answer-model", action="store_true",
+                        help="Override the default Haiku-only answer-model policy for intentional experiments")
     parser.add_argument("--resume-day-lifecycle", action="store_true",
                         help="Resume ingest/day-janitor from latest successful day checkpoint in results-dir")
     parser.add_argument("--include-statement-grounding", action="store_true",
@@ -6116,8 +6481,16 @@ def main():
     parser.add_argument("--preinject-planner-profile", choices=["fast", "aggressive"], default="fast",
                         help="Planner fanout profile for preinject recall-fast (default: fast)")
     parser.add_argument("--fc-models", type=str, default=None,
-                        help="Comma-separated answer models for --mode fc (default: claude-sonnet-4-6,claude-opus-4-6)")
+                        help="Comma-separated answer models for --mode fc (default: claude-haiku-4-5-20251001)")
     args = parser.parse_args()
+    fc_models = _parse_fc_models(args.fc_models) if args.mode == "fc" else []
+    allow_non_haiku_answer_model = _allow_non_haiku_answer_model(args.allow_non_haiku_answer_model)
+    _validate_answer_model_policy(
+        mode=args.mode,
+        eval_model=args.eval_model,
+        fc_models=fc_models,
+        allow_non_haiku=allow_non_haiku_answer_model,
+    )
 
     workspace = Path(args.results_dir).resolve()
     if args.backend == "api":
@@ -6138,6 +6511,9 @@ def main():
     print(f"  Preinject planner profile: {args.preinject_planner_profile}")
     print(f"  Include statement grounding: {args.include_statement_grounding}")
     print(f"  Judge: {args.judge}")
+    print(f"  Allow non-Haiku answer model: {allow_non_haiku_answer_model}")
+    if args.mode == "fc":
+        print(f"  FC answer models: {', '.join(fc_models)}")
     print()
 
     # Set global backend for all LLM calls
@@ -6402,7 +6778,7 @@ def main():
         fc_results_dir = workspace / "fc_baselines"
         fc_results_dir.mkdir(parents=True, exist_ok=True)
 
-        for fc_model in _parse_fc_models(args.fc_models):
+        for fc_model in fc_models:
             fc_results = run_fc_baseline(
                 api_key, answer_model=fc_model,
                 max_sessions=args.max_sessions,
