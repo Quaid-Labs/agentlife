@@ -74,6 +74,8 @@ HTML = """<!doctype html>
 <script>
 function metricFromName(name) {
   const n = (name || '').toLowerCase();
+  if (n.includes('oc-native') && (n.includes('als') || n.includes('al-s'))) return 'AL-S OC Native';
+  if (n.includes('oc-native') && (n.includes('all') || n.includes('al-l'))) return 'AL-L OC Native';
   if (n.includes('locomo')) return 'LoCoMo Quaid';
   if (n.includes('longmemeval')) return 'LongMemEval Quaid';
   if (n.includes('quaid-s') || n.includes('al-s')) return 'AL-S Quaid';
@@ -87,6 +89,7 @@ function typeFromName(name) {
 }
 function laneFromName(name) {
   const n = (name || '').toLowerCase();
+  if (n.includes('oc-native')) return 'local-vm';
   if (n.includes('vllm')) return 'vLLM';
   if (n.includes('-api') || n.includes('api-')) return 'api';
   return 'mixed';
@@ -146,7 +149,7 @@ async function refresh() {
       <td>${x.parallel ?? 'unknown'}</td>
       <td>${x.current_active_item || (x.reason || '')}</td>
       <td>${x.state === 'complete' ? fmtDuration(x.elapsed_seconds) : 'unknown'}</td>
-      <td>${x.final_score != null ? `${Number(x.final_score).toFixed(2)}%` : ''}</td>
+      <td>${x.final_score != null ? `${Number(x.final_score).toFixed(2)}%` : (x.preview_score != null ? `~${Number(x.preview_score).toFixed(2)}%` : '')}</td>
       <td><a style="color:#9fd0ff" href="/run?name=${encodeURIComponent(x.name || '')}">Open</a></td>
       <td>${x.name || ''}${x.score != null ? ` | monitor=${x.score}` : ''}</td>
     </tr>
@@ -211,8 +214,8 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Serve simple benchmark status dashboard")
     p.add_argument("--host", default="0.0.0.0")
     p.add_argument("--port", type=int, default=8765)
-    p.add_argument("--spark-host", default="solomon@192.168.0.139")
-    p.add_argument("--remote-root", default="/home/solomon/clawd-benchmark")
+    p.add_argument("--spark-host", default="spark")
+    p.add_argument("--remote-root", default="/home/solomon/agentlife-benchmark")
     p.add_argument("--ttl-seconds", type=int, default=15)
     args = p.parse_args()
     if not re.fullmatch(r"/[A-Za-z0-9._/\-]+", args.remote_root or ""):
@@ -238,7 +241,9 @@ def resolve_remote_root(spark_host: str, preferred_root: str) -> str:
         f"candidates = {candidates!r}\n"
         "for c in candidates:\n"
         "    r = Path(c)\n"
-        "    if (r / 'runs').exists() and (r / 'agentlife' / 'eval' / 'run_production_benchmark.py').exists():\n"
+        "    if not (r / 'runs').exists():\n"
+        "        continue\n"
+        "    if (r / 'eval' / 'run_production_benchmark.py').exists() or (r / 'agentlife' / 'eval' / 'run_production_benchmark.py').exists():\n"
         "        print(c)\n"
         "        raise SystemExit(0)\n"
         "print(candidates[0] if candidates else '')\n"
@@ -257,6 +262,189 @@ def resolve_remote_root(spark_host: str, preferred_root: str) -> str:
     _resolved_root_cache["root"] = resolved
     _resolved_root_cache["ts"] = now
     return resolved
+
+
+def _local_results_base() -> Path:
+    return Path(__file__).resolve().parents[1] / "data"
+
+
+def _local_vm_eval_count(run_dir: Path) -> int | None:
+    eval_path = run_dir / "oc-native" / "eval_results.json"
+    if not eval_path.exists():
+        return None
+    try:
+        payload = json.loads(eval_path.read_text())
+    except Exception:
+        return None
+    return len(payload) if isinstance(payload, list) else None
+
+
+def _local_vm_live_results_dirs() -> set[str]:
+    try:
+        proc = subprocess.run(
+            ["pgrep", "-af", "vm_benchmark.py"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
+        return set()
+    if proc.returncode not in (0, 1):
+        return set()
+    live: set[str] = set()
+    for line in (proc.stdout or "").splitlines():
+        m = re.search(r"--results-dir\s+(\S+)", line)
+        if m:
+            live.add(m.group(1))
+    return live
+
+
+def _fetch_local_vm_status() -> Dict[str, Any]:
+    base = _local_results_base()
+    live_results_dirs = _local_vm_live_results_dirs()
+    runs: list[Dict[str, Any]] = []
+    for path in sorted(base.glob("results-vm-*")):
+        if not path.is_dir():
+            continue
+        if "oc-native" not in path.name:
+            continue
+        all_results = path / "all_results.json"
+        name = path.name.replace("results-vm-", "", 1)
+        row: Dict[str, Any] = {
+            "name": name,
+            "state": "active",
+            "parallel": 1,
+            "started_at": None,
+            "completed_at": None,
+            "elapsed_seconds": None,
+            "final_score": None,
+            "current_active_item": "starting",
+            "reason": "",
+            "source": "local-vm",
+        }
+        if all_results.exists():
+            try:
+                payload = json.loads(all_results.read_text())
+                native = payload.get("oc-native") or {}
+                overall = ((native.get("scores") or {}).get("overall") or {})
+                row["final_score"] = overall.get("accuracy")
+                row["elapsed_seconds"] = (
+                    ((native.get("injection") or {}).get("elapsed_s") or 0)
+                    + sum((item.get("eval_duration_s") or 0) for item in json.loads((path / "oc-native" / "eval_results.json").read_text()))
+                    if (path / "oc-native" / "eval_results.json").exists()
+                    else (native.get("injection") or {}).get("elapsed_s")
+                )
+                row["state"] = "complete"
+                row["completed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(all_results.stat().st_mtime))
+                row["current_active_item"] = "complete"
+            except Exception:
+                row["state"] = "incomplete"
+                row["reason"] = "bad all_results.json"
+        else:
+            eval_count = _local_vm_eval_count(path)
+            rel_path = str(path.relative_to(base.parent))
+            is_live = rel_path in live_results_dirs
+            if eval_count is not None and is_live:
+                row["current_active_item"] = f"eval {eval_count}/268"
+            elif (path / "oc-native" / "injection_stats.json").exists() and is_live:
+                row["current_active_item"] = "eval starting"
+            elif (path / "oc-native").exists() and is_live:
+                row["current_active_item"] = "injecting"
+            elif eval_count is not None:
+                row["state"] = "incomplete"
+                row["current_active_item"] = f"stopped at eval {eval_count}/268"
+                row["reason"] = "local VM process not running"
+            else:
+                row["state"] = "incomplete"
+                row["current_active_item"] = "stopped before eval"
+                row["reason"] = "local VM process not running"
+        runs.append(row)
+    counts = {
+        "active": sum(1 for r in runs if r["state"] == "active"),
+        "complete": sum(1 for r in runs if r["state"] == "complete"),
+        "failed": sum(1 for r in runs if r["state"] == "failed"),
+        "incomplete": sum(1 for r in runs if r["state"] == "incomplete"),
+    }
+    return {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "root": str(base),
+        "counts": counts,
+        "runs": runs,
+    }
+
+
+def _merge_status_reports(remote: Dict[str, Any], local: Dict[str, Any]) -> Dict[str, Any]:
+    runs = list(remote.get("runs") or []) + list(local.get("runs") or [])
+    counts = {"active": 0, "complete": 0, "failed": 0, "incomplete": 0}
+    for item in runs:
+        state = str(item.get("state") or "")
+        if state in counts:
+            counts[state] += 1
+    return {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "root": f"{remote.get('root') or '-'} | local={local.get('root') or '-'}",
+        "counts": counts,
+        "runs": runs,
+    }
+
+
+def _empty_status(root: str, error: str | None = None) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "root": root,
+        "counts": {"active": 0, "complete": 0, "failed": 0, "incomplete": 0},
+        "runs": [],
+    }
+    if error:
+        payload["error"] = error
+    return payload
+
+
+def _fetch_local_vm_run_detail(name: str) -> Dict[str, Any]:
+    path = _local_results_base() / f"results-vm-{name}"
+    out: Dict[str, Any] = {
+        "name": name,
+        "state": "unknown",
+        "final_score": None,
+        "elapsed_seconds": None,
+        "started_at": None,
+        "completed_at": None,
+        "per_type": {},
+        "per_theme": {},
+        "per_difficulty": {},
+        "phase": "starting",
+        "chunk_count": 0,
+        "eval_completed": None,
+        "eval_total": 268,
+        "nodes": {},
+    }
+    eval_path = path / "oc-native" / "eval_results.json"
+    all_results = path / "all_results.json"
+    if eval_path.exists():
+        try:
+            payload = json.loads(eval_path.read_text())
+            if isinstance(payload, list):
+                out["eval_completed"] = len(payload)
+                out["phase"] = f"eval {len(payload)}/268"
+        except Exception:
+            pass
+    if all_results.exists():
+        payload = json.loads(all_results.read_text())
+        native = payload.get("oc-native") or {}
+        scores = native.get("scores") or {}
+        out["state"] = "complete"
+        out["final_score"] = ((scores.get("overall") or {}).get("accuracy"))
+        out["per_type"] = scores.get("per_type") or {}
+        out["per_theme"] = scores.get("per_theme") or {}
+        out["per_difficulty"] = scores.get("per_difficulty") or {}
+        out["phase"] = "complete"
+        out["completed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(all_results.stat().st_mtime))
+        if eval_path.exists():
+            ep = json.loads(eval_path.read_text())
+            out["elapsed_seconds"] = sum((item.get("eval_duration_s") or 0) for item in ep)
+    elif (path / "oc-native").exists():
+        out["state"] = "active"
+    return out
 
 
 def fetch_remote_status(spark_host: str, remote_root: str) -> Dict[str, Any]:
@@ -321,8 +509,43 @@ def fetch_remote_status(spark_host: str, remote_root: str) -> Dict[str, Any]:
         "      except Exception:\n"
         "        pass\n"
         "    return None\n"
+        "def _extract_preview_score(run_name):\n"
+        "    p = root / 'runs' / str(run_name) / 'evaluation_results.json'\n"
+        "    if p.exists():\n"
+        "      try:\n"
+        "        rows = json.loads(p.read_text())\n"
+        "      except Exception:\n"
+        "        rows = None\n"
+        "      if isinstance(rows, list) and rows:\n"
+        "        correct = sum(1 for r in rows if r.get('judge_label') == 'CORRECT')\n"
+        "        partial = sum(1 for r in rows if r.get('judge_label') == 'PARTIAL')\n"
+        "        wrong = sum(1 for r in rows if r.get('judge_label') == 'WRONG')\n"
+        "        scored = correct + partial + wrong\n"
+        "        if scored > 0:\n"
+        "          return round((correct + 0.5 * partial) / scored * 100.0, 2)\n"
+        "    launch_candidates = [\n"
+        "      root / 'runs' / f'{run_name}.launch.log',\n"
+        "      root / 'runs' / str(run_name) / 'launch.log',\n"
+        "      root / 'runs' / str(run_name) / 'run.log',\n"
+        "    ]\n"
+        "    for lp in launch_candidates:\n"
+        "      if not lp.exists():\n"
+        "        continue\n"
+        "      try:\n"
+        "        txt = lp.read_text(errors='ignore')\n"
+        "      except Exception:\n"
+        "        continue\n"
+        "      matches = re.findall(r'\\[(\\d+)/(\\d+)\\|q\\d+\\].*?\\[(\\d+(?:\\.\\d+)?)%\\]', txt)\n"
+        "      if matches:\n"
+        "        return float(matches[-1][2])\n"
+        "    return None\n"
         "def _run_progress(run_name):\n"
         "    run = root / 'runs' / str(run_name)\n"
+        "    launch_candidates = [\n"
+        "        root / 'runs' / f'{run_name}.launch.log',\n"
+        "        run / 'launch.log',\n"
+        "        run / 'run.log',\n"
+        "    ]\n"
         "    chunk_count = 0\n"
         "    try:\n"
         "        chunk_count = len(list((run / 'extraction_cache').glob('chunk-*.json')))\n"
@@ -343,11 +566,6 @@ def fetch_remote_status(spark_host: str, remote_root: str) -> Dict[str, Any]:
         "        except Exception:\n"
         "            pass\n"
         "    if total_chunks is None:\n"
-        "        launch_candidates = [\n"
-        "            root / 'runs' / f'{run_name}.launch.log',\n"
-        "            run / 'launch.log',\n"
-        "            run / 'run.log',\n"
-        "        ]\n"
         "        for lp in launch_candidates:\n"
         "            if not lp.exists():\n"
         "                continue\n"
@@ -374,6 +592,17 @@ def fetch_remote_status(spark_host: str, remote_root: str) -> Dict[str, Any]:
         "            pass\n"
         "    if eval_total is not None:\n"
         "        return f'eval {eval_done}/{eval_total}'\n"
+        "    for lp in launch_candidates:\n"
+        "        if not lp.exists():\n"
+        "            continue\n"
+        "        try:\n"
+        "            txt = lp.read_text(errors='ignore')\n"
+        "        except Exception:\n"
+        "            continue\n"
+        "        matches = re.findall(r'\\[(\\d+)/(\\d+)\\|q\\d+\\].*?\\[(\\d+(?:\\.\\d+)?)%\\]', txt)\n"
+        "        if matches:\n"
+        "            cur, total, pct = matches[-1]\n"
+        "            return f'eval {cur}/{total} ({pct}%)'\n"
         "    janitor_progress = run / 'logs' / 'janitor_progress.json'\n"
         "    if janitor_progress.exists():\n"
         "        try:\n"
@@ -399,6 +628,30 @@ def fetch_remote_status(spark_host: str, remote_root: str) -> Dict[str, Any]:
         "            done = max(0, min(total_chunks, chunk_count))\n"
         "            return f'extraction {done}/{total_chunks}'\n"
         "        return f'extraction {chunk_count}/?'\n"
+        "    # FC baselines do not emit eval_progress.json; parse the live launch log instead.\n"
+        "    fc_step = None\n"
+        "    for lp in launch_candidates:\n"
+        "        if not lp.exists():\n"
+        "            continue\n"
+        "        try:\n"
+        "            txt = lp.read_text(errors='ignore')\n"
+        "        except Exception:\n"
+        "            continue\n"
+        "        if 'FULL-CONTEXT BASELINE (' not in txt and 'TIER 5 FC BASELINE (' not in txt:\n"
+        "            continue\n"
+        "        matches = re.findall(r'\\[(\\d+)/(\\d+)\\].*?\\[(\\d+(?:\\.\\d+)?)%\\]', txt)\n"
+        "        if matches:\n"
+        "            cur, total, pct = matches[-1]\n"
+        "            fc_step = f'fc {cur}/{total} ({pct}%)'\n"
+        "            break\n"
+        "        m = re.search(r'\\b(\\d+) queries, (\\d+) sessions\\b', txt)\n"
+        "        if m:\n"
+        "            fc_step = f'fc 0/{m.group(1)}'\n"
+        "            break\n"
+        "        fc_step = 'fc starting'\n"
+        "        break\n"
+        "    if fc_step is not None:\n"
+        "        return fc_step\n"
         "    return 'starting'\n"
         "for r in report.get('runs', []):\n"
         "    meta_path = root / 'runs' / str(r.get('name', '')) / 'run_metadata.json'\n"
@@ -431,6 +684,7 @@ def fetch_remote_status(spark_host: str, remote_root: str) -> Dict[str, Any]:
         "    r['started_at'] = started_at\n"
         "    r['completed_at'] = completed_at\n"
         "    r['final_score'] = _extract_final_score(r.get('name', ''))\n"
+        "    r['preview_score'] = None if r['final_score'] is not None else _extract_preview_score(r.get('name', ''))\n"
         "    r['current_active_item'] = _run_progress(r.get('name', '')) if r.get('state') == 'active' else (r.get('reason') or '')\n"
         "report['root'] = str(root)\n"
         "print(json.dumps(report))\n"
@@ -643,7 +897,10 @@ def run_server(args: argparse.Namespace) -> None:
                     self._send_json(400, {"error": "missing name"})
                     return
                 try:
-                    detail = fetch_remote_run_detail(args.spark_host, args.remote_root, name)
+                    if name.startswith("oc-native-"):
+                        detail = _fetch_local_vm_run_detail(name)
+                    else:
+                        detail = fetch_remote_run_detail(args.spark_host, args.remote_root, name)
                 except Exception as e:
                     self._send_json(502, {"error": str(e)})
                     return
@@ -652,15 +909,21 @@ def run_server(args: argparse.Namespace) -> None:
             if path == "/api/status":
                 now = time.time()
                 if cache["data"] is None or now - cache["ts"] > args.ttl_seconds:
+                    remote_error = None
                     try:
-                        cache["data"] = fetch_remote_status(args.spark_host, args.remote_root)
-                        cache["ts"] = now
-                        cache["error"] = None
+                        remote = fetch_remote_status(args.spark_host, args.remote_root)
                     except Exception as e:
-                        cache["error"] = str(e)
-                if cache["error"]:
-                    self._send_json(502, {"error": cache["error"], "timestamp": time.time()})
-                    return
+                        remote = _empty_status(args.remote_root, error=str(e))
+                        remote_error = str(e)
+                    try:
+                        local = _fetch_local_vm_status()
+                    except Exception as e:
+                        local = _empty_status(str(_local_results_base()), error=str(e))
+                    cache["data"] = _merge_status_reports(remote, local)
+                    if remote_error:
+                        cache["data"]["warning"] = f"remote status unavailable: {remote_error}"
+                    cache["ts"] = now
+                    cache["error"] = None
                 self._send_json(200, cache["data"] or {})
                 return
             self.send_error(404, "Not found")

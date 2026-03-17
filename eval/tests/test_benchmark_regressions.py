@@ -1081,7 +1081,10 @@ def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatc
     assert cfg["owner"] == "maya"
     assert cfg["limit"] == 10
     assert "Quaid likes espresso coffee" in text
-    assert meta == {"mode": "deliberate", "total_ms": 42}
+    assert meta["mode"] == "deliberate"
+    assert meta["total_ms"] == 42
+    assert meta["harness_telemetry"]["status"] == "ok"
+    assert meta["harness_telemetry"]["docs_requested"] is False
 
 
 def test_tool_memory_recall_passes_planner_profile_for_fast_calls(tmp_path, monkeypatch):
@@ -1106,7 +1109,8 @@ def test_tool_memory_recall_passes_planner_profile_for_fast_calls(tmp_path, monk
 
     assert captured["cmd"].count("--planner-profile") == 1
     assert "aggressive" in captured["cmd"]
-    assert meta == {"mode": "fast"}
+    assert meta["mode"] == "fast"
+    assert meta["harness_telemetry"]["status"] == "ok"
 
 
 def test_tool_memory_recall_raises_on_nonzero_exit(tmp_path, monkeypatch):
@@ -1120,6 +1124,26 @@ def test_tool_memory_recall_raises_on_nonzero_exit(tmp_path, monkeypatch):
 
     with pytest.raises(RuntimeError, match="recall failed rc=2"):
         rpb._tool_memory_recall("coffee", workspace, {"PATH": os.environ.get("PATH", "")})
+
+
+def test_tool_memory_recall_raises_on_timeout_and_writes_telemetry(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    def _fake_run(_cmd, **_kwargs):
+        raise subprocess.TimeoutExpired(cmd=["python3", "-m", "datastore.memorydb.memory_graph"], timeout=30)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    with pytest.raises(RuntimeError, match="recall timed out"):
+        rpb._tool_memory_recall("coffee", workspace, {"PATH": os.environ.get("PATH", "")})
+
+    telemetry_path = workspace / "logs" / "recall-telemetry.jsonl"
+    assert telemetry_path.exists()
+    rows = [json.loads(line) for line in telemetry_path.read_text().splitlines() if line.strip()]
+    assert rows
+    assert rows[-1]["status"] == "timeout"
+    assert rows[-1]["query"] == "coffee"
 
 
 def test_tool_memory_recall_parses_graph_direct_results_payload(tmp_path, monkeypatch):
@@ -1148,7 +1172,9 @@ def test_tool_memory_recall_parses_graph_direct_results_payload(tmp_path, monkey
     text, meta = rpb._tool_memory_recall("work", workspace, {"PATH": os.environ.get("PATH", "")})
 
     assert "Maya works at TechFlow" in text
-    assert meta == {"source_breakdown": {"vector_count": 1, "graph_count": 0}, "entities_found": None}
+    assert meta["source_breakdown"] == {"vector_count": 1, "graph_count": 0}
+    assert meta["entities_found"] is None
+    assert meta["harness_telemetry"]["status"] == "ok"
 
 
 def test_tool_memory_recall_docs_only_uses_plaintext_cli(tmp_path, monkeypatch):
@@ -1196,7 +1222,9 @@ def test_tool_memory_recall_docs_only_uses_plaintext_cli(tmp_path, monkeypatch):
     assert "--json" in captured["cmd"]
     assert "Express + PostgreSQL + React" in text
     assert "# Project: Recipe App" in text
-    assert meta == {"docs_telemetry": {"chunk_count": 1, "resolved_project": "recipe-app"}}
+    assert meta["docs_telemetry"] == {"chunk_count": 1, "resolved_project": "recipe-app"}
+    assert meta["harness_telemetry"]["docs_requested"] is True
+    assert meta["harness_telemetry"]["memory_requested"] is False
 
 
 def test_tool_memory_recall_mixed_json_payload_merges_docs_and_results(tmp_path, monkeypatch):
@@ -1246,7 +1274,58 @@ def test_tool_memory_recall_mixed_json_payload_merges_docs_and_results(tmp_path,
     assert "Maya built the recipe app in Express" in text
     assert "tests/recipe.test.js covers recipe CRUD flows" in text
     assert "# Project: Recipe App" in text
-    assert meta == {"mode": "deliberate", "total_ms": 55}
+    assert meta["mode"] == "deliberate"
+    assert meta["total_ms"] == 55
+    assert meta["harness_telemetry"]["docs_requested"] is True
+    assert meta["harness_telemetry"]["memory_requested"] is True
+
+
+def test_tool_memory_recall_mixed_docs_temporal_split_defaults_memory_to_vector_only(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    (workspace / "data").mkdir(parents=True)
+    db = workspace / "data" / "memory.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, session_id TEXT, type TEXT)")
+    conn.commit()
+    conn.close()
+
+    calls = []
+    real_impl = rpb._tool_memory_recall
+
+    def _spy(query, workspace, env, **kwargs):
+        calls.append({"query": query, **kwargs})
+        if kwargs.get("stores") == ["vector", "docs"]:
+            return real_impl(query, workspace, env, **kwargs)
+        if kwargs.get("stores") == ["vector"]:
+            return "[0.90] [fact][C:0.9] Memory hit |ID:n1|T:|P:shared|O:maya", {"mode": "deliberate"}
+        if kwargs.get("stores") == ["docs"]:
+            return "=== Documentation ===\n1. projects/recipe-app/README.md", None
+        raise AssertionError(f"unexpected recursive stores: {kwargs.get('stores')!r}")
+
+    monkeypatch.setattr(rpb, "_tool_memory_recall", _spy)
+
+    text, meta = rpb._tool_memory_recall(
+        "recipe app current architecture",
+        workspace,
+        {"PATH": os.environ.get("PATH", "")},
+        stores=["vector", "docs"],
+        max_session=7,
+    )
+
+    subcall_stores = [call.get("stores") for call in calls[1:]]
+    assert ["vector"] in subcall_stores
+    assert ["docs"] in subcall_stores
+    assert "Memory hit" in text
+    assert "Documentation" in text
+    assert meta == {"mode": "deliberate"}
+
+
+def test_recall_tool_description_prefers_vector_default_and_explicit_graph():
+    desc = rpb._RECALL_TOOL_DESCRIPTION
+
+    assert "default memory recall uses vector only" in desc
+    assert "stores=['graph']" in desc
+    assert "vector + graph" not in desc
 
 
 def test_call_anthropic_cached_retries_http_520(monkeypatch):

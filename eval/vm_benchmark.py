@@ -2,7 +2,7 @@
 """AgentLife VM Benchmark — Full-stack multi-system evaluation.
 
 Runs the AgentLife benchmark through real OpenClaw instances on a Tart VM,
-comparing 4 memory systems: Base OpenClaw, QMD, Quaid, and Mem0.
+comparing the canonical memory systems plus optional native OpenClaw baselines.
 
 Unlike the simulation harness (run_agentlife.py), this tests the actual product:
 - Real gateway compaction and summarization
@@ -42,14 +42,24 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 _DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _DIR.parent
 _WORKSPACE = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
 _RUNNER_DIR = _WORKSPACE / "memory-stress-test" / "runner"
+OC_NATIVE_EMBED_BASE_URL = os.environ.get(
+    "OPENCLAW_NATIVE_OLLAMA_BASE_URL",
+    "http://192.168.64.1:11434/v1",
+)
 
 sys.path.insert(0, str(_DIR))
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 if str(_RUNNER_DIR) not in sys.path:
     sys.path.insert(0, str(_RUNNER_DIR))
 
-from claude_backend import call_claude
+try:
+    from claude_backend import call_claude
+except ModuleNotFoundError:
+    from generate import call_claude
 from dataset import (
     load_all_reviews,
     load_filler_reviews,
@@ -65,6 +75,8 @@ from injector import transcript_to_messages, count_tokens, CostTracker
 CONTEXT_WINDOW = 200_000
 COMPACTION_THRESHOLD = 0.80
 COMPACTION_TOKEN_LIMIT = int(CONTEXT_WINDOW * COMPACTION_THRESHOLD)
+OC_NATIVE_REINDEX_TIMEOUT_S = 3600
+VM_CLAUDE_JUDGE_TIMEOUT_S = 90
 
 # VM paths — sessions live under agents/{agent-id}/sessions/, NOT ~/.openclaw/sessions/
 VM_AGENT_SESSIONS_DIR = "~/.openclaw/agents/main/sessions"
@@ -73,6 +85,8 @@ VM_QUAID_DIR = "~/clawd/plugins/quaid"
 
 # Systems
 SYSTEMS = ["base", "qmd", "quaid", "mem0"]
+EXTRA_SYSTEMS = ["oc-native"]
+AVAILABLE_SYSTEMS = SYSTEMS + EXTRA_SYSTEMS
 
 # Judge prompt — unified across all systems, focused on memory recall accuracy
 # Mem0's exact ACCURACY_PROMPT — peer-review-valid comparison with LoCoMo results
@@ -121,6 +135,15 @@ class TartVM:
         "export CLAWDBOT_WORKSPACE=$HOME/clawd && "
         "export ANTHROPIC_API_KEY=$(cat ~/.openclaw/.env 2>/dev/null | grep ANTHROPIC_API_KEY | cut -d= -f2) && "
     )
+    SSH_RETRY_PATTERNS = (
+        "Permission denied",
+        "Connection timed out",
+        "Operation timed out",
+        "Connection reset",
+        "No route to host",
+        "Connection refused",
+        "Broken pipe",
+    )
 
     def __init__(self, ip: str = "192.168.64.3", user: str = "admin",
                  password: str = "admin", vm_name: str = "test-openclaw"):
@@ -144,22 +167,40 @@ class TartVM:
             "sshpass", "-p", self.password,
             "ssh", "-o", "StrictHostKeyChecking=no",
             "-o", "ConnectTimeout=10",
+            "-o", "PreferredAuthentications=password",
+            "-o", "PubkeyAuthentication=no",
+            "-o", "IdentitiesOnly=yes",
             f"{self.user}@{self.ip}",
             full_cmd,
         ]
-        return subprocess.run(
-            args,
-            input=input_data,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
+        attempts = 3
+        last_result = None
+        for attempt in range(attempts):
+            result = subprocess.run(
+                args,
+                input=input_data,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            last_result = result
+            stderr = result.stderr or ""
+            if result.returncode == 0:
+                return result
+            if not any(pattern in stderr for pattern in self.SSH_RETRY_PATTERNS):
+                return result
+            if attempt < attempts - 1:
+                time.sleep(1.0)
+        return last_result
 
     def scp_to(self, local: str, remote: str, timeout: int = 60):
         """Copy file from host to VM."""
         args = [
             "sshpass", "-p", self.password,
             "scp", "-o", "StrictHostKeyChecking=no",
+            "-o", "PreferredAuthentications=password",
+            "-o", "PubkeyAuthentication=no",
+            "-o", "IdentitiesOnly=yes",
             local,
             f"{self.user}@{self.ip}:{remote}",
         ]
@@ -170,6 +211,9 @@ class TartVM:
         args = [
             "sshpass", "-p", self.password,
             "scp", "-o", "StrictHostKeyChecking=no",
+            "-o", "PreferredAuthentications=password",
+            "-o", "PubkeyAuthentication=no",
+            "-o", "IdentitiesOnly=yes",
             f"{self.user}@{self.ip}:{remote}",
             local,
         ]
@@ -291,12 +335,14 @@ def _register_session(vm: TartVM, session_id: str):
         "import json, os, time\n"
         f"session_id = '{session_id}'\n"
         f"store_path = os.path.expanduser('{VM_SESSION_STORE}')\n"
+        f"session_file = os.path.expanduser('{VM_AGENT_SESSIONS_DIR}/' + session_id + '.jsonl')\n"
         "os.makedirs(os.path.dirname(store_path), exist_ok=True)\n"
         "store = {}\n"
         "if os.path.exists(store_path):\n"
         "    store = json.load(open(store_path))\n"
         "store['agent:main:main'] = {\n"
         "    'sessionId': session_id,\n"
+        "    'sessionFile': session_file,\n"
         "    'updatedAt': int(time.time() * 1000),\n"
         "}\n"
         "json.dump(store, open(store_path, 'w'), indent=2)\n"
@@ -325,6 +371,368 @@ def _clear_vm_session_state(vm: TartVM):
         timeout=10,
         raw=True,
     )
+
+
+def _clear_vm_native_memory_state(vm: TartVM):
+    """Clear OpenClaw-native memory artifacts for a clean baseline.
+
+    This is intentionally separate from Quaid cleanup so the native-memory
+    benchmark path can be reset without changing the semantics of other systems.
+    """
+    vm.ssh(
+        "rm -f ~/.openclaw/workspace/MEMORY.md 2>/dev/null; "
+        "rm -rf ~/.openclaw/workspace/memory 2>/dev/null; "
+        "rm -f ~/.openclaw/memory/*.sqlite 2>/dev/null; "
+        "rm -rf ~/.openclaw/agents/main/qmd 2>/dev/null || true; "
+        "echo 'Native memory state cleared'",
+        timeout=10,
+        raw=True,
+    )
+
+
+def _build_openclaw_native_config_script(enable_session_hook: bool = True) -> str:
+    """Return a Python patch script for the native OpenClaw memory baseline."""
+    return (
+        "import json, os\n"
+        f"enable_hook = {str(enable_session_hook)}\n"
+        "p = os.path.expanduser('~/.openclaw/openclaw.json')\n"
+        "d = json.load(open(p))\n"
+        "plugins = d.setdefault('plugins', {})\n"
+        "plugins.setdefault('enabled', True)\n"
+        "plugins.setdefault('slots', {})['memory'] = 'memory-core'\n"
+        "entries = plugins.setdefault('entries', {})\n"
+        "entries.setdefault('memory-core', {})['enabled'] = True\n"
+        "entries.setdefault('memory-lancedb', {})['enabled'] = False\n"
+        "entries.setdefault('quaid', {})['enabled'] = False\n"
+        "entries.pop('quaid', None)\n"
+        "memory = d.setdefault('memory', {})\n"
+        "memory['backend'] = 'builtin'\n"
+        "agents = d.setdefault('agents', {}).setdefault('defaults', {})\n"
+        "tools = d.setdefault('tools', {})\n"
+        "tools['allow'] = ['read', 'memory_search', 'memory_get']\n"
+        "tools.pop('deny', None)\n"
+        "ms = agents.setdefault('memorySearch', {})\n"
+        "ms['enabled'] = True\n"
+        "ms['provider'] = 'openai'\n"
+        "ms['model'] = 'qwen3-embedding:8b'\n"
+        "remote = ms.setdefault('remote', {})\n"
+        f"remote['baseUrl'] = {OC_NATIVE_EMBED_BASE_URL!r}\n"
+        "remote['apiKey'] = 'ollama-local'\n"
+        "ms['sources'] = ['memory', 'sessions']\n"
+        "experimental = ms.setdefault('experimental', {})\n"
+        "experimental['sessionMemory'] = True\n"
+        "chunking = ms.setdefault('chunking', {})\n"
+        "chunking['tokens'] = 160\n"
+        "chunking['overlap'] = 40\n"
+        "query = ms.setdefault('query', {})\n"
+        "query['maxResults'] = 8\n"
+        "sync = ms.setdefault('sync', {})\n"
+        "sync['onSearch'] = False\n"
+        "sync['onSessionStart'] = False\n"
+        "sync['watch'] = False\n"
+        "ms.setdefault('fallback', 'none')\n"
+        "hooks = d.setdefault('hooks', {}).setdefault('internal', {})\n"
+        "hooks['enabled'] = True\n"
+        "hook_entries = hooks.setdefault('entries', {})\n"
+        "hook_entries.setdefault('session-memory', {})['enabled'] = enable_hook\n"
+        "json.dump(d, open(p, 'w'), indent=2)\n"
+        "print('Patched OpenClaw native memory config')\n"
+    )
+
+
+def _patch_openclaw_native_memory(vm: TartVM, enable_session_hook: bool = True):
+    """Configure the VM for the native OpenClaw memory baseline."""
+    script = _build_openclaw_native_config_script(enable_session_hook=enable_session_hook)
+    result = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
+    if result.stdout.strip():
+        print(f"  {result.stdout.strip()}")
+
+
+def _validate_openclaw_native_memory(vm: TartVM):
+    """Fail fast if the native OpenClaw memory baseline is not actually usable."""
+    result = vm.ssh(
+        "openclaw memory status --agent main --json",
+        timeout=30,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"openclaw memory status failed: {result.stderr[:200]}")
+    try:
+        payload = _extract_openclaw_memory_status(result.stdout)
+        status = payload[0]["status"]
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not parse openclaw memory status JSON: {result.stdout[:300]}"
+        ) from exc
+
+    provider = status.get("provider")
+    model = status.get("model")
+    if provider != "openai":
+        raise RuntimeError(f"oc-native memory search resolved provider={provider!r}, expected 'openai'")
+    if model != "qwen3-embedding:8b":
+        raise RuntimeError(
+            f"oc-native memory search resolved model={model!r}, expected 'qwen3-embedding:8b'"
+        )
+    probe_script = (
+        "import json, os, urllib.request\n"
+        "cfg = json.load(open(os.path.expanduser('~/.openclaw/openclaw.json')))\n"
+        "ms = (((cfg.get('agents') or {}).get('defaults') or {}).get('memorySearch') or {})\n"
+        "remote = ms.get('remote') or {}\n"
+        "base = (remote.get('baseUrl') or '').rstrip('/')\n"
+        "model = ms.get('model') or ''\n"
+        "headers = {'Content-Type': 'application/json'}\n"
+        "api_key = remote.get('apiKey')\n"
+        "if api_key:\n"
+        "    headers['Authorization'] = f'Bearer {api_key}'\n"
+        "req = urllib.request.Request(\n"
+        "    base + '/embeddings',\n"
+        "    data=json.dumps({'model': model, 'input': ['ping']}).encode('utf-8'),\n"
+        "    headers=headers,\n"
+        ")\n"
+        "with urllib.request.urlopen(req, timeout=60) as resp:\n"
+        "    data = json.load(resp)\n"
+        "emb = (((data.get('data') or [{}])[0]).get('embedding') or [])\n"
+        "print(json.dumps({'ok': True, 'dims': len(emb)}))\n"
+    )
+    last_detail = "embedding probe unavailable"
+    for attempt in range(3):
+        probe_result = vm.ssh("python3 -c " + shlex.quote(probe_script), timeout=90)
+        if probe_result.returncode == 0:
+            print(f"  Native memory verified: provider={provider} model={model}")
+            return
+        last_detail = probe_result.stderr.strip() or probe_result.stdout.strip() or last_detail
+        if attempt < 2:
+            time.sleep(3)
+    raise RuntimeError(f"oc-native embeddings not ready: {last_detail}")
+
+
+def _extract_openclaw_memory_status(stdout: str) -> list:
+    """Parse `openclaw memory status --json` even if warnings precede the payload."""
+    payload = stdout.strip()
+    for marker in ("[\n", "[{", "["):
+        idx = payload.find(marker)
+        if idx >= 0:
+            payload = payload[idx:]
+            break
+    return json.loads(payload)
+
+
+def _oc_native_session_id(review, ordinal: int) -> str:
+    """Build a stable per-review session id for the native OpenClaw baseline."""
+    snum = getattr(review, "session_num", None)
+    if isinstance(snum, int):
+        if snum > 0:
+            return f"benchmark-oc-native-s{snum:02d}"
+        if snum < 0:
+            return f"benchmark-oc-native-f{abs(snum):03d}"
+    return f"benchmark-oc-native-r{ordinal:03d}"
+
+
+def _write_vm_session_jsonl(vm: TartVM, session_id: str, jsonl: str, append: bool = True):
+    """Write transcript JSONL to a VM session file."""
+    operator = ">>" if append else ">"
+    return vm.ssh(
+        f"mkdir -p {VM_AGENT_SESSIONS_DIR} && cat {operator} {VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl",
+        input_data=jsonl,
+        timeout=30,
+    )
+
+
+def _list_vm_session_jsonl_files(vm: TartVM) -> List[str]:
+    result = vm.ssh(
+        "python3 - <<'PY'\n"
+        "from pathlib import Path\n"
+        "base = Path.home()/'.openclaw'/'agents'/'main'/'sessions'\n"
+        "for path in sorted(base.glob('*.jsonl')):\n"
+        "    print(path.name)\n"
+        "PY",
+        raw=True,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"oc-native session listing failed: {result.stderr[:200]}")
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def _force_openclaw_native_reindex(
+    vm: TartVM, source_name: str = "sessions", min_indexed_files: int = 1
+) -> dict:
+    """Force a native OpenClaw memory reindex and require one source to finish indexing."""
+    start_result = vm.ssh(
+        "nohup sh -lc 'export PATH=/opt/homebrew/bin:$PATH; "
+        "OPENCLAW_TEST_FAST=1 OPENCLAW_TEST_MEMORY_UNSAFE_REINDEX=1 "
+        "openclaw memory index --agent main --force > /tmp/oc-native-reindex.log 2>&1' "
+        ">/dev/null 2>&1 & echo $!",
+        timeout=30,
+    )
+    if start_result.returncode != 0:
+        raise RuntimeError(f"openclaw native reindex failed to start: {start_result.stderr[:200]}")
+
+    deadline = time.monotonic() + OC_NATIVE_REINDEX_TIMEOUT_S
+    last_stdout = ""
+    last_status = None
+    while time.monotonic() < deadline:
+        result = vm.ssh(
+            "openclaw memory status --agent main --json",
+            timeout=60,
+        )
+        if result.returncode == 0 and result.stdout:
+            last_stdout = result.stdout
+            try:
+                payload = _extract_openclaw_memory_status(result.stdout)
+                status = payload[0]["status"]
+            except Exception:
+                status = None
+            if status is not None:
+                last_status = status
+                source_counts = {
+                    entry.get("source"): entry for entry in (status.get("sourceCounts") or [])
+                }
+                source = source_counts.get(source_name) or {}
+                indexed_files = int(source.get("files") or 0)
+                indexed_chunks = int(source.get("chunks") or 0)
+                dirty = bool(status.get("dirty"))
+                if not dirty and indexed_files >= min_indexed_files and indexed_chunks > 0:
+                    print(
+                        "  Native memory reindexed: "
+                        f"{source_name} files={indexed_files} chunks={indexed_chunks}"
+                    )
+                    return status
+        time.sleep(10)
+
+    if last_status is not None:
+        source_counts = {
+            entry.get("source"): entry for entry in (last_status.get("sourceCounts") or [])
+        }
+        source = source_counts.get(source_name) or {}
+        indexed_files = int(source.get("files") or 0)
+        indexed_chunks = int(source.get("chunks") or 0)
+        dirty = bool(last_status.get("dirty"))
+        raise RuntimeError(
+            f"oc-native {source_name} did not finish indexing "
+            f"(dirty={dirty}, files={indexed_files}, chunks={indexed_chunks}, expected files>={min_indexed_files})"
+        )
+    raise RuntimeError(
+        f"Could not parse openclaw native reindex status: {last_stdout[:300]}"
+    )
+
+
+def _run_oc_native_session_hook(vm: TartVM, session_id: str):
+    """Run the bundled session-memory hook via `/new`, then restore transcript.
+
+    The hook writes markdown into workspace/memory, but `/new` can rotate or clear
+    the active transcript. We restore the latest reset copy so native session
+    indexing can still see the original synthetic benchmark conversation.
+    """
+    _register_session(vm, session_id)
+    before_files = set(_list_vm_session_jsonl_files(vm))
+    result = vm.ssh(
+        f"openclaw agent --agent main --session-id {session_id} --message '/new'",
+        timeout=90,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"oc-native session hook failed for {session_id}: {result.stderr[:200]}")
+    after_files = set(_list_vm_session_jsonl_files(vm))
+    extra_files = sorted(after_files - before_files - {f"{session_id}.jsonl"})
+    script = (
+        "from pathlib import Path\n"
+        "import json\n"
+        f"sid = {session_id!r}\n"
+        f"extra_files = {extra_files!r}\n"
+        "base = Path.home()/'.openclaw'/'agents'/'main'/'sessions'\n"
+        "active = base / f'{sid}.jsonl'\n"
+        "resets = sorted(base.glob(f'{sid}.jsonl.reset.*'))\n"
+        "if resets:\n"
+        "    active.write_text(resets[-1].read_text())\n"
+        "store = base / 'sessions.json'\n"
+        "payload = {}\n"
+        "if store.exists():\n"
+        "    try:\n"
+        "        payload = json.loads(store.read_text() or '{}')\n"
+        "    except Exception:\n"
+        "        payload = {}\n"
+        "sessions = payload.get('sessions')\n"
+        "if isinstance(sessions, list):\n"
+        "    payload['sessions'] = [entry for entry in sessions if entry.get('id') not in {name[:-6] for name in extra_files if name.endswith('.jsonl')}]\n"
+        "elif isinstance(payload, dict):\n"
+        "    for name in extra_files:\n"
+        "        if name.endswith('.jsonl'):\n"
+        "            payload.pop(name[:-6], None)\n"
+        "if payload and store.exists():\n"
+        "    store.write_text(json.dumps(payload, indent=2))\n"
+        "for name in extra_files:\n"
+        "    (base / name).unlink(missing_ok=True)\n"
+        "print('hook-complete')\n"
+    )
+    restore = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
+    if restore.returncode != 0:
+        raise RuntimeError(f"oc-native transcript restore failed for {session_id}: {restore.stderr[:200]}")
+
+
+def _probe_vm_tcp_port(vm: TartVM, host: str, port: int, timeout_s: float = 3.0) -> bool:
+    """Return True if a TCP port is reachable from inside the VM."""
+    script = (
+        "import socket, sys\n"
+        f"host = {host!r}\n"
+        f"port = {port}\n"
+        f"timeout_s = {timeout_s!r}\n"
+        "sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n"
+        "sock.settimeout(float(timeout_s))\n"
+        "try:\n"
+        "    sock.connect((host, port))\n"
+        "except Exception:\n"
+        "    sys.exit(1)\n"
+        "finally:\n"
+        "    try:\n"
+        "        sock.close()\n"
+        "    except Exception:\n"
+        "        pass\n"
+    )
+    result = vm.ssh("python3 -c " + shlex.quote(script), timeout=max(5, int(timeout_s) + 2))
+    return result.returncode == 0
+
+
+def _wait_for_vm_tcp_port(
+    vm: TartVM,
+    host: str,
+    port: int,
+    *,
+    timeout_s: float,
+    probe_timeout_s: float = 3.0,
+    poll_interval_s: float = 1.0,
+) -> bool:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if _probe_vm_tcp_port(vm, host, port, timeout_s=probe_timeout_s):
+            return True
+        time.sleep(poll_interval_s)
+    return False
+
+
+def _restart_oc_native_gateway(vm: TartVM, port: int = 18789):
+    """Start the OpenClaw gateway and verify a live listener exists.
+
+    `openclaw gateway start` can return success even when the launch agent is not
+    actually loaded. For the native benchmark we probe the port and fall back to
+    `gateway run` when the service path is a no-op.
+    """
+    vm.ssh(
+        "pkill -f 'openclaw-gateway' 2>/dev/null || true; "
+        "sleep 2; "
+        f"openclaw gateway start --allow-unconfigured --port {port} "
+        ">/tmp/openclaw-gateway-bench.log 2>&1 || true",
+        timeout=60,
+    )
+    if _wait_for_vm_tcp_port(vm, "127.0.0.1", port, timeout_s=15.0, probe_timeout_s=3.0):
+        print("  Gateway verified: responding")
+        return
+    vm.ssh(
+        f"nohup openclaw gateway run --allow-unconfigured --force --port {port} "
+        ">/tmp/openclaw-gateway-bench.log 2>&1 &",
+        timeout=20,
+    )
+    if not _wait_for_vm_tcp_port(vm, "127.0.0.1", port, timeout_s=20.0, probe_timeout_s=3.0):
+        raise RuntimeError("oc-native gateway did not become reachable after restart")
+    print("  Gateway verified: responding")
 
 
 def _create_core_files(vm: TartVM, user_name: str = "Maya"):
@@ -611,6 +1019,7 @@ def inject_sessions(
     total_janitor_out = 0
     total_janitor_calls = 0
     total_janitor_cost = 0.0
+    session_rolls = 0
 
     # Simulated session token tracking
     # session_tokens_curve: snapshots of context window load over time
@@ -630,7 +1039,7 @@ def inject_sessions(
 
     t0 = time.monotonic()
 
-    for review in reviews:
+    for review_idx, review in enumerate(reviews):
         snum = review.session_num
         # Get session date
         if snum < 0:
@@ -697,14 +1106,15 @@ def inject_sessions(
 
         # Convert to gateway JSONL and append to VM session file
         jsonl = messages_to_gateway_jsonl(messages)
-        session_file = f"{VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl"
+        write_session_id = session_id
+        append_mode = True
+        if system == "oc-native":
+            write_session_id = _oc_native_session_id(review, review_idx)
+            append_mode = False
+        session_file = f"{VM_AGENT_SESSIONS_DIR}/{write_session_id}.jsonl"
 
         # Append via SSH (use heredoc to avoid shell escaping issues)
-        result = vm.ssh(
-            f"mkdir -p {VM_AGENT_SESSIONS_DIR} && cat >> {session_file}",
-            input_data=jsonl,
-            timeout=30,
-        )
+        result = _write_vm_session_jsonl(vm, write_session_id, jsonl, append=append_mode)
         if result.returncode != 0:
             print(f" [INJECT FAILED: {result.stderr[:100]}]")
             continue
@@ -755,6 +1165,12 @@ def inject_sessions(
             "nightly_compacted_before": nightly_compacted,
         })
 
+        if system == "oc-native":
+            _run_oc_native_session_hook(vm, write_session_id)
+            print(f" [SESSION {write_session_id} /new]", end="")
+            session_tokens = 0
+            session_rolls += 1
+
         print()
 
     # Final compaction for any remaining un-compacted messages
@@ -775,6 +1191,11 @@ def inject_sessions(
             print()
 
     elapsed = round(time.monotonic() - t0, 1)
+
+    if system == "oc-native":
+        _force_openclaw_native_reindex(
+            vm, source_name="sessions", min_indexed_files=sessions_injected
+        )
 
     # Compute simulated token metrics
     # total_session_tokens: raw tokens across all sessions (content only)
@@ -799,6 +1220,7 @@ def inject_sessions(
         "total_sessions": sessions_injected,
         "compaction_count": compaction_count,
         "janitor_runs": janitor_runs,
+        "session_rolls": session_rolls,
         "cost": tracker.summary(),
         "real_token_usage": {
             "extraction": {
@@ -1339,9 +1761,13 @@ def evaluate_queries(
     Returns:
         List of result dicts.
     """
-    results = []
+    results = _load_resume_results(results_dir, queries)
+    if results:
+        print(f"  Resuming from existing eval results: {len(results)}/{len(queries)} complete")
 
     for i, query in enumerate(queries):
+        if i < len(results):
+            continue
         question = query["question"]
         ground_truth = query["ground_truth"]
         print(f"  [{i+1}/{len(queries)}] {question[:60]}...")
@@ -1395,6 +1821,7 @@ def _evaluate_vm_agent(vm: TartVM, question: str, query_idx: int,
     """
     session_id = f"eval-q{query_idx:03d}"
     escaped_question = shlex.quote(question)
+    _register_session(vm, session_id)
 
     result = vm.ssh(
         f"openclaw agent --agent main --session-id {session_id} --message {escaped_question}",
@@ -1476,7 +1903,15 @@ def _judge(question: str, ground_truth: str, prediction: str,
         from run_production_benchmark import _judge_openai
         return _judge_openai(prompt)
 
-    response, _ = call_claude(prompt=prompt, model=judge_model, timeout=30)
+    judge_result = call_claude(
+        prompt=prompt,
+        model=judge_model,
+        timeout=VM_CLAUDE_JUDGE_TIMEOUT_S,
+    )
+    if isinstance(judge_result, tuple):
+        response = judge_result[0]
+    else:
+        response = judge_result
 
     if not response:
         return "ERROR", 0.0
@@ -1512,6 +1947,75 @@ def _save_results(results: List[dict], results_dir: Path):
     results_dir.mkdir(parents=True, exist_ok=True)
     with open(results_dir / "eval_results.json", "w") as f:
         json.dump(results, f, indent=2, default=str)
+
+
+def _load_resume_results(results_dir: Path, queries: List[dict]) -> List[dict]:
+    """Load and validate existing partial eval results for resume."""
+    path = results_dir / "eval_results.json"
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text())
+    if not isinstance(data, list):
+        raise RuntimeError(f"Existing eval results are not a list: {path}")
+    if len(data) > len(queries):
+        raise RuntimeError(
+            f"Existing eval results exceed query set ({len(data)} > {len(queries)}): {path}"
+        )
+    for idx, row in enumerate(data):
+        if not isinstance(row, dict):
+            raise RuntimeError(f"Existing eval result row {idx} is not an object: {path}")
+        expected = queries[idx]["question"]
+        actual = row.get("question")
+        if actual != expected:
+            raise RuntimeError(
+                "Existing eval results do not match current query set at index "
+                f"{idx}: {actual!r} != {expected!r}"
+            )
+    return data
+
+
+def rejudge_results(results_dir: Path, judge_model: str) -> dict:
+    """Rejudge an existing eval_results.json without rerunning agent answers."""
+    path = results_dir / "eval_results.json"
+    if not path.exists():
+        raise RuntimeError(f"Missing eval results: {path}")
+
+    data = json.loads(path.read_text())
+    if not isinstance(data, list):
+        raise RuntimeError(f"Existing eval results are not a list: {path}")
+
+    updated = 0
+    for idx, row in enumerate(data):
+        if not isinstance(row, dict):
+            raise RuntimeError(f"Existing eval result row {idx} is not an object: {path}")
+        question = row.get("question")
+        ground_truth = row.get("ground_truth")
+        prediction = row.get("prediction", "")
+        if not isinstance(question, str) or not isinstance(ground_truth, str):
+            raise RuntimeError(f"Existing eval result row {idx} missing question/ground_truth: {path}")
+        if (
+            row.get("judge_model") == judge_model
+            and row.get("judge_label") in ("CORRECT", "PARTIAL", "WRONG")
+            and isinstance(row.get("score"), (int, float))
+        ):
+            continue
+        label, score = _judge(question, ground_truth, prediction, judge_model)
+        row["judge_label"] = label
+        row["score"] = score
+        row["judge_model"] = judge_model
+        updated += 1
+        if updated % 10 == 0:
+            print(f"  Rejudged {idx + 1}/{len(data)}")
+            with open(results_dir / "eval_results.json", "w") as f:
+                json.dump(data, f, indent=2, default=str)
+
+    scores = score_results(data)
+    results_dir.mkdir(parents=True, exist_ok=True)
+    with open(results_dir / "eval_results.json", "w") as f:
+        json.dump(data, f, indent=2, default=str)
+    with open(results_dir / "scores.json", "w") as f:
+        json.dump(scores, f, indent=2)
+    return scores
 
 
 # ---------------------------------------------------------------------------
@@ -1570,6 +2074,16 @@ def score_results(results: List[dict]) -> dict:
 # System setup
 # ---------------------------------------------------------------------------
 
+def _results_suffix(mode: str, splitting: str) -> str:
+    suffix = f"-{mode}" if mode != "natural" else ""
+    if splitting != "perday":
+        suffix += f"-{splitting}"
+    return suffix
+
+
+def _resolve_results_dir(results_base: Path, system: str, mode: str, splitting: str) -> Path:
+    return results_base / f"{system}{_results_suffix(mode, splitting)}"
+
 def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
                  extract_model: str = "claude-sonnet-4-5-20250929",
                  local_plugin: bool = False,
@@ -1578,7 +2092,7 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
 
     Args:
         vm: TartVM instance
-        system: One of "base", "qmd", "quaid", "mem0"
+        system: One of "base", "qmd", "quaid", "mem0", "oc-native"
         snapshot_base: Snapshot to restore from
         extract_model: Model for extraction/janitor (Sonnet for dev, Opus for final)
         local_plugin: If True, rsync local Quaid plugin instead of cloning from GitHub
@@ -1603,6 +2117,20 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         vm.ssh("openclaw plugins disable quaid 2>/dev/null || true")
         vm.ssh("openclaw plugins enable memory-core 2>/dev/null || true")
         print(f"  QMD configured (memory-core enabled, quaid disabled)")
+
+    elif system == "oc-native":
+        # Native OpenClaw best-effort memory:
+        # - builtin memory-core recall
+        # - bundled session-memory hook enabled
+        # - direct session transcript indexing enabled
+        vm.ssh("openclaw plugins disable quaid 2>/dev/null || true")
+        vm.ssh("openclaw plugins disable memory-lancedb 2>/dev/null || true")
+        vm.ssh("openclaw plugins enable memory-core 2>/dev/null || true")
+        _patch_openclaw_native_memory(vm, enable_session_hook=True)
+        print(
+            "  OpenClaw native configured "
+            "(memory-core builtin + session-memory hook + session indexing)"
+        )
 
     elif system == "quaid":
         if local_plugin:
@@ -1688,6 +2216,8 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
 
     # Clear session state for clean benchmark
     _clear_vm_session_state(vm)
+    if system == "oc-native":
+        _clear_vm_native_memory_state(vm)
 
     if system == "quaid":
         # Create core markdown files (simulates onboarding)
@@ -1706,18 +2236,22 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         _patch_gateway_model(vm, answer_model)
 
     # Restart gateway to pick up changes (fresh DB, clean sessions)
-    vm.ssh("pkill -f 'openclaw-gateway' 2>/dev/null; sleep 2; openclaw gateway start", timeout=60)
-    time.sleep(5)
-
-    # Verify agent works
-    result = vm.ssh(
-        "openclaw agent --agent main --session-id test-setup --message 'hello'",
-        timeout=60,
-    )
-    if result.returncode == 0:
-        print(f"  Agent verified: responding")
+    if system == "oc-native":
+        _restart_oc_native_gateway(vm, port=18789)
+        _validate_openclaw_native_memory(vm)
     else:
-        print(f"  WARNING: Agent test failed: {result.stderr[:100]}")
+        vm.ssh("pkill -f 'openclaw-gateway' 2>/dev/null; sleep 2; openclaw gateway start", timeout=60)
+        time.sleep(5)
+
+        # Verify agent works
+        result = vm.ssh(
+            "openclaw agent --agent main --session-id test-setup --message 'hello'",
+            timeout=60,
+        )
+        if result.returncode == 0:
+            print(f"  Agent verified: responding")
+        else:
+            print(f"  WARNING: Agent test failed: {result.stderr[:100]}")
 
 
 # ---------------------------------------------------------------------------
@@ -1753,12 +2287,15 @@ def run_benchmark(
     Returns:
         Combined stats dict.
     """
+    if judge_model == "gpt-4o-mini":
+        from run_production_benchmark import _get_openai_key
+
+        if not _get_openai_key():
+            raise RuntimeError("OPENAI_API_KEY is required for judge_model=gpt-4o-mini")
+
     results_base = results_base or _DIR.parent / "data" / "results-vm"
     assets_dir = assets_dir or _DIR.parent.parent.parent / "assets"
-    suffix = f"-{mode}" if mode != "natural" else ""
-    if splitting != "perday":
-        suffix += f"-{splitting}"
-    results_dir = results_base / f"{system}{suffix}"
+    results_dir = _resolve_results_dir(results_base, system, mode, splitting)
 
     print(f"\n{'=' * 60}")
     print(f" AgentLife VM Benchmark: {system.upper()} ({mode}, {splitting})")
@@ -1832,7 +2369,8 @@ def run_benchmark(
         else:
             # Register session in gateway's session store so
             # openclaw agent uses our session file for /compact
-            _register_session(vm, session_id)
+            if system != "oc-native":
+                _register_session(vm, session_id)
             injection_stats = inject_sessions(
                 vm, reviews, session_id, mode, results_dir, system,
                 extract_model=extract_model,
@@ -1857,7 +2395,7 @@ def run_benchmark(
     # Session isolation: freeze injection session file before eval starts.
     # Without this, eval queries via `openclaw agent` get appended to the
     # injection session file, polluting the transcript for any future extraction.
-    if not eval_only:
+    if not eval_only and system != "oc-native":
         session_id = f"benchmark-{system}"
         session_file = f"{VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl"
         frozen_file = f"{VM_AGENT_SESSIONS_DIR}/{session_id}-injected.jsonl"
@@ -1915,7 +2453,7 @@ def run_benchmark(
 def main():
     parser = argparse.ArgumentParser(description="AgentLife VM Benchmark")
     parser.add_argument("--system", type=str, default="quaid",
-                        choices=SYSTEMS + ["all"],
+                        choices=AVAILABLE_SYSTEMS + ["all"],
                         help="System to benchmark")
     parser.add_argument("--mode", type=str, default="natural",
                         choices=["natural", "nightly"],
@@ -1926,13 +2464,15 @@ def main():
                         default=str(_DIR.parent / "data" / "results-vm"),
                         help="Base results directory")
     parser.add_argument("--assets-dir", type=str,
-                        default=str(_DIR.parent.parent.parent / "assets"),
+                        default=str(_DIR.parent / "data" / "sessions"),
                         help="Arc session review files")
     parser.add_argument("--filler-dir", type=str,
                         default=str(_DIR.parent / "data" / "filler-sessions"),
                         help="Filler session files")
     parser.add_argument("--eval-only", action="store_true",
                         help="Skip injection, evaluate existing state")
+    parser.add_argument("--rejudge-only", action="store_true",
+                        help="Rejudge existing eval_results.json without rerunning answers")
     parser.add_argument("--judge-model", type=str, default="gpt-4o-mini",
                         choices=["gpt-4o-mini", "haiku"],
                         help="Judge model (default: gpt-4o-mini for cross-vendor fairness)")
@@ -1966,6 +2506,16 @@ def main():
         systems_to_run = SYSTEMS
     else:
         systems_to_run = [args.system]
+
+    if args.rejudge_only and args.system == "all":
+        raise RuntimeError("--rejudge-only requires a specific --system")
+
+    if args.rejudge_only:
+        results_dir = _resolve_results_dir(results_base, args.system, args.mode, args.splitting)
+        print(f"Rejudging existing results in {results_dir}")
+        scores = rejudge_results(results_dir, args.judge_model)
+        print(json.dumps(scores, indent=2))
+        return
 
     all_results = {}
 

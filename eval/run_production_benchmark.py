@@ -106,6 +106,16 @@ def _resolve_quaid_script(*relative_paths: str) -> Path:
 
 _QUAID_DIR = _resolve_quaid_dir()
 _MEMORY_GRAPH_SCRIPT = _resolve_quaid_script("memory_graph.py", "datastore/memorydb/memory_graph.py")
+_RECALL_TOOL_DESCRIPTION = (
+    "Unified Quaid recall across memory and docs stores. "
+    "Use one broad query first. If stores are omitted, default memory recall uses vector only. "
+    "Add stores=['graph'] only for relationship, family, causal, or other explicit multi-hop queries. "
+    "For codebase, architecture, schema, tests, stack, API, or source-file questions, "
+    "set stores=['docs'] and set project when known. "
+    "Use stores=['vector','docs'] when you need both memory and docs in one pass, and only add graph when the question is truly relational. "
+    "Set project when scoping docs to a known project like recipe-app, portfolio-site, or quaid. "
+    "Use entity names (e.g. 'Maya', 'Liam', 'recipe app') not vague roles."
+)
 _JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py")
 _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
 # Last store telemetry (updated by _store_facts for extraction summaries).
@@ -980,6 +990,21 @@ def _write_prompt_trace(
 
 def _usage_log_path(workspace: Path) -> Path:
     return workspace / "logs" / "llm-usage-events.jsonl"
+
+
+def _recall_telemetry_log_path(workspace: Path) -> Path:
+    return workspace / "logs" / "recall-telemetry.jsonl"
+
+
+def _append_recall_telemetry_event(workspace: Path, row: Dict[str, Any]) -> None:
+    """Append a structured benchmark recall telemetry row."""
+    try:
+        path = _recall_telemetry_log_path(workspace)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
 
 
 def _benchmark_env(workspace: Path, phase: str) -> dict:
@@ -3810,7 +3835,10 @@ def _classify_recall_followup(previous: dict, current: dict) -> str:
 def _analyze_tool_call_details(tool_call_details: List[dict]) -> Dict[str, Any]:
     """Summarize multi-tool behavior and repeated memory-recall patterns."""
     tool_counts: Dict[str, int] = {}
-    recall_calls = [d for d in tool_call_details if str(d.get("tool") or "") == "memory_recall"]
+    recall_calls = [
+        d for d in tool_call_details
+        if str(d.get("tool") or "") in {"memory_recall", "recall"}
+    ]
     repeated_classes: Dict[str, int] = {}
     repeated_examples: List[Dict[str, Any]] = []
     followup_after_quality_gate = 0
@@ -3962,15 +3990,7 @@ def _tool_use_loop(
     tools = [
         {
             "name": "recall",
-            "description": (
-                "Unified Quaid recall across memory and docs stores. "
-                "Use one broad query first. Defaults to memory stores (vector + graph). "
-                "For codebase, architecture, schema, tests, stack, API, or source-file questions, "
-                "set stores=['docs'] and set project when known. "
-                "Use stores=['vector','graph','docs'] only when you need both memory and docs in one pass. "
-                "Set project when scoping docs to a known project like recipe-app, portfolio-site, or quaid. "
-                "Use entity names (e.g. 'Maya', 'Liam', 'recipe app') not vague roles."
-            ),
+            "description": _RECALL_TOOL_DESCRIPTION,
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -4335,7 +4355,7 @@ def _tool_memory_recall(
     # For mixed memory+docs calls with temporal filtering, split the work so memory
     # stays filterable while docs still surface through the canonical recall path.
     if (not fast) and docs_requested and memory_requested and max_session is not None:
-        memory_stores = [s for s in requested_stores if s != "docs"] or ["vector", "graph"]
+        memory_stores = [s for s in requested_stores if s != "docs"] or ["vector"]
         memory_text, memory_meta = _tool_memory_recall(
             query,
             workspace,
@@ -4368,6 +4388,7 @@ def _tool_memory_recall(
         return memory_text or docs_text or "No memories found.", memory_meta
 
     cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT)
+    cfg: Dict[str, Any] | None = None
     if fast:
         cmd += ["recall-fast", query, "--owner", "maya", "--limit", str(limit), "--json"]
         if planner_profile:
@@ -4383,7 +4404,7 @@ def _tool_memory_recall(
         if domain_boost:
             cmd.extend(["--domain-boost", json.dumps(domain_boost)])
     else:
-        cfg: Dict[str, Any] = {
+        cfg = {
             "owner": "maya",
             "limit": limit,
         }
@@ -4411,17 +4432,50 @@ def _tool_memory_recall(
             or os.environ.get("BENCHMARK_RECALL_TELEMETRY")
             or "1"
         )
+        telemetry_base = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "mode": "fast" if fast else "deliberate",
+            "query": query,
+            "planner_profile": planner_profile,
+            "stores": list(stores or []),
+            "project": project,
+            "date_from": date_from,
+            "date_to": date_to,
+            "max_session": max_session,
+            "domain_filter": domain_filter,
+            "domain_boost": list(domain_boost or []),
+            "timeout_s": 30,
+            "cmd": cmd,
+            "config": cfg,
+        }
+        started = time.time()
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=30,
             cwd=str(_QUAID_DIR), env=recall_env,
         )
+        duration_ms = int((time.time() - started) * 1000)
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "").strip().replace("\n", " ")
+            _append_recall_telemetry_event(workspace, {
+                **telemetry_base,
+                "status": "error",
+                "duration_ms": duration_ms,
+                "returncode": int(result.returncode),
+                "stdout_excerpt": (result.stdout or "").strip()[:500],
+                "stderr_excerpt": (result.stderr or "").strip()[:500],
+                "detail": detail[:500],
+            })
             raise RuntimeError(
                 f"recall failed rc={result.returncode} detail={detail[:240]!r}"
             )
         output = result.stdout.strip()
         if not output:
+            _append_recall_telemetry_event(workspace, {
+                **telemetry_base,
+                "status": "empty",
+                "duration_ms": duration_ms,
+                "returncode": 0,
+            })
             return ("No project documentation found." if docs_requested and not memory_requested else "No memories found."), None
 
         payload = json.loads(output)
@@ -4451,6 +4505,21 @@ def _tool_memory_recall(
             results = []
             recall_meta = None
             docs_bundle = None
+
+        if recall_meta is None:
+            recall_meta = {}
+        if isinstance(recall_meta, dict):
+            recall_meta.setdefault("harness_telemetry", {})
+            recall_meta["harness_telemetry"].update({
+                "duration_ms": duration_ms,
+                "stores_requested": list(stores or []),
+                "docs_requested": docs_requested,
+                "memory_requested": memory_requested,
+                "project": project,
+                "max_session": max_session,
+                "timed_out": False,
+                "status": "ok",
+            })
 
         # Post-filter by session number if max_session is set
         if max_session is not None:
@@ -4503,15 +4572,64 @@ def _tool_memory_recall(
         memory_text = _render_recall_results(results)
         docs_text = _render_recall_docs_bundle(docs_bundle)
         output = "\n\n".join(part for part in [memory_text, docs_text] if part)
+        _append_recall_telemetry_event(workspace, {
+            **telemetry_base,
+            "status": "ok",
+            "duration_ms": duration_ms,
+            "returncode": 0,
+            "result_count": len(results),
+            "has_docs_bundle": bool(docs_bundle),
+            "docs_chunk_count": len((docs_bundle or {}).get("chunks") or []) if isinstance(docs_bundle, dict) else 0,
+            "stop_reason": (recall_meta or {}).get("stop_reason") if isinstance(recall_meta, dict) else None,
+            "source_breakdown": (recall_meta or {}).get("source_breakdown") if isinstance(recall_meta, dict) else None,
+        })
         if output:
             return output, recall_meta
         if docs_requested and not memory_requested:
             return "No project documentation found.", recall_meta
         return "No memories found.", recall_meta
+    except subprocess.TimeoutExpired as e:
+        duration_ms = int((time.time() - started) * 1000) if 'started' in locals() else 30000
+        _append_recall_telemetry_event(workspace, {
+            **telemetry_base,
+            "status": "timeout",
+            "duration_ms": duration_ms,
+            "returncode": None,
+            "stdout_excerpt": str(getattr(e, "stdout", "") or "")[:500],
+            "stderr_excerpt": str(getattr(e, "stderr", "") or "")[:500],
+            "detail": str(e)[:500],
+        })
+        raise RuntimeError(
+            "recall timed out "
+            f"(timeout_s=30, query={query!r}, stores={list(stores or [])!r}, project={project!r})"
+        ) from e
     except Exception as e:
         if isinstance(e, RuntimeError):
             raise
-        return f"Memory recall error: {e}", None
+        _append_recall_telemetry_event(workspace, {
+            **(telemetry_base if 'telemetry_base' in locals() else {
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "mode": "fast" if fast else "deliberate",
+                "query": query,
+                "planner_profile": planner_profile,
+                "stores": list(stores or []),
+                "project": project,
+                "date_from": date_from,
+                "date_to": date_to,
+                "max_session": max_session,
+                "domain_filter": domain_filter,
+                "domain_boost": list(domain_boost or []),
+                "timeout_s": 30,
+                "cmd": cmd,
+                "config": cfg,
+            }),
+            "status": "exception",
+            "duration_ms": int((time.time() - started) * 1000) if 'started' in locals() else None,
+            "detail": str(e)[:500],
+        })
+        raise RuntimeError(
+            f"recall raised unexpected {type(e).__name__}: {e}"
+        ) from e
 
 
 def _tool_search_project_docs(
@@ -4718,7 +4836,7 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
                     continue
                 if source == "preinject" and detail.get("source") != "preinject":
                     continue
-                if source == "tool" and detail.get("tool") != "memory_recall":
+                if source == "tool" and detail.get("tool") not in {"memory_recall", "recall"}:
                     continue
                 meta = detail.get("recall_meta")
                 if isinstance(meta, dict):
