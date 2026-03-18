@@ -133,6 +133,15 @@ run_cmd() {
   fi
 }
 
+run_cmd_redacted() {
+  local display="$1"
+  shift
+  echo "+ $display"
+  if ! $DRY_RUN; then
+    "$@"
+  fi
+}
+
 run_local_checks() {
   echo "--- Local harness checks (required) ---"
   run_cmd python3 -m py_compile "$LOCAL_BENCH_ROOT/eval/run_production_benchmark.py"
@@ -293,6 +302,9 @@ fi
 echo ""
 echo "--- 6) Launch remote benchmark ---"
 OPTIONAL_BENCH_ENV=""
+if [[ -n "${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=$(printf %q "$BENCHMARK_ANTHROPIC_OAUTH_TOKEN")"$'\n'
+fi
 if [[ -n "${BENCHMARK_MAX_QUERIES:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_MAX_QUERIES=$(printf %q "$BENCHMARK_MAX_QUERIES")"$'\n'
 fi
@@ -328,8 +340,8 @@ export BENCHMARK_JANITOR_LLM_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_REVIEW_WORKERS=$(printf %q "$PARALLEL")
 $OPTIONAL_BENCH_ENV
 export AGENTLIFE_ASSETS_DIR=$(printf %q "$REMOTE_BENCH_ROOT")/data/sessions
-BENCHMARK_OAUTH_TOKEN=""
-if [[ -f \"/home/solomon/clawd/.env\" ]]; then
+BENCHMARK_OAUTH_TOKEN="\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}"
+if [[ -z \"\$BENCHMARK_OAUTH_TOKEN\" && -f \"/home/solomon/clawd/.env\" ]]; then
   BENCHMARK_OAUTH_TOKEN=\$(python3 - <<'PY'
 from pathlib import Path
 path = Path('/home/solomon/clawd/.env')
@@ -422,7 +434,8 @@ else
   exit 1
 fi
 "
-run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" "$REMOTE_PY_CMD"
+run_cmd_redacted "ssh ${SSH_OPTS[*]} $REMOTE [remote benchmark launch redacted]" \
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "$REMOTE_PY_CMD"
 
 echo ""
 echo "Done."

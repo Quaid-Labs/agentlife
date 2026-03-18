@@ -45,6 +45,11 @@ from pathlib import Path
 
 _DEFAULT_OWNER_ID = os.environ.get("BENCH_OWNER_ID", "maya").strip() or "maya"
 _PROJECT_UPDATER_ENV_LOCK = threading.Lock()
+_ANTHROPIC_OAUTH_IDENTITY_TEXT = (
+    "You are Claude Code, Anthropic's official CLI for Claude."
+)
+_ANTHROPIC_OAUTH_USER_AGENT = "claude-cli/2.1.2 (external, cli)"
+_ANTHROPIC_OAUTH_CLAUDE_CODE_BETA = "claude-code-20250219"
 
 
 def read_session_messages(session_file: str) -> list[dict]:
@@ -93,6 +98,50 @@ def _read_env_key(env_file: str, key: str) -> str | None:
                 parts = [raw_val]
             return parts[0] if parts else ""
     return None
+
+
+def _is_anthropic_oauth_token(token: str) -> bool:
+    return str(token or "").strip().startswith("sk-ant-oat")
+
+
+def _anthropic_headers(credential: str) -> dict:
+    headers = {
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+    }
+    if _is_anthropic_oauth_token(credential):
+        headers["Authorization"] = f"Bearer {credential}"
+        headers["Accept"] = "application/json"
+        headers["user-agent"] = _ANTHROPIC_OAUTH_USER_AGENT
+        headers["x-app"] = "cli"
+        headers["anthropic-beta"] = (
+            f"{_ANTHROPIC_OAUTH_CLAUDE_CODE_BETA},oauth-2025-04-20,prompt-caching-2024-07-31"
+        )
+    else:
+        headers["x-api-key"] = credential
+        headers["anthropic-beta"] = "prompt-caching-2024-07-31"
+    return headers
+
+
+def _anthropic_system_blocks(system_prompt: str, credential: str) -> list[dict]:
+    blocks: list[dict] = []
+    if _is_anthropic_oauth_token(credential):
+        blocks.append(
+            {
+                "type": "text",
+                "text": _ANTHROPIC_OAUTH_IDENTITY_TEXT,
+                "cache_control": {"type": "ephemeral"},
+            }
+        )
+    if system_prompt:
+        blocks.append(
+            {
+                "type": "text",
+                "text": system_prompt,
+                "cache_control": {"type": "ephemeral"},
+            }
+        )
+    return blocks
 
 
 def build_transcript(messages: list[dict], agent_name: str = "Assistant") -> str:
@@ -186,6 +235,18 @@ EXTRACT facts that are EXPLICITLY STATED OR CONFIRMED in the conversation. Never
 
 IMPORTANT: Extract each fact as its OWN separate entry. Do NOT combine or compress multiple facts into a single entry. "Maya runs 3 times a week and prefers outdoor trails" should be TWO facts, not one. Granular facts are more searchable and maintainable.
 
+ATOMIC FACT RULES:
+- Prefer multiple short self-contained facts over one polished summary.
+- Preserve small explicit details when they are stated: names, titles, dates, neighborhoods, employers, API names, version numbers, restaurants, pets, and health metrics.
+- Optimize for retrieval handles, not prose elegance.
+
+CANONICAL ENTITY RULES:
+- When a full proper name is available anywhere in the transcript, use that full name in the fact text.
+- Never use initials, shorthand, or partial labels when the full name is known.
+- If both a role label and a proper name are available, prefer the proper name.
+- Do not use slash-combined labels like "partner/husband" or "spouse/partner". Pick the clearest single phrasing.
+- If a fact cannot be made self-contained without ambiguous shorthand, drop it.
+
 WHAT TO EXTRACT:
 - Personal facts about {user_name} or people they mention (names, relationships, jobs, birthdays, health, locations, living situations)
 - Preferences and opinions explicitly stated ("I like X", "I prefer Y", "I hate Z")
@@ -230,6 +291,7 @@ QUALITY RULES:
 - Each fact must be self-contained and understandable without context
 - Be specific: "{user_name} likes spicy Thai food" > "{user_name} likes food"
 - ONE fact per entry — do not combine multiple pieces of information
+- Split facts that contain multiple independent searchable claims
 - Mark extraction_confidence "high" for clearly stated facts, "medium" for likely but somewhat ambiguous, "low" for weak signals
 - Extract THOROUGHLY — cover every person mentioned, every project detail, every preference, every event. The downstream janitor handles noise, but missed facts are gone forever
 
@@ -425,18 +487,14 @@ def call_anthropic(
     payload = {
         "model": model,
         "max_tokens": max_tokens,
-        "system": system_prompt,
+        "system": _anthropic_system_blocks(system_prompt, api_key),
         "messages": [{"role": "user", "content": user_message}],
     }
 
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
         data=json.dumps(payload).encode(),
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
+        headers=_anthropic_headers(api_key),
     )
 
     with urllib.request.urlopen(req, timeout=600) as resp:

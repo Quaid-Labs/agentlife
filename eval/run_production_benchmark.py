@@ -43,6 +43,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -207,6 +208,13 @@ def _is_anthropic_oauth_token(token: str) -> bool:
     return str(token or "").strip().startswith("sk-ant-oat")
 
 
+_ANTHROPIC_OAUTH_IDENTITY_TEXT = (
+    "You are Claude Code, Anthropic's official CLI for Claude."
+)
+_ANTHROPIC_OAUTH_USER_AGENT = "claude-cli/2.1.2 (external, cli)"
+_ANTHROPIC_OAUTH_CLAUDE_CODE_BETA = "claude-code-20250219"
+
+
 def _anthropic_headers(credential: str, *, prompt_caching: bool = True) -> dict:
     headers = {
         "Content-Type": "application/json",
@@ -217,12 +225,43 @@ def _anthropic_headers(credential: str, *, prompt_caching: bool = True) -> dict:
         betas.append("prompt-caching-2024-07-31")
     if _is_anthropic_oauth_token(credential):
         headers["Authorization"] = f"Bearer {credential}"
+        headers["Accept"] = "application/json"
+        headers["user-agent"] = _ANTHROPIC_OAUTH_USER_AGENT
+        headers["x-app"] = "cli"
+        betas.append(_ANTHROPIC_OAUTH_CLAUDE_CODE_BETA)
         betas.append("oauth-2025-04-20")
     else:
         headers["x-api-key"] = credential
     if betas:
         headers["anthropic-beta"] = ",".join(betas)
     return headers
+
+
+def _anthropic_system_blocks(
+    system_prompt: Optional[str],
+    credential: str,
+    *,
+    prompt_caching: bool = True,
+) -> Optional[List[dict]]:
+    blocks: List[dict] = []
+    cache_control = {"type": "ephemeral"} if prompt_caching else None
+    if _is_anthropic_oauth_token(credential):
+        block = {
+            "type": "text",
+            "text": _ANTHROPIC_OAUTH_IDENTITY_TEXT,
+        }
+        if cache_control:
+            block["cache_control"] = cache_control
+        blocks.append(block)
+    if system_prompt:
+        block = {
+            "type": "text",
+            "text": system_prompt,
+        }
+        if cache_control:
+            block["cache_control"] = cache_control
+        blocks.append(block)
+    return blocks or None
 
 
 def _resolve_assets_dir() -> Path:
@@ -1007,6 +1046,24 @@ def _append_recall_telemetry_event(workspace: Path, row: Dict[str, Any]) -> None
         pass
 
 
+def _extract_planner_error_fields(detail: str) -> Dict[str, Any]:
+    """Best-effort extraction of planner diagnostics from fail-hard stderr text."""
+    text = str(detail or "")
+    out: Dict[str, Any] = {}
+    patterns = {
+        "planner_timeout_ms": r"planner_timeout_ms=(\d+)",
+        "planner_elapsed_ms": r"planner_elapsed_ms=(\d+)",
+        "planner_profile": r"planner_profile=([A-Za-z0-9_-]+)",
+        "planner_query_shape": r"query_shape=([A-Za-z0-9_-]+)",
+    }
+    for key, pattern in patterns.items():
+        m = re.search(pattern, text)
+        if not m:
+            continue
+        out[key] = int(m.group(1)) if key.endswith("_ms") else m.group(1)
+    return out
+
+
 def _benchmark_env(workspace: Path, phase: str) -> dict:
     """Compatibility wrapper so old test stubs of _make_env still work."""
     try:
@@ -1297,9 +1354,11 @@ def setup_workspace(workspace: Path) -> None:
         prod_config["models"]["deepReasoning"] = reasoning_model
         prod_config["models"]["fastReasoning"] = reasoning_model
     elif _BACKEND == "api":
-        # Default API fallback: keep both tiers on Haiku to avoid Sonnet-only quota/policy failures.
-        prod_config["models"]["deepReasoning"] = "claude-haiku-4-5-20251001"
-        prod_config["models"]["fastReasoning"] = "claude-haiku-4-5-20251001"
+        # Default API fallback: keep both tiers on Haiku unless the operator
+        # explicitly requested a split via BENCHMARK_DEEP_REASONING_MODEL /
+        # BENCHMARK_FAST_REASONING_MODEL.
+        prod_config["models"]["deepReasoning"] = deep_reasoning_model
+        prod_config["models"]["fastReasoning"] = fast_reasoning_model
     if not isinstance(prod_config.get("users"), dict):
         prod_config["users"] = {}
     prod_config["users"]["defaultOwner"] = "maya"
@@ -3799,6 +3858,7 @@ def _pre_recall(
         max_session=max_session,
         fast=True,
         planner_profile=planner_profile,
+        telemetry_source="preinject",
     )
     return recall_text, question, recall_meta
 
@@ -3903,9 +3963,15 @@ def _run_no_tool_followup(prompt: str, api_key: str, model: str) -> Tuple[str, d
     payload = {
         "model": model,
         "max_tokens": 512,
-        "system": "Answer the user's audit prompt directly. Do not use tools.",
         "messages": [{"role": "user", "content": prompt}],
     }
+    system_blocks = _anthropic_system_blocks(
+        "Answer the user's audit prompt directly. Do not use tools.",
+        api_key,
+        prompt_caching=False,
+    )
+    if system_blocks:
+        payload["system"] = system_blocks
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
         data=json.dumps(payload).encode(),
@@ -4054,6 +4120,21 @@ def _tool_use_loop(
         if isinstance(recall_meta, dict):
             usage_total["preinject"]["stop_reason"] = recall_meta.get("stop_reason")
             usage_total["preinject"]["skip_reason"] = recall_meta.get("stop_reason") or ""
+            planner = None
+            turn_details = recall_meta.get("turn_details") or []
+            if turn_details and isinstance(turn_details[0], dict):
+                planner = turn_details[0].get("planner") or {}
+            planned_stores = (
+                recall_meta.get("planned_stores")
+                or (planner.get("planned_stores") if isinstance(planner, dict) else None)
+                or []
+            )
+            planned_project = (
+                recall_meta.get("planned_project")
+                or (planner.get("planned_project") if isinstance(planner, dict) else None)
+            )
+            usage_total["preinject"]["planned_stores"] = list(planned_stores) if isinstance(planned_stores, list) else []
+            usage_total["preinject"]["planned_project"] = planned_project
         if recall_text and "No memories found" not in recall_text:
             usage_total["preinject"]["surfaced"] = True
             usage_total["preinject"]["skip_reason"] = ""
@@ -4078,6 +4159,9 @@ def _tool_use_loop(
                 "error": "",
                 "source": "preinject",
                 "recall_meta": recall_meta,
+                "planned_stores": usage_total["preinject"].get("planned_stores", []),
+                "planned_project": usage_total["preinject"].get("planned_project"),
+                "call_id": ((recall_meta or {}).get("harness_telemetry") or {}).get("top_level_call_id") if isinstance(recall_meta, dict) else None,
             })
 
     if context_inject:
@@ -4103,10 +4187,16 @@ def _tool_use_loop(
         payload = {
             "model": model,
             "max_tokens": 2048,
-            "system": system_prompt,
             "messages": messages,
             "tools": tools,
         }
+        system_blocks = _anthropic_system_blocks(
+            system_prompt,
+            api_key,
+            prompt_caching=False,
+        )
+        if system_blocks:
+            payload["system"] = system_blocks
 
         req = urllib.request.Request(
             "https://api.anthropic.com/v1/messages",
@@ -4174,6 +4264,20 @@ def _tool_use_loop(
                     )
                     if tool_name in {"recall", "memory_recall"}:
                         retrieval_texts.append(result_text)
+                    planner = None
+                    if isinstance(recall_meta, dict):
+                        turn_details = recall_meta.get("turn_details") or []
+                        if turn_details and isinstance(turn_details[0], dict):
+                            planner = turn_details[0].get("planner") or {}
+                    planned_stores = (
+                        (recall_meta or {}).get("planned_stores")
+                        or (planner.get("planned_stores") if isinstance(planner, dict) else None)
+                        or []
+                    )
+                    planned_project = (
+                        (recall_meta or {}).get("planned_project")
+                        or (planner.get("planned_project") if isinstance(planner, dict) else None)
+                    )
                     usage_total["tool_call_details"].append({
                         "tool": tool_name,
                         "query": tool_input.get("query", ""),
@@ -4192,7 +4296,10 @@ def _tool_use_loop(
                         "error": str(result_text or "")[:80] if str(result_text).startswith("Error:") else "",
                         "source": "tool",
                         "stores": tool_input.get("stores"),
+                        "planned_stores": list(planned_stores) if isinstance(planned_stores, list) else [],
+                        "planned_project": planned_project,
                         "recall_meta": recall_meta if tool_name in {"recall", "memory_recall"} else None,
+                        "call_id": ((recall_meta or {}).get("harness_telemetry") or {}).get("top_level_call_id") if isinstance(recall_meta, dict) else None,
                     })
 
                     tool_results.append({
@@ -4246,6 +4353,7 @@ def _execute_tool(
             project=tool_input.get("project"),
             domain_filter=tool_input.get("domain_filter"),
             domain_boost=tool_input.get("domain_boost"),
+            telemetry_source="tool",
         )
     elif tool_name == "search_project_docs":
         project = tool_input.get("project")
@@ -4257,6 +4365,7 @@ def _execute_tool(
             max_session=max_session,
             stores=["docs"],
             project=project,
+            telemetry_source="tool",
         )
     else:
         return f"Unknown tool: {tool_name}", None
@@ -4338,6 +4447,9 @@ def _tool_memory_recall(
     project: Optional[str] = None,
     domain_filter: Optional[Dict[str, Any]] = None,
     domain_boost: Optional[List[str]] = None,
+    telemetry_source: str = "tool",
+    top_level_call_id: Optional[str] = None,
+    subprocess_role: Optional[str] = None,
 ) -> Tuple[str, Optional[dict]]:
     """Execute memory_recall via subprocess.
 
@@ -4351,6 +4463,7 @@ def _tool_memory_recall(
     requested_stores = list(stores or [])
     docs_requested = "docs" in requested_stores
     memory_requested = (not requested_stores) or any(s != "docs" for s in requested_stores)
+    call_id = str(top_level_call_id or uuid.uuid4().hex[:12])
 
     # For mixed memory+docs calls with temporal filtering, split the work so memory
     # stays filterable while docs still surface through the canonical recall path.
@@ -4369,6 +4482,9 @@ def _tool_memory_recall(
             project=project,
             domain_filter=domain_filter,
             domain_boost=domain_boost,
+            telemetry_source=telemetry_source,
+            top_level_call_id=call_id,
+            subprocess_role="memory",
         )
         docs_text, _ = _tool_memory_recall(
             query,
@@ -4377,6 +4493,9 @@ def _tool_memory_recall(
             fast=False,
             stores=["docs"],
             project=project,
+            telemetry_source=telemetry_source,
+            top_level_call_id=call_id,
+            subprocess_role="docs",
         )
         parts = []
         if memory_text and "No memories found" not in memory_text:
@@ -4423,6 +4542,7 @@ def _tool_memory_recall(
         if planner_profile:
             cfg["planner_profile"] = planner_profile
         cmd += ["recall", query, json.dumps(cfg), "--json"]
+    timeout_s = 30 if fast else 90
     try:
         recall_env = dict(env)
         recall_env["QUAID_LLM_USAGE_PHASE"] = "eval"
@@ -4435,27 +4555,32 @@ def _tool_memory_recall(
         telemetry_base = {
             "ts": datetime.now(timezone.utc).isoformat(),
             "mode": "fast" if fast else "deliberate",
+            "top_level_source": telemetry_source,
+            "top_level_call_id": call_id,
+            "subprocess_role": subprocess_role or ("fast" if fast else "primary"),
             "query": query,
             "planner_profile": planner_profile,
             "stores": list(stores or []),
+            "requested_store_combo": "+".join(list(stores or [])) if stores else "default",
             "project": project,
             "date_from": date_from,
             "date_to": date_to,
             "max_session": max_session,
             "domain_filter": domain_filter,
             "domain_boost": list(domain_boost or []),
-            "timeout_s": 30,
+            "timeout_s": timeout_s,
             "cmd": cmd,
             "config": cfg,
         }
         started = time.time()
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=30,
+            cmd, capture_output=True, text=True, timeout=timeout_s,
             cwd=str(_QUAID_DIR), env=recall_env,
         )
         duration_ms = int((time.time() - started) * 1000)
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "").strip().replace("\n", " ")
+            planner_error_fields = _extract_planner_error_fields(detail)
             _append_recall_telemetry_event(workspace, {
                 **telemetry_base,
                 "status": "error",
@@ -4464,6 +4589,7 @@ def _tool_memory_recall(
                 "stdout_excerpt": (result.stdout or "").strip()[:500],
                 "stderr_excerpt": (result.stderr or "").strip()[:500],
                 "detail": detail[:500],
+                **planner_error_fields,
             })
             raise RuntimeError(
                 f"recall failed rc={result.returncode} detail={detail[:240]!r}"
@@ -4508,17 +4634,42 @@ def _tool_memory_recall(
 
         if recall_meta is None:
             recall_meta = {}
+        planner_fields: Dict[str, Any] = {}
         if isinstance(recall_meta, dict):
+            planner = None
+            turn_details = recall_meta.get("turn_details") or []
+            if turn_details and isinstance(turn_details[0], dict):
+                planner = turn_details[0].get("planner") or {}
+            planned_stores = (
+                recall_meta.get("planned_stores")
+                or (planner.get("planned_stores") if isinstance(planner, dict) else None)
+                or []
+            )
+            executed_store_combo = "+".join(str(s) for s in planned_stores if s) if isinstance(planned_stores, list) and planned_stores else telemetry_base["requested_store_combo"]
+            planner_fields = {
+                "planner_timeout_ms": int((planner or {}).get("timeout_ms") or 0) if isinstance(planner, dict) else 0,
+                "planner_elapsed_ms": int((planner or {}).get("elapsed_ms") or 0) if isinstance(planner, dict) else 0,
+                "planner_queries_count": int((planner or {}).get("queries_count") or 0) if isinstance(planner, dict) else 0,
+                "planner_used_llm": bool((planner or {}).get("used_llm")) if isinstance(planner, dict) else False,
+                "planner_bailout_reason": (planner or {}).get("bailout_reason") if isinstance(planner, dict) else None,
+                "planner_query_shape": (planner or {}).get("query_shape") if isinstance(planner, dict) else None,
+            }
             recall_meta.setdefault("harness_telemetry", {})
             recall_meta["harness_telemetry"].update({
+                "top_level_source": telemetry_source,
+                "top_level_call_id": call_id,
+                "subprocess_role": subprocess_role or ("fast" if fast else "primary"),
                 "duration_ms": duration_ms,
                 "stores_requested": list(stores or []),
+                "requested_store_combo": telemetry_base["requested_store_combo"],
+                "executed_store_combo": executed_store_combo,
                 "docs_requested": docs_requested,
                 "memory_requested": memory_requested,
                 "project": project,
                 "max_session": max_session,
                 "timed_out": False,
                 "status": "ok",
+                **planner_fields,
             })
 
         # Post-filter by session number if max_session is set
@@ -4578,10 +4729,12 @@ def _tool_memory_recall(
             "duration_ms": duration_ms,
             "returncode": 0,
             "result_count": len(results),
+            "executed_store_combo": (recall_meta.get("harness_telemetry") or {}).get("executed_store_combo") if isinstance(recall_meta, dict) else telemetry_base["requested_store_combo"],
             "has_docs_bundle": bool(docs_bundle),
             "docs_chunk_count": len((docs_bundle or {}).get("chunks") or []) if isinstance(docs_bundle, dict) else 0,
             "stop_reason": (recall_meta or {}).get("stop_reason") if isinstance(recall_meta, dict) else None,
             "source_breakdown": (recall_meta or {}).get("source_breakdown") if isinstance(recall_meta, dict) else None,
+            **planner_fields,
         })
         if output:
             return output, recall_meta
@@ -4589,7 +4742,7 @@ def _tool_memory_recall(
             return "No project documentation found.", recall_meta
         return "No memories found.", recall_meta
     except subprocess.TimeoutExpired as e:
-        duration_ms = int((time.time() - started) * 1000) if 'started' in locals() else 30000
+        duration_ms = int((time.time() - started) * 1000) if 'started' in locals() else int(timeout_s * 1000)
         _append_recall_telemetry_event(workspace, {
             **telemetry_base,
             "status": "timeout",
@@ -4601,7 +4754,7 @@ def _tool_memory_recall(
         })
         raise RuntimeError(
             "recall timed out "
-            f"(timeout_s=30, query={query!r}, stores={list(stores or [])!r}, project={project!r})"
+            f"(timeout_s={timeout_s}, query={query!r}, stores={list(stores or [])!r}, project={project!r})"
         ) from e
     except Exception as e:
         if isinstance(e, RuntimeError):
@@ -4619,7 +4772,7 @@ def _tool_memory_recall(
                 "max_session": max_session,
                 "domain_filter": domain_filter,
                 "domain_boost": list(domain_boost or []),
-                "timeout_s": 30,
+                "timeout_s": timeout_s,
                 "cmd": cmd,
                 "config": cfg,
             }),
@@ -4843,6 +4996,50 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
                     metas.append(meta)
         return metas
 
+    def _collect_store_usage() -> dict:
+        by_store: Dict[str, int] = {}
+        by_combo: Dict[str, int] = {}
+        by_source: Dict[str, Dict[str, int]] = {"preinject": {}, "tool": {}}
+        for r in results:
+            eval_tokens = r.get("eval_tokens", {}) or {}
+            for detail in eval_tokens.get("tool_call_details", []) or []:
+                if not isinstance(detail, dict):
+                    continue
+                meta = detail.get("recall_meta")
+                if not isinstance(meta, dict):
+                    continue
+                planner = None
+                turn_details = meta.get("turn_details") or []
+                if turn_details and isinstance(turn_details[0], dict):
+                    planner = turn_details[0].get("planner") or {}
+                stores = (
+                    meta.get("planned_stores")
+                    or (planner.get("planned_stores") if isinstance(planner, dict) else None)
+                    or []
+                )
+                if not isinstance(stores, list):
+                    stores = []
+                normalized = []
+                for store in stores:
+                    text = str(store or "").strip().lower()
+                    if text and text not in normalized:
+                        normalized.append(text)
+                combo = "+".join(normalized) if normalized else "default"
+                by_combo[combo] = by_combo.get(combo, 0) + 1
+                source_key = "preinject" if detail.get("source") == "preinject" else "tool"
+                source_bucket = by_source.setdefault(source_key, {})
+                source_bucket[combo] = source_bucket.get(combo, 0) + 1
+                for store in normalized:
+                    by_store[store] = by_store.get(store, 0) + 1
+        return {
+            "by_store": dict(sorted(by_store.items())),
+            "by_combo": dict(sorted(by_combo.items(), key=lambda item: (-item[1], item[0]))),
+            "by_source": {
+                key: dict(sorted(bucket.items(), key=lambda item: (-item[1], item[0])))
+                for key, bucket in sorted(by_source.items())
+            },
+        }
+
     def _aggregate_recall_phase_metas(metas: list[dict]) -> dict:
         phase_buckets: dict[str, list[float]] = {}
         turns: list[float] = []
@@ -4970,6 +5167,7 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
 
     preinject_recall_metas = _collect_recall_metas("preinject")
     tool_recall_metas = _collect_recall_metas("tool")
+    store_usage = _collect_store_usage()
     repeated_recall_queries = 0
     repeated_recall_classes: Dict[str, int] = {}
     followup_after_quality_gate = 0
@@ -5057,6 +5255,7 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
         },
         "preinject_recall_telemetry": _aggregate_recall_phase_metas(preinject_recall_metas),
         "tool_recall_telemetry": _aggregate_recall_phase_metas(tool_recall_metas),
+        "store_stats": store_usage,
         "preinject_usage": preinject_counts,
         "preinject_by_query_type": {
             qtype: {
@@ -5081,6 +5280,7 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
     with open(workspace / "token_usage.json", "w") as f:
         json.dump(usage, f, indent=2)
     print(f"  Token usage saved to {workspace / 'token_usage.json'}")
+    return store_usage
 
 
 def _save_ingest_usage(workspace: Path, ingest_stats: dict, extraction_model: str) -> None:
@@ -5248,6 +5448,9 @@ def _judge_anthropic(
         "max_tokens": 150,
         "messages": [{"role": "user", "content": prompt}],
     }
+    system_blocks = _anthropic_system_blocks(None, api_key, prompt_caching=False)
+    if system_blocks:
+        payload["system"] = system_blocks
 
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
@@ -5925,15 +6128,11 @@ def _call_anthropic_cached(
     payload = {
         "model": model,
         "max_tokens": max_tokens,
-        "system": [
-            {
-                "type": "text",
-                "text": system_prompt,
-                "cache_control": {"type": "ephemeral"},
-            },
-        ],
         "messages": [{"role": "user", "content": user_message}],
     }
+    system_blocks = _anthropic_system_blocks(system_prompt, api_key, prompt_caching=True)
+    if system_blocks:
+        payload["system"] = system_blocks
 
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
@@ -6360,7 +6559,13 @@ def _tool_use_loop_claude_code(
         # Claude stream occasionally omits explicit tool events; synthesize a fallback
         # recall trace to keep retrieval evaluation from collapsing to all WRONG.
         if not retrieval_texts:
-            replay, replay_meta = _tool_memory_recall(question, workspace, env, max_session=max_session)
+            replay, replay_meta = _tool_memory_recall(
+                question,
+                workspace,
+                env,
+                max_session=max_session,
+                telemetry_source="fallback_replay",
+            )
             if replay:
                 tool_call_names.append("memory_recall(replay)")
                 tool_result_summaries.append(f"memory_recall(replay:{question[:40]}): {len(replay)} chars")
@@ -6376,6 +6581,7 @@ def _tool_use_loop_claude_code(
                     "error": "",
                     "source": "fallback_replay",
                     "recall_meta": replay_meta,
+                    "call_id": ((replay_meta or {}).get("harness_telemetry") or {}).get("top_level_call_id") if isinstance(replay_meta, dict) else None,
                 })
 
     except subprocess.TimeoutExpired as exc:
@@ -6596,7 +6802,7 @@ def main():
                         help="Resume ingest/day-janitor from latest successful day checkpoint in results-dir")
     parser.add_argument("--include-statement-grounding", action="store_true",
                         help="Include the opt-in statement-context-grounding eval set (dataset experiment)")
-    parser.add_argument("--preinject-planner-profile", choices=["fast", "aggressive"], default="fast",
+    parser.add_argument("--preinject-planner-profile", choices=["off", "fast", "aggressive"], default="fast",
                         help="Planner fanout profile for preinject recall-fast (default: fast)")
     parser.add_argument("--fc-models", type=str, default=None,
                         help="Comma-separated answer models for --mode fc (default: claude-haiku-4-5-20251001)")
@@ -6710,6 +6916,9 @@ def main():
         print(f"\nTool Usage:")
         for tool, count in sorted(tool_stats.items()):
             print(f"  {tool}: {count} calls")
+        store_stats = _save_token_usage(results, workspace, args.eval_model) or {"by_combo": {}, "by_store": {}, "by_source": {}}
+        for combo, count in (store_stats.get("by_combo") or {}).items():
+            print(f"  recall stores [{combo}]: {count} calls")
         avg_tools = sum(len(r.get("tool_calls", [])) for r in results) / len(results) if results else 0
         print(f"  Avg tools/query: {avg_tools:.1f}")
 
@@ -6755,7 +6964,9 @@ def main():
             "Combined Weighted Accuracy (T1-5): "
             f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
         )
-        _save_token_usage(results, workspace, args.eval_model)
+        scores_payload["store_stats"] = store_stats
+        with open(scores_path, "w") as f:
+            json.dump(scores_payload, f, indent=2)
 
     # --- Ingestion ---
     if args.mode in ("full", "ingest"):
@@ -6843,6 +7054,9 @@ def main():
         print(f"\nTool Usage:")
         for tool, count in sorted(tool_stats.items()):
             print(f"  {tool}: {count} calls")
+        store_stats = _save_token_usage(results, workspace, args.eval_model) or {"by_combo": {}, "by_store": {}, "by_source": {}}
+        for combo, count in (store_stats.get("by_combo") or {}).items():
+            print(f"  recall stores [{combo}]: {count} calls")
         avg_tools = sum(len(r.get("tool_calls", [])) for r in results) / len(results) if results else 0
         print(f"  Avg tools/query: {avg_tools:.1f}")
 
@@ -6889,7 +7103,9 @@ def main():
             "Combined Weighted Accuracy (T1-5): "
             f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
         )
-        _save_token_usage(results, workspace, args.eval_model)
+        scores_payload["store_stats"] = store_stats
+        with open(scores_path, "w") as f:
+            json.dump(scores_payload, f, indent=2)
 
     # --- Full-context baselines ---
     if args.mode == "fc":

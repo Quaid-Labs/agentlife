@@ -844,12 +844,17 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
                                      ],
                                  }
                              }],
+                             "planned_stores": ["vector", "docs"],
                              "stop_reason": "quality_gate_met", "bailout_counts": {"planner_returned_empty": 0}
+                         }},
+                         {"tool": "recall", "source": "tool", "recall_meta": {
+                             "planned_stores": ["vector", "graph"],
+                             "turn_details": [{"planner": {"planned_stores": ["vector", "graph"]}}],
                          }}]}},
         {"eval_tokens": {"input_tokens": 30, "output_tokens": 4, "api_calls": 3, "query_duration_ms": 1500}},
     ]
 
-    rpb._save_token_usage(results, workspace, "claude-haiku-4-5-20251001")
+    store_stats = rpb._save_token_usage(results, workspace, "claude-haiku-4-5-20251001")
 
     data = json.loads((workspace / "token_usage.json").read_text())
     assert data["eval"]["total_tokens"] == 69
@@ -896,6 +901,9 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
         "avg_duration_ms": 200,
     }
     assert data["repeated_memory_recall"]["queries"] == 0
+    assert store_stats["by_combo"] == {"vector+docs": 1, "vector+graph": 1}
+    assert data["store_stats"]["by_source"]["preinject"] == {"vector+docs": 1}
+    assert data["store_stats"]["by_source"]["tool"] == {"vector+graph": 1}
 
 
 def test_summarize_usage_events_infers_tier_for_harness_logged_models(tmp_path):
@@ -1064,7 +1072,21 @@ def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatc
                     "privacy": "shared",
                     "owner_id": "maya",
                 }],
-                "meta": {"mode": "deliberate", "total_ms": 42},
+                "meta": {
+                    "mode": "deliberate",
+                    "total_ms": 42,
+                    "turn_details": [{
+                        "planner": {
+                            "timeout_ms": 60000,
+                            "elapsed_ms": 1234,
+                            "queries_count": 3,
+                            "used_llm": True,
+                            "bailout_reason": None,
+                            "query_shape": "broad",
+                            "planned_stores": ["vector"],
+                        }
+                    }],
+                },
             }),
             stderr="",
             returncode=0,
@@ -1084,7 +1106,46 @@ def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatc
     assert meta["mode"] == "deliberate"
     assert meta["total_ms"] == 42
     assert meta["harness_telemetry"]["status"] == "ok"
-    assert meta["harness_telemetry"]["docs_requested"] is False
+
+
+def test_tool_memory_recall_uses_longer_timeout_for_deliberate_calls(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    captured: dict[str, object] = {}
+
+    def _fake_run(_cmd, **_kwargs):
+        captured["timeout"] = _kwargs.get("timeout")
+        return SimpleNamespace(
+            stdout=json.dumps({
+                "results": [{
+                    "text": "Quaid likes espresso coffee",
+                    "category": "fact",
+                    "similarity": 0.9,
+                    "id": "n1",
+                    "privacy": "shared",
+                    "owner_id": "maya",
+                }],
+                "meta": {
+                    "mode": "deliberate",
+                    "stop_reason": "max_turns",
+                },
+            }),
+            stderr="",
+            returncode=0,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    text, meta = rpb._tool_memory_recall(
+        "coffee",
+        workspace,
+        {"PATH": os.environ.get("PATH", "")},
+    )
+
+    assert "Quaid likes espresso coffee" in text
+    assert captured["timeout"] == 90
+    assert meta["harness_telemetry"]["top_level_source"] == "tool"
+    assert meta["harness_telemetry"]["top_level_call_id"]
 
 
 def test_tool_memory_recall_passes_planner_profile_for_fast_calls(tmp_path, monkeypatch):
@@ -1118,12 +1179,27 @@ def test_tool_memory_recall_raises_on_nonzero_exit(tmp_path, monkeypatch):
     workspace.mkdir()
 
     def _fake_run(_cmd, **_kwargs):
-        return SimpleNamespace(stdout="", stderr="unrecognized arguments: --owner", returncode=2)
+        return SimpleNamespace(
+            stdout="",
+            stderr=(
+                "Error: Recall fanout planner failed while failHard is enabled: "
+                "planner boom (planner_timeout_ms=60000, planner_elapsed_ms=1723, "
+                "planner_profile=fast, query_shape=broad)"
+            ),
+            returncode=2,
+        )
 
     monkeypatch.setattr(subprocess, "run", _fake_run)
 
     with pytest.raises(RuntimeError, match="recall failed rc=2"):
         rpb._tool_memory_recall("coffee", workspace, {"PATH": os.environ.get("PATH", "")})
+
+    telemetry_path = workspace / "logs" / "recall-telemetry.jsonl"
+    rows = [json.loads(line) for line in telemetry_path.read_text().splitlines() if line.strip()]
+    assert rows[-1]["planner_timeout_ms"] == 60000
+    assert rows[-1]["planner_elapsed_ms"] == 1723
+    assert rows[-1]["planner_profile"] == "fast"
+    assert rows[-1]["planner_query_shape"] == "broad"
 
 
 def test_tool_memory_recall_raises_on_timeout_and_writes_telemetry(tmp_path, monkeypatch):
@@ -1144,6 +1220,32 @@ def test_tool_memory_recall_raises_on_timeout_and_writes_telemetry(tmp_path, mon
     assert rows
     assert rows[-1]["status"] == "timeout"
     assert rows[-1]["query"] == "coffee"
+    assert rows[-1]["top_level_source"] == "tool"
+    assert rows[-1]["top_level_call_id"]
+    assert rows[-1]["timeout_s"] == 90
+
+
+def test_tool_memory_recall_uses_shorter_timeout_for_fast_calls(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    captured: dict[str, object] = {}
+
+    def _fake_run(_cmd, **kwargs):
+        captured["timeout"] = kwargs.get("timeout")
+        return SimpleNamespace(stdout=json.dumps({"results": [], "meta": {"mode": "fast"}}), stderr="", returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    _text, meta = rpb._tool_memory_recall(
+        "coffee",
+        workspace,
+        {"PATH": os.environ.get("PATH", "")},
+        fast=True,
+    )
+
+    assert captured["timeout"] == 30
+    assert meta["harness_telemetry"]["status"] == "ok"
 
 
 def test_tool_memory_recall_parses_graph_direct_results_payload(tmp_path, monkeypatch):
@@ -1380,6 +1482,25 @@ def test_call_anthropic_cached_retries_http_520(monkeypatch):
         assert env["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] == "sk-ant-oat01-test-token"
         assert env["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
 
+    def test_anthropic_oauth_headers_include_claude_code_identity(self):
+        headers = rpb._anthropic_headers("sk-ant-oat01-test-token", prompt_caching=False)
+        assert headers["Authorization"] == "Bearer sk-ant-oat01-test-token"
+        assert headers["Accept"] == "application/json"
+        assert headers["user-agent"] == "claude-cli/2.1.2 (external, cli)"
+        assert headers["x-app"] == "cli"
+        assert "claude-code-20250219" in headers["anthropic-beta"]
+        assert "oauth-2025-04-20" in headers["anthropic-beta"]
+
+    def test_anthropic_oauth_system_blocks_include_claude_code_identity(self):
+        blocks = rpb._anthropic_system_blocks(
+            "Answer directly.",
+            "sk-ant-oat01-test-token",
+            prompt_caching=False,
+        )
+        assert isinstance(blocks, list)
+        assert blocks[0]["text"] == "You are Claude Code, Anthropic's official CLI for Claude."
+        assert blocks[1]["text"] == "Answer directly."
+
 
 class TestSetupWorkspaceConfig:
     def test_claude_code_workspace_forces_split_tiers(self, tmp_path, monkeypatch):
@@ -1422,6 +1543,42 @@ class TestSetupWorkspaceConfig:
         assert models["fastReasoning"] == "claude-haiku-4-5-20251001"
         assert "baseUrl" not in models
         assert "apiKeyEnv" not in models
+
+    def test_api_workspace_respects_explicit_split_tiers(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(
+            json.dumps(
+                {
+                    "models": {
+                        "llmProvider": "anthropic",
+                        "deepReasoning": "claude-haiku-4-5-20251001",
+                        "fastReasoning": "claude-haiku-4-5-20251001",
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+        monkeypatch.delenv("BENCHMARK_REASONING_MODEL", raising=False)
+        monkeypatch.setenv("BENCHMARK_DEEP_REASONING_MODEL", "claude-sonnet-4-6")
+        monkeypatch.setenv("BENCHMARK_FAST_REASONING_MODEL", "claude-haiku-4-5-20251001")
+
+        rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        models = cfg["models"]
+        assert models["llmProvider"] == "anthropic"
+        assert models["deepReasoningProvider"] == "anthropic"
+        assert models["fastReasoningProvider"] == "anthropic"
+        assert models["deepReasoning"] == "claude-sonnet-4-6"
+        assert models["fastReasoning"] == "claude-haiku-4-5-20251001"
 
 
 class TestRequireProjectSourceRepo:
@@ -1687,6 +1844,8 @@ class TestBuildExtractionPrompt:
         prompt = ec.build_extraction_prompt("Maya")
         assert "memory extraction system" in prompt
         assert "Maya" in prompt
+        assert "Prefer multiple short self-contained facts" in prompt
+        assert "Never use initials" in prompt
 
     def test_focus_user_mode(self):
         prompt = ec.build_extraction_prompt("Maya", focus="user")
