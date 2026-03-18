@@ -64,7 +64,7 @@ HTML = """<!doctype html>
         <th>Threads</th>
         <th>Current Active Item</th>
         <th>ETA</th>
-        <th>Final Score</th>
+        <th>Score</th>
         <th>Deep Dive</th>
         <th>Notes</th>
       </tr>
@@ -94,6 +94,10 @@ function laneFromName(name) {
   if (n.includes('-api') || n.includes('api-')) return 'api';
   return 'mixed';
 }
+function laneDisplay(x) {
+  if (x.provider_lane) return x.provider_lane;
+  return laneFromName(x.name);
+}
 function statusMap(state) {
   const m = {active:'ACTIVE', complete:'DONE', failed:'FAILED', incomplete:'INCOMPLETE'};
   return m[state] || (state || '').toUpperCase();
@@ -101,6 +105,10 @@ function statusMap(state) {
 function runIdFromName(name) {
   const m = String(name || '').match(/r\\d+/i);
   return m ? m[0].toLowerCase() : (name || '');
+}
+function runNumFromName(name) {
+  const m = String(name || '').match(/r(\\d+)/i);
+  return m ? Number(m[1]) : -1;
 }
 function fmtDuration(sec) {
   if (sec == null || Number.isNaN(Number(sec))) return 'unknown';
@@ -133,6 +141,9 @@ async function refresh() {
     const aActive = a.state === 'active' ? 1 : 0;
     const bActive = b.state === 'active' ? 1 : 0;
     if (aActive !== bActive) return bActive - aActive;
+    const ar = runNumFromName(a.name);
+    const br = runNumFromName(b.name);
+    if (ar !== br) return br - ar;
     const at = runCreatedTs(a.name) || Date.parse(a.started_at || a.completed_at || '') || 0;
     const bt = runCreatedTs(b.name) || Date.parse(b.started_at || b.completed_at || '') || 0;
     if (at !== bt) return bt - at;
@@ -145,11 +156,11 @@ async function refresh() {
       <td>${metricFromName(x.name)}</td>
       <td>${typeFromName(x.name)}</td>
       <td class="${x.state || ''}">${statusMap(x.state)}</td>
-      <td>${laneFromName(x.name)}</td>
+      <td>${laneDisplay(x)}</td>
       <td>${x.parallel ?? 'unknown'}</td>
       <td>${x.current_active_item || (x.reason || '')}</td>
       <td>${x.state === 'complete' ? fmtDuration(x.elapsed_seconds) : 'unknown'}</td>
-      <td>${x.final_score != null ? `${Number(x.final_score).toFixed(2)}%` : (x.preview_score != null ? `~${Number(x.preview_score).toFixed(2)}%` : '')}</td>
+      <td>${x.final_score != null ? `${Number(x.final_score).toFixed(2)}%` : (x.preview_score != null ? `Live ${Number(x.preview_score).toFixed(2)}%` : '')}</td>
       <td><a style="color:#9fd0ff" href="/run?name=${encodeURIComponent(x.name || '')}">Open</a></td>
       <td>${x.name || ''}${x.score != null ? ` | monitor=${x.score}` : ''}</td>
     </tr>
@@ -314,6 +325,7 @@ def _fetch_local_vm_status() -> Dict[str, Any]:
             "name": name,
             "state": "active",
             "parallel": 1,
+            "provider_lane": "local-vm",
             "started_at": None,
             "completed_at": None,
             "elapsed_seconds": None,
@@ -464,6 +476,12 @@ def fetch_remote_status(spark_host: str, remote_root: str) -> Dict[str, Any]:
         "root = Path(sys.argv[1])\n"
         "report = json.loads((root / 'runs' / 'monitor-status.json').read_text())\n"
         "def _infer_parallel(run_name):\n"
+        "    patterns = [\n"
+        "        re.compile(r'Parallel (?:chunk )?extraction workers:\\s*(\\d+)'),\n"
+        "        re.compile(r'Parallel day extraction workers:\\s*(\\d+)'),\n"
+        "        re.compile(r'Parallel workers:\\s*(\\d+)'),\n"
+        "        re.compile(r'--parallel\\s+(\\d+)'),\n"
+        "    ]\n"
         "    candidates = [\n"
         "        root / 'runs' / f'{run_name}.launch.log',\n"
         "        root / 'runs' / str(run_name) / 'launch.log',\n"
@@ -477,12 +495,35 @@ def fetch_remote_status(spark_host: str, remote_root: str) -> Dict[str, Any]:
         "            txt = p.read_text(errors='ignore')\n"
         "        except Exception:\n"
         "            continue\n"
-        "        m = pat.search(txt)\n"
+        "        for pat in patterns:\n"
+        "            m = pat.search(txt)\n"
+        "            if m:\n"
+        "                try:\n"
+        "                    return int(m.group(1))\n"
+        "                except Exception:\n"
+        "                    pass\n"
+        "    return None\n"
+        "def _infer_provider_lane(run_name):\n"
+        "    candidates = [\n"
+        "        root / 'runs' / f'{run_name}.launch.log',\n"
+        "        root / 'runs' / str(run_name) / 'launch.log',\n"
+        "        root / 'runs' / str(run_name) / 'run.log',\n"
+        "    ]\n"
+        "    for p in candidates:\n"
+        "        if not p.exists():\n"
+        "            continue\n"
+        "        try:\n"
+        "            txt = p.read_text(errors='ignore')\n"
+        "        except Exception:\n"
+        "            continue\n"
+        "        m = re.search(r'^\\s*Backend:\\s*([A-Za-z0-9._-]+)\\s*$', txt, re.M)\n"
         "        if m:\n"
-        "            try:\n"
-        "                return int(m.group(1))\n"
-        "            except Exception:\n"
-        "                pass\n"
+        "            return m.group(1).lower()\n"
+        "        low = txt.lower()\n"
+        "        if 'claude-code' in low or 'claude -p' in low:\n"
+        "            return 'claude-code'\n"
+        "        if 'benchmark anthropic oauth' in low or '--backend api' in low:\n"
+        "            return 'api'\n"
         "    return None\n"
         "def _extract_final_score(run_name):\n"
         "    candidates = [\n"
@@ -681,6 +722,7 @@ def fetch_remote_status(spark_host: str, remote_root: str) -> Dict[str, Any]:
         "        r['reason'] = 'run_metadata.completed_at present'\n"
         "    r['elapsed_seconds'] = elapsed\n"
         "    r['parallel'] = parallel\n"
+        "    r['provider_lane'] = _infer_provider_lane(r.get('name', ''))\n"
         "    r['started_at'] = started_at\n"
         "    r['completed_at'] = completed_at\n"
         "    r['final_score'] = _extract_final_score(r.get('name', ''))\n"
