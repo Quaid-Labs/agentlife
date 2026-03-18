@@ -50,6 +50,10 @@ _ANTHROPIC_OAUTH_IDENTITY_TEXT = (
 )
 _ANTHROPIC_OAUTH_USER_AGENT = "claude-cli/2.1.2 (external, cli)"
 _ANTHROPIC_OAUTH_CLAUDE_CODE_BETA = "claude-code-20250219"
+_WEAKLY_INTERPRETED_FACT_RE = re.compile(
+    r"\b(mentioned in passing|ongoing context|showing that|showing she|showing he|showing they|indicating that|someone referred to as|presumably|likely|probably|which suggests|which indicates|reflecting)\b",
+    re.IGNORECASE,
+)
 
 
 def read_session_messages(session_file: str) -> list[dict]:
@@ -98,6 +102,16 @@ def _read_env_key(env_file: str, key: str) -> str | None:
                 parts = [raw_val]
             return parts[0] if parts else ""
     return None
+
+
+def _adjust_extraction_confidence(text: str, confidence: float) -> float:
+    if confidence <= 0.3:
+        return confidence
+    if not _WEAKLY_INTERPRETED_FACT_RE.search(str(text or "")):
+        return confidence
+    if confidence >= 0.85:
+        return 0.6
+    return 0.3
 
 
 def _is_anthropic_oauth_token(token: str) -> bool:
@@ -284,6 +298,9 @@ WHAT NOT TO EXTRACT:
 - Acknowledgments ("thanks", "got it", "sounds good")
 - General knowledge not specific to {user_name}
 - Meta-conversation about AI capabilities
+- Extractor commentary or interpretation language ("mentioned in passing", "ongoing context", "showing that", "indicating that", "someone referred to as", "presumably", "likely", "probably")
+- Narrative gloss about what a fact implies instead of the fact itself
+- Weakly inferred present-state claims that are not explicitly stated
 NOTE: DO extract project technical details — tech stacks, features, API endpoints, database schemas, test suites, middleware, deployment configs, bugs, versions. These ARE personal facts about {user_name}'s projects.
 
 QUALITY RULES:
@@ -293,6 +310,9 @@ QUALITY RULES:
 - ONE fact per entry — do not combine multiple pieces of information
 - Split facts that contain multiple independent searchable claims
 - Mark extraction_confidence "high" for clearly stated facts, "medium" for likely but somewhat ambiguous, "low" for weak signals
+- If a person, place, or relationship is ambiguous, drop the fact instead of guessing or paraphrasing uncertainty into the fact text
+- Do not encode the extractor's reasoning into the fact text; store the explicit fact, not your explanation of how you interpreted it
+- If the transcript includes an explicit message timestamp for the source utterance, you may copy it into a fact-level `created_at` field using the exact timestamp or date string from the transcript. If no explicit source timestamp is present, omit `created_at`.
 - Extract THOROUGHLY — cover every person mentioned, every project detail, every preference, every event. The downstream janitor handles noise, but missed facts are gone forever
 
 KEYWORDS (per fact):
@@ -447,6 +467,7 @@ Respond with JSON only:
       "privacy": "private|shared|public",
       "sensitivity": null,
       "sensitivity_handling": null,
+      "created_at": null,
       "domains": ["personal"],
       "project": null,
       "edges": [
@@ -564,6 +585,7 @@ def store_fact(
     sensitivity_handling: str | None = None,
     domains: list[str] | None = None,
     project: str | None = None,
+    created_at: str | None = None,
 ) -> dict | None:
     """Store a fact via memory_graph.py CLI and parse the result."""
     quaid_dir = _resolve_quaid_dir(workspace)
@@ -590,6 +612,8 @@ def store_fact(
             cmd.extend(["--domains", ",".join(dict.fromkeys(clean_domains))])
     if project:
         cmd.extend(["--project", project])
+    if created_at:
+        cmd.extend(["--created-at", created_at])
     if sensitivity:
         cmd.extend(["--sensitivity", sensitivity])
     if sensitivity_handling:
@@ -1050,6 +1074,7 @@ def main():
 
         conf_str = fact.get("extraction_confidence", "medium")
         conf_num = {"high": 0.9, "medium": 0.6, "low": 0.3}.get(conf_str, 0.6)
+        conf_num = _adjust_extraction_confidence(text, conf_num)
         category = fact.get("category", "fact")
         privacy = fact.get("privacy", "shared")
         keywords = fact.get("keywords")
@@ -1067,12 +1092,13 @@ def main():
         domains = [str(d).strip().lower() for d in raw_domains if str(d).strip()]
         if not domains:
             domains = ["projects"] if project_name else ["personal"]
+        created_at = fact.get("created_at")
 
         store_result = store_fact(
             workspace, text, category, args.owner_id, conf_num,
             args.session_id, privacy, keywords, knowledge_type, "user",
             sensitivity=sensitivity, sensitivity_handling=sensitivity_handling,
-            domains=domains, project=project_name,
+            domains=domains, project=project_name, created_at=created_at,
         )
 
         if store_result and store_result["status"] in ("created", "updated", "duplicate"):

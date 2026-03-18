@@ -320,26 +320,42 @@ fi
 OPTIONAL_BENCH_ENV+="export BENCHMARK_SCALE=$(printf %q "$SCALE")"$'\n'
 if [[ "$SCALE" == "l" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_INCLUDE_FILLER=1"$'\n'
-  OPTIONAL_BENCH_ENV+="export BENCHMARK_FILLER_DIR=$(printf %q "${BENCHMARK_FILLER_DIR:-$REMOTE_BENCH_ROOT/data/filler-sessions}")"$'\n'
+  if [[ -n "${BENCHMARK_FILLER_DIR:-}" ]]; then
+    OPTIONAL_BENCH_ENV+="export BENCHMARK_FILLER_DIR_RAW=$(printf %q "$BENCHMARK_FILLER_DIR")"$'\n'
+  fi
 else
   OPTIONAL_BENCH_ENV+="export BENCHMARK_INCLUDE_FILLER=0"$'\n'
 fi
 REMOTE_PY_CMD="
 set -euo pipefail
-cd $REMOTE_BENCH_ROOT
-if [[ -d $(printf %q "$REMOTE_CHECKPOINT_ROOT")/modules/quaid ]]; then
-  export BENCHMARK_PLUGIN_DIR=$(printf %q "$REMOTE_CHECKPOINT_ROOT")/modules/quaid
-elif [[ -d $(printf %q "$REMOTE_CHECKPOINT_ROOT")/plugins/quaid ]]; then
-  export BENCHMARK_PLUGIN_DIR=$(printf %q "$REMOTE_CHECKPOINT_ROOT")/plugins/quaid
-elif [[ -d $(printf %q "$REMOTE_CHECKPOINT_PLUGIN_ROOT") ]]; then
-  export BENCHMARK_PLUGIN_DIR=$(printf %q "$REMOTE_CHECKPOINT_PLUGIN_ROOT")
+resolve_remote_path() {
+  python3 - \"\$1\" <<'PY'
+import os, sys
+print(os.path.abspath(os.path.expanduser(os.path.expandvars(sys.argv[1]))))
+PY
+}
+REMOTE_BENCH_ROOT_RESOLVED=\$(resolve_remote_path $(printf %q "$REMOTE_BENCH_ROOT"))
+REMOTE_CHECKPOINT_ROOT_RESOLVED=\$(resolve_remote_path $(printf %q "$REMOTE_CHECKPOINT_ROOT"))
+REMOTE_CHECKPOINT_PLUGIN_ROOT_RESOLVED=\$(resolve_remote_path $(printf %q "$REMOTE_CHECKPOINT_PLUGIN_ROOT"))
+cd \"\$REMOTE_BENCH_ROOT_RESOLVED\"
+if [[ -d \"\$REMOTE_CHECKPOINT_ROOT_RESOLVED/modules/quaid\" ]]; then
+  export BENCHMARK_PLUGIN_DIR=\"\$REMOTE_CHECKPOINT_ROOT_RESOLVED/modules/quaid\"
+elif [[ -d \"\$REMOTE_CHECKPOINT_ROOT_RESOLVED/plugins/quaid\" ]]; then
+  export BENCHMARK_PLUGIN_DIR=\"\$REMOTE_CHECKPOINT_ROOT_RESOLVED/plugins/quaid\"
+elif [[ -d \"\$REMOTE_CHECKPOINT_PLUGIN_ROOT_RESOLVED\" ]]; then
+  export BENCHMARK_PLUGIN_DIR=\"\$REMOTE_CHECKPOINT_PLUGIN_ROOT_RESOLVED\"
 fi
 export BENCHMARK_PARALLEL=$(printf %q "$PARALLEL")
 export BENCHMARK_LIFECYCLE_PREPASS_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_LLM_WORKERS=$(printf %q "$PARALLEL")
 export BENCHMARK_JANITOR_REVIEW_WORKERS=$(printf %q "$PARALLEL")
 $OPTIONAL_BENCH_ENV
-export AGENTLIFE_ASSETS_DIR=$(printf %q "$REMOTE_BENCH_ROOT")/data/sessions
+if [[ -n \"\${BENCHMARK_FILLER_DIR_RAW:-}\" ]]; then
+  export BENCHMARK_FILLER_DIR=\$(resolve_remote_path \"\$BENCHMARK_FILLER_DIR_RAW\")
+elif [[ \"\${BENCHMARK_INCLUDE_FILLER:-0}\" == \"1\" ]]; then
+  export BENCHMARK_FILLER_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/filler-sessions\"
+fi
+export AGENTLIFE_ASSETS_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/sessions\"
 BENCHMARK_OAUTH_TOKEN="\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}"
 if [[ -z \"\$BENCHMARK_OAUTH_TOKEN\" && -f \"/home/solomon/clawd/.env\" ]]; then
   BENCHMARK_OAUTH_TOKEN=\$(python3 - <<'PY'

@@ -238,6 +238,7 @@ def store_session_facts(
 
         try:
             # store() returns {"id": node_id, "status": "created", ...}
+            fact_created_at = fact_json.get("created_at") or session_date
             result = store(
                 text=text,
                 owner_id=owner_id,
@@ -247,7 +248,7 @@ def store_session_facts(
                 keywords=keywords,
                 source_type="user",
                 session_id=f"session-{session_num}",
-                created_at=session_date,
+                created_at=fact_created_at,
             )
             node_id = result.get("id") if isinstance(result, dict) else None
             stats["facts_stored"] += 1

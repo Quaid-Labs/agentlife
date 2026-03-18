@@ -6,6 +6,7 @@ extract_compact.py. No network or subprocess calls — everything mocked.
 
 import json
 import io
+import importlib
 import os
 import re
 import sqlite3
@@ -1846,6 +1847,9 @@ class TestBuildExtractionPrompt:
         assert "Maya" in prompt
         assert "Prefer multiple short self-contained facts" in prompt
         assert "Never use initials" in prompt
+        assert "Extractor commentary or interpretation language" in prompt
+        assert "Do not encode the extractor's reasoning into the fact text" in prompt
+        assert "fact-level `created_at` field" in prompt
 
     def test_focus_user_mode(self):
         prompt = ec.build_extraction_prompt("Maya", focus="user")
@@ -1880,6 +1884,88 @@ class TestBuildExtractionPrompt:
     def test_empty_domains_no_domain_line(self):
         prompt = ec.build_extraction_prompt("Maya", allowed_domains=[])
         assert "Allowed domain ids" not in prompt
+
+
+class TestStoreFact:
+    def test_adjust_extraction_confidence_deboosts_interpreted_language(self):
+        assert ec._adjust_extraction_confidence(
+            "Maya was planning to show the recipe app to someone referred to as 'D' (likely David)",
+            0.9,
+        ) == 0.6
+        assert ec._adjust_extraction_confidence(
+            "Maya wrote a PRD for the recipe app, showing she takes planning seriously",
+            0.6,
+        ) == 0.3
+        assert ec._adjust_extraction_confidence(
+            "Maya lives in South Austin near Zilker",
+            0.9,
+        ) == 0.9
+
+    def test_store_fact_passes_created_at_flag(self, monkeypatch, tmp_path):
+        captured = {}
+
+        def _fake_run(cmd, capture_output, text, timeout, cwd):
+            captured["cmd"] = cmd
+            return SimpleNamespace(returncode=0, stdout="Stored: node-1", stderr="")
+
+        monkeypatch.setattr(ec, "_resolve_quaid_dir", lambda workspace: str(tmp_path))
+        monkeypatch.setattr(subprocess, "run", _fake_run)
+
+        out = ec.store_fact(
+            workspace=str(tmp_path),
+            text="Maya moved to South Austin",
+            owner_id="maya",
+            created_at="2026-03-18T09:15:00Z",
+        )
+
+        assert out == {"status": "created", "id": "node-1"}
+        assert "--created-at" in captured["cmd"]
+        idx = captured["cmd"].index("--created-at")
+        assert captured["cmd"][idx + 1] == "2026-03-18T09:15:00Z"
+
+
+class TestStoreSessionFacts:
+    def test_store_session_facts_prefers_fact_created_at(self, monkeypatch):
+        captured = {}
+
+        dataset_stub = ModuleType("dataset")
+        dataset_stub.SessionReview = object
+        dataset_stub.format_transcript_for_extraction = lambda *a, **k: ""
+        dataset_stub.SESSION_DATES = {}
+        dataset_stub.FILLER_DATES = {}
+        claude_backend_stub = ModuleType("claude_backend")
+        claude_backend_stub.call_claude = lambda *a, **k: ("", 0.0)
+        claude_backend_stub.is_available = lambda: True
+        memory_graph_stub = ModuleType("memory_graph")
+        monkeypatch.setitem(sys.modules, "dataset", dataset_stub)
+        monkeypatch.setitem(sys.modules, "claude_backend", claude_backend_stub)
+        monkeypatch.setitem(sys.modules, "memory_graph", memory_graph_stub)
+        ingest_mod = importlib.import_module("ingest")
+
+        def _fake_store(**kwargs):
+            captured.update(kwargs)
+            return {"id": "node-1", "status": "created"}
+
+        memory_graph_stub.store = _fake_store
+        memory_graph_stub.create_edge = lambda **kwargs: True
+        monkeypatch.setattr(ingest_mod, "_ensure_quaid", lambda: None)
+
+        extraction = {
+            "facts": [
+                {
+                    "text": "Maya moved to South Austin",
+                    "category": "fact",
+                    "extraction_confidence": "high",
+                    "keywords": "home neighborhood moving",
+                    "created_at": "2026-03-18T09:15:00Z",
+                    "edges": [],
+                }
+            ]
+        }
+
+        out = ingest_mod.store_session_facts(extraction, owner_id="maya", session_date="2026-03-18", session_num=7)
+        assert out["facts_stored"] == 1
+        assert captured["created_at"] == "2026-03-18T09:15:00Z"
 
 
 class TestParseExtractionResponse:
