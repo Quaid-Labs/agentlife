@@ -1077,12 +1077,29 @@ def _empty_usage_summary() -> Dict[str, Any]:
         "input_tokens": 0,
         "output_tokens": 0,
         "total_tokens": 0,
+        "uncached_input_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
         "api_calls": 0,
         "cost_usd": 0.0,
         "by_model": {},
         "by_tier": {},
         "by_source": {},
     }
+
+
+def _resolve_eval_context_profile() -> Tuple[str, List[str], bool]:
+    """Resolve eval context injection profile and included source groups."""
+    profile = (os.environ.get("BENCHMARK_EVAL_CONTEXT_PROFILE", "") or "").strip().lower()
+    if profile not in {"full", "lean", "project-only", "none"}:
+        profile = "full"
+    if profile == "lean":
+        return profile, ["SOUL.md", "USER.md", "MEMORY.md"], False
+    if profile == "project-only":
+        return profile, [], True
+    if profile == "none":
+        return profile, [], False
+    return profile, ["SOUL.md", "USER.md", "MEMORY.md", "TOOLS.md"], True
 
 
 def _infer_usage_tier(model: Optional[str]) -> Optional[str]:
@@ -1096,37 +1113,91 @@ def _infer_usage_tier(model: Optional[str]) -> Optional[str]:
     return None
 
 
-def _merge_usage_counts(summary: Dict[str, Any], *, model: Optional[str], tier: Optional[str], source: Optional[str], input_tokens: int, output_tokens: int, api_calls: int, cost_usd: float = 0.0) -> None:
+def _merge_usage_counts(
+    summary: Dict[str, Any],
+    *,
+    model: Optional[str],
+    tier: Optional[str],
+    source: Optional[str],
+    input_tokens: int,
+    output_tokens: int,
+    api_calls: int,
+    cost_usd: float = 0.0,
+    uncached_input_tokens: Optional[int] = None,
+    cache_read_tokens: int = 0,
+    cache_creation_tokens: int = 0,
+) -> None:
+    if uncached_input_tokens is None:
+        uncached_input_tokens = max(0, int(input_tokens) - int(cache_read_tokens) - int(cache_creation_tokens))
     summary["input_tokens"] += int(input_tokens)
     summary["output_tokens"] += int(output_tokens)
     summary["total_tokens"] += int(input_tokens) + int(output_tokens)
+    summary["uncached_input_tokens"] += int(uncached_input_tokens)
+    summary["cache_read_tokens"] += int(cache_read_tokens)
+    summary["cache_creation_tokens"] += int(cache_creation_tokens)
     summary["api_calls"] += int(api_calls)
     summary["cost_usd"] = round(float(summary.get("cost_usd", 0.0)) + float(cost_usd), 4)
 
     if model:
         by_model = summary.setdefault("by_model", {})
-        row = by_model.setdefault(model, {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "api_calls": 0, "cost_usd": 0.0})
+        row = by_model.setdefault(model, {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "uncached_input_tokens": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
+            "api_calls": 0,
+            "cost_usd": 0.0,
+        })
         row["input_tokens"] += int(input_tokens)
         row["output_tokens"] += int(output_tokens)
         row["total_tokens"] += int(input_tokens) + int(output_tokens)
+        row["uncached_input_tokens"] += int(uncached_input_tokens)
+        row["cache_read_tokens"] += int(cache_read_tokens)
+        row["cache_creation_tokens"] += int(cache_creation_tokens)
         row["api_calls"] += int(api_calls)
         row["cost_usd"] = round(float(row.get("cost_usd", 0.0)) + float(cost_usd), 4)
 
     if tier:
         by_tier = summary.setdefault("by_tier", {})
-        row = by_tier.setdefault(tier, {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "api_calls": 0, "cost_usd": 0.0})
+        row = by_tier.setdefault(tier, {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "uncached_input_tokens": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
+            "api_calls": 0,
+            "cost_usd": 0.0,
+        })
         row["input_tokens"] += int(input_tokens)
         row["output_tokens"] += int(output_tokens)
         row["total_tokens"] += int(input_tokens) + int(output_tokens)
+        row["uncached_input_tokens"] += int(uncached_input_tokens)
+        row["cache_read_tokens"] += int(cache_read_tokens)
+        row["cache_creation_tokens"] += int(cache_creation_tokens)
         row["api_calls"] += int(api_calls)
         row["cost_usd"] = round(float(row.get("cost_usd", 0.0)) + float(cost_usd), 4)
 
     if source:
         by_source = summary.setdefault("by_source", {})
-        row = by_source.setdefault(source, {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "api_calls": 0, "cost_usd": 0.0})
+        row = by_source.setdefault(source, {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "uncached_input_tokens": 0,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
+            "api_calls": 0,
+            "cost_usd": 0.0,
+        })
         row["input_tokens"] += int(input_tokens)
         row["output_tokens"] += int(output_tokens)
         row["total_tokens"] += int(input_tokens) + int(output_tokens)
+        row["uncached_input_tokens"] += int(uncached_input_tokens)
+        row["cache_read_tokens"] += int(cache_read_tokens)
+        row["cache_creation_tokens"] += int(cache_creation_tokens)
         row["api_calls"] += int(api_calls)
         row["cost_usd"] = round(float(row.get("cost_usd", 0.0)) + float(cost_usd), 4)
 
@@ -1230,6 +1301,12 @@ def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> 
         api_calls = int(event.get("api_calls", 1) or 1)
         source = str(event.get("source") or "")
         tier = str(event.get("tier") or "")
+        cache_read_tokens = int(event.get("cache_read_tokens", 0) or 0)
+        cache_creation_tokens = int(event.get("cache_creation_tokens", 0) or 0)
+        uncached_input_tokens = max(
+            0,
+            int(event.get("input_tokens", 0) or 0) - cache_read_tokens - cache_creation_tokens,
+        )
         model_usage = event.get("model_usage") or {}
         if isinstance(model_usage, dict) and model_usage:
             tracked_any = False
@@ -1248,6 +1325,9 @@ def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> 
                     output_tokens=out_tok,
                     api_calls=api_calls,
                     cost_usd=_estimate_model_cost(str(model_name), in_tok, out_tok),
+                    uncached_input_tokens=uncached_input_tokens,
+                    cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                 )
                 tracked_any = True
             if tracked_any:
@@ -1265,6 +1345,9 @@ def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> 
             output_tokens=out_tok,
             api_calls=api_calls,
             cost_usd=_estimate_model_cost(model or None, in_tok, out_tok),
+            uncached_input_tokens=uncached_input_tokens,
+            cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
         )
     summary["cost_usd"] = round(float(summary.get("cost_usd", 0.0)), 4)
     return summary
@@ -3141,23 +3224,17 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     # Build eval context from evolved workspace files.
     # Default to lean context when pre-injection is enabled to reduce
     # per-turn token replay of large static docs.
-    profile = (os.environ.get("BENCHMARK_EVAL_CONTEXT_PROFILE", "") or "").strip().lower()
-    if profile not in {"full", "lean"}:
-        profile = "full"
-    if profile == "lean":
-        eval_context = _build_eval_context(
-            workspace,
-            core_files=["SOUL.md", "USER.md", "MEMORY.md"],
-            include_project_bootstrap=False,
-        )
-        eval_context_sources = _build_eval_context_sources(
-            workspace,
-            core_files=["SOUL.md", "USER.md", "MEMORY.md"],
-            include_project_bootstrap=False,
-        )
-    else:
-        eval_context = _build_eval_context(workspace)
-        eval_context_sources = _build_eval_context_sources(workspace)
+    profile, core_files, include_project_bootstrap = _resolve_eval_context_profile()
+    eval_context = _build_eval_context(
+        workspace,
+        core_files=core_files,
+        include_project_bootstrap=include_project_bootstrap,
+    )
+    eval_context_sources = _build_eval_context_sources(
+        workspace,
+        core_files=core_files,
+        include_project_bootstrap=include_project_bootstrap,
+    )
     print(f"  Eval context profile: {profile}")
     print(f"  Eval core token cap: {_EVAL_CORE_TOKEN_CAP} tokens per SOUL/USER/MEMORY")
     print(f"  Eval context: {len(eval_context)} chars ({len(eval_context)//4} est tokens)")
@@ -3805,6 +3882,9 @@ def _eval_core_context_preflight(
     if max_queries_env > 0:
         return
     if max_sessions is not None and max_sessions < 20:
+        return
+    profile, _, _ = _resolve_eval_context_profile()
+    if profile in {"project-only", "none"}:
         return
     if os.environ.get("BENCHMARK_SKIP_CONTEXT_PREFLIGHT", "").strip().lower() in {"1", "true", "yes"}:
         return
@@ -4938,6 +5018,9 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
             "input_tokens": fallback_in,
             "output_tokens": fallback_out,
             "total_tokens": fallback_in + fallback_out,
+            "uncached_input_tokens": fallback_in,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
             "api_calls": fallback_calls,
             "cost_usd": fallback_cost,
             "by_model": {
@@ -4945,6 +5028,9 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
                     "input_tokens": fallback_in,
                     "output_tokens": fallback_out,
                     "total_tokens": fallback_in + fallback_out,
+                    "uncached_input_tokens": fallback_in,
+                    "cache_read_tokens": 0,
+                    "cache_creation_tokens": 0,
                     "api_calls": fallback_calls,
                     "cost_usd": fallback_cost,
                 }
@@ -5228,6 +5314,9 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
             "input_tokens": eval_in,
             "output_tokens": eval_out,
             "total_tokens": eval_in + eval_out,
+            "uncached_input_tokens": int(eval_usage_summary.get("uncached_input_tokens", eval_in)),
+            "cache_read_tokens": int(eval_usage_summary.get("cache_read_tokens", 0)),
+            "cache_creation_tokens": int(eval_usage_summary.get("cache_creation_tokens", 0)),
             "api_calls": eval_calls,
             "model": eval_model,
             "cost_usd": round(float(eval_usage_summary.get("cost_usd", 0.0)), 4),
@@ -5291,6 +5380,9 @@ def _save_ingest_usage(workspace: Path, ingest_stats: dict, extraction_model: st
             "input_tokens": int(ingest_usage.get("input_tokens", 0)),
             "output_tokens": int(ingest_usage.get("output_tokens", 0)),
             "total_tokens": int(ingest_usage.get("total_tokens", 0)),
+            "uncached_input_tokens": int(ingest_usage.get("uncached_input_tokens", ingest_usage.get("input_tokens", 0))),
+            "cache_read_tokens": int(ingest_usage.get("cache_read_tokens", 0)),
+            "cache_creation_tokens": int(ingest_usage.get("cache_creation_tokens", 0)),
             "api_calls": int(ingest_usage.get("api_calls", 0)),
             "model": extraction_model,
             "cost_usd": round(float(ingest_usage.get("cost_usd", 0.0)), 4),

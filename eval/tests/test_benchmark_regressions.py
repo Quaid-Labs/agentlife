@@ -822,6 +822,22 @@ class TestMakeEnv:
 def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
     workspace = tmp_path / "ws"
     workspace.mkdir()
+    (workspace / "logs").mkdir(parents=True, exist_ok=True)
+
+    rpb._append_usage_event(
+        workspace,
+        phase="eval",
+        source="answer_model",
+        model="claude-haiku-4-5-20251001",
+        usage={
+            "input_tokens": 30,
+            "cache_read_input_tokens": 50,
+            "cache_creation_input_tokens": 20,
+            "output_tokens": 10,
+            "api_calls": 1,
+        },
+        provider="api",
+    )
 
     results = [
         {"eval_tokens": {"input_tokens": 10, "output_tokens": 2, "api_calls": 1, "preinject_duration_ms": 100, "query_duration_ms": 900}},
@@ -858,7 +874,15 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
     store_stats = rpb._save_token_usage(results, workspace, "claude-haiku-4-5-20251001")
 
     data = json.loads((workspace / "token_usage.json").read_text())
-    assert data["eval"]["total_tokens"] == 69
+    assert data["eval"]["input_tokens"] == 100
+    assert data["eval"]["output_tokens"] == 10
+    assert data["eval"]["total_tokens"] == 110
+    assert data["eval"]["uncached_input_tokens"] == 30
+    assert data["eval"]["cache_read_tokens"] == 50
+    assert data["eval"]["cache_creation_tokens"] == 20
+    assert data["eval"]["by_model"]["claude-haiku-4-5-20251001"]["uncached_input_tokens"] == 30
+    assert data["eval"]["by_model"]["claude-haiku-4-5-20251001"]["cache_read_tokens"] == 50
+    assert data["eval"]["by_model"]["claude-haiku-4-5-20251001"]["cache_creation_tokens"] == 20
     assert data["query_completion_ms"] == {
         "count": 3,
         "avg": 1200,
@@ -916,7 +940,13 @@ def test_summarize_usage_events_infers_tier_for_harness_logged_models(tmp_path):
         phase="eval",
         source="answer_model",
         model="claude-haiku-4-5-20251001",
-        usage={"input_tokens": 100, "output_tokens": 20, "api_calls": 1},
+        usage={
+            "input_tokens": 60,
+            "cache_read_input_tokens": 25,
+            "cache_creation_input_tokens": 15,
+            "output_tokens": 20,
+            "api_calls": 1,
+        },
         provider="api",
     )
     rpb._append_usage_event(
@@ -941,6 +971,11 @@ def test_summarize_usage_events_infers_tier_for_harness_logged_models(tmp_path):
 
     assert eval_summary["total_tokens"] == 170
     assert eval_summary["by_tier"]["fast"]["total_tokens"] == 170
+    assert eval_summary["uncached_input_tokens"] == 100
+    assert eval_summary["cache_read_tokens"] == 25
+    assert eval_summary["cache_creation_tokens"] == 15
+    assert eval_summary["by_source"]["answer_model"]["uncached_input_tokens"] == 60
+    assert eval_summary["by_source"]["judge"]["uncached_input_tokens"] == 40
     assert ingest_summary["total_tokens"] == 100
     assert ingest_summary["by_tier"]["deep"]["total_tokens"] == 100
 
@@ -2418,6 +2453,40 @@ class TestEvalContextCoreSelection:
         (ws / "projects" / "quaid" / "SOUL.md").write_text("p" * 767)
         (ws / "projects" / "quaid" / "USER.md").write_text("q" * 813)
         (ws / "projects" / "quaid" / "MEMORY.md").write_text("r" * 740)
+
+        rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
+
+    def test_project_only_eval_context_profile_skips_core_markdown_injection(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "projects" / "demo").mkdir(parents=True, exist_ok=True)
+        (ws / "SOUL.md").write_text("# soul")
+        (ws / "USER.md").write_text("# user")
+        (ws / "MEMORY.md").write_text("# memory")
+        (ws / "TOOLS.md").write_text("# tools")
+        (ws / "projects" / "demo" / "TOOLS.md").write_text("# demo tools")
+
+        monkeypatch.setenv("BENCHMARK_EVAL_CONTEXT_PROFILE", "project-only")
+
+        profile, core_files, include_project_bootstrap = rpb._resolve_eval_context_profile()
+        ctx = rpb._build_eval_context(
+            ws,
+            core_files=core_files,
+            include_project_bootstrap=include_project_bootstrap,
+        )
+
+        assert profile == "project-only"
+        assert core_files == []
+        assert include_project_bootstrap is True
+        assert "--- SOUL.md ---" not in ctx
+        assert "--- USER.md ---" not in ctx
+        assert "--- MEMORY.md ---" not in ctx
+        assert "--- TOOLS.md ---" not in ctx
+        assert "--- projects/demo/TOOLS.md ---" in ctx
+
+    def test_preflight_skips_for_project_only_eval_context_profile(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        ws.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("BENCHMARK_EVAL_CONTEXT_PROFILE", "project-only")
 
         rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
 
