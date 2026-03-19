@@ -2434,17 +2434,18 @@ class TestEvalContextCoreSelection:
         assert "--- projects/quaid/USER.md ---" in ctx
         assert "--- projects/quaid/MEMORY.md ---" in ctx
 
-    def test_preflight_fails_when_core_is_too_thin(self, tmp_path):
+    def test_preflight_fails_when_core_is_too_thin(self, tmp_path, monkeypatch):
         ws = tmp_path / "ws"
         ws.mkdir(parents=True, exist_ok=True)
         (ws / "SOUL.md").write_text("# Soul\nthin")
         (ws / "USER.md").write_text("# User\nthin")
         (ws / "MEMORY.md").write_text("# Memory\nthin")
+        monkeypatch.delenv("BENCHMARK_EVAL_CONTEXT_PROFILE", raising=False)
 
         with pytest.raises(RuntimeError, match="core markdown context is too thin"):
             rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
 
-    def test_preflight_uses_combined_root_and_projects_quaid_content(self, tmp_path):
+    def test_preflight_uses_combined_root_and_projects_quaid_content(self, tmp_path, monkeypatch):
         ws = tmp_path / "ws"
         (ws / "projects" / "quaid").mkdir(parents=True, exist_ok=True)
         (ws / "SOUL.md").write_text("s" * 1300)
@@ -2453,6 +2454,7 @@ class TestEvalContextCoreSelection:
         (ws / "projects" / "quaid" / "SOUL.md").write_text("p" * 767)
         (ws / "projects" / "quaid" / "USER.md").write_text("q" * 813)
         (ws / "projects" / "quaid" / "MEMORY.md").write_text("r" * 740)
+        monkeypatch.delenv("BENCHMARK_EVAL_CONTEXT_PROFILE", raising=False)
 
         rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
 
