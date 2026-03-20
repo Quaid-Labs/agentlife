@@ -1406,9 +1406,11 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     prod_config["adapter"]["type"] = "standalone"
     if not isinstance(prod_config.get("capture"), dict):
         prod_config["capture"] = {}
-    # Extraction chunking should be token-native. Keep the legacy char field only
-    # as a compatibility fallback for older runtime builds.
-    prod_config["capture"]["chunkTokens"] = 30000
+    # Extraction chunking should be token-native.
+    obd_chunk_tokens = max(
+        1000, int(os.environ.get("BENCHMARK_OBD_CHUNK_TOKENS", "30000"))
+    )
+    prod_config["capture"]["chunkTokens"] = obd_chunk_tokens
     if not isinstance(prod_config.get("models"), dict):
         prod_config["models"] = {}
     # New Quaid strict mode requires explicit provider selection.
@@ -2786,7 +2788,10 @@ def run_per_day_extraction(
     """
     print("=" * 60)
     if schedule_mode == "obd":
-        print("PHASE 3b: ONE-BIG-DAY EXTRACTION + FINAL JANITOR")
+        if run_janitor_each_day:
+            print("PHASE 3b: ONE-BIG-DAY EXTRACTION + FINAL JANITOR")
+        else:
+            print("PHASE 3b: ONE-BIG-DAY EXTRACTION ONLY")
     else:
         print("PHASE 3b: PER-DAY EXTRACTION + JANITOR")
     print("=" * 60)
@@ -2809,10 +2814,12 @@ def run_per_day_extraction(
             f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
             for m in messages
         )
+        obd_chunk_tokens = max(1000, int(os.environ.get("BENCHMARK_OBD_CHUNK_TOKENS", "30000")))
         print(f"  Synthetic day: {final_day}")
         print(f"  Sessions merged: {len(session_ids)}")
         print(f"  Messages merged: {len(messages)}")
         print(f"  Combined transcript: {len(transcript)} chars (~{_estimate_text_tokens(transcript)} tokens)")
+        print(f"  OBD chunk token target: {obd_chunk_tokens}")
         print(f"  Final project states:")
         _sync_final_project_states(workspace)
 
@@ -2984,6 +2991,15 @@ def run_per_day_extraction(
                 "state": "completed",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }, indent=2))
+        else:
+            janitor_progress_path.write_text(json.dumps({
+                "phase": "Janitor(0/1)",
+                "completed_days": 0,
+                "total_days": 1,
+                "current_day": final_day,
+                "state": "skipped",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }, indent=2))
 
         db_path = workspace / "data" / "memory.db"
         conn = sqlite3.connect(str(db_path))
@@ -3009,6 +3025,8 @@ def run_per_day_extraction(
             )
         print(f"    Janitor runs: {janitor_runs}")
         print(f"    Weekly distillation runs: {weekly_distill_runs}")
+        if not run_janitor_each_day:
+            print("    Final janitor: skipped")
         print(f"    DB: {db_nodes} nodes, {db_edges} edges, status={status_counts}")
 
         return {

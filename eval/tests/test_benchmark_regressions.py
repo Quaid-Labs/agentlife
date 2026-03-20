@@ -552,11 +552,13 @@ class TestOBDExtractionTimeoutEnv:
         monkeypatch.setenv("BENCHMARK_OBD_EXTRACT_TIMEOUT", "7200")
         monkeypatch.setenv("BENCHMARK_OBD_DISABLE_CARRY_CONTEXT", "1")
         monkeypatch.setenv("BENCHMARK_OBD_PARALLEL_ROOT_WORKERS", "4")
+        monkeypatch.setenv("BENCHMARK_OBD_CHUNK_TOKENS", "12000")
         monkeypatch.setattr(
             rpb,
             "_load_reviews_with_dataset_gate",
             lambda _max_sessions: (tmp_path, None, [_Review(20, [{"maya": "hi", "agent": "ok"}])], "v1", 268),
         )
+        monkeypatch.setattr(rpb, "_sync_final_project_states", lambda _workspace: None)
         monkeypatch.setattr(rpb, "_operational_day", lambda _review: "2026-05-26")
         monkeypatch.setattr(rpb, "_build_obd_message_stream", lambda _reviews: [{"role": "user", "content": "hello"}])
         monkeypatch.setattr(rpb, "_sync_final_project_states", lambda _workspace: None)
@@ -590,6 +592,8 @@ class TestOBDExtractionTimeoutEnv:
         assert captured["env"]["QUAID_EXTRACT_WALL_TIMEOUT"] == "7200"
         assert captured["env"]["QUAID_EXTRACT_DISABLE_CARRY_CONTEXT"] == "1"
         assert captured["env"]["QUAID_EXTRACT_PARALLEL_ROOT_WORKERS"] == "4"
+        checkpoint_meta = json.loads((tmp_path / "logs" / "obd_post_extract_checkpoint.json").read_text())
+        assert checkpoint_meta["mode"] == "obd-post-extract"
         assert out["days"] == 1
         assert out["compaction_events"] == 1
 
@@ -686,6 +690,83 @@ class TestOBDExtractionTimeoutEnv:
         assert (snapshot_dir / "extraction_cache" / "obd-session-0001.jsonl").exists()
         assert out["days"] == 1
         assert out["compaction_events"] == 1
+
+    def test_obd_skip_janitor_marks_progress_skipped(self, tmp_path, monkeypatch):
+        import sqlite3
+        from dataclasses import dataclass
+
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+
+        conn = sqlite3.connect(str(workspace / "data" / "memory.db"))
+        conn.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, status TEXT)")
+        conn.execute("CREATE TABLE edges (id TEXT PRIMARY KEY)")
+        conn.commit()
+        conn.close()
+
+        @dataclass
+        class _Review:
+            session_num: int
+            transcript_turns: list
+
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda _max_sessions: (
+                tmp_path,
+                None,
+                [_Review(20, [{"maya": "hi", "agent": "ok"}])],
+                "v1",
+                268,
+            ),
+        )
+        monkeypatch.setattr(rpb, "_operational_day", lambda _review: "2026-05-26")
+        monkeypatch.setattr(
+            rpb,
+            "_build_obd_message_stream",
+            lambda _reviews: [{"role": "user", "content": "hello"}, {"role": "assistant", "content": "hi"}],
+        )
+        monkeypatch.setattr(rpb, "_sync_final_project_states", lambda _workspace: None)
+        monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"BASE": "1"})
+        monkeypatch.setattr(rpb, "_with_quaid_now", lambda env, _day: dict(env))
+        monkeypatch.setattr(rpb, "_write_session_jsonl", lambda _messages, _path: None)
+        monkeypatch.setattr(
+            rpb,
+            "_run_runtime_extract_jsonl",
+            lambda **_kwargs: {
+                "facts": [{"id": "f1"}],
+                "facts_stored": 1,
+                "facts_skipped": 0,
+                "edges_created": 0,
+                "root_chunks": 2,
+                "split_events": 0,
+                "split_child_chunks": 0,
+                "leaf_chunks": 2,
+                "max_split_depth": 0,
+                "deep_calls": 2,
+                "repair_calls": 0,
+                "carry_context_enabled": True,
+                "parallel_root_workers": 1,
+                "snippets": {},
+                "journal": {},
+                "project_logs": {},
+                "project_log_metrics": {"entries_seen": 0, "entries_written": 0, "projects_updated": 0},
+            },
+        )
+
+        out = rpb.run_per_day_extraction(
+            workspace=workspace,
+            api_key="test-key",
+            model="claude-sonnet-4-6",
+            run_janitor_each_day=False,
+            schedule_mode="obd",
+        )
+
+        progress = json.loads((workspace / "logs" / "janitor_progress.json").read_text())
+        assert progress["state"] == "skipped"
+        assert progress["completed_days"] == 0
+        assert out["janitor_runs"] == 0
 
 class TestAnthropicCachedRetries:
     """Tests for _call_anthropic_cached HTTP retry behavior."""
