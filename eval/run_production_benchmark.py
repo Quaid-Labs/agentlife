@@ -119,6 +119,7 @@ _RECALL_TOOL_DESCRIPTION = (
 )
 _JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py")
 _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
+_EXTRACT_SCRIPT = _resolve_quaid_script("extract.py", "ingest/extract.py")
 # Last store telemetry (updated by _store_facts for extraction summaries).
 _LAST_STORE_METRICS: Dict[str, int] = {"domain_missing": 0}
 _EVAL_CORE_TOKEN_CAP = 1500
@@ -1357,7 +1358,7 @@ def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> 
 # Phase 1: Workspace setup
 # ---------------------------------------------------------------------------
 
-def setup_workspace(workspace: Path) -> None:
+def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) -> None:
     """Create isolated benchmark workspace with fresh DB, config, and seeds."""
     print("=" * 60)
     print("PHASE 1: WORKSPACE SETUP")
@@ -1403,14 +1404,23 @@ def setup_workspace(workspace: Path) -> None:
         prod_config["adapter"] = {}
     # Memory graph now requires an explicit adapter type.
     prod_config["adapter"]["type"] = "standalone"
+    if not isinstance(prod_config.get("capture"), dict):
+        prod_config["capture"] = {}
+    # Extraction chunking should be token-native. Keep the legacy char field only
+    # as a compatibility fallback for older runtime builds.
+    prod_config["capture"]["chunkTokens"] = 30000
     if not isinstance(prod_config.get("models"), dict):
         prod_config["models"] = {}
     # New Quaid strict mode requires explicit provider selection.
     # Keep this aligned with harness backend so janitor/recall do not fail-hard.
+    requested_extraction_model = str(extraction_model or "").strip()
     deep_reasoning_model = os.environ.get("BENCHMARK_DEEP_REASONING_MODEL", "").strip()
     fast_reasoning_model = os.environ.get("BENCHMARK_FAST_REASONING_MODEL", "").strip()
     if not deep_reasoning_model:
-        deep_reasoning_model = "claude-sonnet-4-6" if _BACKEND == "claude-code" else "claude-haiku-4-5-20251001"
+        if requested_extraction_model:
+            deep_reasoning_model = requested_extraction_model
+        else:
+            deep_reasoning_model = "claude-sonnet-4-6" if _BACKEND == "claude-code" else "claude-haiku-4-5-20251001"
     if not fast_reasoning_model:
         fast_reasoning_model = "claude-haiku-4-5-20251001"
     if _BACKEND == "claude-code":
@@ -1795,6 +1805,42 @@ def _save_lifecycle_resume_checkpoint(
     }
     _resume_state_path(workspace).write_text(json.dumps(payload, indent=2))
     _resume_latest_path(workspace).write_text(json.dumps(payload, indent=2))
+
+
+def _save_obd_post_extract_checkpoint(
+    workspace: Path,
+    *,
+    current_day: str,
+    stats: Optional[dict] = None,
+) -> dict:
+    """Snapshot workspace state immediately after OBD extraction, before janitor."""
+    root = _resume_root(workspace)
+    root.mkdir(parents=True, exist_ok=True)
+    snapshot_dir = root / f"obd-post-extract-{current_day}"
+    if snapshot_dir.exists():
+        shutil.rmtree(snapshot_dir)
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+
+    for rel in ["data", "config", "journal", "projects", "extraction_cache", "logs", "identity"]:
+        src = workspace / rel
+        if src.exists():
+            shutil.copytree(src, snapshot_dir / rel, dirs_exist_ok=True)
+    for rel in ["IDENTITY.md", "MEMORY.md", "SOUL.md", "TOOLS.md", "USER.md"]:
+        src = workspace / rel
+        if src.exists():
+            shutil.copy2(src, snapshot_dir / rel)
+
+    payload = {
+        "mode": "obd-post-extract",
+        "current_day": current_day,
+        "snapshot_dir": str(snapshot_dir),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "stats": dict(stats or {}),
+    }
+    metadata_path = workspace / "logs" / "obd_post_extract_checkpoint.json"
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(payload, indent=2))
+    return payload
 
 
 def restore_lifecycle_resume_checkpoint(workspace: Path) -> Optional[dict]:
@@ -2564,6 +2610,161 @@ def _group_sessions_by_date(reviews: list) -> list:
     return list(by_date.items())
 
 
+def _estimate_text_tokens(text: str) -> int:
+    """Estimate token count using the harness tokenizer when available."""
+    if tiktoken is not None:
+        try:
+            enc = tiktoken.get_encoding("cl100k_base")
+            return len(enc.encode(text))
+        except Exception:
+            pass
+    return max(1, len(text.split()) * 4 // 3)
+
+def _messages_from_review(review) -> List[Dict[str, str]]:
+    """Convert a review transcript into role/content message pairs."""
+    messages: List[Dict[str, str]] = []
+    for turn in getattr(review, "transcript_turns", []) or []:
+        if not isinstance(turn, dict):
+            continue
+        user_text = str(turn.get("maya", "") or "").strip()
+        if user_text:
+            messages.append({"role": "user", "content": user_text})
+        assistant_text = str(turn.get("agent", "") or "").strip()
+        if assistant_text:
+            messages.append({"role": "assistant", "content": assistant_text})
+    return messages
+
+
+def _build_obd_message_stream(reviews: list) -> List[Dict[str, str]]:
+    """Build one chronological message stream across all selected reviews."""
+    stream: List[Dict[str, str]] = []
+    for review in reviews:
+        stream.extend(_messages_from_review(review))
+    return stream
+
+
+def _write_session_jsonl(messages: List[Dict[str, str]], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        for msg in messages:
+            f.write(json.dumps({"role": msg["role"], "content": msg["content"]}, ensure_ascii=True) + "\n")
+
+
+def _sync_project_snapshot(
+    workspace: Path,
+    *,
+    project: str,
+    session_num: int,
+    commit: str,
+) -> None:
+    """Sync one project to the requested benchmark session state."""
+    snapshot_dir = _resolve_project_session_snapshot(project, session_num)
+    target_dir = workspace / "projects" / project
+    if snapshot_dir is not None:
+        rsync_res = subprocess.run(
+            ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
+             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "TOOLS.md",
+             str(snapshot_dir) + "/", str(target_dir) + "/"],
+            capture_output=True, timeout=30,
+        )
+        if rsync_res.returncode != 0:
+            raise RuntimeError(
+                f"Failed to sync snapshot for {project} s{session_num}: "
+                f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
+            )
+        return
+
+    source_repo = _require_project_source_repo(project, _resolve_project_source_repo(project))
+    has_git = (source_repo / ".git").exists()
+    if has_git:
+        checkout_res = subprocess.run(
+            ["git", "checkout", commit],
+            cwd=source_repo, capture_output=True, timeout=10,
+        )
+        if checkout_res.returncode != 0:
+            raise RuntimeError(
+                f"Failed to checkout {project}@{commit}: "
+                f"{(checkout_res.stderr or checkout_res.stdout or '').strip()[:300]}"
+            )
+    cmd = ["rsync", "-a", "--delete"]
+    for exc in [".git", "node_modules", "package-lock.json"]:
+        cmd.extend(["--exclude", exc])
+    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "TOOLS.md"])
+    cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
+    rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
+    if has_git:
+        restore_res = subprocess.run(
+            ["git", "checkout", "main"],
+            cwd=source_repo, capture_output=True, timeout=10,
+        )
+        if restore_res.returncode != 0:
+            raise RuntimeError(
+                f"Failed to restore {project} repo to main: "
+                f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
+            )
+    if rsync_res.returncode != 0:
+        raise RuntimeError(
+            f"Failed to sync {project}@{commit}: "
+            f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
+        )
+
+
+def _sync_final_project_states(workspace: Path) -> None:
+    """Seed workspace projects at their final known benchmark state."""
+    latest: Dict[str, Tuple[int, str]] = {}
+    for session_num, project, commit in PROJECT_SESSIONS:
+        latest[project] = (session_num, commit)
+    for project in sorted(latest):
+        session_num, commit = latest[project]
+        print(f"  Final project state: {project} @ session {session_num}")
+        _sync_project_snapshot(workspace, project=project, session_num=session_num, commit=commit)
+
+
+def _run_runtime_extract_jsonl(
+    *,
+    workspace: Path,
+    env: dict,
+    session_file: Path,
+    owner_id: str,
+    label: str,
+    session_id: str,
+    timeout_seconds: int,
+) -> dict:
+    """Invoke the runtime extraction entrypoint on a JSONL session file."""
+    cmd = _python_cmd_for_quaid_script(_EXTRACT_SCRIPT) + [
+        str(session_file),
+        "--owner", owner_id,
+        "--label", label,
+        "--session-id", session_id,
+        "--json",
+    ]
+    result = subprocess.run(
+        cmd,
+        env=env,
+        cwd=str(_QUAID_DIR),
+        capture_output=True,
+        text=True,
+        timeout=timeout_seconds,
+    )
+    if result.returncode != 0:
+        preview = _subprocess_failure_preview(result)
+        raise RuntimeError(f"Runtime extraction failed: {preview}")
+    stdout = result.stdout.strip()
+    if stdout:
+        lines = stdout.splitlines()
+        for idx, line in enumerate(lines):
+            if line.lstrip().startswith("{"):
+                stdout = "\n".join(lines[idx:])
+                break
+    try:
+        return json.loads(stdout)
+    except Exception as exc:
+        raise RuntimeError(
+            "Runtime extraction returned invalid JSON. "
+            f"stdout={result.stdout[:400]!r} stderr={result.stderr[:400]!r}"
+        ) from exc
+
+
 def run_per_day_extraction(
     workspace: Path,
     api_key: str,
@@ -2572,6 +2773,7 @@ def run_per_day_extraction(
     max_sessions: Optional[int] = None,
     run_janitor_each_day: bool = True,
     resume_state: Optional[dict] = None,
+    schedule_mode: str = "per-day",
 ) -> dict:
     """Extract facts day-by-day, running janitor after each day.
 
@@ -2583,7 +2785,10 @@ def run_per_day_extraction(
     incremental accumulation, not a single bulk extraction.
     """
     print("=" * 60)
-    print("PHASE 3b: PER-DAY EXTRACTION + JANITOR")
+    if schedule_mode == "obd":
+        print("PHASE 3b: ONE-BIG-DAY EXTRACTION + FINAL JANITOR")
+    else:
+        print("PHASE 3b: PER-DAY EXTRACTION + JANITOR")
     print("=" * 60)
 
     assets_dir, _arc_reviews, reviews, _dataset_version, _expected_queries = _load_reviews_with_dataset_gate(max_sessions)
@@ -2593,6 +2798,210 @@ def run_per_day_extraction(
             f"No review sessions found in assets directory: {assets_dir}. "
             "Set AGENTLIFE_ASSETS_DIR to the benchmark assets path."
         )
+
+    if schedule_mode == "obd":
+        if resume_state:
+            raise RuntimeError("Resume-day-lifecycle is not supported for BENCHMARK_INGEST_SCHEDULE=obd")
+        final_day = _operational_day(reviews[-1]) if reviews else "1970-01-01"
+        session_ids = [r.session_num for r in reviews]
+        messages = _build_obd_message_stream(reviews)
+        transcript = "\n\n".join(
+            f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+            for m in messages
+        )
+        print(f"  Synthetic day: {final_day}")
+        print(f"  Sessions merged: {len(session_ids)}")
+        print(f"  Messages merged: {len(messages)}")
+        print(f"  Combined transcript: {len(transcript)} chars (~{_estimate_text_tokens(transcript)} tokens)")
+        print(f"  Final project states:")
+        _sync_final_project_states(workspace)
+
+        env = _benchmark_env(workspace, "ingest")
+        day_env = _with_quaid_now(env, final_day)
+        cache_dir = workspace / "extraction_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        session_file = cache_dir / "obd-session-0001.jsonl"
+        _write_session_jsonl(messages, session_file)
+        extraction_checkpoint_path = workspace / "logs" / "extraction_checkpoint.json"
+        extraction_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        extraction_checkpoint_path.write_text(json.dumps({
+            "state": "running",
+            "mode": "obd",
+            "total_chunks": 1,
+            "total_days": 1,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }, indent=2))
+
+        print("  Runtime extraction: one compaction event via ingest/extract.py")
+        extract_timeout = max(600, int(os.environ.get("BENCHMARK_OBD_EXTRACT_TIMEOUT", "7200")))
+        day_env["QUAID_EXTRACT_WALL_TIMEOUT"] = str(extract_timeout)
+        extract_result = _run_runtime_extract_jsonl(
+            workspace=workspace,
+            env=day_env,
+            session_file=session_file,
+            owner_id="maya",
+            label="Compaction",
+            session_id="obd-compaction-0001",
+            timeout_seconds=extract_timeout,
+        )
+        extraction_checkpoint_path.write_text(json.dumps({
+            "state": "completed",
+            "mode": "obd",
+            "total_chunks": 1,
+            "total_days": 1,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }, indent=2))
+
+        total_facts = len(extract_result.get("facts", []) or [])
+        total_stored = int(extract_result.get("facts_stored", 0) or 0)
+        total_edges = int(extract_result.get("edges_created", 0) or 0)
+        total_snippets = sum(len(v) for v in (extract_result.get("snippets", {}) or {}).values() if isinstance(v, list))
+        total_journals = len(extract_result.get("journal", {}) or {})
+        project_log_metrics = extract_result.get("project_log_metrics", {}) or {}
+        total_project_logs_written = int(project_log_metrics.get("entries_written", 0) or 0)
+        total_project_logs_seen = int(project_log_metrics.get("entries_seen", 0) or 0)
+        total_project_logs_projects_updated = int(project_log_metrics.get("projects_updated", 0) or 0)
+        obd_root_chunks = int(extract_result.get("root_chunks", extract_result.get("chunks_total", 0)) or 0)
+        obd_split_events = int(extract_result.get("split_events", 0) or 0)
+        obd_split_child_chunks = int(extract_result.get("split_child_chunks", 0) or 0)
+        obd_leaf_chunks = int(extract_result.get("leaf_chunks", 0) or 0)
+        obd_max_split_depth = int(extract_result.get("max_split_depth", 0) or 0)
+        obd_deep_calls = int(extract_result.get("deep_calls", 0) or 0)
+        obd_repair_calls = int(extract_result.get("repair_calls", 0) or 0)
+        total_domain_missing = 0
+        print(
+            f"  Extracted/stored: facts={total_facts}/{total_stored}, "
+            f"edges={total_edges}, snippets={total_snippets}, journals={total_journals}"
+        )
+        print(
+            "  OBD extraction telemetry: "
+            f"roots={obd_root_chunks} "
+            f"splits={obd_split_events} "
+            f"split_children={obd_split_child_chunks} "
+            f"leaves={obd_leaf_chunks} "
+            f"max_depth={obd_max_split_depth} "
+            f"deep_calls={obd_deep_calls} "
+            f"repair_calls={obd_repair_calls}"
+        )
+        if total_project_logs_seen or total_project_logs_written:
+            print(
+                "  Project logs: "
+                f"seen={total_project_logs_seen} "
+                f"written={total_project_logs_written} "
+                f"projects_updated={total_project_logs_projects_updated}"
+            )
+        obd_checkpoint = _save_obd_post_extract_checkpoint(
+            workspace,
+            current_day=final_day,
+            stats={
+                "facts_extracted": total_facts,
+                "facts_stored": total_stored,
+                "edges_created": total_edges,
+                "snippets": total_snippets,
+                "journals": total_journals,
+                "project_logs_seen": total_project_logs_seen,
+                "project_logs_written": total_project_logs_written,
+                "projects_updated": total_project_logs_projects_updated,
+                "root_chunks": obd_root_chunks,
+                "split_events": obd_split_events,
+                "split_child_chunks": obd_split_child_chunks,
+                "leaf_chunks": obd_leaf_chunks,
+                "max_split_depth": obd_max_split_depth,
+                "deep_calls": obd_deep_calls,
+                "repair_calls": obd_repair_calls,
+            },
+        )
+        print(f"  Post-extract checkpoint: {obd_checkpoint['snapshot_dir']}")
+
+        janitor_runs = 0
+        weekly_distill_runs = 0
+        janitor_progress_path = workspace / "logs" / "janitor_progress.json"
+        janitor_progress_path.parent.mkdir(parents=True, exist_ok=True)
+        if run_janitor_each_day:
+            janitor_cmd = _python_cmd_for_quaid_script(_JANITOR_SCRIPT)
+            janitor_progress_path.write_text(json.dumps({
+                "phase": "Janitor(0/1)",
+                "completed_days": 0,
+                "total_days": 1,
+                "current_day": final_day,
+                "state": "running",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }, indent=2))
+            print("  Final janitor: --task all --apply --force-distill")
+            result = subprocess.run(
+                janitor_cmd + ["--task", "all", "--apply", "--force-distill"],
+                env=day_env, cwd=str(_QUAID_DIR),
+                capture_output=True, text=True, timeout=1800,
+            )
+            if result.returncode != 0:
+                preview = _subprocess_failure_preview(result)
+                failure_artifact = _record_janitor_failure_context(
+                    workspace=workspace,
+                    label="all",
+                    cmd=janitor_cmd + ["--task", "all", "--apply", "--force-distill"],
+                    result=result,
+                    simulated_day=final_day,
+                )
+                janitor_progress_path.write_text(json.dumps({
+                    "phase": "Janitor(0/1)",
+                    "completed_days": 0,
+                    "total_days": 1,
+                    "current_day": final_day,
+                    "state": "failed",
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }, indent=2))
+                raise RuntimeError(
+                    "Final OBD janitor failed and benchmark janitor failures are fatal. "
+                    f"day={final_day} preview={preview} artifact={failure_artifact}"
+                )
+            janitor_runs = 1
+            weekly_distill_runs = 1
+            janitor_progress_path.write_text(json.dumps({
+                "phase": "Janitor(1/1)",
+                "completed_days": 1,
+                "total_days": 1,
+                "current_day": final_day,
+                "state": "completed",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }, indent=2))
+
+        db_path = workspace / "data" / "memory.db"
+        conn = sqlite3.connect(str(db_path))
+        db_nodes = conn.execute("SELECT count(*) FROM nodes").fetchone()[0]
+        db_edges = conn.execute("SELECT count(*) FROM edges").fetchone()[0]
+        status_counts = dict(conn.execute(
+            "SELECT status, count(*) FROM nodes GROUP BY status"
+        ).fetchall())
+        conn.close()
+
+        print(f"\n  OBD extraction summary:")
+        print(f"    Days processed: 1")
+        print(f"    Total extracted: {total_facts} facts")
+        print(f"    Stored: {total_stored} facts, {total_edges} edges")
+        print(f"    Store telemetry: domain_missing={total_domain_missing}")
+        print(f"    Snippets: {total_snippets} bullets, Journal: {total_journals} entries")
+        if total_project_logs_seen or total_project_logs_written:
+            print(
+                "    Project logs: "
+                f"seen={total_project_logs_seen} "
+                f"written={total_project_logs_written} "
+                f"projects_updated={total_project_logs_projects_updated}"
+            )
+        print(f"    Janitor runs: {janitor_runs}")
+        print(f"    Weekly distillation runs: {weekly_distill_runs}")
+        print(f"    DB: {db_nodes} nodes, {db_edges} edges, status={status_counts}")
+
+        return {
+            "total_facts": total_facts,
+            "stored": total_stored,
+            "edges": total_edges,
+            "days": 1,
+            "janitor_runs": janitor_runs,
+            "weekly_distill_runs": weekly_distill_runs,
+            "compaction_events": 1,
+            "message_count": len(messages),
+            "transcript_tokens": _estimate_text_tokens(transcript),
+        }
 
     session_blocks = _build_session_blocks(reviews)
     gap_seconds = max(0, int(os.environ.get("BENCHMARK_SPLIT_GAP_SECONDS", "3600")))
@@ -2678,7 +3087,7 @@ def run_per_day_extraction(
         print(f"  Resuming day lifecycle from checkpoint: completed_days={resume_completed_days}/{len(days)}")
 
     for chunk_idx, chunk_blocks in enumerate(extracted_chunks):
-        day_keys = [_operational_day(item["timestamp"]) for item in chunk_blocks]
+        day_keys = [str(item.get("day_key") or _operational_day(item["timestamp"])) for item in chunk_blocks]
         chunk_day = day_keys[0] if day_keys else "unknown"
         cache_path = cache_dir / f"chunk-{chunk_idx:03d}.json"
         if not no_cache and cache_path.exists():
@@ -6863,6 +7272,8 @@ def main():
     parser = argparse.ArgumentParser(description="AgentLife Production Benchmark")
     parser.add_argument("--mode", choices=["full", "ingest", "eval", "fc", "per-day"],
                         default="full", help="Run mode (per-day = daily extraction+janitor, fc = full-context baseline)")
+    parser.add_argument("--ingest-schedule", choices=["per-day", "obd"], default="per-day",
+                        help="Ingest schedule for --mode full/ingest (per-day = normal daily lifecycle, obd = one-big-day stress compaction)")
     parser.add_argument("--results-dir", type=str,
                         default=str(_PROJECT_DIR / "data" / "results-production"),
                         help="Workspace/results directory")
@@ -6919,6 +7330,7 @@ def main():
     print(f"  Backend: {args.backend}")
     print(f"  Workspace: {workspace}")
     print(f"  Model: {args.model}")
+    print(f"  Ingest schedule: {args.ingest_schedule}")
     print(f"  Max sessions: {args.max_sessions or 'all'}")
     print(f"  No-cache: {args.no_cache}")
     print(f"  Skip-janitor: {args.skip_janitor}")
@@ -6943,6 +7355,8 @@ def main():
 
     # --- Per-day mode: daily extraction + janitor ---
     if args.mode == "per-day":
+        if args.ingest_schedule != "per-day":
+            raise RuntimeError("--mode per-day only supports --ingest-schedule per-day")
         resume_state = restore_lifecycle_resume_checkpoint(workspace) if args.resume_day_lifecycle else None
         if resume_state:
             print(
@@ -6951,13 +7365,14 @@ def main():
                 f"current_day={resume_state.get('current_day', 'unknown')}"
             )
         else:
-            setup_workspace(workspace)
+            setup_workspace(workspace, extraction_model=args.model)
         ingest_stats = run_per_day_extraction(
             workspace, api_key, args.no_cache,
             model=args.model,
             max_sessions=args.max_sessions,
             run_janitor_each_day=(not args.skip_janitor),
             resume_state=resume_state,
+            schedule_mode="per-day",
         )
 
         verify_post_janitor(workspace)
@@ -7070,13 +7485,14 @@ def main():
                 f"current_day={resume_state.get('current_day', 'unknown')}"
             )
         else:
-            setup_workspace(workspace)
+            setup_workspace(workspace, extraction_model=args.model)
         ingest_stats = run_per_day_extraction(
             workspace, api_key, args.no_cache,
             model=args.model,
             max_sessions=args.max_sessions,
             run_janitor_each_day=(not args.skip_janitor),
             resume_state=resume_state,
+            schedule_mode=args.ingest_schedule,
         )
 
         verify_post_janitor(workspace)

@@ -462,6 +462,223 @@ class TestOperationalDay:
         assert rpb._operational_day(review) == "2026-03-02"
 
 
+class TestObdMessageStream:
+    def test_builds_chronological_message_pairs(self):
+        @dataclass
+        class _Review:
+            session_num: int
+            transcript_turns: list
+
+        reviews = [
+            _Review(1, [{"maya": "one", "agent": "two"}]),
+            _Review(2, [{"maya": "three"}, {"agent": "four"}]),
+        ]
+        out = rpb._build_obd_message_stream(reviews)
+        assert out == [
+            {"role": "user", "content": "one"},
+            {"role": "assistant", "content": "two"},
+            {"role": "user", "content": "three"},
+            {"role": "assistant", "content": "four"},
+        ]
+
+    def test_skips_blank_turns(self):
+        @dataclass
+        class _Review:
+            session_num: int
+            transcript_turns: list
+
+        reviews = [_Review(1, [{"maya": "   ", "agent": ""}, {"maya": "hi"}])]
+        out = rpb._build_obd_message_stream(reviews)
+        assert out == [{"role": "user", "content": "hi"}]
+
+
+class TestRuntimeExtractJsonl:
+    def test_parses_json_after_project_log_prefix(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable, "-m", "stub"])
+
+        def _run(cmd, **kwargs):
+            result = _FakeSubprocessResult()
+            result.stdout = (
+                "[project-log] project=recipe-app entries=2 file=/tmp/PROJECT.md dry_run=False\n"
+                "{\n"
+                '  "facts_stored": 63,\n'
+                '  "facts_skipped": 0,\n'
+                '  "edges_created": 6\n'
+                "}\n"
+            )
+            result.stderr = "[extract] Compaction: splitting"
+            return result
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+
+        out = rpb._run_runtime_extract_jsonl(
+            workspace=tmp_path / "ws",
+            env={},
+            session_file=tmp_path / "obd.jsonl",
+            owner_id="maya",
+            label="Compaction",
+            session_id="obd-compaction-0001",
+            timeout_seconds=123,
+        )
+
+        assert out == {
+            "facts_stored": 63,
+            "facts_skipped": 0,
+            "edges_created": 6,
+        }
+
+
+class TestOBDExtractionTimeoutEnv:
+    def test_obd_propagates_runtime_extract_wall_timeout(self, tmp_path, monkeypatch):
+        import sqlite3
+        from types import SimpleNamespace
+
+        db_dir = tmp_path / "data"
+        db_dir.mkdir(parents=True)
+        conn = sqlite3.connect(str(db_dir / "memory.db"))
+        conn.execute("CREATE TABLE nodes (status TEXT)")
+        conn.execute("CREATE TABLE edges (id INTEGER)")
+        conn.commit()
+        conn.close()
+
+        @dataclass
+        class _Review:
+            session_num: int
+            transcript_turns: list
+
+        captured = {}
+
+        monkeypatch.setenv("BENCHMARK_OBD_EXTRACT_TIMEOUT", "7200")
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda _max_sessions: (tmp_path, None, [_Review(20, [{"maya": "hi", "agent": "ok"}])], "v1", 268),
+        )
+        monkeypatch.setattr(rpb, "_operational_day", lambda _review: "2026-05-26")
+        monkeypatch.setattr(rpb, "_build_obd_message_stream", lambda _reviews: [{"role": "user", "content": "hello"}])
+        monkeypatch.setattr(rpb, "_sync_final_project_states", lambda _workspace: None)
+        monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"BASE": "1"})
+        monkeypatch.setattr(rpb, "_with_quaid_now", lambda env, _day: dict(env))
+        monkeypatch.setattr(rpb, "_write_session_jsonl", lambda _messages, _path: None)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _script: [sys.executable, "-m", "stub"])
+
+        def _run_runtime_extract_jsonl(**kwargs):
+            captured["env"] = dict(kwargs["env"])
+            return {
+                "facts": [],
+                "facts_stored": 0,
+                "facts_skipped": 0,
+                "edges_created": 0,
+                "snippets": {},
+                "journal": {},
+                "project_logs": {},
+            }
+
+        monkeypatch.setattr(rpb, "_run_runtime_extract_jsonl", _run_runtime_extract_jsonl)
+
+        out = rpb.run_per_day_extraction(
+            workspace=tmp_path,
+            api_key="test-key",
+            model="claude-sonnet-4-6",
+            run_janitor_each_day=False,
+            schedule_mode="obd",
+        )
+
+        assert captured["env"]["QUAID_EXTRACT_WALL_TIMEOUT"] == "7200"
+        assert out["days"] == 1
+        assert out["compaction_events"] == 1
+
+    def test_obd_writes_post_extract_checkpoint(self, tmp_path, monkeypatch):
+        import sqlite3
+        from dataclasses import dataclass
+
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+
+        conn = sqlite3.connect(str(workspace / "data" / "memory.db"))
+        conn.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, status TEXT)")
+        conn.execute("CREATE TABLE edges (id TEXT PRIMARY KEY)")
+        conn.commit()
+        conn.close()
+
+        @dataclass
+        class _Review:
+            session_num: int
+            transcript_turns: list
+
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda _max_sessions: (
+                tmp_path,
+                None,
+                [_Review(20, [{"maya": "hi", "agent": "ok"}])],
+                "v1",
+                268,
+            ),
+        )
+        monkeypatch.setattr(rpb, "_operational_day", lambda _review: "2026-05-26")
+        monkeypatch.setattr(
+            rpb,
+            "_build_obd_message_stream",
+            lambda _reviews: [{"role": "user", "content": "hello"}, {"role": "assistant", "content": "hi"}],
+        )
+        monkeypatch.setattr(rpb, "_sync_final_project_states", lambda _workspace: None)
+        monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"BASE": "1"})
+        monkeypatch.setattr(rpb, "_with_quaid_now", lambda env, _day: dict(env))
+
+        def _write_session(messages, path):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join(json.dumps(m) for m in messages))
+
+        monkeypatch.setattr(rpb, "_write_session_jsonl", _write_session)
+        monkeypatch.setattr(
+            rpb,
+            "_run_runtime_extract_jsonl",
+            lambda **_kwargs: {
+                "facts": [{"id": "f1"}],
+                "facts_stored": 1,
+                "facts_skipped": 0,
+                "edges_created": 2,
+                "root_chunks": 3,
+                "split_events": 2,
+                "split_child_chunks": 5,
+                "leaf_chunks": 6,
+                "max_split_depth": 2,
+                "deep_calls": 7,
+                "repair_calls": 1,
+                "snippets": {"USER.md": ["note"]},
+                "journal": {"j1": {"content": "entry"}},
+                "project_logs": {"recipe-app": ["note"]},
+                "project_log_metrics": {"entries_seen": 1, "entries_written": 1, "projects_updated": 1},
+            },
+        )
+
+        out = rpb.run_per_day_extraction(
+            workspace=workspace,
+            api_key="test-key",
+            model="claude-sonnet-4-6",
+            run_janitor_each_day=False,
+            schedule_mode="obd",
+        )
+
+        checkpoint_meta = json.loads((workspace / "logs" / "obd_post_extract_checkpoint.json").read_text())
+        snapshot_dir = Path(checkpoint_meta["snapshot_dir"])
+        assert checkpoint_meta["mode"] == "obd-post-extract"
+        assert checkpoint_meta["current_day"] == "2026-05-26"
+        assert checkpoint_meta["stats"]["facts_stored"] == 1
+        assert checkpoint_meta["stats"]["root_chunks"] == 3
+        assert checkpoint_meta["stats"]["split_events"] == 2
+        assert checkpoint_meta["stats"]["leaf_chunks"] == 6
+        assert checkpoint_meta["stats"]["deep_calls"] == 7
+        assert snapshot_dir.exists()
+        assert (snapshot_dir / "data" / "memory.db").exists()
+        assert (snapshot_dir / "extraction_cache" / "obd-session-0001.jsonl").exists()
+        assert out["days"] == 1
+        assert out["compaction_events"] == 1
+
 class TestAnthropicCachedRetries:
     """Tests for _call_anthropic_cached HTTP retry behavior."""
 
@@ -1577,6 +1794,7 @@ class TestSetupWorkspaceConfig:
         assert models["fastReasoningProvider"] == "anthropic"
         assert models["deepReasoning"] == "claude-sonnet-4-6"
         assert models["fastReasoning"] == "claude-haiku-4-5-20251001"
+        assert cfg["capture"]["chunkTokens"] == 30000
         assert "baseUrl" not in models
         assert "apiKeyEnv" not in models
 
@@ -1607,6 +1825,43 @@ class TestSetupWorkspaceConfig:
         monkeypatch.setenv("BENCHMARK_FAST_REASONING_MODEL", "claude-haiku-4-5-20251001")
 
         rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        models = cfg["models"]
+        assert models["llmProvider"] == "anthropic"
+        assert models["deepReasoningProvider"] == "anthropic"
+        assert models["fastReasoningProvider"] == "anthropic"
+        assert models["deepReasoning"] == "claude-sonnet-4-6"
+        assert models["fastReasoning"] == "claude-haiku-4-5-20251001"
+        assert cfg["capture"]["chunkTokens"] == 30000
+
+    def test_api_workspace_uses_requested_extraction_model_for_deep_tier(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(
+            json.dumps(
+                {
+                    "models": {
+                        "llmProvider": "anthropic",
+                        "deepReasoning": "claude-haiku-4-5-20251001",
+                        "fastReasoning": "claude-haiku-4-5-20251001",
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+        monkeypatch.delenv("BENCHMARK_REASONING_MODEL", raising=False)
+        monkeypatch.delenv("BENCHMARK_DEEP_REASONING_MODEL", raising=False)
+        monkeypatch.delenv("BENCHMARK_FAST_REASONING_MODEL", raising=False)
+
+        rpb.setup_workspace(workspace, extraction_model="claude-sonnet-4-6")
 
         cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
         models = cfg["models"]
@@ -1806,6 +2061,20 @@ class TestMainContextInjectDefault:
         rpb.main()
         assert seen["eval"] is False
         assert seen["tier5"] is False
+
+
+class TestMainIngestSchedule:
+    def test_per_day_mode_rejects_obd_schedule(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "run"
+        monkeypatch.setattr(sys, "argv", [
+            "run_production_benchmark.py",
+            "--mode", "per-day",
+            "--ingest-schedule", "obd",
+            "--results-dir", str(workspace),
+            "--backend", "claude-code",
+        ])
+        with pytest.raises(RuntimeError, match="only supports --ingest-schedule per-day"):
+            rpb.main()
 
 
 # ===================================================================
