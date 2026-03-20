@@ -2835,6 +2835,20 @@ def run_per_day_extraction(
         print("  Runtime extraction: one compaction event via ingest/extract.py")
         extract_timeout = max(600, int(os.environ.get("BENCHMARK_OBD_EXTRACT_TIMEOUT", "7200")))
         day_env["QUAID_EXTRACT_WALL_TIMEOUT"] = str(extract_timeout)
+        obd_disable_carry = str(os.environ.get("BENCHMARK_OBD_DISABLE_CARRY_CONTEXT", "") or "").strip().lower() in {
+            "1", "true", "yes", "on"
+        }
+        obd_parallel_root_workers = max(1, int(os.environ.get("BENCHMARK_OBD_PARALLEL_ROOT_WORKERS", "1") or 1))
+        if obd_disable_carry:
+            day_env["QUAID_EXTRACT_DISABLE_CARRY_CONTEXT"] = "1"
+        if obd_parallel_root_workers > 1:
+            day_env["QUAID_EXTRACT_PARALLEL_ROOT_WORKERS"] = str(obd_parallel_root_workers)
+        if obd_disable_carry or obd_parallel_root_workers > 1:
+            print(
+                "  OBD extract mode: "
+                f"carry={'off' if obd_disable_carry else 'on'} "
+                f"parallel_root_workers={obd_parallel_root_workers}"
+            )
         extract_result = _run_runtime_extract_jsonl(
             workspace=workspace,
             env=day_env,
@@ -2868,6 +2882,8 @@ def run_per_day_extraction(
         obd_max_split_depth = int(extract_result.get("max_split_depth", 0) or 0)
         obd_deep_calls = int(extract_result.get("deep_calls", 0) or 0)
         obd_repair_calls = int(extract_result.get("repair_calls", 0) or 0)
+        obd_carry_context_enabled = bool(extract_result.get("carry_context_enabled", True))
+        obd_parallel_workers_used = int(extract_result.get("parallel_root_workers", 1) or 1)
         total_domain_missing = 0
         print(
             f"  Extracted/stored: facts={total_facts}/{total_stored}, "
@@ -2881,7 +2897,9 @@ def run_per_day_extraction(
             f"leaves={obd_leaf_chunks} "
             f"max_depth={obd_max_split_depth} "
             f"deep_calls={obd_deep_calls} "
-            f"repair_calls={obd_repair_calls}"
+            f"repair_calls={obd_repair_calls} "
+            f"carry={'on' if obd_carry_context_enabled else 'off'} "
+            f"parallel_workers={obd_parallel_workers_used}"
         )
         if total_project_logs_seen or total_project_logs_written:
             print(
@@ -2909,6 +2927,8 @@ def run_per_day_extraction(
                 "max_split_depth": obd_max_split_depth,
                 "deep_calls": obd_deep_calls,
                 "repair_calls": obd_repair_calls,
+                "carry_context_enabled": obd_carry_context_enabled,
+                "parallel_root_workers": obd_parallel_workers_used,
             },
         )
         print(f"  Post-extract checkpoint: {obd_checkpoint['snapshot_dir']}")

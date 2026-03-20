@@ -550,6 +550,8 @@ class TestOBDExtractionTimeoutEnv:
         captured = {}
 
         monkeypatch.setenv("BENCHMARK_OBD_EXTRACT_TIMEOUT", "7200")
+        monkeypatch.setenv("BENCHMARK_OBD_DISABLE_CARRY_CONTEXT", "1")
+        monkeypatch.setenv("BENCHMARK_OBD_PARALLEL_ROOT_WORKERS", "4")
         monkeypatch.setattr(
             rpb,
             "_load_reviews_with_dataset_gate",
@@ -586,6 +588,8 @@ class TestOBDExtractionTimeoutEnv:
         )
 
         assert captured["env"]["QUAID_EXTRACT_WALL_TIMEOUT"] == "7200"
+        assert captured["env"]["QUAID_EXTRACT_DISABLE_CARRY_CONTEXT"] == "1"
+        assert captured["env"]["QUAID_EXTRACT_PARALLEL_ROOT_WORKERS"] == "4"
         assert out["days"] == 1
         assert out["compaction_events"] == 1
 
@@ -649,6 +653,8 @@ class TestOBDExtractionTimeoutEnv:
                 "max_split_depth": 2,
                 "deep_calls": 7,
                 "repair_calls": 1,
+                "carry_context_enabled": False,
+                "parallel_root_workers": 4,
                 "snippets": {"USER.md": ["note"]},
                 "journal": {"j1": {"content": "entry"}},
                 "project_logs": {"recipe-app": ["note"]},
@@ -673,6 +679,8 @@ class TestOBDExtractionTimeoutEnv:
         assert checkpoint_meta["stats"]["split_events"] == 2
         assert checkpoint_meta["stats"]["leaf_chunks"] == 6
         assert checkpoint_meta["stats"]["deep_calls"] == 7
+        assert checkpoint_meta["stats"]["carry_context_enabled"] is False
+        assert checkpoint_meta["stats"]["parallel_root_workers"] == 4
         assert snapshot_dir.exists()
         assert (snapshot_dir / "data" / "memory.db").exists()
         assert (snapshot_dir / "extraction_cache" / "obd-session-0001.jsonl").exists()
