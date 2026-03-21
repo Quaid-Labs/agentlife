@@ -240,7 +240,7 @@ run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" \
   "mkdir -p $REMOTE_BENCH_ROOT $REMOTE_CHECKPOINT_ROOT $REMOTE_CHECKPOINT_PLUGIN_ROOT"
 
 echo ""
-echo "--- 1b) Sync fresh Claude Code credentials when backend is claude-code ---"
+echo "--- 1b) Sync fresh Claude credentials for OAuth-backed runs ---"
 BACKEND_ARG=""
 for ((i=0; i<${#LAUNCH_ARGS[@]}; i++)); do
   if [[ "${LAUNCH_ARGS[$i]}" == "--backend" ]] && (( i + 1 < ${#LAUNCH_ARGS[@]} )); then
@@ -248,17 +248,18 @@ for ((i=0; i<${#LAUNCH_ARGS[@]}; i++)); do
     break
   fi
 done
-if [[ "$BACKEND_ARG" == "claude-code" ]]; then
-  LOCAL_CLAUDE_CREDS="$HOME/.claude/.credentials.json"
-  if [[ -f "$LOCAL_CLAUDE_CREDS" ]]; then
-    run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" "mkdir -p ~/.claude"
-    run_cmd scp -p "$LOCAL_CLAUDE_CREDS" "$REMOTE:~/.claude/.credentials.json"
-    echo "  synced ~/.claude/.credentials.json to $REMOTE"
+LOCAL_CLAUDE_CREDS="$HOME/.claude/.credentials.json"
+if [[ -f "$LOCAL_CLAUDE_CREDS" ]]; then
+  run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" "mkdir -p ~/.claude"
+  run_cmd scp -p "$LOCAL_CLAUDE_CREDS" "$REMOTE:~/.claude/.credentials.json"
+  echo "  synced ~/.claude/.credentials.json to $REMOTE"
+  if [[ "$BACKEND_ARG" == "claude-code" ]]; then
+    echo "  backend=claude-code will use synced Claude OAuth credentials"
   else
-    echo "  local ~/.claude/.credentials.json not found; skipping credential sync"
+    echo "  backend=${BACKEND_ARG:-api} can use synced Claude OAuth credentials for direct API runs"
   fi
 else
-  echo "  backend is not claude-code; skipping credential sync"
+  echo "  local ~/.claude/.credentials.json not found; skipping credential sync"
 fi
 
 echo ""
@@ -272,10 +273,12 @@ RSYNC_COMMON=(
   --exclude='.ruff_cache'
   --exclude='.venv'
   --exclude='.pytest_cache'
+  --exclude='.pytest-home'
   --exclude='__pycache__'
   --exclude='*.pyc'
   --exclude='.DS_Store'
   --exclude='runs/'
+  --exclude='recovered-from-spark-*'
   --exclude='*.db'
   --exclude='*.db-shm'
   --exclude='*.db-wal'
@@ -304,12 +307,20 @@ echo "--- 6) Launch remote benchmark ---"
 OPTIONAL_BENCH_ENV=""
 if [[ -n "${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=$(printf %q "$BENCHMARK_ANTHROPIC_OAUTH_TOKEN")"$'\n'
+elif [[ -f "$HOME/quaid/anthtoken.md" ]]; then
+  LOCAL_BENCHMARK_OAUTH_TOKEN="$(tr -d '[:space:]' < "$HOME/quaid/anthtoken.md")"
+  if [[ -n "$LOCAL_BENCHMARK_OAUTH_TOKEN" ]]; then
+    OPTIONAL_BENCH_ENV+="export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=$(printf %q "$LOCAL_BENCHMARK_OAUTH_TOKEN")"$'\n'
+  fi
 fi
 if [[ -n "${BENCHMARK_MAX_QUERIES:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_MAX_QUERIES=$(printf %q "$BENCHMARK_MAX_QUERIES")"$'\n'
 fi
 if [[ -n "${BENCHMARK_REQUIRE_QUERY_COUNT:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_REQUIRE_QUERY_COUNT=$(printf %q "$BENCHMARK_REQUIRE_QUERY_COUNT")"$'\n'
+fi
+if [[ -n "${BENCHMARK_EVAL_PARALLEL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_EVAL_PARALLEL=$(printf %q "$BENCHMARK_EVAL_PARALLEL")"$'\n'
 fi
 if [[ -n "${BENCHMARK_FAST_REASONING_MODEL:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_FAST_REASONING_MODEL=$(printf %q "$BENCHMARK_FAST_REASONING_MODEL")"$'\n'
@@ -328,6 +339,15 @@ if [[ -n "${BENCHMARK_OBD_DISABLE_CARRY_CONTEXT:-}" ]]; then
 fi
 if [[ -n "${BENCHMARK_OBD_PARALLEL_ROOT_WORKERS:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_OBD_PARALLEL_ROOT_WORKERS=$(printf %q "$BENCHMARK_OBD_PARALLEL_ROOT_WORKERS")"$'\n'
+fi
+if [[ -n "${BENCHMARK_OBD_CHUNK_TOKENS:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_OBD_CHUNK_TOKENS=$(printf %q "$BENCHMARK_OBD_CHUNK_TOKENS")"$'\n'
+fi
+if [[ -n "${QUAID_CAPTURE_CHUNK_MAX_LINES:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export QUAID_CAPTURE_CHUNK_MAX_LINES=$(printf %q "$QUAID_CAPTURE_CHUNK_MAX_LINES")"$'\n'
+fi
+if [[ -n "${BENCHMARK_OBD_CHUNK_MAX_LINES:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_OBD_CHUNK_MAX_LINES=$(printf %q "$BENCHMARK_OBD_CHUNK_MAX_LINES")"$'\n'
 fi
 OPTIONAL_BENCH_ENV+="export BENCHMARK_SCALE=$(printf %q "$SCALE")"$'\n'
 if [[ "$SCALE" == "l" ]]; then
@@ -369,50 +389,12 @@ elif [[ \"\${BENCHMARK_INCLUDE_FILLER:-0}\" == \"1\" ]]; then
 fi
 export AGENTLIFE_ASSETS_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/sessions\"
 BENCHMARK_OAUTH_TOKEN="\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}"
-if [[ -z \"\$BENCHMARK_OAUTH_TOKEN\" && -f \"/home/solomon/clawd/.env\" ]]; then
-  BENCHMARK_OAUTH_TOKEN=\$(python3 - <<'PY'
-from pathlib import Path
-path = Path('/home/solomon/clawd/.env')
-value = ''
-try:
-    for raw_line in path.read_text().splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith('#') or '=' not in line:
-            continue
-        key, raw = line.split('=', 1)
-        if key.strip() != 'BENCHMARK_ANTHROPIC_OAUTH_TOKEN':
-            continue
-        value = raw.strip().strip('\"').strip(\"'\")
-        break
-except Exception:
-    value = ''
-print(value)
-PY
-)
-fi
 if [[ -n \"\$BENCHMARK_OAUTH_TOKEN\" ]]; then
   export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=\"\$BENCHMARK_OAUTH_TOKEN\"
   export ANTHROPIC_API_KEY=\"\$BENCHMARK_OAUTH_TOKEN\"
-elif [[ -z \"\${ANTHROPIC_API_KEY:-}\" && -f \"/home/solomon/clawd/.env\" ]]; then
-  export ANTHROPIC_API_KEY=\$(python3 - <<'PY'
-from pathlib import Path
-path = Path('/home/solomon/clawd/.env')
-value = ''
-try:
-    for raw_line in path.read_text().splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith('#') or '=' not in line:
-            continue
-        key, raw = line.split('=', 1)
-        if key.strip() != 'ANTHROPIC_API_KEY':
-            continue
-        value = raw.strip().strip('\"').strip(\"'\")
-        break
-except Exception:
-    value = ''
-print(value)
-PY
-)
+else
+  echo \"ERROR: BENCHMARK_ANTHROPIC_OAUTH_TOKEN missing; set it explicitly or populate ~/quaid/anthtoken.md before launch\" >&2
+  exit 1
 fi
 if [[ -n \"\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}\" ]]; then
   echo \"Benchmark Anthropic OAuth: present\"

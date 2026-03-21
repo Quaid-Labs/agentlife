@@ -530,12 +530,372 @@ class TestRuntimeExtractJsonl:
 
 
 class TestOBDExtractionTimeoutEnv:
+    def test_run_runtime_rolling_driver_tolerates_stdout_noise(self, tmp_path, monkeypatch):
+        transcript = tmp_path / "obd.jsonl"
+        transcript.write_text("", encoding="utf-8")
+
+        def _run(cmd, **kwargs):
+            result = _FakeSubprocessResult()
+            result.stdout = (
+                "[project-log] project=recipe-app entries=2 file=/tmp/PROJECT.md dry_run=True\n"
+                '{\n'
+                '  "session_id": "obd-compaction-0001",\n'
+                '  "signals_processed": 3,\n'
+                '  "cursor_line_offset": 123,\n'
+                '  "total_lines": 456,\n'
+                '  "rolling_state_exists": false,\n'
+                '  "rolling_state_path": "/tmp/state.json",\n'
+                '  "metrics_path": "/tmp/rolling.jsonl",\n'
+                '  "remaining_tokens": 789\n'
+                '}\n'
+            )
+            result.stderr = "[config] loaded"
+            return result
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+
+        out = rpb._run_runtime_rolling_driver(
+            workspace=tmp_path,
+            env={},
+            session_id="obd-compaction-0001",
+            transcript_path=transcript,
+            timeout_seconds=60,
+            chunk_tokens=12000,
+            final_signal=None,
+        )
+
+        assert out["signals_processed"] == 3
+        assert out["cursor_line_offset"] == 123
+        assert out["remaining_tokens"] == 789
+
+    def test_rolling_flush_resume_state_ready_when_stage_complete_and_compaction_pending(self, tmp_path):
+        workspace = tmp_path / "ws"
+        session_id = "obd-compaction-0001"
+        transcript = tmp_path / "obd.jsonl"
+        transcript.write_text('{"role":"user","content":"hi"}\n', encoding="utf-8")
+
+        state_path = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "rolling-extraction" / f"{session_id}.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text("{}", encoding="utf-8")
+
+        cursor_path = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "session-cursors" / f"{session_id}.json"
+        cursor_path.parent.mkdir(parents=True, exist_ok=True)
+        cursor_path.write_text(
+            json.dumps({"session_id": session_id, "line_offset": 1, "transcript_path": str(transcript)}),
+            encoding="utf-8",
+        )
+
+        signal_dir = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "extraction-signals"
+        signal_dir.mkdir(parents=True, exist_ok=True)
+        (signal_dir / "1_compaction.json").write_text(
+            json.dumps({"type": "compaction", "session_id": session_id, "transcript_path": str(transcript)}),
+            encoding="utf-8",
+        )
+
+        out = rpb._rolling_flush_resume_state(
+            workspace,
+            session_id=session_id,
+            transcript_path=transcript,
+        )
+
+        assert out["ready"] is True
+        assert out["cursor_line_offset"] == 1
+        assert out["total_lines"] == 1
+        assert out["pending_compaction_signals"] == 1
+
+    def test_save_and_restore_rolling_pre_publish_checkpoint(self, tmp_path):
+        workspace = tmp_path / "ws"
+        session_id = "obd-compaction-0001"
+        data_root = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data"
+        signal_dir = data_root / "extraction-signals"
+        state_path = data_root / "rolling-extraction" / f"{session_id}.json"
+        cursor_path = data_root / "session-cursors" / f"{session_id}.json"
+        memory_db = data_root / "memory.db"
+        memory_wal = data_root / "memory.db-wal"
+        signal_path = signal_dir / "1_compaction.json"
+
+        for path in [signal_dir, state_path.parent, cursor_path.parent]:
+            path.mkdir(parents=True, exist_ok=True)
+        memory_db.write_text("db-v1", encoding="utf-8")
+        memory_wal.write_text("wal-v1", encoding="utf-8")
+        state_path.write_text("{}", encoding="utf-8")
+        cursor_path.write_text(json.dumps({"line_offset": 1}), encoding="utf-8")
+        signal_path.write_text(json.dumps({"type": "compaction", "session_id": session_id}), encoding="utf-8")
+
+        saved = rpb._save_rolling_pre_publish_checkpoint(workspace, session_id=session_id)
+        assert saved is not None
+        assert "benchrunner/data/memory.db" in saved["files"]
+        assert "benchrunner/data/memory.db-wal" in saved["files"]
+
+        memory_db.write_text("db-v2", encoding="utf-8")
+        memory_wal.unlink()
+        signal_path.unlink()
+
+        restored = rpb._restore_rolling_pre_publish_checkpoint(workspace, session_id=session_id)
+        assert restored is not None
+        assert memory_db.read_text(encoding="utf-8") == "db-v1"
+        assert memory_wal.read_text(encoding="utf-8") == "wal-v1"
+        assert signal_path.exists()
+
+    def test_run_runtime_rolling_obd_extract_skips_stage_when_resume_ready(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        session_id = "obd-compaction-0001"
+        session_file = tmp_path / "obd.jsonl"
+        session_file.write_text('{"role":"user","content":"hi"}\n', encoding="utf-8")
+
+        state_path = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "rolling-extraction" / f"{session_id}.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text("{}", encoding="utf-8")
+
+        cursor_path = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "session-cursors" / f"{session_id}.json"
+        cursor_path.parent.mkdir(parents=True, exist_ok=True)
+        cursor_path.write_text(
+            json.dumps({"session_id": session_id, "line_offset": 1, "transcript_path": str(session_file)}),
+            encoding="utf-8",
+        )
+
+        signal_dir = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "extraction-signals"
+        signal_dir.mkdir(parents=True, exist_ok=True)
+        (signal_dir / "1_compaction.json").write_text(
+            json.dumps({"type": "compaction", "session_id": session_id, "transcript_path": str(session_file)}),
+            encoding="utf-8",
+        )
+
+        calls = []
+
+        def _driver(**kwargs):
+            calls.append(kwargs)
+            state_path.unlink(missing_ok=True)
+            return {
+                "signals_processed": 1,
+                "signal_loops": 1,
+                "cursor_line_offset": 1,
+                "cursor_transcript_path": str(session_file),
+                "total_lines": 1,
+                "rolling_state_exists": False,
+                "rolling_state_path": str(state_path),
+                "metrics_path": str(workspace / rpb._BENCHMARK_QUAID_INSTANCE / "logs" / "daemon" / "rolling-extraction.jsonl"),
+                "remaining_tokens": 0,
+            }
+
+        monkeypatch.setattr(rpb, "_run_runtime_rolling_driver", _driver)
+        monkeypatch.setattr(
+            rpb,
+            "_load_rolling_metric_rows",
+            lambda *_args, **_kwargs: [
+                {
+                    "event": "rolling_flush",
+                    "session_id": session_id,
+                    "final_raw_fact_count": 1,
+                    "final_facts_stored": 1,
+                    "final_facts_skipped": 0,
+                    "final_edges_created": 0,
+                    "snippets_count": 0,
+                    "journals_count": 0,
+                    "project_logs_seen": 0,
+                    "project_logs_written": 0,
+                    "project_logs_projects_updated": 0,
+                }
+            ],
+        )
+
+        out = rpb._run_runtime_rolling_obd_extract(
+            workspace=workspace,
+            env={},
+            session_file=session_file,
+            session_id=session_id,
+            chunk_tokens=8000,
+            chunk_max_lines=144,
+            timeout_seconds=60,
+        )
+
+        assert len(calls) == 1
+        assert calls[0]["final_signal"] is None
+        assert out["resumed_from_staged_checkpoint"] is True
+
+    def test_run_runtime_rolling_obd_extract_fresh_run_writes_signal_and_saves_checkpoint(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        session_id = "obd-compaction-0001"
+        session_file = tmp_path / "obd.jsonl"
+        session_file.write_text('{"role":"user","content":"hi"}\n', encoding="utf-8")
+
+        state_path = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "rolling-extraction" / f"{session_id}.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text("{}", encoding="utf-8")
+
+        calls = []
+        signal_calls = []
+        checkpoint_calls = []
+
+        def _driver(**kwargs):
+            calls.append(kwargs)
+            if len(calls) == 2:
+                state_path.unlink(missing_ok=True)
+            return {
+                "signals_processed": 1,
+                "signal_loops": 1,
+                "cursor_line_offset": 1,
+                "cursor_transcript_path": str(session_file),
+                "total_lines": 1,
+                "rolling_state_exists": False,
+                "rolling_state_path": str(state_path),
+                "metrics_path": str(workspace / rpb._BENCHMARK_QUAID_INSTANCE / "logs" / "daemon" / "rolling-extraction.jsonl"),
+                "remaining_tokens": 0,
+            }
+
+        monkeypatch.setattr(rpb, "_run_runtime_rolling_driver", _driver)
+        monkeypatch.setattr(
+            rpb,
+            "_write_runtime_rolling_signal",
+            lambda **kwargs: signal_calls.append(kwargs),
+        )
+        monkeypatch.setattr(
+            rpb,
+            "_save_rolling_pre_publish_checkpoint",
+            lambda *args, **kwargs: checkpoint_calls.append(kwargs) or {"mode": "rolling-pre-publish"},
+        )
+        monkeypatch.setattr(
+            rpb,
+            "_load_rolling_metric_rows",
+            lambda *_args, **_kwargs: [
+                {
+                    "event": "rolling_flush",
+                    "session_id": session_id,
+                    "final_raw_fact_count": 1,
+                    "final_facts_stored": 1,
+                    "final_facts_skipped": 0,
+                    "final_edges_created": 0,
+                    "snippets_count": 0,
+                    "journals_count": 0,
+                    "project_logs_seen": 0,
+                    "project_logs_written": 0,
+                    "project_logs_projects_updated": 0,
+                }
+            ],
+        )
+
+        out = rpb._run_runtime_rolling_obd_extract(
+            workspace=workspace,
+            env={},
+            session_file=session_file,
+            session_id=session_id,
+            chunk_tokens=8000,
+            chunk_max_lines=144,
+            timeout_seconds=60,
+        )
+
+        assert len(calls) == 2
+        assert calls[0]["final_signal"] is None
+        assert calls[1]["final_signal"] is None
+        assert len(signal_calls) == 1
+        assert signal_calls[0]["signal_type"] == "compaction"
+        assert len(checkpoint_calls) == 1
+        assert checkpoint_calls[0]["session_id"] == session_id
+        assert out["resumed_from_staged_checkpoint"] is False
+
+    def test_run_runtime_rolling_obd_extract_requires_state_clear(self, tmp_path, monkeypatch):
+        session_id = "obd-compaction-0001"
+        state_path = tmp_path / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "rolling-extraction" / f"{session_id}.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text("{}", encoding="utf-8")
+
+        monkeypatch.setattr(
+            rpb,
+            "_run_runtime_rolling_driver",
+            lambda **kwargs: {
+                "signals_processed": 1,
+                "cursor_line_offset": 1,
+                "total_lines": 1,
+                "rolling_state_exists": True,
+            },
+        )
+        monkeypatch.setattr(
+            rpb,
+            "_load_rolling_metric_rows",
+            lambda *_args, **_kwargs: [
+                {
+                    "event": "rolling_flush",
+                    "session_id": session_id,
+                    "final_raw_fact_count": 1,
+                    "final_facts_stored": 1,
+                    "final_facts_skipped": 0,
+                    "final_edges_created": 0,
+                    "snippets_count": 2,
+                    "journals_count": 1,
+                    "project_logs_seen": 3,
+                    "project_logs_written": 2,
+                    "project_logs_projects_updated": 1,
+                }
+            ],
+        )
+        monkeypatch.setattr(rpb, "_write_runtime_rolling_signal", lambda **kwargs: None)
+        monkeypatch.setattr(
+            rpb,
+            "_save_rolling_pre_publish_checkpoint",
+            lambda *args, **kwargs: {"mode": "rolling-pre-publish"},
+        )
+
+        with pytest.raises(RuntimeError, match="staged state still exists"):
+            rpb._run_runtime_rolling_obd_extract(
+                workspace=tmp_path,
+                env={},
+                session_file=tmp_path / "obd.jsonl",
+                session_id=session_id,
+                chunk_tokens=12000,
+                chunk_max_lines=None,
+                timeout_seconds=60,
+            )
+
+    def test_run_runtime_rolling_driver_embeds_repeated_signal_guard(self, tmp_path, monkeypatch):
+        transcript = tmp_path / "obd.jsonl"
+        transcript.write_text('{"role":"user","content":"hi"}\n', encoding="utf-8")
+
+        captured = {}
+
+        def _run(cmd, **kwargs):
+            captured["driver_code"] = cmd[2]
+            result = type("Result", (), {})()
+            result.returncode = 0
+            result.stdout = (
+                '{\n'
+                '  "session_id": "obd-compaction-0001",\n'
+                '  "signals_processed": 0,\n'
+                '  "signal_loops": 0,\n'
+                '  "cursor_line_offset": 0,\n'
+                '  "cursor_transcript_path": "",\n'
+                '  "total_lines": 1,\n'
+                '  "rolling_state_exists": false,\n'
+                '  "rolling_state_path": "/tmp/state.json",\n'
+                '  "metrics_path": "/tmp/rolling.jsonl",\n'
+                '  "remaining_tokens": 0\n'
+                '}\n'
+            )
+            result.stderr = ""
+            return result
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+
+        out = rpb._run_runtime_rolling_driver(
+            workspace=tmp_path,
+            env={},
+            session_id="obd-compaction-0001",
+            transcript_path=transcript,
+            timeout_seconds=60,
+            chunk_tokens=12000,
+            final_signal="compaction",
+        )
+
+        assert out["signals_processed"] == 0
+        assert "rolling driver saw repeated pending signals without progress" in captured["driver_code"]
+
     def test_obd_propagates_runtime_extract_wall_timeout(self, tmp_path, monkeypatch):
         import sqlite3
         from types import SimpleNamespace
 
         db_dir = tmp_path / "data"
         db_dir.mkdir(parents=True)
+        (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "config" / "memory.json").write_text(json.dumps({"capture": {}}))
         conn = sqlite3.connect(str(db_dir / "memory.db"))
         conn.execute("CREATE TABLE nodes (status TEXT)")
         conn.execute("CREATE TABLE edges (id INTEGER)")
@@ -553,6 +913,7 @@ class TestOBDExtractionTimeoutEnv:
         monkeypatch.setenv("BENCHMARK_OBD_DISABLE_CARRY_CONTEXT", "1")
         monkeypatch.setenv("BENCHMARK_OBD_PARALLEL_ROOT_WORKERS", "4")
         monkeypatch.setenv("BENCHMARK_OBD_CHUNK_TOKENS", "12000")
+        monkeypatch.setenv("BENCHMARK_OBD_CHUNK_MAX_LINES", "96")
         monkeypatch.setattr(
             rpb,
             "_load_reviews_with_dataset_gate",
@@ -592,10 +953,117 @@ class TestOBDExtractionTimeoutEnv:
         assert captured["env"]["QUAID_EXTRACT_WALL_TIMEOUT"] == "7200"
         assert captured["env"]["QUAID_EXTRACT_DISABLE_CARRY_CONTEXT"] == "1"
         assert captured["env"]["QUAID_EXTRACT_PARALLEL_ROOT_WORKERS"] == "4"
+        cfg = json.loads((tmp_path / "config" / "memory.json").read_text())
+        assert cfg["capture"]["chunkTokens"] == 12000
+        assert cfg["capture"]["chunk_max_lines"] == 96
         checkpoint_meta = json.loads((tmp_path / "logs" / "obd_post_extract_checkpoint.json").read_text())
         assert checkpoint_meta["mode"] == "obd-post-extract"
         assert out["days"] == 1
         assert out["compaction_events"] == 1
+
+    def test_rolling_obd_writes_post_extract_checkpoint(self, tmp_path, monkeypatch):
+        import sqlite3
+        from dataclasses import dataclass
+
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        (workspace / "config").mkdir(parents=True, exist_ok=True)
+        (workspace / "config" / "memory.json").write_text(json.dumps({"capture": {}}))
+
+        conn = sqlite3.connect(str(workspace / "data" / "memory.db"))
+        conn.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, status TEXT)")
+        conn.execute("CREATE TABLE edges (id TEXT PRIMARY KEY)")
+        conn.commit()
+        conn.close()
+
+        @dataclass
+        class _Review:
+            session_num: int
+            transcript_turns: list
+
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda _max_sessions: (
+                tmp_path,
+                None,
+                [_Review(20, [{"maya": "hi", "agent": "ok"}])],
+                "v1",
+                268,
+            ),
+        )
+        monkeypatch.setattr(rpb, "_operational_day", lambda _review: "2026-05-26")
+        monkeypatch.setattr(
+            rpb,
+            "_build_obd_message_stream",
+            lambda _reviews: [{"role": "user", "content": "hello"}, {"role": "assistant", "content": "hi"}],
+        )
+        monkeypatch.setattr(rpb, "_sync_final_project_states", lambda _workspace: None)
+        monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"BASE": "1"})
+        monkeypatch.setattr(rpb, "_with_quaid_now", lambda env, _day: dict(env))
+
+        def _write_session(messages, path):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join(json.dumps(m) for m in messages))
+
+        monkeypatch.setattr(rpb, "_write_session_jsonl", _write_session)
+        captured = {}
+        monkeypatch.setenv("BENCHMARK_OBD_CHUNK_MAX_LINES", "96")
+        monkeypatch.setattr(
+            rpb,
+            "_run_runtime_rolling_obd_extract",
+            lambda **_kwargs: captured.update(_kwargs) or {
+                "facts_extracted": 4,
+                "facts_stored": 3,
+                "facts_skipped": 1,
+                "edges_created": 2,
+                "snippets_count": 2,
+                "journals_count": 1,
+                "root_chunks": 5,
+                "split_events": 1,
+                "split_child_chunks": 2,
+                "leaf_chunks": 6,
+                "max_split_depth": 1,
+                "deep_calls": 7,
+                "repair_calls": 0,
+                "carry_context_enabled": True,
+                "parallel_root_workers": 1,
+                "rolling_batches": 4,
+                "rolling_stage_events": 4,
+                "rolling_stage_wall_seconds": 12.5,
+                "rolling_driver_stage_wall_seconds": 13.0,
+                "rolling_driver_flush_wall_seconds": 2.5,
+                "signal_to_publish_seconds": 2.4,
+                "flush_wall_seconds": 2.4,
+                "extract_wall_seconds": 1.8,
+                "publish_wall_seconds": 0.6,
+                "project_log_metrics": {"entries_seen": 3, "entries_written": 2, "projects_updated": 1},
+            },
+        )
+
+        out = rpb.run_per_day_extraction(
+            workspace=workspace,
+            api_key="test-key",
+            model="claude-sonnet-4-6",
+            run_janitor_each_day=False,
+            schedule_mode="rolling-obd",
+        )
+
+        checkpoint_meta = json.loads((workspace / "logs" / "obd_post_extract_checkpoint.json").read_text())
+        assert checkpoint_meta["mode"] == "obd-post-extract"
+        assert checkpoint_meta["stats"]["facts_stored"] == 3
+        assert checkpoint_meta["stats"]["rolling_batches"] == 4
+        assert checkpoint_meta["stats"]["signal_to_publish_seconds"] == 2.4
+        assert checkpoint_meta["stats"]["root_chunks"] == 5
+        assert checkpoint_meta["stats"]["snippets"] == 2
+        assert checkpoint_meta["stats"]["journals"] == 1
+        assert checkpoint_meta["stats"]["project_logs_seen"] == 3
+        assert checkpoint_meta["stats"]["project_logs_written"] == 2
+        assert checkpoint_meta["stats"]["projects_updated"] == 1
+        assert captured["chunk_max_lines"] == 96
+        assert out["schedule_mode"] == "rolling-obd"
+        assert out["signal_to_publish_seconds"] == 2.4
 
     def test_obd_writes_post_extract_checkpoint(self, tmp_path, monkeypatch):
         import sqlite3
@@ -604,6 +1072,8 @@ class TestOBDExtractionTimeoutEnv:
         workspace = tmp_path / "ws"
         (workspace / "logs").mkdir(parents=True, exist_ok=True)
         (workspace / "data").mkdir(parents=True, exist_ok=True)
+        (workspace / "config").mkdir(parents=True, exist_ok=True)
+        (workspace / "config" / "memory.json").write_text(json.dumps({"capture": {}}))
 
         conn = sqlite3.connect(str(workspace / "data" / "memory.db"))
         conn.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, status TEXT)")
@@ -698,6 +1168,8 @@ class TestOBDExtractionTimeoutEnv:
         workspace = tmp_path / "ws"
         (workspace / "logs").mkdir(parents=True, exist_ok=True)
         (workspace / "data").mkdir(parents=True, exist_ok=True)
+        (workspace / "config").mkdir(parents=True, exist_ok=True)
+        (workspace / "config" / "memory.json").write_text(json.dumps({"capture": {}}))
 
         conn = sqlite3.connect(str(workspace / "data" / "memory.db"))
         conn.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, status TEXT)")
@@ -811,6 +1283,54 @@ class TestAnthropicCachedRetries:
         assert text == "ok"
         assert usage.get("input_tokens") == 1
         assert calls["n"] == 2
+
+
+def test_tool_use_loop_api_sets_temperature_zero(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setattr(rpb, "_BACKEND", "api")
+    monkeypatch.setattr(rpb, "_append_usage_event", lambda *a, **k: None)
+
+    seen_payloads = []
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "stop_reason": "end_turn",
+                    "content": [{"type": "text", "text": "final answer"}],
+                    "usage": {"input_tokens": 1, "output_tokens": 1},
+                }
+            ).encode()
+
+    def _fake_urlopen(req, timeout=120):
+        seen_payloads.append(json.loads(req.data.decode()))
+        return _Resp()
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    answer, tool_calls, tool_logs, retrieval_texts, usage = rpb._tool_use_loop(
+        question="What is the answer?",
+        eval_context="ctx",
+        workspace=workspace,
+        api_key="test-key",
+        env={},
+        model="claude-haiku-4-5-20251001",
+        context_inject=False,
+    )
+
+    assert answer == "final answer"
+    assert tool_calls == []
+    assert tool_logs == []
+    assert retrieval_texts == []
+    assert usage["api_calls"] == 1
+    assert seen_payloads[0]["temperature"] == 0.0
 
 
 class TestGroupSessionsByDate:
@@ -1082,6 +1602,9 @@ class TestMakeEnv:
         assert env["QUAID_INSTANCE"] == "benchrunner"
         assert env["MEMORY_DB_PATH"] == str(workspace.resolve() / "data" / "memory.db")
         assert env["QUAID_DISABLE_NOTIFICATIONS"] == "1"
+        assert env["QUAID_LLM_USAGE_LOG_PATH"] == str(
+            workspace.resolve() / "benchrunner" / "logs" / "llm-usage-events.jsonl"
+        )
         assert (workspace / "benchrunner" / "config" / "memory.json").exists()
         assert (workspace / "benchrunner" / "projects").is_symlink()
         assert (workspace / "benchrunner" / "projects").resolve() == (workspace / "projects").resolve()
@@ -1123,6 +1646,29 @@ class TestMakeEnv:
 
         env = rpb._make_env(workspace, mock_embeddings=True)
         assert env["MOCK_EMBEDDINGS"] == "1"
+
+    def test_propagates_eval_parallel_override(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setenv("BENCHMARK_PARALLEL", "6")
+        monkeypatch.setenv("BENCHMARK_EVAL_PARALLEL", "1")
+
+        env = rpb._make_env(workspace)
+        assert env["BENCHMARK_PARALLEL"] == "6"
+        assert env["BENCHMARK_EVAL_PARALLEL"] == "1"
+
+
+def test_resolve_eval_parallel_workers_prefers_eval_override(monkeypatch):
+    monkeypatch.setenv("BENCHMARK_PARALLEL", "6")
+    monkeypatch.setenv("BENCHMARK_EVAL_PARALLEL", "2")
+    assert rpb._resolve_eval_parallel_workers() == 2
+
+
+def test_resolve_eval_parallel_workers_falls_back_to_global_parallel(monkeypatch):
+    monkeypatch.setenv("BENCHMARK_PARALLEL", "4")
+    monkeypatch.delenv("BENCHMARK_EVAL_PARALLEL", raising=False)
+    assert rpb._resolve_eval_parallel_workers() == 4
 
 
 def test_save_token_usage_includes_preinject_timing_stats(tmp_path):

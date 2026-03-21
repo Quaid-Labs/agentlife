@@ -96,8 +96,10 @@ relying on local Claude Code login state:
 Notes:
 - This is benchmark-only harness behavior.
 - The token is sent as `Authorization: Bearer ...` with the required Anthropic OAuth beta header.
-- If `BENCHMARK_ANTHROPIC_OAUTH_TOKEN` is absent, the harness falls back to `ANTHROPIC_API_KEY`.
-- The harness does not need to sync your local Claude credentials to a remote host for `api` runs.
+- Canonical benchmark OAuth source is `~/quaid/anthtoken.md` via the launcher, unless you explicitly export `BENCHMARK_ANTHROPIC_OAUTH_TOKEN` yourself.
+- Do not add automatic fallback across multiple Anthropic OAuth accounts/tokens.
+- Secondary token switching is manual-only by operator action.
+- The harness only uses credentials explicitly exported into the launch environment; it does not read hidden local/remote `.env` files at runtime.
 
 ### Run Evaluation
 

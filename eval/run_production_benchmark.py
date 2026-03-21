@@ -175,29 +175,13 @@ def _load_claude_code_oauth_token() -> Optional[str]:
 
 
 def _find_benchmark_anthropic_oauth_token() -> str:
-    """Best-effort benchmark OAuth token lookup without exiting."""
-    token = os.environ.get("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", "").strip()
-    if token:
-        return token
-    for env_path in [_CLAWD / ".env", Path.home() / ".openclaw" / ".env"]:
-        if env_path.exists():
-            for line in env_path.read_text().split("\n"):
-                if line.startswith("BENCHMARK_ANTHROPIC_OAUTH_TOKEN="):
-                    return line.split("=", 1)[1].strip()
-    return ""
+    """Benchmark OAuth token comes only from explicit launch environment."""
+    return os.environ.get("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", "").strip()
 
 
 def _find_anthropic_api_key() -> str:
-    """Best-effort Anthropic API key lookup without exiting."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if api_key:
-        return api_key
-    for env_path in [_CLAWD / ".env", Path.home() / ".openclaw" / ".env"]:
-        if env_path.exists():
-            for line in env_path.read_text().split("\n"):
-                if line.startswith("ANTHROPIC_API_KEY="):
-                    return line.split("=", 1)[1].strip()
-    return ""
+    """Anthropic API key comes only from explicit launch environment."""
+    return os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
 
 def _find_anthropic_credential() -> str:
@@ -429,6 +413,18 @@ def _resolve_filler_dir() -> Path:
     if raw:
         return Path(raw).expanduser()
     return _PROJECT_DIR / "data" / "filler-sessions"
+
+
+def _resolve_eval_parallel_workers(default: str = "1") -> int:
+    return max(
+        1,
+        int(
+            os.environ.get(
+                "BENCHMARK_EVAL_PARALLEL",
+                os.environ.get("BENCHMARK_PARALLEL", default),
+            )
+        ),
+    )
 
 
 def _load_reviews_with_dataset_gate(
@@ -1029,7 +1025,7 @@ def _write_prompt_trace(
 
 
 def _usage_log_path(workspace: Path) -> Path:
-    return workspace / "logs" / "llm-usage-events.jsonl"
+    return workspace / _BENCHMARK_QUAID_INSTANCE / "logs" / "llm-usage-events.jsonl"
 
 
 def _recall_telemetry_log_path(workspace: Path) -> Path:
@@ -1407,10 +1403,8 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     if not isinstance(prod_config.get("capture"), dict):
         prod_config["capture"] = {}
     # Extraction chunking should be token-native.
-    obd_chunk_tokens = max(
-        1000, int(os.environ.get("BENCHMARK_OBD_CHUNK_TOKENS", "30000"))
-    )
-    prod_config["capture"]["chunkTokens"] = obd_chunk_tokens
+    prod_config["capture"]["chunk_tokens"] = 30000
+    prod_config["capture"]["chunkTokens"] = 30000
     if not isinstance(prod_config.get("models"), dict):
         prod_config["models"] = {}
     # New Quaid strict mode requires explicit provider selection.
@@ -1845,6 +1839,94 @@ def _save_obd_post_extract_checkpoint(
     return payload
 
 
+def _rolling_pre_publish_checkpoint_metadata_path(workspace: Path) -> Path:
+    return workspace / "logs" / "rolling_pre_publish_checkpoint.json"
+
+
+def _rolling_pre_publish_snapshot_dir(workspace: Path, session_id: str) -> Path:
+    safe_session_id = re.sub(r"[^A-Za-z0-9._-]+", "_", str(session_id or "session")).strip("._") or "session"
+    return _resume_root(workspace) / f"rolling-pre-publish-{safe_session_id}"
+
+
+def _save_rolling_pre_publish_checkpoint(
+    workspace: Path,
+    *,
+    session_id: str,
+) -> Optional[dict]:
+    """Snapshot the pre-flush DB/state so publish-only retries can restore cleanly."""
+    root = _resume_root(workspace)
+    root.mkdir(parents=True, exist_ok=True)
+    snapshot_dir = _rolling_pre_publish_snapshot_dir(workspace, session_id)
+    if snapshot_dir.exists():
+        shutil.rmtree(snapshot_dir)
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+
+    copied: List[str] = []
+
+    def _copy_rel(rel_path: Path) -> None:
+        src = workspace / rel_path
+        if not src.exists() or not src.is_file():
+            return
+        dst = snapshot_dir / rel_path
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+        copied.append(str(rel_path))
+
+    instance_root = workspace / _BENCHMARK_QUAID_INSTANCE
+    data_root = instance_root / "data"
+    for path in sorted(data_root.glob("memory.db*")):
+        if path.is_file():
+            _copy_rel(path.relative_to(workspace))
+
+    state_path = _rolling_state_file(workspace, session_id)
+    if state_path.exists():
+        _copy_rel(state_path.relative_to(workspace))
+
+    cursor_path = _rolling_cursor_file(workspace, session_id)
+    if cursor_path.exists():
+        _copy_rel(cursor_path.relative_to(workspace))
+
+    for row in _load_pending_signal_rows(workspace, session_id=session_id, signal_type="compaction"):
+        signal_path = Path(str(row.get("_signal_path", "") or ""))
+        if signal_path.exists():
+            _copy_rel(signal_path.relative_to(workspace))
+
+    if not copied:
+        return None
+
+    payload = {
+        "mode": "rolling-pre-publish",
+        "session_id": str(session_id),
+        "snapshot_dir": str(snapshot_dir),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "files": copied,
+    }
+    metadata_path = _rolling_pre_publish_checkpoint_metadata_path(workspace)
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(payload, indent=2))
+    return payload
+
+
+def _set_workspace_obd_capture_limits(
+    workspace: Path,
+    *,
+    chunk_tokens: int,
+    chunk_max_lines: Optional[int] = None,
+) -> None:
+    """Apply OBD-specific extraction capture limits to the workspace config."""
+    config_path = workspace / "config" / "memory.json"
+    if not config_path.exists():
+        raise RuntimeError(f"Workspace config missing for OBD chunk override: {config_path}")
+    payload = json.loads(config_path.read_text())
+    if not isinstance(payload.get("capture"), dict):
+        payload["capture"] = {}
+    payload["capture"]["chunk_tokens"] = int(chunk_tokens)
+    payload["capture"]["chunkTokens"] = int(chunk_tokens)
+    if chunk_max_lines is not None:
+        payload["capture"]["chunk_max_lines"] = int(chunk_max_lines)
+    config_path.write_text(json.dumps(payload, indent=2))
+
+
 def restore_lifecycle_resume_checkpoint(workspace: Path) -> Optional[dict]:
     state_path = _resume_latest_path(workspace)
     if not state_path.exists():
@@ -1871,6 +1953,42 @@ def restore_lifecycle_resume_checkpoint(workspace: Path) -> Optional[dict]:
         src = snapshot_dir / rel
         if src.exists():
             shutil.copy2(src, workspace / rel)
+    return payload
+
+
+def _restore_rolling_pre_publish_checkpoint(
+    workspace: Path,
+    *,
+    session_id: str,
+) -> Optional[dict]:
+    metadata_path = _rolling_pre_publish_checkpoint_metadata_path(workspace)
+    if not metadata_path.exists():
+        return None
+    payload = json.loads(metadata_path.read_text())
+    if str(payload.get("session_id", "")) != str(session_id):
+        return None
+    snapshot_dir = Path(str(payload.get("snapshot_dir", "") or ""))
+    if not snapshot_dir.exists():
+        return None
+
+    instance_root = workspace / _BENCHMARK_QUAID_INSTANCE
+    data_root = instance_root / "data"
+    for path in sorted(data_root.glob("memory.db*")):
+        if path.is_file():
+            path.unlink()
+    for row in _load_pending_signal_rows(workspace, session_id=session_id, signal_type="compaction"):
+        signal_path = Path(str(row.get("_signal_path", "") or ""))
+        if signal_path.exists():
+            signal_path.unlink()
+
+    files = payload.get("files") or []
+    for rel in files:
+        src = snapshot_dir / rel
+        if not src.exists() or not src.is_file():
+            continue
+        dst = workspace / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
     return payload
 
 
@@ -2047,7 +2165,7 @@ def run_extraction(
     """
     # Load reviews
     assets_dir, _arc_reviews, reviews, _dataset_version, _expected_queries = _load_reviews_with_dataset_gate(max_sessions)
-    parallel_workers = max(1, int(os.environ.get("BENCHMARK_PARALLEL", "1")))
+    parallel_workers = _resolve_eval_parallel_workers()
     extraction_mode = "PARALLEL CHUNKED CALLS" if (parallel_workers > 1 and len(reviews) > 1) else "SINGLE CALL"
 
     print("=" * 60)
@@ -2767,6 +2885,411 @@ def _run_runtime_extract_jsonl(
         ) from exc
 
 
+def _rolling_metrics_log_path(workspace: Path) -> Path:
+    return workspace / _BENCHMARK_QUAID_INSTANCE / "logs" / "daemon" / "rolling-extraction.jsonl"
+
+
+def _rolling_state_file(workspace: Path, session_id: str) -> Path:
+    safe_session_id = re.sub(r"[^A-Za-z0-9._-]+", "_", str(session_id or "session")).strip("._") or "session"
+    return workspace / _BENCHMARK_QUAID_INSTANCE / "data" / "rolling-extraction" / f"{safe_session_id}.json"
+
+
+def _rolling_cursor_file(workspace: Path, session_id: str) -> Path:
+    safe_session_id = re.sub(r"[^A-Za-z0-9._-]+", "_", str(session_id or "session")).strip("._") or "session"
+    return workspace / _BENCHMARK_QUAID_INSTANCE / "data" / "session-cursors" / f"{safe_session_id}.json"
+
+
+def _load_pending_signal_rows(
+    workspace: Path,
+    *,
+    session_id: Optional[str] = None,
+    signal_type: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    signal_dir = workspace / _BENCHMARK_QUAID_INSTANCE / "data" / "extraction-signals"
+    if not signal_dir.is_dir():
+        return []
+    rows: List[Dict[str, Any]] = []
+    for path in sorted(signal_dir.glob("*.json")):
+        try:
+            row = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        row["_signal_path"] = str(path)
+        if session_id and str(row.get("session_id", "")) != str(session_id):
+            continue
+        if signal_type and str(row.get("type", "")) != str(signal_type):
+            continue
+        rows.append(row)
+    return rows
+
+
+def _rolling_flush_resume_state(
+    workspace: Path,
+    *,
+    session_id: str,
+    transcript_path: Path,
+) -> Dict[str, Any]:
+    state_path = _rolling_state_file(workspace, session_id)
+    cursor_path = _rolling_cursor_file(workspace, session_id)
+    total_lines = 0
+    try:
+        total_lines = sum(1 for _ in transcript_path.open("r", encoding="utf-8", errors="replace"))
+    except OSError:
+        total_lines = 0
+    cursor_line_offset = 0
+    cursor_transcript_path = ""
+    if cursor_path.exists():
+        try:
+            cursor = json.loads(cursor_path.read_text(encoding="utf-8"))
+            cursor_line_offset = int(cursor.get("line_offset", 0) or 0)
+            cursor_transcript_path = str(cursor.get("transcript_path", "") or "")
+        except Exception:
+            cursor_line_offset = 0
+            cursor_transcript_path = ""
+    pending_compaction = _load_pending_signal_rows(
+        workspace,
+        session_id=session_id,
+        signal_type="compaction",
+    )
+    ready = bool(
+        state_path.exists()
+        and total_lines > 0
+        and cursor_line_offset >= total_lines
+        and cursor_transcript_path == str(transcript_path)
+        and pending_compaction
+    )
+    return {
+        "ready": ready,
+        "state_path": str(state_path),
+        "cursor_line_offset": cursor_line_offset,
+        "cursor_transcript_path": cursor_transcript_path,
+        "total_lines": total_lines,
+        "pending_compaction_signals": len(pending_compaction),
+    }
+
+
+def _load_rolling_metric_rows(
+    workspace: Path,
+    *,
+    session_id: Optional[str] = None,
+    event: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    path = _rolling_metrics_log_path(workspace)
+    if not path.exists():
+        return []
+    rows: List[Dict[str, Any]] = []
+    with path.open("r", encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            text = line.strip()
+            if not text:
+                continue
+            try:
+                row = json.loads(text)
+            except Exception:
+                continue
+            if session_id and str(row.get("session_id", "")) != str(session_id):
+                continue
+            if event and str(row.get("event", "")) != str(event):
+                continue
+            rows.append(row)
+    return rows
+
+
+def _run_runtime_rolling_driver(
+    *,
+    workspace: Path,
+    env: dict,
+    session_id: str,
+    transcript_path: Path,
+    timeout_seconds: int,
+    chunk_tokens: Optional[int] = None,
+    chunk_max_lines: Optional[int] = None,
+    final_signal: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Drive the real extraction daemon signal path for rolling OBD simulation."""
+    driver_code = (
+        "import json, os, sys\n"
+        "from pathlib import Path\n"
+        "quaid_root = os.environ['BENCHMARK_QUAID_DIR']\n"
+        "if quaid_root not in sys.path:\n"
+        "    sys.path.insert(0, quaid_root)\n"
+        "from core import extraction_daemon as d\n"
+        "session_id = os.environ['BENCHMARK_SESSION_ID']\n"
+        "transcript_path = os.environ['BENCHMARK_TRANSCRIPT_PATH']\n"
+        "cursor = d.read_cursor(session_id)\n"
+        "if cursor.get('transcript_path') != transcript_path:\n"
+        "    d.write_cursor(session_id, int(cursor.get('line_offset', 0) or 0), transcript_path)\n"
+        "chunk_raw = os.environ.get('BENCHMARK_ROLLING_CHUNK_TOKENS', '').strip()\n"
+        "chunk_lines_raw = os.environ.get('BENCHMARK_ROLLING_CHUNK_MAX_LINES', '').strip()\n"
+        "if chunk_lines_raw:\n"
+        "    os.environ['QUAID_CAPTURE_CHUNK_MAX_LINES'] = chunk_lines_raw\n"
+        "if chunk_raw:\n"
+        "    d.check_chunk_ready_sessions(int(chunk_raw))\n"
+        "final_signal = os.environ.get('BENCHMARK_FINAL_SIGNAL', '').strip()\n"
+        "if final_signal:\n"
+        "    d.write_signal(signal_type=final_signal, session_id=session_id, transcript_path=transcript_path, meta={'reason': 'benchmark_rolling_flush'})\n"
+        "processed = 0\n"
+        "loops = 0\n"
+        "last_signal_signature = None\n"
+        "while True:\n"
+        "    signals = d.read_pending_signals()\n"
+        "    if not signals:\n"
+        "        break\n"
+        "    signal_signature = tuple(sorted(str(sig.get('_signal_path') or json.dumps(sig, sort_keys=True)) for sig in signals))\n"
+        "    if signal_signature == last_signal_signature:\n"
+        "        raise RuntimeError(f'rolling driver saw repeated pending signals without progress: {signal_signature}')\n"
+        "    last_signal_signature = signal_signature\n"
+        "    loops += 1\n"
+        "    if loops > 10000:\n"
+        "        raise RuntimeError('rolling driver exceeded 10000 signal iterations')\n"
+        "    for sig in signals:\n"
+        "        d.process_signal(sig)\n"
+        "        processed += 1\n"
+        "cursor = d.read_cursor(session_id)\n"
+        "instance_root = Path(os.environ['CLAWDBOT_WORKSPACE']) / os.environ.get('QUAID_INSTANCE', 'benchrunner')\n"
+        "state_path = instance_root / 'data' / 'rolling-extraction' / f'{session_id}.json'\n"
+        "metrics_path = instance_root / 'logs' / 'daemon' / 'rolling-extraction.jsonl'\n"
+        "remaining_tokens = None\n"
+        "if chunk_raw:\n"
+        "    remaining_tokens = d.estimate_unextracted_tokens(transcript_path, int(cursor.get('line_offset', 0) or 0), int(chunk_raw))\n"
+        "print(json.dumps({\n"
+        "    'session_id': session_id,\n"
+        "    'signals_processed': processed,\n"
+        "    'signal_loops': loops,\n"
+        "    'cursor_line_offset': int(cursor.get('line_offset', 0) or 0),\n"
+        "    'cursor_transcript_path': cursor.get('transcript_path', ''),\n"
+        "    'total_lines': d.count_transcript_lines(transcript_path),\n"
+        "    'rolling_state_exists': state_path.exists(),\n"
+        "    'rolling_state_path': str(state_path),\n"
+        "    'metrics_path': str(metrics_path),\n"
+        "    'remaining_tokens': remaining_tokens,\n"
+        "} ))\n"
+    )
+    driver_env = dict(env)
+    driver_env["BENCHMARK_QUAID_DIR"] = str(_QUAID_DIR.resolve())
+    driver_env["BENCHMARK_SESSION_ID"] = str(session_id)
+    driver_env["BENCHMARK_TRANSCRIPT_PATH"] = str(transcript_path)
+    if chunk_tokens is not None:
+        driver_env["BENCHMARK_ROLLING_CHUNK_TOKENS"] = str(int(chunk_tokens))
+    else:
+        driver_env.pop("BENCHMARK_ROLLING_CHUNK_TOKENS", None)
+    if chunk_max_lines is not None:
+        driver_env["BENCHMARK_ROLLING_CHUNK_MAX_LINES"] = str(int(chunk_max_lines))
+    else:
+        driver_env.pop("BENCHMARK_ROLLING_CHUNK_MAX_LINES", None)
+    if final_signal:
+        driver_env["BENCHMARK_FINAL_SIGNAL"] = str(final_signal)
+    else:
+        driver_env.pop("BENCHMARK_FINAL_SIGNAL", None)
+    result = subprocess.run(
+        [sys.executable, "-c", driver_code],
+        env=driver_env,
+        cwd=str(_QUAID_DIR),
+        capture_output=True,
+        text=True,
+        timeout=timeout_seconds,
+    )
+    if result.returncode != 0:
+        preview = _subprocess_failure_preview(result)
+        raise RuntimeError(f"Runtime rolling driver failed: {preview}")
+    stdout = result.stdout.strip()
+    if stdout:
+        lines = stdout.splitlines()
+        for idx, line in enumerate(lines):
+            if line.lstrip().startswith("{"):
+                stdout = "\n".join(lines[idx:])
+                break
+    try:
+        return json.loads(stdout)
+    except Exception as exc:
+        raise RuntimeError(
+            "Runtime rolling driver returned invalid JSON. "
+            f"stdout={result.stdout[:400]!r} stderr={result.stderr[:400]!r}"
+        ) from exc
+
+
+def _write_runtime_rolling_signal(
+    *,
+    env: dict,
+    session_id: str,
+    transcript_path: Path,
+    signal_type: str,
+    timeout_seconds: int,
+) -> None:
+    driver_code = (
+        "import os, sys\n"
+        "quaid_root = os.environ['BENCHMARK_QUAID_DIR']\n"
+        "if quaid_root not in sys.path:\n"
+        "    sys.path.insert(0, quaid_root)\n"
+        "from core import extraction_daemon as d\n"
+        "d.write_signal(\n"
+        "    signal_type=os.environ['BENCHMARK_SIGNAL_TYPE'],\n"
+        "    session_id=os.environ['BENCHMARK_SESSION_ID'],\n"
+        "    transcript_path=os.environ['BENCHMARK_TRANSCRIPT_PATH'],\n"
+        "    meta={'reason': 'benchmark_rolling_flush'},\n"
+        ")\n"
+    )
+    driver_env = dict(env)
+    driver_env["BENCHMARK_QUAID_DIR"] = str(_QUAID_DIR.resolve())
+    driver_env["BENCHMARK_SESSION_ID"] = str(session_id)
+    driver_env["BENCHMARK_TRANSCRIPT_PATH"] = str(transcript_path)
+    driver_env["BENCHMARK_SIGNAL_TYPE"] = str(signal_type)
+    result = subprocess.run(
+        [sys.executable, "-c", driver_code],
+        env=driver_env,
+        cwd=str(_QUAID_DIR),
+        capture_output=True,
+        text=True,
+        timeout=timeout_seconds,
+    )
+    if result.returncode != 0:
+        preview = _subprocess_failure_preview(result)
+        raise RuntimeError(f"Runtime rolling signal write failed: {preview}")
+
+
+def _run_runtime_rolling_obd_extract(
+    *,
+    workspace: Path,
+    env: dict,
+    session_file: Path,
+    session_id: str,
+    chunk_tokens: int,
+    chunk_max_lines: Optional[int],
+    timeout_seconds: int,
+) -> Dict[str, Any]:
+    """Replay a merged OBD transcript through the real rolling daemon path."""
+    restored_pre_publish_checkpoint = _restore_rolling_pre_publish_checkpoint(
+        workspace,
+        session_id=session_id,
+    )
+    resume_state = _rolling_flush_resume_state(
+        workspace,
+        session_id=session_id,
+        transcript_path=session_file,
+    )
+    resumed_from_staged_checkpoint = bool(resume_state.get("ready"))
+
+    if resumed_from_staged_checkpoint:
+        stage_driver = {
+            "session_id": session_id,
+            "signals_processed": 0,
+            "signal_loops": 0,
+            "cursor_line_offset": int(resume_state.get("cursor_line_offset", 0) or 0),
+            "cursor_transcript_path": str(resume_state.get("cursor_transcript_path", "") or ""),
+            "total_lines": int(resume_state.get("total_lines", 0) or 0),
+            "rolling_state_exists": True,
+            "rolling_state_path": str(resume_state.get("state_path", "") or ""),
+            "metrics_path": str(_rolling_metrics_log_path(workspace)),
+            "remaining_tokens": 0,
+        }
+        stage_wall_seconds = 0.0
+    else:
+        stage_started_at = time.time()
+        stage_driver = _run_runtime_rolling_driver(
+            workspace=workspace,
+            env=env,
+            session_id=session_id,
+            transcript_path=session_file,
+            timeout_seconds=timeout_seconds,
+            chunk_tokens=chunk_tokens,
+            chunk_max_lines=chunk_max_lines,
+            final_signal=None,
+        )
+        stage_wall_seconds = round(time.time() - stage_started_at, 3)
+        _write_runtime_rolling_signal(
+            env=env,
+            session_id=session_id,
+            transcript_path=session_file,
+            signal_type="compaction",
+            timeout_seconds=timeout_seconds,
+        )
+        _save_rolling_pre_publish_checkpoint(
+            workspace,
+            session_id=session_id,
+        )
+
+    flush_started_at = time.time()
+    flush_driver = _run_runtime_rolling_driver(
+        workspace=workspace,
+        env=env,
+        session_id=session_id,
+        transcript_path=session_file,
+        timeout_seconds=timeout_seconds,
+        chunk_tokens=None,
+        chunk_max_lines=chunk_max_lines,
+        final_signal=None,
+    )
+    flush_driver_wall_seconds = round(time.time() - flush_started_at, 3)
+
+    state_path = _rolling_state_file(workspace, session_id)
+    if state_path.exists():
+        raise RuntimeError(
+            f"Rolling flush succeeded but staged state still exists: {state_path}"
+        )
+
+    metric_rows = _load_rolling_metric_rows(workspace, session_id=session_id)
+    flush_rows = [row for row in metric_rows if row.get("event") == "rolling_flush"]
+    if not flush_rows:
+        raise RuntimeError(
+            f"Rolling OBD flush produced no rolling_flush telemetry rows. metrics={_rolling_metrics_log_path(workspace)}"
+        )
+    flush_metric = flush_rows[-1]
+    stage_rows = [row for row in metric_rows if row.get("event") == "rolling_stage"]
+
+    return {
+        "facts_extracted": int(flush_metric.get("final_raw_fact_count", 0) or 0),
+        "facts_stored": int(flush_metric.get("final_facts_stored", 0) or 0),
+        "facts_skipped": int(flush_metric.get("final_facts_skipped", 0) or 0),
+        "edges_created": int(flush_metric.get("final_edges_created", 0) or 0),
+        "snippets_count": int(flush_metric.get("snippets_count", 0) or 0),
+        "journals_count": int(flush_metric.get("journals_count", 0) or 0),
+        "project_log_metrics": {
+            "entries_seen": int(flush_metric.get("project_logs_seen", 0) or 0),
+            "entries_written": int(flush_metric.get("project_logs_written", 0) or 0),
+            "projects_updated": int(flush_metric.get("project_logs_projects_updated", 0) or 0),
+        },
+        "root_chunks": int(flush_metric.get("root_chunks", 0) or 0),
+        "split_events": int(flush_metric.get("split_events", 0) or 0),
+        "split_child_chunks": int(flush_metric.get("split_child_chunks", 0) or 0),
+        "leaf_chunks": int(flush_metric.get("leaf_chunks", 0) or 0),
+        "max_split_depth": int(flush_metric.get("max_split_depth", 0) or 0),
+        "deep_calls": int(flush_metric.get("deep_calls", 0) or 0),
+        "repair_calls": int(flush_metric.get("repair_calls", 0) or 0),
+        "carry_context_enabled": True,
+        "parallel_root_workers": 1,
+        "rolling_batches": int(flush_metric.get("staged_batches", 0) or 0),
+        "rolling_stage_events": len(stage_rows),
+        "rolling_stage_wall_seconds": round(sum(float(row.get("wall_seconds", 0) or 0) for row in stage_rows), 3),
+        "rolling_driver_stage_wall_seconds": stage_wall_seconds,
+        "rolling_driver_flush_wall_seconds": flush_driver_wall_seconds,
+        "resumed_from_staged_checkpoint": resumed_from_staged_checkpoint,
+        "restored_pre_publish_checkpoint": bool(restored_pre_publish_checkpoint),
+        "signal_to_publish_seconds": (
+            float(flush_metric.get("signal_to_publish_seconds", 0) or 0)
+            if flush_metric.get("signal_to_publish_seconds") is not None
+            else None
+        ),
+        "flush_wall_seconds": (
+            float(flush_metric.get("flush_wall_seconds", 0) or 0)
+            if flush_metric.get("flush_wall_seconds") is not None
+            else None
+        ),
+        "extract_wall_seconds": (
+            float(flush_metric.get("extract_wall_seconds", 0) or 0)
+            if flush_metric.get("extract_wall_seconds") is not None
+            else None
+        ),
+        "publish_wall_seconds": (
+            float(flush_metric.get("publish_wall_seconds", 0) or 0)
+            if flush_metric.get("publish_wall_seconds") is not None
+            else None
+        ),
+        "stage_driver": stage_driver,
+        "flush_driver": flush_driver,
+        "rolling_metric_path": str(_rolling_metrics_log_path(workspace)),
+    }
+
+
 def run_per_day_extraction(
     workspace: Path,
     api_key: str,
@@ -2792,6 +3315,11 @@ def run_per_day_extraction(
             print("PHASE 3b: ONE-BIG-DAY EXTRACTION + FINAL JANITOR")
         else:
             print("PHASE 3b: ONE-BIG-DAY EXTRACTION ONLY")
+    elif schedule_mode == "rolling-obd":
+        if run_janitor_each_day:
+            print("PHASE 3b: ROLLING OBD EXTRACTION + FINAL JANITOR")
+        else:
+            print("PHASE 3b: ROLLING OBD EXTRACTION ONLY")
     else:
         print("PHASE 3b: PER-DAY EXTRACTION + JANITOR")
     print("=" * 60)
@@ -2804,9 +3332,12 @@ def run_per_day_extraction(
             "Set AGENTLIFE_ASSETS_DIR to the benchmark assets path."
         )
 
-    if schedule_mode == "obd":
+    if schedule_mode in {"obd", "rolling-obd"}:
         if resume_state:
-            raise RuntimeError("Resume-day-lifecycle is not supported for BENCHMARK_INGEST_SCHEDULE=obd")
+            raise RuntimeError(
+                "Resume-day-lifecycle is not supported for BENCHMARK_INGEST_SCHEDULE=obd or rolling-obd"
+            )
+        rolling_obd = schedule_mode == "rolling-obd"
         final_day = _operational_day(reviews[-1]) if reviews else "1970-01-01"
         session_ids = [r.session_num for r in reviews]
         messages = _build_obd_message_stream(reviews)
@@ -2815,11 +3346,20 @@ def run_per_day_extraction(
             for m in messages
         )
         obd_chunk_tokens = max(1000, int(os.environ.get("BENCHMARK_OBD_CHUNK_TOKENS", "30000")))
+        raw_chunk_max_lines = str(os.environ.get("BENCHMARK_OBD_CHUNK_MAX_LINES", "") or "").strip()
+        obd_chunk_max_lines = max(1, int(raw_chunk_max_lines)) if raw_chunk_max_lines else None
+        _set_workspace_obd_capture_limits(
+            workspace,
+            chunk_tokens=obd_chunk_tokens,
+            chunk_max_lines=obd_chunk_max_lines,
+        )
         print(f"  Synthetic day: {final_day}")
         print(f"  Sessions merged: {len(session_ids)}")
         print(f"  Messages merged: {len(messages)}")
         print(f"  Combined transcript: {len(transcript)} chars (~{_estimate_text_tokens(transcript)} tokens)")
         print(f"  OBD chunk token target: {obd_chunk_tokens}")
+        if obd_chunk_max_lines is not None:
+            print(f"  OBD chunk line target: {obd_chunk_max_lines}")
         print(f"  Final project states:")
         _sync_final_project_states(workspace)
 
@@ -2839,7 +3379,10 @@ def run_per_day_extraction(
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }, indent=2))
 
-        print("  Runtime extraction: one compaction event via ingest/extract.py")
+        if rolling_obd:
+            print("  Runtime extraction: rolling daemon staging + final compaction flush")
+        else:
+            print("  Runtime extraction: one compaction event via ingest/extract.py")
         extract_timeout = max(600, int(os.environ.get("BENCHMARK_OBD_EXTRACT_TIMEOUT", "7200")))
         day_env["QUAID_EXTRACT_WALL_TIMEOUT"] = str(extract_timeout)
         obd_disable_carry = str(os.environ.get("BENCHMARK_OBD_DISABLE_CARRY_CONTEXT", "") or "").strip().lower() in {
@@ -2856,28 +3399,44 @@ def run_per_day_extraction(
                 f"carry={'off' if obd_disable_carry else 'on'} "
                 f"parallel_root_workers={obd_parallel_root_workers}"
             )
-        extract_result = _run_runtime_extract_jsonl(
-            workspace=workspace,
-            env=day_env,
-            session_file=session_file,
-            owner_id="maya",
-            label="Compaction",
-            session_id="obd-compaction-0001",
-            timeout_seconds=extract_timeout,
-        )
+        if rolling_obd:
+            extract_result = _run_runtime_rolling_obd_extract(
+                workspace=workspace,
+                env=day_env,
+                session_file=session_file,
+                session_id="obd-compaction-0001",
+                chunk_tokens=obd_chunk_tokens,
+                chunk_max_lines=obd_chunk_max_lines,
+                timeout_seconds=extract_timeout,
+            )
+        else:
+            extract_result = _run_runtime_extract_jsonl(
+                workspace=workspace,
+                env=day_env,
+                session_file=session_file,
+                owner_id="maya",
+                label="Compaction",
+                session_id="obd-compaction-0001",
+                timeout_seconds=extract_timeout,
+            )
         extraction_checkpoint_path.write_text(json.dumps({
             "state": "completed",
-            "mode": "obd",
+            "mode": "rolling-obd" if rolling_obd else "obd",
             "total_chunks": 1,
             "total_days": 1,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }, indent=2))
 
-        total_facts = len(extract_result.get("facts", []) or [])
+        total_facts = int(extract_result.get("facts_extracted", len(extract_result.get("facts", []) or [])) or 0)
         total_stored = int(extract_result.get("facts_stored", 0) or 0)
         total_edges = int(extract_result.get("edges_created", 0) or 0)
-        total_snippets = sum(len(v) for v in (extract_result.get("snippets", {}) or {}).values() if isinstance(v, list))
-        total_journals = len(extract_result.get("journal", {}) or {})
+        total_snippets = int(
+            extract_result.get(
+                "snippets_count",
+                sum(len(v) for v in (extract_result.get("snippets", {}) or {}).values() if isinstance(v, list)),
+            ) or 0
+        )
+        total_journals = int(extract_result.get("journals_count", len(extract_result.get("journal", {}) or {})) or 0)
         project_log_metrics = extract_result.get("project_log_metrics", {}) or {}
         total_project_logs_written = int(project_log_metrics.get("entries_written", 0) or 0)
         total_project_logs_seen = int(project_log_metrics.get("entries_seen", 0) or 0)
@@ -2908,6 +3467,14 @@ def run_per_day_extraction(
             f"carry={'on' if obd_carry_context_enabled else 'off'} "
             f"parallel_workers={obd_parallel_workers_used}"
         )
+        if rolling_obd:
+            print(
+                "  Rolling flush: "
+                f"batches={int(extract_result.get('rolling_batches', 0) or 0)} "
+                f"signal_to_publish={extract_result.get('signal_to_publish_seconds')}s "
+                f"extract={extract_result.get('extract_wall_seconds')}s "
+                f"publish={extract_result.get('publish_wall_seconds')}s"
+            )
         if total_project_logs_seen or total_project_logs_written:
             print(
                 "  Project logs: "
@@ -2936,6 +3503,15 @@ def run_per_day_extraction(
                 "repair_calls": obd_repair_calls,
                 "carry_context_enabled": obd_carry_context_enabled,
                 "parallel_root_workers": obd_parallel_workers_used,
+                "rolling_batches": int(extract_result.get("rolling_batches", 0) or 0),
+                "rolling_stage_events": int(extract_result.get("rolling_stage_events", 0) or 0),
+                "rolling_stage_wall_seconds": extract_result.get("rolling_stage_wall_seconds"),
+                "rolling_driver_stage_wall_seconds": extract_result.get("rolling_driver_stage_wall_seconds"),
+                "rolling_driver_flush_wall_seconds": extract_result.get("rolling_driver_flush_wall_seconds"),
+                "signal_to_publish_seconds": extract_result.get("signal_to_publish_seconds"),
+                "flush_wall_seconds": extract_result.get("flush_wall_seconds"),
+                "extract_wall_seconds": extract_result.get("extract_wall_seconds"),
+                "publish_wall_seconds": extract_result.get("publish_wall_seconds"),
             },
         )
         print(f"  Post-extract checkpoint: {obd_checkpoint['snapshot_dir']}")
@@ -3039,6 +3615,15 @@ def run_per_day_extraction(
             "compaction_events": 1,
             "message_count": len(messages),
             "transcript_tokens": _estimate_text_tokens(transcript),
+            "signal_to_publish_seconds": extract_result.get("signal_to_publish_seconds"),
+            "flush_wall_seconds": extract_result.get("flush_wall_seconds"),
+            "extract_wall_seconds": extract_result.get("extract_wall_seconds"),
+            "publish_wall_seconds": extract_result.get("publish_wall_seconds"),
+            "root_chunks": obd_root_chunks,
+            "split_events": obd_split_events,
+            "leaf_chunks": obd_leaf_chunks,
+            "rolling_batches": int(extract_result.get("rolling_batches", 0) or 0),
+            "schedule_mode": schedule_mode,
         }
 
     session_blocks = _build_session_blocks(reviews)
@@ -3716,7 +4301,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
 
     _write_eval_progress(current_idx=0, completed_idx=-1)
 
-    parallel_workers = max(1, int(os.environ.get("BENCHMARK_PARALLEL", "1")))
+    parallel_workers = _resolve_eval_parallel_workers()
     parallel_workers = min(parallel_workers, max(1, len(all_queries)))
     if parallel_workers > 1:
         print(f"  Eval parallel workers: {parallel_workers}")
@@ -4714,6 +5299,7 @@ def _tool_use_loop(
         payload = {
             "model": model,
             "max_tokens": 2048,
+            "temperature": 0.0,
             "messages": messages,
             "tools": tools,
         }
@@ -6556,6 +7142,12 @@ def _make_env(
     env["PYTHONPATH"] = f"{quaid_root}:{existing_pythonpath}" if existing_pythonpath else quaid_root
     # Harness-level concurrency knobs propagated to Quaid subprocesses (janitor/lifecycle).
     env["BENCHMARK_PARALLEL"] = str(max(1, int(os.environ.get("BENCHMARK_PARALLEL", "6"))))
+    if "BENCHMARK_EVAL_PARALLEL" in os.environ:
+        env["BENCHMARK_EVAL_PARALLEL"] = str(
+            max(1, int(os.environ.get("BENCHMARK_EVAL_PARALLEL", env["BENCHMARK_PARALLEL"])))
+        )
+    else:
+        env.pop("BENCHMARK_EVAL_PARALLEL", None)
     env["BENCHMARK_LIFECYCLE_PREPASS_WORKERS"] = str(
         max(1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", env["BENCHMARK_PARALLEL"])))
     )
@@ -7310,8 +7902,8 @@ def main():
     parser = argparse.ArgumentParser(description="AgentLife Production Benchmark")
     parser.add_argument("--mode", choices=["full", "ingest", "eval", "fc", "per-day"],
                         default="full", help="Run mode (per-day = daily extraction+janitor, fc = full-context baseline)")
-    parser.add_argument("--ingest-schedule", choices=["per-day", "obd"], default="per-day",
-                        help="Ingest schedule for --mode full/ingest (per-day = normal daily lifecycle, obd = one-big-day stress compaction)")
+    parser.add_argument("--ingest-schedule", choices=["per-day", "obd", "rolling-obd"], default="per-day",
+                        help="Ingest schedule for --mode full/ingest (per-day = normal daily lifecycle, obd = one-big-day stress compaction, rolling-obd = rolling staged one-big-day flush)")
     parser.add_argument("--results-dir", type=str,
                         default=str(_PROJECT_DIR / "data" / "results-production"),
                         help="Workspace/results directory")
