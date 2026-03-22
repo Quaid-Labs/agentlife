@@ -44,6 +44,8 @@ Important behaviors:
 
 - uses the real benchmark workspace setup path
 - keeps canonical Quaid project docs/rules in the replay workspace
+- seeds `benchrunner/identity/{SOUL,USER,ENVIRONMENT}.md` from Quaid base
+  templates before replay starts
 - can run normal or rolling extraction
 - runs janitor between imported days unless `--skip-janitor` is set
 - supports a replay-specific `--janitor-timeout` because imported transcript
@@ -64,6 +66,14 @@ python scripts/run-imported-claude-history.py \
   --janitor-timeout 3600 \
   --rolling
 ```
+
+Identity contract during replay:
+
+- `projects/quaid/{SOUL,USER,ENVIRONMENT}.md` are treated as shipped base
+  templates / companion context
+- runtime mutation happens in `benchrunner/identity/`
+- replay validation should check the instance `identity/` files, not the
+  project-base copies, when judging compaction/distillation output
 
 ---
 

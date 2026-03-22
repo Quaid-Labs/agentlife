@@ -1776,6 +1776,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
         "- Verify mobile layout and typography scaling\n"
     )
     _seed_quaid_project_docs(workspace)
+    _seed_instance_identity_from_sources(workspace, prefer_project_templates=False)
     print("  Project docs seeded")
     print()
 
@@ -7327,6 +7328,41 @@ def _ensure_quaid_instance_layout(workspace: Path, instance_id: str = _BENCHMARK
             instance_projects.unlink()
     if not instance_projects.exists():
         instance_projects.symlink_to(flat_projects, target_is_directory=True)
+
+    return instance_root
+
+
+def _seed_instance_identity_from_sources(
+    workspace: Path,
+    *,
+    instance_id: str = _BENCHMARK_QUAID_INSTANCE,
+    prefer_project_templates: bool = False,
+) -> Path:
+    """Seed per-instance identity files from workspace or Quaid project bases.
+
+    Benchmark harnesses bypass the real installer, so they must materialize the
+    same identity files that a fresh instance would have under
+    `<instance>/identity/`. For imported Claude replays, the canonical seed
+    source is `projects/quaid/{SOUL,USER,ENVIRONMENT}.md`. For standard
+    benchmark workspaces, keep the benchmark-specific root seed content and
+    mirror it into the instance identity silo.
+    """
+    instance_root = _ensure_quaid_instance_layout(workspace, instance_id)
+    identity_dir = instance_root / "identity"
+    identity_dir.mkdir(parents=True, exist_ok=True)
+
+    for fname in _EVAL_CORE_MARKDOWN_FILES:
+        candidates: List[Path] = []
+        project_template = workspace / "projects" / "quaid" / fname
+        root_seed = workspace / fname
+        if prefer_project_templates:
+            candidates.extend([project_template, root_seed])
+        else:
+            candidates.extend([root_seed, project_template])
+        source = next((path for path in candidates if path.exists()), None)
+        if source is None:
+            continue
+        shutil.copy2(source, identity_dir / fname)
 
     return instance_root
 

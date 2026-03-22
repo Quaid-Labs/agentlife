@@ -4207,6 +4207,61 @@ def test_imported_claude_extract_telemetry_backfills_from_rolling_metric(tmp_pat
     assert telemetry["embedding_cache"]["warmed"] == 21
 
 
+def test_seed_instance_identity_from_sources_prefers_project_templates(tmp_path):
+    workspace = tmp_path / "workspace"
+    project_dir = workspace / "projects" / "quaid"
+    project_dir.mkdir(parents=True, exist_ok=True)
+    (workspace / "SOUL.md").write_text("# Root Soul\n", encoding="utf-8")
+    (workspace / "USER.md").write_text("# Root User\n", encoding="utf-8")
+    (workspace / "ENVIRONMENT.md").write_text("# Root Environment\n", encoding="utf-8")
+    (project_dir / "SOUL.md").write_text("# Project Soul\n", encoding="utf-8")
+    (project_dir / "USER.md").write_text("# Project User\n", encoding="utf-8")
+    (project_dir / "ENVIRONMENT.md").write_text("# Project Environment\n", encoding="utf-8")
+
+    instance_root = rpb._seed_instance_identity_from_sources(
+        workspace,
+        prefer_project_templates=True,
+    )
+
+    assert instance_root == workspace / "benchrunner"
+    assert (instance_root / "identity" / "SOUL.md").read_text(encoding="utf-8") == "# Project Soul\n"
+    assert (instance_root / "identity" / "USER.md").read_text(encoding="utf-8") == "# Project User\n"
+    assert (instance_root / "identity" / "ENVIRONMENT.md").read_text(encoding="utf-8") == "# Project Environment\n"
+
+
+def test_imported_claude_rewrite_workspace_seeds_instance_identity_from_project_bases(monkeypatch, tmp_path):
+    imported = _load_imported_claude_history_module()
+    workspace = tmp_path / "workspace"
+    (workspace / "config").mkdir(parents=True, exist_ok=True)
+    (workspace / "config" / "memory.json").write_text(
+        json.dumps({"users": {}, "projects": {}}),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(imported.rpb, "_load_active_domains", lambda _workspace: [])
+    monkeypatch.setattr(imported.rpb, "_inject_domains_into_tools_md", lambda template, _rows: template)
+    monkeypatch.setattr(imported.rpb, "_load_quaid_tools_template", lambda: "# Tools\n")
+
+    def _fake_seed_quaid_project_docs(seed_workspace: Path) -> None:
+        project_dir = seed_workspace / "projects" / "quaid"
+        project_dir.mkdir(parents=True, exist_ok=True)
+        (project_dir / "SOUL.md").write_text("# Seed Soul\n", encoding="utf-8")
+        (project_dir / "USER.md").write_text("# Seed User\n", encoding="utf-8")
+        (project_dir / "ENVIRONMENT.md").write_text("# Seed Environment\n", encoding="utf-8")
+
+    monkeypatch.setattr(imported.rpb, "_seed_quaid_project_docs", _fake_seed_quaid_project_docs)
+
+    imported._rewrite_workspace_for_claude_history(workspace)
+
+    identity_dir = workspace / "benchrunner" / "identity"
+    assert (identity_dir / "SOUL.md").read_text(encoding="utf-8") == "# Seed Soul\n"
+    assert (identity_dir / "USER.md").read_text(encoding="utf-8") == "# Seed User\n"
+    assert (identity_dir / "ENVIRONMENT.md").read_text(encoding="utf-8") == "# Seed Environment\n"
+    assert not (workspace / "SOUL.md").exists()
+    assert not (workspace / "USER.md").exists()
+    assert not (workspace / "ENVIRONMENT.md").exists()
+
+
 def test_imported_claude_repair_summary_extract_telemetry(tmp_path):
     imported = _load_imported_claude_history_module()
     results_dir = tmp_path / "run"

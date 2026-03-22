@@ -174,23 +174,12 @@ def _rewrite_workspace_for_claude_history(workspace: Path) -> None:
     }
     config_path.write_text(json.dumps(config, indent=2))
 
-    (workspace / "SOUL.md").write_text(
-        "# Soul\n\n"
-        "Imported Claude conversation stress workspace.\n"
-    )
-    (workspace / "USER.md").write_text(
-        "# User Profile\n\n"
-        "Imported user history for Claude dev session replay.\n"
-    )
-    (workspace / "ENVIRONMENT.md").write_text(
-        "# Shared Environment\n\n"
-        "Imported historical Claude transcript context.\n"
-    )
     (workspace / "IDENTITY.md").write_text("# Identity\n\nName: Assistant\n")
     domain_rows = rpb._load_active_domains(workspace)
     root_tools = rpb._inject_domains_into_tools_md(rpb._load_quaid_tools_template(), domain_rows)
     (workspace / "TOOLS.md").write_text(root_tools.rstrip() + "\n", encoding="utf-8")
     rpb._seed_quaid_project_docs(workspace)
+    rpb._seed_instance_identity_from_sources(workspace, prefer_project_templates=True)
 
 
 def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
