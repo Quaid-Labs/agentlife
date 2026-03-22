@@ -135,6 +135,21 @@ python eval/vm_benchmark.py \
     --vm-user admin
 ```
 
+### Rolling Replay Utilities
+
+For long-transcript stress lanes that should exercise the real Quaid daemon path
+instead of the normal per-day ingest path:
+
+- `python scripts/export-imported-claude-history.py ...`
+  - Export a raw Claude Code transcript into day-sliced JSONL plus a manifest.
+- `python scripts/run-imported-claude-history.py ... --rolling`
+  - Replay those exported days through Quaid workspace setup, rolling extraction,
+    final flush, and janitor.
+
+These utilities are intended for migration/stress work, not scored leaderboard
+runs. See [docs/rolling-replay.md](docs/rolling-replay.md) for the manifest
+schema, replay summary schema, and rolling telemetry surfaces.
+
 ## Repository Structure
 
 ```

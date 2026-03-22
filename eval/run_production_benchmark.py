@@ -1091,12 +1091,40 @@ def _resolve_eval_context_profile() -> Tuple[str, List[str], bool]:
     if profile not in {"full", "lean", "project-only", "none"}:
         profile = "full"
     if profile == "lean":
-        return profile, ["SOUL.md", "USER.md", "MEMORY.md"], False
+        return profile, ["SOUL.md", "USER.md", "ENVIRONMENT.md"], False
     if profile == "project-only":
         return profile, [], True
     if profile == "none":
         return profile, [], False
-    return profile, ["SOUL.md", "USER.md", "MEMORY.md", "TOOLS.md"], True
+    return profile, ["SOUL.md", "USER.md", "ENVIRONMENT.md", "TOOLS.md"], True
+
+
+_EVAL_ENVIRONMENT_ALIASES = ("ENVIRONMENT.md", "MEMORY.md")
+_EVAL_CORE_MARKDOWN_FILES = ("SOUL.md", "USER.md", "ENVIRONMENT.md")
+_WORKSPACE_ROOT_MARKDOWN_FILES = (
+    "IDENTITY.md",
+    "ENVIRONMENT.md",
+    "MEMORY.md",
+    "SOUL.md",
+    "TOOLS.md",
+    "USER.md",
+)
+
+
+def _is_eval_core_markdown(md_name: str) -> bool:
+    return md_name in set(_EVAL_CORE_MARKDOWN_FILES) | {"MEMORY.md"}
+
+
+def _eval_core_markdown_aliases(md_name: str) -> Tuple[str, ...]:
+    if md_name in _EVAL_ENVIRONMENT_ALIASES:
+        return _EVAL_ENVIRONMENT_ALIASES
+    return (md_name,)
+
+
+def _eval_core_markdown_display_name(md_name: str) -> str:
+    if md_name in _EVAL_ENVIRONMENT_ALIASES:
+        return "ENVIRONMENT.md"
+    return md_name
 
 
 def _infer_usage_tier(model: Optional[str]) -> Optional[str]:
@@ -1437,13 +1465,13 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
         prod_config["models"]["deepReasoningProvider"] = "anthropic"
         prod_config["models"]["fastReasoningProvider"] = "anthropic"
 
-    # Allow run-level override of both reasoning tiers (used for API-only haiku runs).
+    # Allow run-level override of both reasoning tiers (used for direct Anthropic haiku runs).
     reasoning_model = os.environ.get("BENCHMARK_REASONING_MODEL", "").strip()
     if reasoning_model:
         prod_config["models"]["deepReasoning"] = reasoning_model
         prod_config["models"]["fastReasoning"] = reasoning_model
-    elif _BACKEND == "api":
-        # Default API fallback: keep both tiers on Haiku unless the operator
+    elif _BACKEND == "oauth":
+        # Default direct Anthropic backend: keep both tiers on Haiku unless the operator
         # explicitly requested a split via BENCHMARK_DEEP_REASONING_MODEL /
         # BENCHMARK_FAST_REASONING_MODEL.
         prod_config["models"]["deepReasoning"] = deep_reasoning_model
@@ -1497,13 +1525,13 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     prod_config["docs"]["coreMarkdown"]["files"] = {
         "SOUL.md": {"purpose": "Personality and values", "maxLines": 80, "maxTokens": 1500},
         "USER.md": {"purpose": "User biography", "maxLines": 150, "maxTokens": 1500},
-        "MEMORY.md": {"purpose": "Core memories", "maxLines": 100, "maxTokens": 1500},
+        "ENVIRONMENT.md": {"purpose": "Shared environment and world context", "maxLines": 100, "maxTokens": 1500},
         "IDENTITY.md": {"purpose": "Name and identity", "maxLines": 20},
         "TOOLS.md": {"purpose": "Tool reference", "maxLines": 150},
     }
     if not isinstance(prod_config["docs"].get("journal"), dict):
         prod_config["docs"]["journal"] = {}
-    prod_config["docs"]["journal"]["targetFiles"] = ["SOUL.md", "USER.md", "MEMORY.md"]
+    prod_config["docs"]["journal"]["targetFiles"] = ["SOUL.md", "USER.md", "ENVIRONMENT.md"]
     # Disable notifications (don't spam Solomon's Telegram during benchmark)
     if not isinstance(prod_config.get("notifications"), dict):
         prod_config["notifications"] = {}
@@ -1518,10 +1546,12 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     if not isinstance(prod_config["core"].get("parallel"), dict):
         prod_config["core"]["parallel"] = {}
     janitor_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_LLM_WORKERS", "4")))
+    embedding_workers = max(1, int(os.environ.get("BENCHMARK_EMBEDDING_WORKERS", "6")))
     review_workers = max(1, int(os.environ.get("BENCHMARK_JANITOR_REVIEW_WORKERS", "4")))
     prod_config["core"]["parallel"].update({
         "enabled": True,
         "llmWorkers": janitor_workers,
+        "embeddingWorkers": embedding_workers,
         "taskWorkers": {
             "review_pending": review_workers,
             "dedup_review": review_workers,
@@ -1621,7 +1651,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
         "## How They're Changing\n\n"
         "(populated through conversation — growth, evolution, shifts in perspective)\n"
     )
-    (workspace / "MEMORY.md").write_text(
+    (workspace / "ENVIRONMENT.md").write_text(
         "# Shared Moments\n\n"
         "## Our History\n\n"
         "(populated through conversation — vivid scenes with emotional weight. "
@@ -1786,7 +1816,7 @@ def _save_lifecycle_resume_checkpoint(
         src = workspace / rel
         if src.exists():
             shutil.copytree(src, snapshot_dir / rel, dirs_exist_ok=True)
-    for rel in ["IDENTITY.md", "MEMORY.md", "SOUL.md", "TOOLS.md", "USER.md"]:
+    for rel in _WORKSPACE_ROOT_MARKDOWN_FILES:
         src = workspace / rel
         if src.exists():
             shutil.copy2(src, snapshot_dir / rel)
@@ -1821,7 +1851,7 @@ def _save_obd_post_extract_checkpoint(
         src = workspace / rel
         if src.exists():
             shutil.copytree(src, snapshot_dir / rel, dirs_exist_ok=True)
-    for rel in ["IDENTITY.md", "MEMORY.md", "SOUL.md", "TOOLS.md", "USER.md"]:
+    for rel in _WORKSPACE_ROOT_MARKDOWN_FILES:
         src = workspace / rel
         if src.exists():
             shutil.copy2(src, snapshot_dir / rel)
@@ -1940,7 +1970,7 @@ def restore_lifecycle_resume_checkpoint(workspace: Path) -> Optional[dict]:
         dst = workspace / rel
         if dst.exists():
             shutil.rmtree(dst)
-    for rel in ["IDENTITY.md", "MEMORY.md", "SOUL.md", "TOOLS.md", "USER.md"]:
+    for rel in _WORKSPACE_ROOT_MARKDOWN_FILES:
         dst = workspace / rel
         if dst.exists():
             dst.unlink()
@@ -1949,7 +1979,7 @@ def restore_lifecycle_resume_checkpoint(workspace: Path) -> Optional[dict]:
         src = snapshot_dir / rel
         if src.exists():
             shutil.copytree(src, workspace / rel, dirs_exist_ok=True)
-    for rel in ["IDENTITY.md", "MEMORY.md", "SOUL.md", "TOOLS.md", "USER.md"]:
+    for rel in _WORKSPACE_ROOT_MARKDOWN_FILES:
         src = snapshot_dir / rel
         if src.exists():
             shutil.copy2(src, workspace / rel)
@@ -3236,7 +3266,7 @@ def _run_runtime_rolling_obd_extract(
     flush_metric = flush_rows[-1]
     stage_rows = [row for row in metric_rows if row.get("event") == "rolling_stage"]
 
-    return {
+    result = {
         "facts_extracted": int(flush_metric.get("final_raw_fact_count", 0) or 0),
         "facts_stored": int(flush_metric.get("final_facts_stored", 0) or 0),
         "facts_skipped": int(flush_metric.get("final_facts_skipped", 0) or 0),
@@ -3288,6 +3318,48 @@ def _run_runtime_rolling_obd_extract(
         "flush_driver": flush_driver,
         "rolling_metric_path": str(_rolling_metrics_log_path(workspace)),
     }
+    for metric_name in (
+        "dedup_hash_exact_hits",
+        "dedup_scanned_rows",
+        "dedup_gray_zone_rows",
+        "dedup_llm_checks",
+        "dedup_llm_same_hits",
+        "dedup_llm_different_hits",
+        "dedup_fallback_reject_hits",
+        "dedup_auto_reject_hits",
+        "dedup_vec_query_count",
+        "dedup_vec_candidates_returned",
+        "dedup_vec_candidate_limit",
+        "dedup_vec_limit_hits",
+        "dedup_fts_query_count",
+        "dedup_fts_candidates_returned",
+        "dedup_fts_candidate_limit",
+        "dedup_fts_limit_hits",
+        "dedup_fallback_scan_count",
+        "dedup_fallback_candidates_returned",
+        "dedup_token_prefilter_terms",
+        "dedup_token_prefilter_skips",
+        "embedding_cache_requested",
+        "embedding_cache_unique",
+        "embedding_cache_hits",
+        "embedding_cache_warmed",
+        "embedding_cache_failed",
+        "edge_embedding_cache_requested",
+        "edge_embedding_cache_unique",
+        "edge_embedding_cache_hits",
+        "edge_embedding_cache_warmed",
+        "edge_embedding_cache_failed",
+        "staged_semantic_duplicate_facts_collapsed",
+        "staged_semantic_auto_reject_hits",
+        "staged_semantic_gray_zone_rows",
+        "staged_semantic_llm_checks",
+        "staged_semantic_llm_same_hits",
+        "staged_semantic_llm_different_hits",
+        "payload_duplicate_facts_collapsed",
+        "carry_duplicate_facts_dropped",
+    ):
+        result[metric_name] = int(flush_metric.get(metric_name, 0) or 0)
+    return result
 
 
 def run_per_day_extraction(
@@ -4090,7 +4162,7 @@ def run_per_day_extraction(
 # Phase 4: Janitor
 # ---------------------------------------------------------------------------
 
-def run_janitor(workspace: Path) -> None:
+def run_janitor(workspace: Path, *, timeout_seconds: int = 900) -> None:
     """Run full janitor via subprocess."""
     print("=" * 60)
     print("PHASE 4: FULL JANITOR")
@@ -4100,13 +4172,16 @@ def run_janitor(workspace: Path) -> None:
     janitor_cmd = _python_cmd_for_quaid_script(_JANITOR_SCRIPT)
 
     print("  Running: janitor --task all --apply --force-distill")
-    print("  (This will take several minutes — Opus review + workspace audit + snippets + journal)")
+    print(
+        "  (This will take several minutes — Opus review + workspace audit + snippets + journal; "
+        f"timeout={int(timeout_seconds)}s)"
+    )
 
     t0 = time.time()
     result = subprocess.run(
         janitor_cmd + ["--task", "all", "--apply", "--force-distill"],
         env=env, cwd=str(_QUAID_DIR),
-        capture_output=True, text=True, timeout=900,
+        capture_output=True, text=True, timeout=int(timeout_seconds),
     )
     elapsed = time.time() - t0
 
@@ -4154,13 +4229,14 @@ def verify_post_janitor(workspace: Path) -> None:
         print(f"  WARNING: {pending} facts still pending (graduation may have failed)")
 
     # Core markdowns
-    for md in ["SOUL.md", "USER.md", "MEMORY.md"]:
-        path = workspace / md
-        if path.exists():
-            content = path.read_text().strip()
+    for md in _EVAL_CORE_MARKDOWN_FILES:
+        resolved = _resolve_eval_core_path(workspace, md)
+        if resolved.exists():
+            content = resolved.read_text().strip()
             lines = len(content.split("\n"))
             preview = content[:200].replace("\n", " | ")
-            print(f"  {md}: {lines} lines — {preview}...")
+            rel = resolved.relative_to(workspace) if resolved.is_absolute() else resolved
+            print(f"  {md}: {lines} lines from {rel} — {preview}...")
         else:
             print(f"  {md}: MISSING")
 
@@ -4761,10 +4837,10 @@ def _build_eval_context(
     parts = []
 
     if core_files is None:
-        core_files = ["SOUL.md", "USER.md", "MEMORY.md", "TOOLS.md"]
+        core_files = ["SOUL.md", "USER.md", "ENVIRONMENT.md", "TOOLS.md"]
 
     for md in core_files:
-        if md in {"SOUL.md", "USER.md", "MEMORY.md"}:
+        if _is_eval_core_markdown(md):
             for rel, content in _collect_eval_core_markdown_variants(workspace, md):
                 parts.append(f"--- {rel} ---\n{content}")
             continue
@@ -4815,15 +4891,16 @@ def _collect_eval_core_markdown_variants(workspace: Path, md_name: str) -> List[
     """Return deduped raw core markdown variants in the same order eval injects them."""
     variants: List[Tuple[Path, str]] = []
     seen_contents = set()
-    for path in [workspace / md_name, workspace / "projects" / "quaid" / md_name]:
-        if not path.exists():
-            continue
-        content = path.read_text().strip()
-        if not content or content in seen_contents:
-            continue
-        rel = path.relative_to(workspace) if path.is_absolute() else path
-        variants.append((rel, content))
-        seen_contents.add(content)
+    for candidate in _eval_core_markdown_aliases(md_name):
+        for path in [workspace / candidate, workspace / "projects" / "quaid" / candidate]:
+            if not path.exists():
+                continue
+            content = path.read_text().strip()
+            if not content or content in seen_contents:
+                continue
+            rel = path.relative_to(workspace) if path.is_absolute() else path
+            variants.append((rel, content))
+            seen_contents.add(content)
     return variants
 
 
@@ -4836,10 +4913,10 @@ def _build_eval_context_sources(
     sources: List[Dict[str, Any]] = []
 
     if core_files is None:
-        core_files = ["SOUL.md", "USER.md", "MEMORY.md", "TOOLS.md"]
+        core_files = ["SOUL.md", "USER.md", "ENVIRONMENT.md", "TOOLS.md"]
 
     for md in core_files:
-        if md in {"SOUL.md", "USER.md", "MEMORY.md"}:
+        if _is_eval_core_markdown(md):
             for rel, content in _collect_eval_core_markdown_variants(workspace, md):
                 est_tokens = _count_eval_tokens(content)
                 sources.append({
@@ -4883,24 +4960,27 @@ def _build_eval_context_sources(
 def _resolve_eval_core_path(workspace: Path, md_name: str) -> Path:
     """Resolve the best source file for eval core markdown context.
 
-    For SOUL/USER/MEMORY, prefer projects/quaid/<file> when it exists and has
-    at least as much content as the root file. This avoids missing distilled
-    context when janitor writes evolved docs under projects/quaid.
+    For core markdown, prefer the richest available file under projects/quaid
+    or the workspace root. ENVIRONMENT.md is canonical, with MEMORY.md as
+    a backward-compatible fallback for older substrates.
     """
-    root = workspace / md_name
-    project = workspace / "projects" / "quaid" / md_name
-    if md_name not in {"SOUL.md", "USER.md", "MEMORY.md"}:
-        return root
-    if project.exists() and root.exists():
-        try:
-            plen = len(project.read_text().strip())
-            rlen = len(root.read_text().strip())
-            return project if plen >= rlen else root
-        except Exception:
-            return project
-    if project.exists():
-        return project
-    return root
+    if not _is_eval_core_markdown(md_name):
+        return workspace / md_name
+
+    best_path = workspace / _eval_core_markdown_aliases(md_name)[0]
+    best_len = -1
+    for candidate in _eval_core_markdown_aliases(md_name):
+        for path in [workspace / candidate, workspace / "projects" / "quaid" / candidate]:
+            if not path.exists():
+                continue
+            try:
+                plen = len(path.read_text().strip())
+            except Exception:
+                plen = 0
+            if plen > best_len:
+                best_path = path
+                best_len = plen
+    return best_path
 
 
 def _eval_core_context_preflight(
@@ -4924,16 +5004,16 @@ def _eval_core_context_preflight(
     min_chars = {
         "SOUL.md": 1200,
         "USER.md": 1200,
-        "MEMORY.md": 800,
+        "ENVIRONMENT.md": 800,
     }
     stats = []
-    for md in ["SOUL.md", "USER.md", "MEMORY.md"]:
+    for md in _EVAL_CORE_MARKDOWN_FILES:
         variants = _collect_eval_core_markdown_variants(workspace, md)
         combined_chars = sum(len(content) for _, content in variants)
-        root = workspace / md
-        rchars = len(root.read_text().strip()) if root.exists() else 0
-        proj = workspace / "projects" / "quaid" / md
-        pchars = len(proj.read_text().strip()) if proj.exists() else 0
+        root_variants = [workspace / candidate for candidate in _eval_core_markdown_aliases(md)]
+        project_variants = [workspace / "projects" / "quaid" / candidate for candidate in _eval_core_markdown_aliases(md)]
+        rchars = sum(len(path.read_text().strip()) for path in root_variants if path.exists())
+        pchars = sum(len(path.read_text().strip()) for path in project_variants if path.exists())
         variants_label = ",".join(str(rel) for rel, _ in variants) if variants else "<missing>"
         stats.append((md, variants_label, combined_chars, rchars, pchars))
 
@@ -5069,8 +5149,8 @@ def _statement_grounding_audit_prompt(question: str, prediction: str) -> str:
 
 
 def _run_no_tool_followup(prompt: str, api_key: str, model: str) -> Tuple[str, dict]:
-    """Run a no-tool audit follow-up with the eval model when API backend is active."""
-    if _BACKEND != "api":
+    """Run a no-tool audit follow-up when using direct Anthropic OAuth/API calls."""
+    if _BACKEND != "oauth":
         return "", {}
     payload = {
         "model": model,
@@ -7188,6 +7268,12 @@ def _get_api_key() -> str:
     """Get benchmark Anthropic credential, preferring OAuth token."""
     credential = _find_anthropic_credential()
     if credential:
+        # Eval/ingest subprocesses inherit from process env via _make_env().
+        # Persist the resolved benchmark credential here so later recall/janitor
+        # subprocesses see the same auth the top-level benchmark already uses.
+        os.environ["ANTHROPIC_API_KEY"] = credential
+        if _is_anthropic_oauth_token(credential):
+            os.environ.setdefault("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", credential)
         return credential
     print("ERROR: BENCHMARK_ANTHROPIC_OAUTH_TOKEN/ANTHROPIC_API_KEY not found", file=sys.stderr)
     sys.exit(1)
@@ -7206,7 +7292,7 @@ def _get_openai_key() -> Optional[str]:
     return None
 
 
-_BACKEND = "api"  # Set to "claude-code" in main() to use subscription
+_BACKEND = "oauth"  # Set to "claude-code" in main() to use the CLI wrapper
 _BENCHMARK_QUAID_INSTANCE = "benchrunner"
 
 
@@ -7927,8 +8013,8 @@ def main():
     parser.add_argument("--tier5", action="store_true",
                         help="(Deprecated) Tier-5 auto-runs whenever eval runs")
     parser.add_argument("--backend", type=str, default="claude-code",
-                        choices=["claude-code", "api"],
-                        help="LLM backend: claude-code (free, uses subscription) or api (direct Anthropic API, costs money)")
+                        choices=["claude-code", "oauth", "api"],
+                        help="LLM backend: claude-code (CLI wrapper) or oauth (direct Anthropic OAuth/API transport); api is retained as a legacy alias for oauth")
     parser.add_argument("--allow-non-haiku-answer-model", action="store_true",
                         help="Override the default Haiku-only answer-model policy for intentional experiments")
     parser.add_argument("--resume-day-lifecycle", action="store_true",
@@ -7949,8 +8035,11 @@ def main():
         allow_non_haiku=allow_non_haiku_answer_model,
     )
 
-    workspace = Path(args.results_dir).resolve()
     if args.backend == "api":
+        args.backend = "oauth"
+
+    workspace = Path(args.results_dir).resolve()
+    if args.backend == "oauth":
         api_key = _get_api_key()
     else:
         api_key = ""  # Not needed for claude-code backend

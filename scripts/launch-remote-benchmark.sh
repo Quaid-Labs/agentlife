@@ -49,7 +49,7 @@ Options:
 Examples:
   ./scripts/launch-remote-benchmark.sh --remote spark -- --mode full --backend claude-code
   ./scripts/launch-remote-benchmark.sh --remote spark --dry-run -- --mode eval --results-dir runs/quaid-s-r500
-  ./scripts/launch-remote-benchmark.sh --remote spark --scale l -- --mode full --backend api
+  ./scripts/launch-remote-benchmark.sh --remote spark --scale l -- --mode full --backend oauth
 USAGE
 }
 

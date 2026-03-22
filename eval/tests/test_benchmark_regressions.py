@@ -7,6 +7,7 @@ extract_compact.py. No network or subprocess calls — everything mocked.
 import json
 import io
 import importlib
+import importlib.util
 import os
 import re
 import sqlite3
@@ -56,6 +57,15 @@ def _fake_updater_module(fn_name="append_project_logs", fn=None):
     if fn is not None:
         setattr(updater_mod, fn_name, fn)
     return datastore_mod, docsdb_mod, updater_mod
+
+
+def _load_imported_claude_history_module() -> ModuleType:
+    script_path = ROOT.parent / "scripts" / "run-imported-claude-history.py"
+    spec = importlib.util.spec_from_file_location("run_imported_claude_history", script_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 @pytest.fixture(autouse=True)
@@ -695,6 +705,23 @@ class TestOBDExtractionTimeoutEnv:
                     "project_logs_seen": 0,
                     "project_logs_written": 0,
                     "project_logs_projects_updated": 0,
+                    "dedup_scanned_rows": 2493,
+                    "dedup_vec_query_count": 146,
+                    "dedup_vec_candidates_returned": 2493,
+                    "dedup_vec_candidate_limit": 64,
+                    "dedup_vec_limit_hits": 0,
+                    "dedup_fts_query_count": 192,
+                    "dedup_fts_candidates_returned": 2493,
+                    "dedup_fts_candidate_limit": 500,
+                    "dedup_fts_limit_hits": 0,
+                    "embedding_cache_requested": 146,
+                    "embedding_cache_unique": 146,
+                    "embedding_cache_hits": 125,
+                    "embedding_cache_warmed": 21,
+                    "embedding_cache_failed": 0,
+                    "staged_semantic_duplicate_facts_collapsed": 2,
+                    "staged_semantic_llm_checks": 5,
+                    "staged_semantic_llm_same_hits": 2,
                 }
             ],
         )
@@ -770,6 +797,23 @@ class TestOBDExtractionTimeoutEnv:
                     "project_logs_seen": 0,
                     "project_logs_written": 0,
                     "project_logs_projects_updated": 0,
+                    "dedup_scanned_rows": 2493,
+                    "dedup_vec_query_count": 146,
+                    "dedup_vec_candidates_returned": 2493,
+                    "dedup_vec_candidate_limit": 64,
+                    "dedup_vec_limit_hits": 0,
+                    "dedup_fts_query_count": 192,
+                    "dedup_fts_candidates_returned": 2493,
+                    "dedup_fts_candidate_limit": 500,
+                    "dedup_fts_limit_hits": 0,
+                    "embedding_cache_requested": 146,
+                    "embedding_cache_unique": 146,
+                    "embedding_cache_hits": 125,
+                    "embedding_cache_warmed": 21,
+                    "embedding_cache_failed": 0,
+                    "staged_semantic_duplicate_facts_collapsed": 2,
+                    "staged_semantic_llm_checks": 5,
+                    "staged_semantic_llm_same_hits": 2,
                 }
             ],
         )
@@ -792,6 +836,18 @@ class TestOBDExtractionTimeoutEnv:
         assert len(checkpoint_calls) == 1
         assert checkpoint_calls[0]["session_id"] == session_id
         assert out["resumed_from_staged_checkpoint"] is False
+        assert out["dedup_scanned_rows"] == 2493
+        assert out["dedup_vec_query_count"] == 146
+        assert out["dedup_vec_candidates_returned"] == 2493
+        assert out["dedup_vec_candidate_limit"] == 64
+        assert out["dedup_vec_limit_hits"] == 0
+        assert out["dedup_fts_query_count"] == 192
+        assert out["dedup_fts_candidates_returned"] == 2493
+        assert out["embedding_cache_requested"] == 146
+        assert out["embedding_cache_hits"] == 125
+        assert out["staged_semantic_duplicate_facts_collapsed"] == 2
+        assert out["staged_semantic_llm_checks"] == 5
+        assert out["staged_semantic_llm_same_hits"] == 2
 
     def test_run_runtime_rolling_obd_extract_requires_state_clear(self, tmp_path, monkeypatch):
         session_id = "obd-compaction-0001"
@@ -1244,7 +1300,7 @@ class TestAnthropicCachedRetries:
     """Tests for _call_anthropic_cached HTTP retry behavior."""
 
     def test_retries_http_529_then_succeeds(self, monkeypatch):
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
         monkeypatch.setenv("ANTHROPIC_RETRY_ATTEMPTS", "2")
         monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_S", "0.01")
         monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_CAP_S", "0.01")
@@ -1288,7 +1344,7 @@ class TestAnthropicCachedRetries:
 def test_tool_use_loop_api_sets_temperature_zero(tmp_path, monkeypatch):
     workspace = tmp_path / "ws"
     workspace.mkdir()
-    monkeypatch.setattr(rpb, "_BACKEND", "api")
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
     monkeypatch.setattr(rpb, "_append_usage_event", lambda *a, **k: None)
 
     seen_payloads = []
@@ -1591,7 +1647,7 @@ class TestMakeEnv:
         workspace = tmp_path / "ws"
         workspace.mkdir()
         monkeypatch.setattr(rpb, "_CLAWD", tmp_path)
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
         (tmp_path / "plugins" / "quaid").mkdir(parents=True)
         (workspace / "config").mkdir(parents=True, exist_ok=True)
         (workspace / "config" / "memory.json").write_text('{"adapter":{"type":"standalone"}}', encoding="utf-8")
@@ -1615,7 +1671,7 @@ class TestMakeEnv:
         quaid_dir = tmp_path / "modules" / "quaid"
         quaid_dir.mkdir(parents=True)
         monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
 
         env = rpb._make_env(workspace)
         assert str(quaid_dir.resolve()) in env.get("PYTHONPATH", "")
@@ -1623,7 +1679,7 @@ class TestMakeEnv:
     def test_does_not_default_mock_embeddings_for_benchmark_subprocesses(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         workspace.mkdir()
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
         monkeypatch.delenv("MOCK_EMBEDDINGS", raising=False)
 
         env = rpb._make_env(workspace)
@@ -1632,7 +1688,7 @@ class TestMakeEnv:
     def test_preserves_explicit_mock_embeddings_override(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         workspace.mkdir()
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
         monkeypatch.setenv("MOCK_EMBEDDINGS", "0")
 
         env = rpb._make_env(workspace)
@@ -1641,7 +1697,7 @@ class TestMakeEnv:
     def test_can_force_mock_embeddings_for_targeted_subprocesses(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         workspace.mkdir()
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
         monkeypatch.delenv("MOCK_EMBEDDINGS", raising=False)
 
         env = rpb._make_env(workspace, mock_embeddings=True)
@@ -1650,7 +1706,7 @@ class TestMakeEnv:
     def test_propagates_eval_parallel_override(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         workspace.mkdir()
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
         monkeypatch.setenv("BENCHMARK_PARALLEL", "6")
         monkeypatch.setenv("BENCHMARK_EVAL_PARALLEL", "1")
 
@@ -2310,6 +2366,35 @@ def test_tool_memory_recall_mixed_docs_temporal_split_defaults_memory_to_vector_
     assert meta == {"mode": "deliberate"}
 
 
+def test_run_janitor_uses_configured_timeout(tmp_path, monkeypatch, capsys):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"PATH": os.environ.get("PATH", "")})
+    monkeypatch.setattr(
+        rpb,
+        "_python_cmd_for_quaid_script",
+        lambda _script: ["python3", "-m", "core.lifecycle.janitor"],
+    )
+    monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+
+    def _fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["timeout"] = kwargs.get("timeout")
+        return SimpleNamespace(returncode=0, stdout="janitor ok\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    rpb.run_janitor(workspace, timeout_seconds=1800)
+
+    out = capsys.readouterr().out
+    assert captured["timeout"] == 1800
+    assert "--force-distill" in captured["cmd"]
+    assert "timeout=1800s" in out
+
+
 def test_recall_tool_description_prefers_vector_default_and_explicit_graph():
     desc = rpb._RECALL_TOOL_DESCRIPTION
 
@@ -2352,7 +2437,7 @@ def test_call_anthropic_cached_retries_http_520(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_RETRY_ATTEMPTS", "2")
     monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_S", "0.5")
     monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_CAP_S", "0.5")
-    monkeypatch.setattr(rpb, "_BACKEND", "api")
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
 
     text, usage = rpb._call_anthropic_cached("system", "user", "claude-haiku-4-5-20251001", "sk-test")
 
@@ -2360,34 +2445,82 @@ def test_call_anthropic_cached_retries_http_520(monkeypatch):
     assert text == "ok"
     assert usage["output_tokens"] == 2
 
-    def test_api_backend_prefers_benchmark_oauth_token(self, tmp_path, monkeypatch):
-        workspace = tmp_path / "ws"
-        workspace.mkdir()
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
-        monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
+def test_oauth_backend_prefers_benchmark_oauth_token(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+    monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
 
-        env = rpb._make_env(workspace)
-        assert env["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] == "sk-ant-oat01-test-token"
-        assert env["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
+    env = rpb._make_env(workspace)
+    assert env["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] == "sk-ant-oat01-test-token"
+    assert env["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
 
-    def test_anthropic_oauth_headers_include_claude_code_identity(self):
-        headers = rpb._anthropic_headers("sk-ant-oat01-test-token", prompt_caching=False)
-        assert headers["Authorization"] == "Bearer sk-ant-oat01-test-token"
-        assert headers["Accept"] == "application/json"
-        assert headers["user-agent"] == "claude-cli/2.1.2 (external, cli)"
-        assert headers["x-app"] == "cli"
-        assert "claude-code-20250219" in headers["anthropic-beta"]
-        assert "oauth-2025-04-20" in headers["anthropic-beta"]
 
-    def test_anthropic_oauth_system_blocks_include_claude_code_identity(self):
-        blocks = rpb._anthropic_system_blocks(
-            "Answer directly.",
-            "sk-ant-oat01-test-token",
-            prompt_caching=False,
-        )
-        assert isinstance(blocks, list)
-        assert blocks[0]["text"] == "You are Claude Code, Anthropic's official CLI for Claude."
-        assert blocks[1]["text"] == "Answer directly."
+def test_main_normalizes_api_backend_alias_to_oauth(tmp_path, monkeypatch):
+    workspace = tmp_path / "run"
+    (workspace / "data").mkdir(parents=True)
+    (workspace / "data" / "memory.db").write_text("")
+
+    seen = {"eval_backend": None, "tier5_backend": None, "api_key_calls": 0}
+
+    def _fake_get_api_key():
+        seen["api_key_calls"] += 1
+        return "sk-ant-oat01-test-token"
+
+    def _fake_run_eval(*_a, **_k):
+        seen["eval_backend"] = rpb._BACKEND
+        return []
+
+    def _fake_run_tier5(*_a, **_k):
+        seen["tier5_backend"] = rpb._BACKEND
+        return []
+
+    monkeypatch.setattr(rpb, "_get_api_key", _fake_get_api_key)
+    monkeypatch.setattr(rpb, "run_eval", _fake_run_eval)
+    monkeypatch.setattr(rpb, "run_tier5_eval", _fake_run_tier5)
+    monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        rpb,
+        "score_results",
+        lambda _results: {
+            "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+            "per_type": {},
+            "per_difficulty": {},
+        },
+    )
+    monkeypatch.setattr(sys, "argv", [
+        "run_production_benchmark.py",
+        "--mode", "eval",
+        "--results-dir", str(workspace),
+        "--backend", "api",
+    ])
+
+    rpb.main()
+
+    assert seen["api_key_calls"] == 1
+    assert seen["eval_backend"] == "oauth"
+    assert seen["tier5_backend"] == "oauth"
+
+
+def test_anthropic_oauth_headers_include_claude_code_identity():
+    headers = rpb._anthropic_headers("sk-ant-oat01-test-token", prompt_caching=False)
+    assert headers["Authorization"] == "Bearer sk-ant-oat01-test-token"
+    assert headers["Accept"] == "application/json"
+    assert headers["user-agent"] == "claude-cli/2.1.2 (external, cli)"
+    assert headers["x-app"] == "cli"
+    assert "claude-code-20250219" in headers["anthropic-beta"]
+    assert "oauth-2025-04-20" in headers["anthropic-beta"]
+
+
+def test_anthropic_oauth_system_blocks_include_claude_code_identity():
+    blocks = rpb._anthropic_system_blocks(
+        "Answer directly.",
+        "sk-ant-oat01-test-token",
+        prompt_caching=False,
+    )
+    assert isinstance(blocks, list)
+    assert blocks[0]["text"] == "You are Claude Code, Anthropic's official CLI for Claude."
+    assert blocks[1]["text"] == "Answer directly."
 
 
 class TestSetupWorkspaceConfig:
@@ -2452,7 +2585,7 @@ class TestSetupWorkspaceConfig:
             encoding="utf-8",
         )
         monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
         monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
         monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
         monkeypatch.delenv("BENCHMARK_REASONING_MODEL", raising=False)
@@ -2489,7 +2622,7 @@ class TestSetupWorkspaceConfig:
             encoding="utf-8",
         )
         monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
-        monkeypatch.setattr(rpb, "_BACKEND", "api")
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
         monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
         monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
         monkeypatch.delenv("BENCHMARK_REASONING_MODEL", raising=False)
@@ -2505,6 +2638,27 @@ class TestSetupWorkspaceConfig:
         assert models["fastReasoningProvider"] == "anthropic"
         assert models["deepReasoning"] == "claude-sonnet-4-6"
         assert models["fastReasoning"] == "claude-haiku-4-5-20251001"
+
+    def test_workspace_writes_separate_embedding_workers(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(json.dumps({}), encoding="utf-8")
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+        monkeypatch.setenv("BENCHMARK_JANITOR_LLM_WORKERS", "6")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_WORKERS", "2")
+
+        rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        parallel = cfg["core"]["parallel"]
+        assert parallel["llmWorkers"] == 6
+        assert parallel["embeddingWorkers"] == 2
 
 
 class TestRequireProjectSourceRepo:
@@ -3324,32 +3478,45 @@ class TestEvalContextCoreSelection:
         (ws / "projects" / "quaid").mkdir(parents=True, exist_ok=True)
         (ws / "SOUL.md").write_text("# root soul")
         (ws / "USER.md").write_text("# root user")
-        (ws / "MEMORY.md").write_text("# root memory")
+        (ws / "ENVIRONMENT.md").write_text("# root environment")
         (ws / "TOOLS.md").write_text("# tools")
         (ws / "projects" / "quaid" / "SOUL.md").write_text("# project soul\n" + ("x\n" * 50))
         (ws / "projects" / "quaid" / "USER.md").write_text("# project user\n" + ("x\n" * 50))
-        (ws / "projects" / "quaid" / "MEMORY.md").write_text("# project memory\n" + ("x\n" * 50))
+        (ws / "projects" / "quaid" / "ENVIRONMENT.md").write_text("# project environment\n" + ("x\n" * 50))
 
         ctx = rpb._build_eval_context(ws, include_project_bootstrap=False)
         assert "--- SOUL.md ---" in ctx
         assert "--- USER.md ---" in ctx
-        assert "--- MEMORY.md ---" in ctx
+        assert "--- ENVIRONMENT.md ---" in ctx
         assert "--- projects/quaid/SOUL.md ---" in ctx
         assert "--- projects/quaid/USER.md ---" in ctx
-        assert "--- projects/quaid/MEMORY.md ---" in ctx
+        assert "--- projects/quaid/ENVIRONMENT.md ---" in ctx
 
     def test_preflight_fails_when_core_is_too_thin(self, tmp_path, monkeypatch):
         ws = tmp_path / "ws"
         ws.mkdir(parents=True, exist_ok=True)
         (ws / "SOUL.md").write_text("# Soul\nthin")
         (ws / "USER.md").write_text("# User\nthin")
-        (ws / "MEMORY.md").write_text("# Memory\nthin")
+        (ws / "ENVIRONMENT.md").write_text("# Environment\nthin")
         monkeypatch.delenv("BENCHMARK_EVAL_CONTEXT_PROFILE", raising=False)
 
         with pytest.raises(RuntimeError, match="core markdown context is too thin"):
             rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
 
     def test_preflight_uses_combined_root_and_projects_quaid_content(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "projects" / "quaid").mkdir(parents=True, exist_ok=True)
+        (ws / "SOUL.md").write_text("s" * 1300)
+        (ws / "USER.md").write_text("u" * 740)
+        (ws / "ENVIRONMENT.md").write_text("m" * 422)
+        (ws / "projects" / "quaid" / "SOUL.md").write_text("p" * 767)
+        (ws / "projects" / "quaid" / "USER.md").write_text("q" * 813)
+        (ws / "projects" / "quaid" / "ENVIRONMENT.md").write_text("r" * 740)
+        monkeypatch.delenv("BENCHMARK_EVAL_CONTEXT_PROFILE", raising=False)
+
+        rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
+
+    def test_preflight_accepts_legacy_memory_md_fallback(self, tmp_path, monkeypatch):
         ws = tmp_path / "ws"
         (ws / "projects" / "quaid").mkdir(parents=True, exist_ok=True)
         (ws / "SOUL.md").write_text("s" * 1300)
@@ -3362,12 +3529,26 @@ class TestEvalContextCoreSelection:
 
         rpb._eval_core_context_preflight(ws, max_sessions=20, max_queries_env=0)
 
+    def test_build_eval_context_accepts_legacy_memory_md_fallback(self, tmp_path):
+        ws = tmp_path / "ws"
+        ws.mkdir(parents=True, exist_ok=True)
+        (ws / "SOUL.md").write_text("# soul")
+        (ws / "USER.md").write_text("# user")
+        (ws / "MEMORY.md").write_text("# memory")
+
+        ctx = rpb._build_eval_context(ws, core_files=["SOUL.md", "USER.md", "ENVIRONMENT.md"], include_project_bootstrap=False)
+
+        assert "--- SOUL.md ---" in ctx
+        assert "--- USER.md ---" in ctx
+        assert "--- MEMORY.md ---" in ctx
+        assert "--- ENVIRONMENT.md ---" not in ctx
+
     def test_project_only_eval_context_profile_skips_core_markdown_injection(self, tmp_path, monkeypatch):
         ws = tmp_path / "ws"
         (ws / "projects" / "demo").mkdir(parents=True, exist_ok=True)
         (ws / "SOUL.md").write_text("# soul")
         (ws / "USER.md").write_text("# user")
-        (ws / "MEMORY.md").write_text("# memory")
+        (ws / "ENVIRONMENT.md").write_text("# environment")
         (ws / "TOOLS.md").write_text("# tools")
         (ws / "projects" / "demo" / "TOOLS.md").write_text("# demo tools")
 
@@ -3385,7 +3566,7 @@ class TestEvalContextCoreSelection:
         assert include_project_bootstrap is True
         assert "--- SOUL.md ---" not in ctx
         assert "--- USER.md ---" not in ctx
-        assert "--- MEMORY.md ---" not in ctx
+        assert "--- ENVIRONMENT.md ---" not in ctx
         assert "--- TOOLS.md ---" not in ctx
         assert "--- projects/demo/TOOLS.md ---" in ctx
 
@@ -3922,3 +4103,171 @@ class TestPerDayExtraction:
 
         assert processed_dates == ["2026-03-03", "2026-03-04"]
         assert result["janitor_runs"] == 3
+
+
+def test_get_api_key_primes_process_env_for_subprocesses(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", raising=False)
+    monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
+
+    credential = rpb._get_api_key()
+
+    assert credential == "sk-ant-oat01-test-token"
+    assert os.environ["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
+    assert os.environ["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] == "sk-ant-oat01-test-token"
+
+
+def test_imported_claude_safe_table_count_falls_back_for_vec_virtual_tables():
+    imported = _load_imported_claude_history_module()
+
+    class _Cursor:
+        def __init__(self, row):
+            self._row = row
+
+        def fetchone(self):
+            return self._row
+
+    class _Conn:
+        def execute(self, query, params=()):
+            if query == "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1":
+                table_name = params[0]
+                if table_name in {"vec_nodes", "vec_nodes_rowids", "vec_doc_chunks", "vec_doc_chunks_rowids"}:
+                    return _Cursor((1,))
+                return _Cursor(None)
+            if query == "SELECT count(*) FROM vec_nodes":
+                raise sqlite3.OperationalError("no such module: vec0")
+            if query == "SELECT count(*) FROM vec_nodes_rowids":
+                return _Cursor((155,))
+            if query == "SELECT count(*) FROM vec_doc_chunks":
+                raise sqlite3.OperationalError("no such module: vec0")
+            if query == "SELECT count(*) FROM vec_doc_chunks_rowids":
+                return _Cursor((42,))
+            raise AssertionError(f"unexpected query: {query!r} params={params!r}")
+
+    assert imported._safe_table_count(_Conn(), "vec_nodes") == 155
+    assert imported._safe_table_count(_Conn(), "vec_doc_chunks") == 42
+
+
+def test_imported_claude_extract_telemetry_backfills_from_rolling_metric(tmp_path):
+    imported = _load_imported_claude_history_module()
+    metric_path = tmp_path / "rolling-extraction.jsonl"
+    metric_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "event": "rolling_flush",
+                        "session_id": "other-session",
+                        "dedup_scanned_rows": 12,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "event": "rolling_flush",
+                        "session_id": "imported-claude-day-001",
+                        "dedup_scanned_rows": 2493,
+                        "dedup_vec_query_count": 146,
+                        "dedup_vec_candidates_returned": 2493,
+                        "dedup_vec_candidate_limit": 64,
+                        "dedup_fts_query_count": 192,
+                        "dedup_fts_candidates_returned": 2493,
+                        "dedup_fts_candidate_limit": 500,
+                        "embedding_cache_requested": 146,
+                        "embedding_cache_unique": 146,
+                        "embedding_cache_hits": 125,
+                        "embedding_cache_warmed": 21,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    telemetry = imported._extract_telemetry(
+        {
+            "facts_extracted": 146,
+            "facts_stored": 146,
+            "rolling_batches": 6,
+            "rolling_metric_path": str(metric_path),
+        },
+        session_id="imported-claude-day-001",
+    )
+
+    assert telemetry["facts_stored"] == 146
+    assert telemetry["dedup"]["scanned_rows"] == 2493
+    assert telemetry["dedup"]["vec_query_count"] == 146
+    assert telemetry["dedup"]["vec_candidates_returned"] == 2493
+    assert telemetry["dedup"]["vec_candidate_limit"] == 64
+    assert telemetry["dedup"]["fts_query_count"] == 192
+    assert telemetry["dedup"]["fts_candidates_returned"] == 2493
+    assert telemetry["dedup"]["fts_candidate_limit"] == 500
+    assert telemetry["embedding_cache"]["requested"] == 146
+    assert telemetry["embedding_cache"]["hits"] == 125
+    assert telemetry["embedding_cache"]["warmed"] == 21
+
+
+def test_imported_claude_repair_summary_extract_telemetry(tmp_path):
+    imported = _load_imported_claude_history_module()
+    results_dir = tmp_path / "run"
+    metric_path = results_dir / "benchrunner" / "logs" / "daemon" / "rolling-extraction.jsonl"
+    metric_path.parent.mkdir(parents=True, exist_ok=True)
+    metric_path.write_text(
+        json.dumps(
+            {
+                "event": "rolling_flush",
+                "session_id": "imported-claude-day-001",
+                "dedup_scanned_rows": 2493,
+                "dedup_vec_query_count": 146,
+                "dedup_vec_candidates_returned": 2493,
+                "dedup_vec_candidate_limit": 64,
+                "dedup_fts_query_count": 192,
+                "dedup_fts_candidates_returned": 2493,
+                "embedding_cache_requested": 146,
+                "embedding_cache_hits": 125,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    summary_path = results_dir / "logs" / "imported_claude_history_summary.json"
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "days": [
+                    {
+                        "session_id": "imported-claude-day-001",
+                        "extract_result": {
+                            "facts_extracted": 146,
+                            "facts_stored": 146,
+                            "rolling_metric_path": str(metric_path),
+                        },
+                        "telemetry": {
+                            "extract": {
+                                "dedup": {"scanned_rows": 0, "fts_query_count": 0, "fts_candidates_returned": 0},
+                                "embedding_cache": {"requested": 0, "hits": 0},
+                            }
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    repaired = imported._repair_summary_extract_telemetry(results_dir)
+    payload = json.loads(summary_path.read_text())
+    extract = payload["days"][0]["telemetry"]["extract"]
+
+    assert repaired["days_repaired"] == 1
+    assert payload["summary_repaired_from_metrics"] is True
+    assert extract["dedup"]["scanned_rows"] == 2493
+    assert extract["dedup"]["vec_query_count"] == 146
+    assert extract["dedup"]["vec_candidates_returned"] == 2493
+    assert extract["dedup"]["vec_candidate_limit"] == 64
+    assert extract["dedup"]["fts_query_count"] == 192
+    assert extract["dedup"]["fts_candidates_returned"] == 2493
+    assert extract["embedding_cache"]["requested"] == 146
+    assert extract["embedding_cache"]["hits"] == 125

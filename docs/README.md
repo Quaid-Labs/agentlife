@@ -16,10 +16,13 @@ This folder is the operational and communication layer for benchmark work.
   - How to interpret category-level and retrieval metrics correctly.
 - `scope-and-policy.md`
   - Benchmark purity and scope boundaries for harness vs runtime logic.
+- `rolling-replay.md`
+  - Rolling OBD/imported-Claude replay utilities, manifest schema, and telemetry outputs.
 
 ## Usage
 
 1. Start with `runbook.md` before launching runs.
-2. Use `telemetry-guide.md` and `metric-interpretation.md` when analyzing runs.
+2. Use `telemetry-guide.md`, `metric-interpretation.md`, and `rolling-replay.md`
+   when analyzing runs or setting up transcript stress lanes.
 3. Use `positioning-agentlife-vs-traditional-memory-benches.md` and
    `public-results-template.md` for external communication.
