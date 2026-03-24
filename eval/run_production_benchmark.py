@@ -46,7 +46,7 @@ import urllib.request
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
     import tiktoken  # type: ignore
@@ -1430,9 +1430,15 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     prod_config["adapter"]["type"] = "standalone"
     if not isinstance(prod_config.get("capture"), dict):
         prod_config["capture"] = {}
-    # Extraction chunking should be token-native.
-    prod_config["capture"]["chunk_tokens"] = 30000
-    prod_config["capture"]["chunkTokens"] = 30000
+    # Extraction chunking should be token-native and match the tested prod cap.
+    benchmark_chunk_tokens = _benchmark_capture_chunk_tokens()
+    benchmark_chunk_max_lines = _benchmark_capture_chunk_max_lines()
+    prod_config["capture"]["chunk_tokens"] = benchmark_chunk_tokens
+    prod_config["capture"]["chunkTokens"] = benchmark_chunk_tokens
+    prod_config["capture"]["chunk_size"] = benchmark_chunk_tokens
+    prod_config["capture"]["chunkSize"] = benchmark_chunk_tokens
+    prod_config["capture"]["chunk_max_lines"] = benchmark_chunk_max_lines
+    prod_config["capture"]["chunkMaxLines"] = benchmark_chunk_max_lines
     if not isinstance(prod_config.get("models"), dict):
         prod_config["models"] = {}
     # New Quaid strict mode requires explicit provider selection.
@@ -1938,23 +1944,26 @@ def _save_rolling_pre_publish_checkpoint(
     return payload
 
 
-def _set_workspace_obd_capture_limits(
+def _set_workspace_capture_limits(
     workspace: Path,
     *,
     chunk_tokens: int,
     chunk_max_lines: Optional[int] = None,
 ) -> None:
-    """Apply OBD-specific extraction capture limits to the workspace config."""
+    """Apply extraction capture limits to the workspace config."""
     config_path = workspace / "config" / "memory.json"
     if not config_path.exists():
-        raise RuntimeError(f"Workspace config missing for OBD chunk override: {config_path}")
+        raise RuntimeError(f"Workspace config missing for capture chunk override: {config_path}")
     payload = json.loads(config_path.read_text())
     if not isinstance(payload.get("capture"), dict):
         payload["capture"] = {}
     payload["capture"]["chunk_tokens"] = int(chunk_tokens)
     payload["capture"]["chunkTokens"] = int(chunk_tokens)
+    payload["capture"]["chunk_size"] = int(chunk_tokens)
+    payload["capture"]["chunkSize"] = int(chunk_tokens)
     if chunk_max_lines is not None:
         payload["capture"]["chunk_max_lines"] = int(chunk_max_lines)
+        payload["capture"]["chunkMaxLines"] = int(chunk_max_lines)
     config_path.write_text(json.dumps(payload, indent=2))
 
 
@@ -2783,6 +2792,14 @@ def _messages_from_review(review) -> List[Dict[str, str]]:
         assistant_text = str(turn.get("agent", "") or "").strip()
         if assistant_text:
             messages.append({"role": "assistant", "content": assistant_text})
+    if messages:
+        return messages
+
+    # Some benchmark tests and recovery fixtures only expose the flattened
+    # transcript text. Preserve a runtime-usable message stream in that case.
+    transcript = format_transcript_for_extraction(review).strip()
+    if transcript:
+        messages.append({"role": "user", "content": transcript})
     return messages
 
 
@@ -2792,6 +2809,68 @@ def _build_obd_message_stream(reviews: list) -> List[Dict[str, str]]:
     for review in reviews:
         stream.extend(_messages_from_review(review))
     return stream
+
+
+def _render_messages_as_transcript(messages: List[Dict[str, str]]) -> str:
+    return "\n\n".join(
+        f"{'User' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}"
+        for msg in messages
+    )
+
+
+def _benchmark_capture_chunk_tokens() -> int:
+    raw = str(os.environ.get("BENCHMARK_CAPTURE_CHUNK_TOKENS", "8000") or "").strip()
+    try:
+        return max(1000, int(raw))
+    except Exception:
+        return 8000
+
+
+def _benchmark_capture_chunk_max_lines() -> int:
+    raw = str(os.environ.get("BENCHMARK_CAPTURE_CHUNK_MAX_LINES", "") or "").strip()
+    if not raw:
+        return 0
+    try:
+        return max(1, int(raw))
+    except Exception:
+        return 0
+
+
+def _load_workspace_capture_limits(workspace: Path) -> Tuple[int, int]:
+    config_path = workspace / "config" / "memory.json"
+    try:
+        payload = json.loads(config_path.read_text())
+    except Exception:
+        return _benchmark_capture_chunk_tokens(), _benchmark_capture_chunk_max_lines()
+    capture = payload.get("capture", {}) if isinstance(payload, dict) else {}
+    raw_tokens = capture.get(
+        "chunk_tokens",
+        capture.get("chunkTokens", capture.get("chunk_size", capture.get("chunkSize"))),
+    )
+    raw_lines = capture.get("chunk_max_lines", capture.get("chunkMaxLines"))
+    try:
+        chunk_tokens = max(1000, int(raw_tokens))
+    except Exception:
+        chunk_tokens = _benchmark_capture_chunk_tokens()
+    try:
+        chunk_max_lines = max(1, int(raw_lines)) if raw_lines not in (None, "", 0, "0") else 0
+    except Exception:
+        chunk_max_lines = _benchmark_capture_chunk_max_lines()
+    return chunk_tokens, chunk_max_lines
+
+
+def _should_auto_roll_day_extract(
+    *,
+    transcript_tokens: int,
+    transcript_lines: int,
+    chunk_tokens: int,
+    chunk_max_lines: int,
+) -> bool:
+    if chunk_tokens > 0 and int(transcript_tokens) > int(chunk_tokens):
+        return True
+    if chunk_max_lines > 0 and int(transcript_lines) > int(chunk_max_lines):
+        return True
+    return False
 
 
 def _write_session_jsonl(messages: List[Dict[str, str]], path: Path) -> None:
@@ -3418,10 +3497,20 @@ def run_per_day_extraction(
             f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
             for m in messages
         )
-        obd_chunk_tokens = max(1000, int(os.environ.get("BENCHMARK_OBD_CHUNK_TOKENS", "30000")))
-        raw_chunk_max_lines = str(os.environ.get("BENCHMARK_OBD_CHUNK_MAX_LINES", "") or "").strip()
+        default_chunk_tokens, default_chunk_max_lines = _load_workspace_capture_limits(workspace)
+        obd_chunk_tokens = max(
+            1000,
+            int(os.environ.get("BENCHMARK_OBD_CHUNK_TOKENS", str(default_chunk_tokens)) or default_chunk_tokens),
+        )
+        raw_chunk_max_lines = str(
+            os.environ.get(
+                "BENCHMARK_OBD_CHUNK_MAX_LINES",
+                str(default_chunk_max_lines) if default_chunk_max_lines > 0 else "",
+            )
+            or ""
+        ).strip()
         obd_chunk_max_lines = max(1, int(raw_chunk_max_lines)) if raw_chunk_max_lines else None
-        _set_workspace_obd_capture_limits(
+        _set_workspace_capture_limits(
             workspace,
             chunk_tokens=obd_chunk_tokens,
             chunk_max_lines=obd_chunk_max_lines,
@@ -3703,11 +3792,43 @@ def run_per_day_extraction(
     gap_seconds = max(0, int(os.environ.get("BENCHMARK_SPLIT_GAP_SECONDS", "3600")))
     extracted_chunks = _split_session_blocks_on_gap(session_blocks, gap_seconds)
     days = _group_sessions_by_date(reviews)
+    day_chunk_tokens, day_chunk_max_lines = _load_workspace_capture_limits(workspace)
+    day_runtime_inputs: Dict[str, Dict[str, Any]] = {}
+    auto_rolling_days: Set[str] = set()
     print(f"  Grouped into {len(days)} days:")
     for date, day_reviews in days:
         snums = [r.session_num for r in day_reviews]
-        print(f"    {date}: sessions {snums}")
+        day_messages = _build_obd_message_stream(day_reviews)
+        day_transcript = _render_messages_as_transcript(day_messages)
+        day_tokens = _estimate_text_tokens(day_transcript)
+        day_lines = len(day_transcript.splitlines()) if day_transcript else 0
+        auto_roll = _should_auto_roll_day_extract(
+            transcript_tokens=day_tokens,
+            transcript_lines=day_lines,
+            chunk_tokens=day_chunk_tokens,
+            chunk_max_lines=day_chunk_max_lines,
+        )
+        if auto_roll:
+            auto_rolling_days.add(date)
+        day_runtime_inputs[date] = {
+            "messages": day_messages,
+            "transcript": day_transcript,
+            "transcript_tokens": day_tokens,
+            "transcript_lines": day_lines,
+            "session_ids": snums,
+            "auto_roll": auto_roll,
+        }
+        mode_label = "runtime-rolling" if auto_roll else "cached-preextract"
+        print(
+            f"    {date}: sessions {snums} "
+            f"(~{day_tokens} tokens, {day_lines} lines, mode={mode_label})"
+        )
     print(f"  Extraction chunks: {len(extracted_chunks)} (gap threshold: {gap_seconds}s)")
+    print(f"  Capture chunk target: {day_chunk_tokens} tokens")
+    if day_chunk_max_lines > 0:
+        print(f"  Capture line target: {day_chunk_max_lines} lines")
+    if auto_rolling_days:
+        print(f"  Auto-rolling days: {', '.join(sorted(auto_rolling_days))}")
     print()
 
     domain_ids = _load_active_domain_ids(workspace)
@@ -3730,6 +3851,7 @@ def run_per_day_extraction(
     janitor_runs = 0
     weekly_distill_runs = 0
     resume_completed_days = 0
+    rolling_days = 0
 
     janitor_progress_path = workspace / "logs" / "janitor_progress.json"
     janitor_progress_path.parent.mkdir(parents=True, exist_ok=True)
@@ -3785,6 +3907,8 @@ def run_per_day_extraction(
     for chunk_idx, chunk_blocks in enumerate(extracted_chunks):
         day_keys = [str(item.get("day_key") or _operational_day(item["timestamp"])) for item in chunk_blocks]
         chunk_day = day_keys[0] if day_keys else "unknown"
+        if chunk_day in auto_rolling_days:
+            continue
         cache_path = cache_dir / f"chunk-{chunk_idx:03d}.json"
         if not no_cache and cache_path.exists():
             cached = json.loads(cache_path.read_text())
@@ -3952,81 +4076,139 @@ def run_per_day_extraction(
         # Harness purity: do not run session-aware project doc enrichment here.
         # Project documentation intelligence belongs in checkpoint runtime/janitor.
 
-        cached_list = day_cache.get(date)
-        if cached_list is None:
-            cached_list = []
-            for cache_path in sorted(cache_dir.glob("chunk-*.json")):
-                cached = json.loads(cache_path.read_text())
-                if date in [str(v) for v in cached.get("day_keys", [])]:
-                    cached_list.append(cached)
-            if not cached_list:
-                raise RuntimeError(f"Missing chunk caches for {date}; pre-extraction failed")
-            day_cache[date] = cached_list
-
-        facts = []
-        day_project_logs_input = {}
-        total_day_sessions = []
-        for cached in sorted(cached_list, key=lambda item: int(item.get("chunk_idx", 0))):
-            if date not in [str(v) for v in cached.get("day_keys", [cached.get("date", "")])]:
-                continue
-            facts.extend(cached.get("facts", []))
-            total_day_sessions.extend(int(s) for s in cached.get("sessions", []) if str(s).strip())
-            for project, entries in _normalize_project_logs(cached.get("project_logs", {})).items():
-                day_project_logs_input.setdefault(project, []).extend(entries)
-            for filename, bullets in cached.get("soul_snippets", {}).items():
-                if isinstance(bullets, str):
-                    bullets = [bullets] if bullets.strip() else []
-                if bullets and write_snippet_entry(str(workspace), filename, bullets, "Compaction", date):
-                    total_snippets += len(bullets)
-            for filename, content in cached.get("journal_entries", {}).items():
-                if isinstance(content, list):
-                    content = "\n\n".join(str(c) for c in content if c)
-                if content and write_journal_entry(str(workspace), filename, content, "Compaction", date):
-                    total_journals += 1
-
-        if not total_day_sessions:
-            total_day_sessions = snums
-        facts_count = len(facts)
-        print(
-            f"  Apply cached extraction: {facts_count} facts "
-            f"from {len(cached_list)} chunk(s)"
-        )
-
-        day_project_logs = _normalize_project_logs(day_project_logs_input)
-        day_log_entries = sum(len(v) for v in day_project_logs.values())
-        print(f"  Day project logs: projects={len(day_project_logs)} entries={day_log_entries}")
-
         # Store facts
         day_env = _with_quaid_now(env, date)
-        stored, edges = _store_facts(workspace, facts, day_env, min(total_day_sessions), date)
-        day_domain_missing = int(_LAST_STORE_METRICS.get("domain_missing", 0))
-        total_facts += len(facts)
-        total_stored += stored
-        total_edges += edges
-        total_domain_missing += day_domain_missing
-
-        ws = str(workspace)
-        pl_metrics = write_project_logs(
-            ws,
-            day_project_logs,
-            trigger="Compaction",
-            date_str=date,
-            quaid_instance=_BENCHMARK_QUAID_INSTANCE,
-        )
-        if isinstance(pl_metrics, dict) and pl_metrics:
-            total_project_logs_written += int(pl_metrics.get("entries_written", 0))
-            total_project_logs_seen += int(pl_metrics.get("entries_seen", 0))
-            total_project_logs_projects_updated += int(pl_metrics.get("projects_updated", 0))
+        day_domain_missing = 0
+        if date in auto_rolling_days:
+            rolling_days += 1
+            day_input = day_runtime_inputs[date]
+            day_messages = list(day_input.get("messages", []))
+            session_file = cache_dir / f"day-{day_idx + 1:03d}-{date}.jsonl"
+            _write_session_jsonl(day_messages, session_file)
+            day_extract_timeout = max(
+                600,
+                int(
+                    os.environ.get(
+                        "BENCHMARK_DAY_EXTRACT_TIMEOUT",
+                        os.environ.get("BENCHMARK_OBD_EXTRACT_TIMEOUT", "7200"),
+                    )
+                ),
+            )
+            day_env["QUAID_EXTRACT_WALL_TIMEOUT"] = str(day_extract_timeout)
             print(
-                "  Project logs: "
-                f"seen={pl_metrics.get('entries_seen', 0)} "
-                f"written={pl_metrics.get('entries_written', 0)} "
-                f"projects_updated={pl_metrics.get('projects_updated', 0)} "
-                f"unknown={pl_metrics.get('projects_unknown', 0)} "
-                f"missing={pl_metrics.get('projects_missing_file', 0)}"
+                "  Runtime rolling extraction: "
+                f"~{day_input.get('transcript_tokens', 0)} tokens, "
+                f"{day_input.get('transcript_lines', 0)} lines"
+            )
+            extract_result = _run_runtime_rolling_obd_extract(
+                workspace=workspace,
+                env=day_env,
+                session_file=session_file,
+                session_id=f"day-compaction-{date}",
+                chunk_tokens=day_chunk_tokens,
+                chunk_max_lines=day_chunk_max_lines if day_chunk_max_lines > 0 else None,
+                timeout_seconds=day_extract_timeout,
+            )
+            day_facts = int(extract_result.get("facts_extracted", 0) or 0)
+            stored = int(extract_result.get("facts_stored", 0) or 0)
+            edges = int(extract_result.get("edges_created", 0) or 0)
+            total_facts += day_facts
+            total_stored += stored
+            total_edges += edges
+            total_snippets += int(extract_result.get("snippets_count", 0) or 0)
+            total_journals += int(extract_result.get("journals_count", 0) or 0)
+            project_log_metrics = extract_result.get("project_log_metrics", {}) or {}
+            total_project_logs_written += int(project_log_metrics.get("entries_written", 0) or 0)
+            total_project_logs_seen += int(project_log_metrics.get("entries_seen", 0) or 0)
+            total_project_logs_projects_updated += int(project_log_metrics.get("projects_updated", 0) or 0)
+            print(
+                f"  Rolling flush: facts={day_facts}/{stored}, edges={edges}, "
+                f"batches={int(extract_result.get('rolling_batches', 0) or 0)}, "
+                f"signal_to_publish={extract_result.get('signal_to_publish_seconds')}s, "
+                f"extract={extract_result.get('extract_wall_seconds')}s, "
+                f"publish={extract_result.get('publish_wall_seconds')}s"
+            )
+            if project_log_metrics:
+                print(
+                    "  Project logs: "
+                    f"seen={project_log_metrics.get('entries_seen', 0)} "
+                    f"written={project_log_metrics.get('entries_written', 0)} "
+                    f"projects_updated={project_log_metrics.get('projects_updated', 0)}"
+                )
+        else:
+            cached_list = day_cache.get(date)
+            if cached_list is None:
+                cached_list = []
+                for cache_path in sorted(cache_dir.glob("chunk-*.json")):
+                    cached = json.loads(cache_path.read_text())
+                    if date in [str(v) for v in cached.get("day_keys", [])]:
+                        cached_list.append(cached)
+                if not cached_list:
+                    raise RuntimeError(f"Missing chunk caches for {date}; pre-extraction failed")
+                day_cache[date] = cached_list
+
+            facts = []
+            day_project_logs_input = {}
+            total_day_sessions = []
+            for cached in sorted(cached_list, key=lambda item: int(item.get("chunk_idx", 0))):
+                if date not in [str(v) for v in cached.get("day_keys", [cached.get("date", "")])]:
+                    continue
+                facts.extend(cached.get("facts", []))
+                total_day_sessions.extend(int(s) for s in cached.get("sessions", []) if str(s).strip())
+                for project, entries in _normalize_project_logs(cached.get("project_logs", {})).items():
+                    day_project_logs_input.setdefault(project, []).extend(entries)
+                for filename, bullets in cached.get("soul_snippets", {}).items():
+                    if isinstance(bullets, str):
+                        bullets = [bullets] if bullets.strip() else []
+                    if bullets and write_snippet_entry(str(workspace), filename, bullets, "Compaction", date):
+                        total_snippets += len(bullets)
+                for filename, content in cached.get("journal_entries", {}).items():
+                    if isinstance(content, list):
+                        content = "\n\n".join(str(c) for c in content if c)
+                    if content and write_journal_entry(str(workspace), filename, content, "Compaction", date):
+                        total_journals += 1
+
+            if not total_day_sessions:
+                total_day_sessions = snums
+            facts_count = len(facts)
+            print(
+                f"  Apply cached extraction: {facts_count} facts "
+                f"from {len(cached_list)} chunk(s)"
             )
 
-        print(f"  Stored: {stored} facts, {edges} edges, domain_missing={day_domain_missing}")
+            day_project_logs = _normalize_project_logs(day_project_logs_input)
+            day_log_entries = sum(len(v) for v in day_project_logs.values())
+            print(f"  Day project logs: projects={len(day_project_logs)} entries={day_log_entries}")
+
+            stored, edges = _store_facts(workspace, facts, day_env, min(total_day_sessions), date)
+            day_domain_missing = int(_LAST_STORE_METRICS.get("domain_missing", 0))
+            total_facts += len(facts)
+            total_stored += stored
+            total_edges += edges
+            total_domain_missing += day_domain_missing
+
+            ws = str(workspace)
+            pl_metrics = write_project_logs(
+                ws,
+                day_project_logs,
+                trigger="Compaction",
+                date_str=date,
+                quaid_instance=_BENCHMARK_QUAID_INSTANCE,
+            )
+            if isinstance(pl_metrics, dict) and pl_metrics:
+                total_project_logs_written += int(pl_metrics.get("entries_written", 0))
+                total_project_logs_seen += int(pl_metrics.get("entries_seen", 0))
+                total_project_logs_projects_updated += int(pl_metrics.get("projects_updated", 0))
+                print(
+                    "  Project logs: "
+                    f"seen={pl_metrics.get('entries_seen', 0)} "
+                    f"written={pl_metrics.get('entries_written', 0)} "
+                    f"projects_updated={pl_metrics.get('projects_updated', 0)} "
+                    f"unknown={pl_metrics.get('projects_unknown', 0)} "
+                    f"missing={pl_metrics.get('projects_missing_file', 0)}"
+                )
+
+            print(f"  Stored: {stored} facts, {edges} edges, domain_missing={day_domain_missing}")
 
         if run_janitor_each_day:
             # Run nightly janitor cycle after each day, mirroring production cadence.
@@ -4147,6 +4329,7 @@ def run_per_day_extraction(
     print(f"    Janitor runs: {janitor_runs}")
     if run_janitor_each_day:
         print(f"    Weekly distillation runs: {weekly_distill_runs}")
+    print(f"    Rolling days: {rolling_days}")
     print(f"    DB: {db_nodes} nodes, {db_edges} edges, status={status_counts}")
 
     return {
@@ -4156,6 +4339,7 @@ def run_per_day_extraction(
         "days": len(days),
         "janitor_runs": janitor_runs,
         "weekly_distill_runs": weekly_distill_runs,
+        "rolling_days": rolling_days,
     }
 
 

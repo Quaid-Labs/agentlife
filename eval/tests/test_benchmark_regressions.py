@@ -2562,7 +2562,7 @@ class TestSetupWorkspaceConfig:
         assert models["fastReasoningProvider"] == "anthropic"
         assert models["deepReasoning"] == "claude-sonnet-4-6"
         assert models["fastReasoning"] == "claude-haiku-4-5-20251001"
-        assert cfg["capture"]["chunkTokens"] == 30000
+        assert cfg["capture"]["chunkTokens"] == 8000
         assert "baseUrl" not in models
         assert "apiKeyEnv" not in models
 
@@ -2601,7 +2601,7 @@ class TestSetupWorkspaceConfig:
         assert models["fastReasoningProvider"] == "anthropic"
         assert models["deepReasoning"] == "claude-sonnet-4-6"
         assert models["fastReasoning"] == "claude-haiku-4-5-20251001"
-        assert cfg["capture"]["chunkTokens"] == 30000
+        assert cfg["capture"]["chunkTokens"] == 8000
 
     def test_api_workspace_uses_requested_extraction_model_for_deep_tier(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
@@ -3838,6 +3838,94 @@ class TestPerDayExtraction:
         assert len(jan_calls) == 0
         assert result["janitor_runs"] == 0
         assert result["weekly_distill_runs"] == 0
+        assert result["rolling_days"] == 0
+
+    def test_auto_rolls_oversized_days_through_runtime_extract(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+
+        fake_reviews = [
+            _FakeReview(1, timestamp="2026-03-01 12:00:00 UTC"),
+            _FakeReview(2, timestamp="2026-03-02 12:00:00 UTC"),
+        ]
+        fake_dates = {1: "2026-03-01", 2: "2026-03-02"}
+        monkeypatch.setattr(rpb, "SESSION_DATES", fake_dates)
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: fake_reviews)
+        monkeypatch.setattr(
+            rpb,
+            "format_transcript_for_extraction",
+            lambda review: "small transcript" if review.session_num == 1 else "very large transcript",
+        )
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "build_extraction_prompt", lambda *a, **k: "prompt")
+        monkeypatch.setattr(
+            rpb,
+            "_estimate_text_tokens",
+            lambda text: 9001 if "very large transcript" in text else 1000,
+        )
+
+        anthropic_calls = []
+
+        def _call_anthropic(prompt, user_message, model, api_key, max_tokens):
+            anthropic_calls.append(user_message)
+            return "{}", {"input_tokens": 1, "output_tokens": 1}
+
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", _call_anthropic)
+        monkeypatch.setattr(
+            rpb,
+            "parse_extraction_response",
+            lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
+        )
+        monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_project_logs", lambda *a, **k: {})
+        monkeypatch.setattr(rpb.subprocess, "run", lambda *a, **k: _FakeSubprocessResult())
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
+
+        rolling_calls = []
+
+        def _rolling_extract(**kwargs):
+            rolling_calls.append(kwargs)
+            return {
+                "facts_extracted": 7,
+                "facts_stored": 5,
+                "edges_created": 2,
+                "snippets_count": 3,
+                "journals_count": 1,
+                "project_log_metrics": {"entries_seen": 4, "entries_written": 4, "projects_updated": 1},
+                "rolling_batches": 2,
+                "signal_to_publish_seconds": 12.5,
+                "extract_wall_seconds": 7.0,
+                "publish_wall_seconds": 5.5,
+            }
+
+        monkeypatch.setattr(rpb, "_run_runtime_rolling_obd_extract", _rolling_extract)
+
+        result = rpb.run_per_day_extraction(
+            workspace=workspace,
+            api_key="dummy",
+            no_cache=True,
+            model="claude-haiku-4-5-20251001",
+            max_sessions=2,
+            run_janitor_each_day=False,
+        )
+
+        assert len(anthropic_calls) == 1
+        assert "small transcript" in anthropic_calls[0]
+        assert len(rolling_calls) == 1
+        assert rolling_calls[0]["chunk_tokens"] == 8000
+        assert rolling_calls[0]["session_id"] == "day-compaction-2026-03-02"
+        assert result["rolling_days"] == 1
+        assert result["total_facts"] == 7
+        assert result["stored"] == 5
+        assert result["edges"] == 2
 
     def test_project_log_writes_use_benchmark_instance(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
@@ -4326,3 +4414,70 @@ def test_imported_claude_repair_summary_extract_telemetry(tmp_path):
     assert extract["dedup"]["fts_candidates_returned"] == 2493
     assert extract["embedding_cache"]["requested"] == 146
     assert extract["embedding_cache"]["hits"] == 125
+
+
+def test_imported_claude_trim_seed_summary_rows_drops_remaining_sessions():
+    imported = _load_imported_claude_history_module()
+
+    rows = [
+        {"session_id": "imported-claude-day-001", "index": 1},
+        {"session_id": "imported-claude-day-002", "index": 2},
+        {"session_id": "imported-claude-day-003", "index": 3},
+    ]
+
+    trimmed = imported._trim_seed_summary_rows(
+        rows,
+        {"imported-claude-day-003", "imported-claude-day-004"},
+    )
+
+    assert [row["session_id"] for row in trimmed] == [
+        "imported-claude-day-001",
+        "imported-claude-day-002",
+    ]
+
+
+def test_imported_claude_load_existing_summary_rows_returns_deep_copy(tmp_path):
+    imported = _load_imported_claude_history_module()
+    results_dir = tmp_path / "run"
+    summary_path = results_dir / "logs" / "imported_claude_history_summary.json"
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "days": [
+                    {"session_id": "imported-claude-day-001", "telemetry": {"extract": {"facts_stored": 10}}},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rows = imported._load_existing_summary_rows(results_dir)
+    rows[0]["telemetry"]["extract"]["facts_stored"] = 99
+    payload = json.loads(summary_path.read_text())
+
+    assert payload["days"][0]["telemetry"]["extract"]["facts_stored"] == 10
+
+
+def test_imported_claude_parse_args_supports_seed_results_dir_and_start_day(monkeypatch):
+    imported = _load_imported_claude_history_module()
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run-imported-claude-history.py",
+            "--results-dir",
+            "/tmp/out",
+            "--seed-results-dir",
+            "/tmp/seed",
+            "--start-day",
+            "9",
+        ],
+    )
+
+    args = imported._parse_args()
+
+    assert args.results_dir == Path("/tmp/out")
+    assert args.seed_results_dir == Path("/tmp/seed")
+    assert args.start_day == 9
