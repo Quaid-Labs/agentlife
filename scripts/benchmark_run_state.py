@@ -706,18 +706,26 @@ def build_status_report(root: Path, runs_dir: str = "runs", extra_runs_dirs: Ite
 def build_run_detail(root: Path, run_name: str) -> Dict[str, Any]:
     root = root.resolve()
     run = root / "runs" / run_name
+    visible_runs_dirs = [root / "runs"]
+    active_map = detect_active_runs(root, visible_runs_dirs)
+    classified = enrich_run(root, _classify_run(run, visible_runs_dirs, active_map))
     out: Dict[str, Any] = {
         "name": run_name,
-        "state": "unknown",
+        "state": classified.get("state") or "unknown",
+        "reason": classified.get("reason") or "",
         "final_score": None,
         "elapsed_seconds": None,
-        "parallel": None,
-        "started_at": None,
-        "completed_at": None,
+        "parallel": classified.get("parallel"),
+        "started_at": classified.get("started_at"),
+        "completed_at": classified.get("completed_at"),
+        "provider_lane": classified.get("provider_lane"),
+        "metric_label": classified.get("metric_label"),
+        "active_pid": classified.get("active_pid"),
         "per_type": {},
         "per_theme": {},
         "per_difficulty": {},
         "phase": None,
+        "current_active_item": classified.get("current_active_item") or "",
         "chunk_count": 0,
         "day_count": None,
         "current_day": None,
@@ -784,9 +792,8 @@ def build_run_detail(root: Path, run_name: str) -> Dict[str, Any]:
     elif out.get("eval_total") is not None:
         out["phase"] = f"eval {out.get('eval_completed')}/{out.get('eval_total')}"
     else:
-        out["phase"] = run_progress(root, run_name)
+        out["phase"] = out.get("current_active_item") or run_progress(root, run_name)
         if out["state"] == "unknown":
-            active_map = detect_active_runs(root, [root / "runs"])
             out["state"] = "active" if run_name in active_map else "incomplete"
     if out.get("parallel") is None:
         out["parallel"] = infer_parallel(root, run_name)
