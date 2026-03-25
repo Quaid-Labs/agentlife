@@ -4460,6 +4460,8 @@ def run_janitor(workspace: Path, *, timeout_seconds: int = 900) -> None:
 
 def verify_post_janitor(workspace: Path) -> None:
     """Post-janitor verification checkpoint."""
+    _sync_instance_identity_to_workspace_root(workspace)
+
     print("=" * 60)
     print("PHASE 4b: POST-JANITOR VERIFICATION")
     print("=" * 60)
@@ -4540,6 +4542,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     system prompt before the model sees the question. Tools remain available
     for follow-up queries.
     """
+    _sync_instance_identity_to_workspace_root(workspace)
+
     mode_label = "CONTEXT INJECT + TOOL USE" if context_inject else "TOOL USE"
     print("=" * 60)
     print(f"PHASE 5: EVALUATION ({eval_model} + {mode_label})")

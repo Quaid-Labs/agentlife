@@ -3821,6 +3821,56 @@ class TestRunEvalProviderGuard:
         assert len(results) == 1
         assert results[0]["prediction"] == "answer"
 
+
+def test_run_eval_syncs_instance_identity_before_building_context(tmp_path, monkeypatch):
+    ws = tmp_path / "ws"
+    (ws / "config").mkdir(parents=True, exist_ok=True)
+    (ws / "logs").mkdir(parents=True, exist_ok=True)
+    (ws / "config" / "memory.json").write_text(json.dumps({"models": {}}))
+
+    sync_calls = []
+
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+    monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+    monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+    monkeypatch.setattr(
+        rpb,
+        "get_all_eval_queries",
+        lambda _reviews: [{"question": "Q?", "ground_truth": "A", "query_type": "factual_recall"}],
+    )
+    monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+    monkeypatch.setattr(rpb, "_sync_instance_identity_to_workspace_root", lambda _ws: sync_calls.append(_ws))
+    monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
+    monkeypatch.setattr(rpb, "_make_env", lambda _ws: {})
+    monkeypatch.setattr(
+        rpb,
+        "_tool_use_loop",
+        lambda **kwargs: (
+            "answer",
+            [],
+            [],
+            [],
+            {"input_tokens": 10, "output_tokens": 5, "api_calls": 1, "tool_call_details": []},
+        ),
+    )
+    monkeypatch.setattr(rpb, "_judge", lambda *a, **k: ("CORRECT", 1.0))
+    monkeypatch.setattr(rpb, "_judge_non_question", lambda *a, **k: ("CORRECT", 1.0))
+    monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "1")
+    monkeypatch.setenv("BENCHMARK_PARALLEL", "1")
+
+    results = rpb.run_eval(
+        ws,
+        api_key="dummy",
+        max_sessions=1,
+        eval_model="claude-haiku-4-5-20251001",
+        context_inject=False,
+        judge_model="gpt-4o-mini",
+    )
+
+    assert len(results) == 1
+    assert sync_calls == [ws]
+
+
 def test_claude_code_eval_still_requires_nonzero_claude_calls(tmp_path, monkeypatch):
     ws = tmp_path / "ws"
     (ws / "config").mkdir(parents=True, exist_ok=True)
