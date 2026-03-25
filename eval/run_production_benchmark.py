@@ -228,8 +228,8 @@ def _rehydrate_nested_runtime_auth(env: Dict[str, str]) -> Dict[str, str]:
     if not credential:
         return out
     if _is_anthropic_oauth_token(credential):
-        out.setdefault("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", credential)
-    out.setdefault("ANTHROPIC_API_KEY", credential)
+        out["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] = credential
+    out["ANTHROPIC_API_KEY"] = credential
     return out
 
 
