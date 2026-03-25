@@ -8052,113 +8052,158 @@ def _tool_use_loop_claude_code(
     if timeout_cap > 0:
         timeout_s = min(timeout_s, timeout_cap)
 
-    try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout_s, env=cc_env,
-            input=user_prompt,
-            cwd=str(_QUAID_DIR),  # Keep quaid-relative imports/config stable for Bash tool calls
-        )
-        answer, event_tools, event_summaries, event_retrieval, final_data = _parse_claude_stream_output(result.stdout or "")
-        tool_call_names.extend(event_tools)
-        tool_result_summaries.extend(event_summaries)
-        retrieval_texts.extend(event_retrieval)
-        usage_total["tool_call_details"] = list(final_data.get("_tool_call_details", [])) if isinstance(final_data, dict) else []
+    retry_attempts = max(1, int(os.environ.get("CLAUDE_CODE_EVAL_RETRY_ATTEMPTS", os.environ.get("CLAUDE_CODE_RETRY_ATTEMPTS", "4"))))
+    backoff_s = max(1.0, float(os.environ.get("CLAUDE_CODE_EVAL_RETRY_BACKOFF_S", os.environ.get("CLAUDE_CODE_RETRY_BACKOFF_S", "2"))))
+    backoff_cap_s = max(backoff_s, float(os.environ.get("CLAUDE_CODE_EVAL_RETRY_BACKOFF_CAP_S", os.environ.get("CLAUDE_CODE_RETRY_BACKOFF_CAP_S", "30"))))
+    fatal_markers = (
+        "hit your limit",
+        "resets ",
+        "permission denied",
+        "do not have access",
+        "does not have access",
+        "oauth token has expired",
+        "authentication",
+        "login required",
+    )
 
-        if result.returncode != 0:
-            err = (result.stderr or "")[-300:]
-            out = (result.stdout or "")[-300:]
-            if final_data and final_data.get("is_error"):
-                out = (final_data.get("result") or out)[-300:]
-            tool_result_summaries.append(f"claude_code_rc={result.returncode}")
-            raise RuntimeError(
-                f"Claude Code failed rc={result.returncode} stderr={err} stdout={out}"
+    answer = ""
+    final_data = None
+    last_err: Optional[Exception] = None
+
+    for attempt in range(1, retry_attempts + 1):
+        attempt_tool_call_names: List[str] = []
+        attempt_tool_result_summaries: List[str] = []
+        attempt_retrieval_texts: List[str] = []
+        try:
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout_s, env=cc_env,
+                input=user_prompt,
+                cwd=str(_QUAID_DIR),  # Keep quaid-relative imports/config stable for Bash tool calls
             )
+            answer, event_tools, event_summaries, event_retrieval, final_data = _parse_claude_stream_output(result.stdout or "")
+            attempt_tool_call_names.extend(event_tools)
+            attempt_tool_result_summaries.extend(event_summaries)
+            attempt_retrieval_texts.extend(event_retrieval)
 
-        # Aggregate usage
-        model_usage = final_data.get("modelUsage", {}) if final_data else {}
-        if isinstance(model_usage, dict):
-            for _m, u in model_usage.items():
-                if not isinstance(u, dict):
+            if result.returncode != 0:
+                err = (result.stderr or "")[-300:]
+                out = (result.stdout or "")[-300:]
+                if final_data and final_data.get("is_error"):
+                    out = (final_data.get("result") or out)[-300:]
+                attempt_tool_result_summaries.append(f"claude_code_rc={result.returncode}")
+                msg = f"Claude Code failed rc={result.returncode} stderr={err} stdout={out}"
+                last_err = RuntimeError(msg)
+                lower = msg.lower()
+                if any(marker in lower for marker in fatal_markers):
+                    raise last_err
+                if attempt < retry_attempts:
+                    delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
+                    delay *= 1.0 + random.uniform(0.0, 0.25)
+                    print(f"  [claude-code-eval] attempt {attempt}/{retry_attempts} failed; retrying in {delay:.1f}s")
+                    time.sleep(delay)
                     continue
-                in_tok = int(
-                    u.get("inputTokens", 0)
-                    + u.get("cacheReadInputTokens", 0)
-                    + u.get("cacheCreationInputTokens", 0)
-                )
-                out_tok = int(u.get("outputTokens", 0))
-                usage_total["input_tokens"] += in_tok
-                usage_total["output_tokens"] += out_tok
-                usage_total["model_usage"][str(_m)] = {
-                    "input_tokens": usage_total["model_usage"].get(str(_m), {}).get("input_tokens", 0) + in_tok,
-                    "output_tokens": usage_total["model_usage"].get(str(_m), {}).get("output_tokens", 0) + out_tok,
-                    "total_tokens": usage_total["model_usage"].get(str(_m), {}).get("total_tokens", 0) + in_tok + out_tok,
-                }
-        usage_total["api_calls"] = int(final_data.get("num_turns", 1)) if final_data else 1
-        if (usage_total["input_tokens"] + usage_total["output_tokens"]) == 0 and final_data:
-            fallback_usage = final_data.get("usage", {}) or {}
-            usage_total["input_tokens"] += int(
-                fallback_usage.get("input_tokens", 0)
-                + fallback_usage.get("cache_read_input_tokens", 0)
-                + fallback_usage.get("cache_creation_input_tokens", 0)
+                raise last_err
+
+            tool_call_names.extend(attempt_tool_call_names)
+            tool_result_summaries.extend(attempt_tool_result_summaries)
+            retrieval_texts.extend(attempt_retrieval_texts)
+            usage_total["tool_call_details"] = list(final_data.get("_tool_call_details", [])) if isinstance(final_data, dict) else []
+            break
+        except subprocess.TimeoutExpired as exc:
+            tool_result_summaries.append(f"claude_code_timeout={timeout_s}s")
+            last_err = RuntimeError(f"claude-code timeout after {timeout_s}s")
+            if attempt < retry_attempts:
+                delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
+                delay *= 1.0 + random.uniform(0.0, 0.25)
+                print(f"  [claude-code-eval] timeout attempt {attempt}/{retry_attempts}; retrying in {delay:.1f}s")
+                time.sleep(delay)
+                continue
+            raise last_err from exc
+        except Exception as e:
+            last_err = e
+            raise RuntimeError(str(e)) from e
+    else:
+        raise RuntimeError(str(last_err or "claude-code eval failed"))
+
+    # Aggregate usage
+    model_usage = final_data.get("modelUsage", {}) if final_data else {}
+    if isinstance(model_usage, dict):
+        for _m, u in model_usage.items():
+            if not isinstance(u, dict):
+                continue
+            in_tok = int(
+                u.get("inputTokens", 0)
+                + u.get("cacheReadInputTokens", 0)
+                + u.get("cacheCreationInputTokens", 0)
             )
-            usage_total["output_tokens"] += int(fallback_usage.get("output_tokens", 0))
-            usage_total["model_usage"][model] = {
-                "input_tokens": int(fallback_usage.get("input_tokens", 0) + fallback_usage.get("cache_read_input_tokens", 0) + fallback_usage.get("cache_creation_input_tokens", 0)),
-                "output_tokens": int(fallback_usage.get("output_tokens", 0)),
-                "total_tokens": int(fallback_usage.get("input_tokens", 0) + fallback_usage.get("cache_read_input_tokens", 0) + fallback_usage.get("cache_creation_input_tokens", 0) + fallback_usage.get("output_tokens", 0)),
+            out_tok = int(u.get("outputTokens", 0))
+            usage_total["input_tokens"] += in_tok
+            usage_total["output_tokens"] += out_tok
+            usage_total["model_usage"][str(_m)] = {
+                "input_tokens": usage_total["model_usage"].get(str(_m), {}).get("input_tokens", 0) + in_tok,
+                "output_tokens": usage_total["model_usage"].get(str(_m), {}).get("output_tokens", 0) + out_tok,
+                "total_tokens": usage_total["model_usage"].get(str(_m), {}).get("total_tokens", 0) + in_tok + out_tok,
             }
-        if usage_total["input_tokens"] or usage_total["output_tokens"]:
-            _append_usage_event(
-                workspace,
-                phase="eval",
-                source="answer_model",
-                model=model,
-                usage=usage_total,
-                provider="claude-code",
-            )
+    usage_total["api_calls"] = int(final_data.get("num_turns", 1)) if final_data else 1
+    if (usage_total["input_tokens"] + usage_total["output_tokens"]) == 0 and final_data:
+        fallback_usage = final_data.get("usage", {}) or {}
+        usage_total["input_tokens"] += int(
+            fallback_usage.get("input_tokens", 0)
+            + fallback_usage.get("cache_read_input_tokens", 0)
+            + fallback_usage.get("cache_creation_input_tokens", 0)
+        )
+        usage_total["output_tokens"] += int(fallback_usage.get("output_tokens", 0))
+        usage_total["model_usage"][model] = {
+            "input_tokens": int(fallback_usage.get("input_tokens", 0) + fallback_usage.get("cache_read_input_tokens", 0) + fallback_usage.get("cache_creation_input_tokens", 0)),
+            "output_tokens": int(fallback_usage.get("output_tokens", 0)),
+            "total_tokens": int(fallback_usage.get("input_tokens", 0) + fallback_usage.get("cache_read_input_tokens", 0) + fallback_usage.get("cache_creation_input_tokens", 0) + fallback_usage.get("output_tokens", 0)),
+        }
+    if usage_total["input_tokens"] or usage_total["output_tokens"]:
+        _append_usage_event(
+            workspace,
+            phase="eval",
+            source="answer_model",
+            model=model,
+            usage=usage_total,
+            provider="claude-code",
+        )
 
-        if not answer or not answer.strip():
-            err_tail = (result.stderr or "")[-220:]
-            out_tail = (result.stdout or "")[-220:]
-            tool_result_summaries.append("claude_code_empty_answer")
-            raise RuntimeError(
-                f"Claude Code returned empty answer (rc={result.returncode}) "
-                f"stderr={err_tail} stdout={out_tail}"
-            )
+    if not answer or not answer.strip():
+        err_tail = (result.stderr or "")[-220:]
+        out_tail = (result.stdout or "")[-220:]
+        tool_result_summaries.append("claude_code_empty_answer")
+        raise RuntimeError(
+            f"Claude Code returned empty answer (rc={result.returncode}) "
+            f"stderr={err_tail} stdout={out_tail}"
+        )
 
-        # Claude stream occasionally omits explicit tool events; synthesize a fallback
-        # recall trace to keep retrieval evaluation from collapsing to all WRONG.
-        if not retrieval_texts:
-            replay, replay_meta = _tool_memory_recall(
-                question,
-                workspace,
-                env,
-                max_session=max_session,
-                telemetry_source="fallback_replay",
-            )
-            if replay:
-                tool_call_names.append("memory_recall(replay)")
-                tool_result_summaries.append(f"memory_recall(replay:{question[:40]}): {len(replay)} chars")
-                retrieval_texts.append(replay)
-                usage_total["tool_call_details"].append({
-                    "tool": "memory_recall(replay)",
-                    "query": question,
-                    "query_preview_30": question[:30],
-                    "duration_ms": None,
-                    "result_chars": len(replay),
-                    "result_preview_30": replay.strip().splitlines()[0][:30] if replay else "",
-                    "result_excerpt_200": replay.strip()[:200] if replay else "",
-                    "error": "",
-                    "source": "fallback_replay",
-                    "recall_meta": replay_meta,
-                    "call_id": ((replay_meta or {}).get("harness_telemetry") or {}).get("top_level_call_id") if isinstance(replay_meta, dict) else None,
-                })
-
-    except subprocess.TimeoutExpired as exc:
-        tool_result_summaries.append(f"claude_code_timeout={timeout_s}s")
-        raise RuntimeError(f"claude-code timeout after {timeout_s}s") from exc
-    except Exception as e:
-        raise RuntimeError(str(e)) from e
+    # Claude stream occasionally omits explicit tool events; synthesize a fallback
+    # recall trace to keep retrieval evaluation from collapsing to all WRONG.
+    if not retrieval_texts:
+        replay, replay_meta = _tool_memory_recall(
+            question,
+            workspace,
+            env,
+            max_session=max_session,
+            telemetry_source="fallback_replay",
+        )
+        if replay:
+            tool_call_names.append("memory_recall(replay)")
+            tool_result_summaries.append(f"memory_recall(replay:{question[:40]}): {len(replay)} chars")
+            retrieval_texts.append(replay)
+            usage_total["tool_call_details"].append({
+                "tool": "memory_recall(replay)",
+                "query": question,
+                "query_preview_30": question[:30],
+                "duration_ms": None,
+                "result_chars": len(replay),
+                "result_preview_30": replay.strip().splitlines()[0][:30] if replay else "",
+                "result_excerpt_200": replay.strip()[:200] if replay else "",
+                "error": "",
+                "source": "fallback_replay",
+                "recall_meta": replay_meta,
+                "call_id": ((replay_meta or {}).get("harness_telemetry") or {}).get("top_level_call_id") if isinstance(replay_meta, dict) else None,
+            })
 
     return answer, tool_call_names, tool_result_summaries, retrieval_texts, usage_total
 

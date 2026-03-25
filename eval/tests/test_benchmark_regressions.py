@@ -315,6 +315,72 @@ class TestClaudeCodeEvalFailHard:
                 context_inject=False,
             )
 
+    def test_tool_use_loop_claude_code_retries_bun_crash_then_succeeds(self, monkeypatch, tmp_path):
+        ws = tmp_path / "ws"
+        (ws / "data").mkdir(parents=True, exist_ok=True)
+
+        monkeypatch.setenv("CLAUDE_CODE_EVAL_RETRY_ATTEMPTS", "2")
+        monkeypatch.setenv("CLAUDE_CODE_EVAL_RETRY_BACKOFF_S", "0.01")
+        monkeypatch.setenv("CLAUDE_CODE_EVAL_RETRY_BACKOFF_CAP_S", "0.01")
+        monkeypatch.setattr(rpb.random, "uniform", lambda a, b: 0.0)
+        monkeypatch.setattr(rpb.time, "sleep", lambda _s: None)
+        monkeypatch.setattr(rpb, "_pre_recall", lambda *a, **k: ("", "", {}))
+        monkeypatch.setattr(rpb, "_tool_memory_recall", lambda *a, **k: ("", {}))
+        monkeypatch.setattr(rpb, "_append_usage_event", lambda *a, **k: None)
+
+        calls = {"n": 0}
+
+        def _fake_parse(_stdout):
+            if calls["n"] == 1:
+                return (
+                    "",
+                    [],
+                    [],
+                    [],
+                    {"is_error": False, "result": ""},
+                )
+            return (
+                "final answer",
+                [],
+                [],
+                [],
+                {"is_error": False, "result": "final answer", "num_turns": 1, "modelUsage": {}},
+            )
+
+        monkeypatch.setattr(rpb, "_parse_claude_stream_output", _fake_parse)
+
+        def _fake_run(*_args, **_kwargs):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return SimpleNamespace(
+                    returncode=-5,
+                    stdout='{"type":"result"}',
+                    stderr="o: Bun has crashed. This indicates a bug in Bun, not your code.",
+                )
+            return SimpleNamespace(
+                returncode=0,
+                stdout='{"type":"result"}',
+                stderr="",
+            )
+
+        monkeypatch.setattr(subprocess, "run", _fake_run)
+
+        answer, tool_calls, tool_logs, retrieval_texts, usage = rpb._tool_use_loop_claude_code(
+            question="What does Maya do for work?",
+            eval_context="ctx",
+            workspace=ws,
+            api_key="unused",
+            env={},
+            model="claude-sonnet-4-6",
+            context_inject=False,
+        )
+
+        assert answer == "final answer"
+        assert tool_calls == []
+        assert retrieval_texts == []
+        assert usage["api_calls"] == 1
+        assert calls["n"] == 2
+
 class TestFcContextCompaction:
     def test_build_fc_context_skips_compaction_when_under_threshold(self, monkeypatch, tmp_path):
         reviews = [_FakeReview(1), _FakeReview(2)]
