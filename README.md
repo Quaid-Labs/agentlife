@@ -1,17 +1,21 @@
 # AgentLife
 
-A full-lifecycle benchmark for AI agent memory systems. Unlike extraction-only benchmarks, AgentLife tests the **complete production pipeline**: extraction, deduplication, contradiction resolution, core file evolution, project documentation, and agent-driven recall with tool use.
+A full-lifecycle benchmark for AI agent memory systems. AgentLife tests the
+full production memory pipeline: extraction, rolling carryover, janitor review,
+deduplication, project documentation, and tool-using recall.
 
 ## Why AgentLife?
 
-Existing memory benchmarks (LoCoMo, LongMemEval) test extraction and recall in isolation. But production memory systems have janitors, dedup pipelines, document updaters, and decay mechanisms that all affect what an agent actually remembers. AgentLife tests the whole chain.
+The public docs in this repo now mirror the current benchmark runbook instead
+of carrying a long narrative of older experiments. If a public number changes
+here, the clean runbook matrix changed first.
 
 **Key innovations:**
 - Tests the **complete memory lifecycle**, not just store-and-retrieve
 - Interleaves personal conversations with project development sessions
 - Two scales: S (20 sessions, ~92K tokens) and L (279 sessions, ~423K tokens)
-- Filler sessions force natural compaction behavior in context-window-based systems
-- 234 eval queries across 5 tiers including emotional intelligence
+- Filler sessions force natural compaction behavior in large-scale lanes
+- Current canonical scoring uses **268 mainline T1-T4 queries** plus a separate **30-query Tier 5** lane
 - Cross-vendor GPT-4o-mini judge for unbiased scoring
 
 ## Dataset
@@ -30,44 +34,49 @@ All characters and events are fictional.
 | **AgentLife S** | 20 | 0 | 20 | ~92K | Quick iteration, no compaction pressure |
 | **AgentLife L** | 20 | 259 | 279 | ~423K | Production-realistic with compaction events |
 
-### Eval Queries (234 total)
+### Eval Queries
 
 | Tier | Count | What It Tests |
 |------|-------|---------------|
-| **Tier 1: Core** | 120 | Factual recall, temporal reasoning, cross-references, project state |
-| **Tier 2: Adversarial** | 72 | Contested facts, stale info, speaker attribution, false premises |
-| **Tier 3: Non-Question** | 12 | "Hi", "Thanks" — should NOT trigger memory retrieval |
-| **Tier 4: Architecture** | 15 | Project knowledge for development tasks |
-| **Tier 5: Emotional Intelligence** | 15 | Boundary awareness, emotional context, self-awareness |
+| **Tier 1: Core** | part of 268 | Factual recall, temporal reasoning, cross-references, project state |
+| **Tier 2: Adversarial** | part of 268 | Contested facts, stale info, speaker attribution, false premises, negative/control queries |
+| **Tier 3: Non-Question** | part of 268 | "Hi", "Thanks" — should NOT trigger memory retrieval |
+| **Tier 4: Architecture** | part of 268 | Project knowledge and implementation planning for development tasks |
+| **Tier 5: Emotional Intelligence** | 30 | Boundary awareness, emotional context, self-awareness (scored separately) |
 
 Each query includes ground truth, evidence sessions, query type, and recall difficulty.
 
 ## Results
 
-### AgentLife S (20 sessions, no filler)
+This is the current clean runbook-backed snapshot as of `2026-03-25`.
 
-| System | Accuracy | Correct | Wrong | Notes |
-|--------|----------|---------|-------|-------|
-| **FC-Sonnet** | 90.0% | 197 | 22 | Full-context upper bound |
-| **Quaid v12** | 80.8% | 177 | 42 | Per-day extraction, full janitor pipeline |
-| **Mem0** | 47.0% | 103 | 116 | Per-message-pair, GPT-4o-mini extraction |
+### Current Quaid Matrix
 
-### AgentLife L (279 sessions, 259 filler) — In Progress
+| Lane | Haiku | Sonnet | Opus |
+|------|------:|-------:|-----:|
+| **AL-S Quaid** | 83.39 | 90.11 | 84.45 |
+| **AL-L Quaid** | 81.21 | 83.75 | 82.16 |
+| **AL-L Quaid OBD** | 80.04 | 85.87 | 83.21 |
 
-| System | Accuracy | Notes |
-|--------|----------|-------|
-| **Base** | 11.4% | Raw context only, 2 compactions |
-| **Quaid** | Running | Timeout-based extraction, ~117 chunks |
-| **Mem0** | Running | Per-message-pair, 279 sessions |
-| **QMD** | Pending | OpenClaw built-in memory |
+Reference baselines:
+
+| Baseline | Score |
+|----------|------:|
+| **AL-S FC Sonnet** | 92.90 |
+| **AL-L FC Haiku** | 83.60 |
+| **AL-S native OpenClaw** | 69.40 |
+| **AL-L native OpenClaw** | 63.06 |
+
+Current practical default: Sonnet on the Quaid lanes. Opus is useful as a
+ceiling datapoint, but it does not currently justify its cost.
 
 ## Quick Start
 
 ### Prerequisites
 
 - Python 3.11+
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI (for extraction via `claude -p`)
-- OpenAI API key (for GPT-4o-mini judge and Mem0)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
+- OpenAI API key (for GPT-4o-mini judge)
 - A memory system to evaluate
 
 ### Setup
@@ -123,18 +132,6 @@ python eval/metrics.py data/results/my-system/
 python eval/densify.py --count 259 --output data/filler-sessions/
 ```
 
-### VM-Based Benchmark (Full Pipeline)
-
-For systems that need a complete environment (gateway, plugins, compaction):
-
-```bash
-python eval/vm_benchmark.py \
-    --system quaid \
-    --splitting timeout \
-    --vm-ip 192.168.64.3 \
-    --vm-user admin
-```
-
 ### Rolling Replay Utilities
 
 For long-transcript stress lanes that should exercise the real Quaid daemon path
@@ -165,7 +162,6 @@ agentlife/
 │   ├── evaluate.py            # Recall → answer → judge pipeline
 │   ├── metrics.py             # Scoring and reporting
 │   ├── extract_compact.py     # Extraction prompts + storage
-│   ├── mem0_adapter.py        # Mem0 integration
 │   ├── vm_benchmark.py        # Multi-system VM orchestrator
 │   ├── densify.py             # Filler session generator
 │   ├── session_splitter.py    # Timeout-based session splitting
@@ -184,7 +180,7 @@ agentlife/
 
 To benchmark your memory system:
 
-1. **Implement an adapter** following `eval/mem0_adapter.py` as a template
+1. **Implement an adapter** following one of the existing adapters in `eval/`
 2. **Expose two functions:**
    - `ingest(session_text: str)` — Process a conversation session
    - `recall(query: str) -> str` — Answer a question using stored memories
@@ -222,8 +218,10 @@ If you use AgentLife in your research:
 
 MIT License. See [LICENSE](LICENSE) for details.
 
-## Related
+## Notes
 
-- [Quaid](https://github.com/quaid-labs/quaid) — The memory system that motivated this benchmark
-- [LoCoMo](https://github.com/snap-research/locomo) — Conversational memory benchmark (extraction+recall only)
-- [LongMemEval](https://github.com/xiaowu0162/LongMemEval) — Long-term memory evaluation from ICLR 2025
+- Public benchmark claims in this repo should stay aligned with
+  [METHODOLOGY.md](METHODOLOGY.md) and the current runbook matrix.
+- Historical experiment artifacts still exist in the repo and run logs, but the
+  README should describe the active benchmark lanes and the latest clean
+  runbook-backed numbers.

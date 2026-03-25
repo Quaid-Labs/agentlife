@@ -54,6 +54,10 @@ Important behaviors:
 - benchmark workspace config can tune LLM and embedding concurrency
   independently via `BENCHMARK_JANITOR_LLM_WORKERS` and
   `BENCHMARK_EMBEDDING_WORKERS`
+- can resume from a dead run by seeding a fresh results dir from
+  `--seed-results-dir` and continuing from `--start-day`
+- current rolling stress work uses the same `8k` token default window as the
+  main benchmark harness unless explicitly overridden
 
 Example:
 
@@ -65,6 +69,19 @@ python scripts/run-imported-claude-history.py \
   --model claude-sonnet-4-6 \
   --janitor-timeout 3600 \
   --rolling
+```
+
+Resume example:
+
+```bash
+python scripts/run-imported-claude-history.py \
+  --manifest data/imported-claude-dev-first13-v2/manifest.json \
+  --results-dir runs/imported-claude-dev-first13-v2-resume \
+  --backend oauth \
+  --model claude-sonnet-4-6 \
+  --rolling \
+  --seed-results-dir runs/imported-claude-dev-first13-v2-dead \
+  --start-day 9
 ```
 
 Identity contract during replay:
