@@ -27,6 +27,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
+from benchmark_run_state import build_status_report
+
 
 @dataclass
 class RunStatus:
@@ -492,7 +494,6 @@ def main() -> int:
     root = Path(args.root).resolve()
     runs_dir = (root / args.runs_dir).resolve()
     extra_runs_dirs = [Path(p).expanduser().resolve() for p in args.extra_runs_dir]
-    visible_runs_dirs = [runs_dir, *extra_runs_dirs]
     status_out = (root / args.status_out).resolve()
     summary_out = (root / args.summary_out).resolve()
 
@@ -500,44 +501,18 @@ def main() -> int:
         print(f"runs dir not found: {runs_dir}", file=sys.stderr)
         return 2
 
-    active_map = detect_active_runs(root, visible_runs_dirs)
-    run_dirs = list(_iter_visible_run_dirs(visible_runs_dirs))
-    run_dirs.sort(key=run_start_sort_key, reverse=True)
-
-    statuses = [classify_run(p, visible_runs_dirs, active_map) for p in run_dirs]
-    by_state: Dict[str, List[RunStatus]] = {"active": [], "complete": [], "failed": [], "incomplete": []}
-    for st in statuses:
-        by_state.setdefault(st.state, []).append(st)
-
-    actions: List[str] = []
-
-    report = {
-        "timestamp": utc_now_iso(),
-        "root": str(root),
-        "runs_dir": str(runs_dir),
-        "visible_runs_dirs": [str(p) for p in visible_runs_dirs],
-        "counts": {k: len(v) for k, v in by_state.items()},
-        "actions": actions,
-        "runs": [
-            {
-                "name": s.name,
-                "kind": s.kind,
-                "state": s.state,
-                "reason": s.reason,
-                "score": s.score,
-                "active_pid": s.active_pid,
-            }
-            for s in statuses
-        ],
-    }
+    report = build_status_report(root, runs_dir=args.runs_dir, extra_runs_dirs=args.extra_runs_dir)
+    actions: List[str] = list(report.get("actions") or [])
 
     if args.notify_thread_id and should_notify(report, args.notify_on):
         msg = build_notify_message(report, args.notify_prefix)
         ok, detail = post_thread_turn(args.notify_thread_id, msg, root)
         if ok:
-            report["actions"].append(f"posted wake-up turn to thread {args.notify_thread_id}")
+            actions.append(f"posted wake-up turn to thread {args.notify_thread_id}")
         else:
-            report["actions"].append(f"failed to post wake-up turn: {detail}")
+            actions.append(f"failed to post wake-up turn: {detail}")
+
+    report["actions"] = actions
 
     atomic_write_text(status_out, json.dumps(report, indent=2) + "\n")
 
@@ -548,8 +523,11 @@ def main() -> int:
     ]
     for a in actions:
         lines.append(f"  action: {a}")
-    for s in statuses:
-        lines.append(f"  {s.state:10s} {s.name:40s} kind={s.kind} score={s.score!s}")
+    for r in report.get("runs") or []:
+        lines.append(
+            f"  {str(r.get('state') or ''):10s} {str(r.get('name') or ''):40s} "
+            f"kind={r.get('kind')} score={r.get('score')!s}"
+        )
     atomic_write_text(summary_out, "\n".join(lines) + "\n")
 
     print("\n".join(lines))
