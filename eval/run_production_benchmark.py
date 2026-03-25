@@ -7733,6 +7733,13 @@ def _call_anthropic_cached(
             delay *= 1.0 + random.uniform(0.0, 0.25)
             print(f"  [anthropic] URL error (attempt {attempt}/{retry_attempts}); retrying in {delay:.1f}s")
             time.sleep(delay)
+        except TimeoutError as exc:
+            if attempt == retry_attempts:
+                raise RuntimeError(f"Anthropic timeout: {exc}") from exc
+            delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
+            delay *= 1.0 + random.uniform(0.0, 0.25)
+            print(f"  [anthropic] timeout (attempt {attempt}/{retry_attempts}); retrying in {delay:.1f}s")
+            time.sleep(delay)
 
     if data is None:
         raise RuntimeError("Anthropic call failed: no response payload")

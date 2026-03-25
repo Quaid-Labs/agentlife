@@ -1431,6 +1431,43 @@ class TestAnthropicCachedRetries:
         assert usage.get("input_tokens") == 1
         assert calls["n"] == 2
 
+    def test_retries_timeout_then_succeeds(self, monkeypatch):
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setenv("ANTHROPIC_RETRY_ATTEMPTS", "2")
+        monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_S", "0.01")
+        monkeypatch.setenv("ANTHROPIC_RETRY_BACKOFF_CAP_S", "0.01")
+        monkeypatch.setattr(rpb.random, "uniform", lambda a, b: 0.0)
+        monkeypatch.setattr(rpb.time, "sleep", lambda _s: None)
+
+        class _Resp:
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc, tb):
+                return False
+            def read(self):
+                return json.dumps(
+                    {
+                        "content": [{"type": "text", "text": "ok"}],
+                        "usage": {"input_tokens": 1, "output_tokens": 1},
+                    }
+                ).encode()
+
+        calls = {"n": 0}
+
+        def _fake_urlopen(_req, timeout=300):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise TimeoutError("The read operation timed out")
+            return _Resp()
+
+        monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+        text, usage = rpb._call_anthropic_cached("sys", "user", "claude-haiku-4-5-20251001", "test-key")
+
+        assert text == "ok"
+        assert usage.get("input_tokens") == 1
+        assert calls["n"] == 2
+
 
 def test_tool_use_loop_api_sets_temperature_zero(tmp_path, monkeypatch):
     workspace = tmp_path / "ws"
