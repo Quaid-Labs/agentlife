@@ -874,6 +874,25 @@ def _fc_resume_checkpoint_path(results_dir: Path, stem: str) -> Path:
     return results_dir / f"{stem}_resume.json"
 
 
+def _has_rolling_obd_resume_state(workspace: Path) -> bool:
+    """Whether a rolling OBD workspace has staged state worth resuming."""
+    instance_root = workspace / _BENCHMARK_QUAID_INSTANCE
+    for rel in [
+        "data/extraction-signals",
+        "data/rolling-extraction",
+        "data/session-cursors",
+    ]:
+        root = instance_root / rel
+        if root.is_dir() and any(p.suffix == ".json" for p in root.iterdir()):
+            return True
+    checkpoint = workspace / "logs" / "extraction_checkpoint.json"
+    if checkpoint.exists():
+        data = load_json(checkpoint) or {}
+        if str(data.get("mode", "")).strip() == "rolling-obd":
+            return True
+    return False
+
+
 def _load_fc_resume_checkpoint(
     checkpoint_path: Optional[Path],
     *,
@@ -3525,10 +3544,6 @@ def run_per_day_extraction(
         )
 
     if schedule_mode in {"obd", "rolling-obd"}:
-        if resume_state:
-            raise RuntimeError(
-                "Resume-day-lifecycle is not supported for BENCHMARK_INGEST_SCHEDULE=obd or rolling-obd"
-            )
         rolling_obd = schedule_mode == "rolling-obd"
         final_day = _operational_day(reviews[-1]) if reviews else "1970-01-01"
         session_ids = [r.session_num for r in reviews]
@@ -8484,12 +8499,24 @@ def main():
 
     # --- Ingestion ---
     if args.mode in ("full", "ingest"):
-        resume_state = restore_lifecycle_resume_checkpoint(workspace) if args.resume_day_lifecycle else None
+        resume_state = None
+        if args.resume_day_lifecycle:
+            if args.ingest_schedule == "per-day":
+                resume_state = restore_lifecycle_resume_checkpoint(workspace)
+            elif args.ingest_schedule == "rolling-obd" and _has_rolling_obd_resume_state(workspace):
+                resume_state = {"mode": "rolling-obd-resume"}
         if resume_state:
-            print(
-                "  Resumed lifecycle checkpoint: "
-                f"completed_days={resume_state.get('completed_days', 0)} "
-                f"current_day={resume_state.get('current_day', 'unknown')}"
+            if args.ingest_schedule == "rolling-obd":
+                print("  Resuming staged rolling OBD workspace")
+            else:
+                print(
+                    "  Resumed lifecycle checkpoint: "
+                    f"completed_days={resume_state.get('completed_days', 0)} "
+                    f"current_day={resume_state.get('current_day', 'unknown')}"
+                )
+        elif args.resume_day_lifecycle and args.ingest_schedule == "rolling-obd":
+            raise RuntimeError(
+                "Resume requested for rolling-obd but no staged rolling workspace state was found"
             )
         else:
             setup_workspace(workspace, extraction_model=args.model)

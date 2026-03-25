@@ -2547,6 +2547,15 @@ def test_oauth_backend_prefers_benchmark_oauth_token(tmp_path, monkeypatch):
     assert env["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
 
 
+def test_has_rolling_obd_resume_state_detects_staged_workspace(tmp_path):
+    workspace = tmp_path / "run"
+    staged = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "rolling-extraction"
+    staged.mkdir(parents=True, exist_ok=True)
+    (staged / "obd-compaction-0001.json").write_text("{}")
+
+    assert rpb._has_rolling_obd_resume_state(workspace) is True
+
+
 def test_main_normalizes_api_backend_alias_to_oauth(tmp_path, monkeypatch):
     workspace = tmp_path / "run"
     (workspace / "data").mkdir(parents=True)
@@ -2591,6 +2600,49 @@ def test_main_normalizes_api_backend_alias_to_oauth(tmp_path, monkeypatch):
     assert seen["api_key_calls"] == 1
     assert seen["eval_backend"] == "oauth"
     assert seen["tier5_backend"] == "oauth"
+
+
+def test_main_resume_rolling_obd_skips_workspace_setup(tmp_path, monkeypatch):
+    workspace = tmp_path / "run"
+    staged = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "rolling-extraction"
+    staged.mkdir(parents=True, exist_ok=True)
+    (staged / "obd-compaction-0001.json").write_text("{}")
+    (workspace / "data").mkdir(parents=True, exist_ok=True)
+    (workspace / "data" / "memory.db").write_text("")
+
+    seen = {"setup": 0, "resume_state": None}
+
+    monkeypatch.setattr(rpb, "_get_api_key", lambda: "sk-ant-oat01-test-token")
+    monkeypatch.setattr(rpb, "setup_workspace", lambda *_a, **_k: seen.__setitem__("setup", seen["setup"] + 1))
+    monkeypatch.setattr(
+        rpb,
+        "run_per_day_extraction",
+        lambda *args, **kwargs: seen.__setitem__("resume_state", kwargs.get("resume_state")) or {
+            "schedule_mode": "rolling-obd",
+            "total_facts": 0,
+            "stored": 0,
+            "edges": 0,
+            "semantic_dedup_checks": 0,
+            "semantic_duplicate_facts_collapsed": 0,
+            "signal_to_publish_seconds": 0.0,
+        },
+    )
+    monkeypatch.setattr(rpb, "verify_post_janitor", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "_save_ingest_usage", lambda *_a, **_k: None)
+    monkeypatch.setattr(sys, "argv", [
+        "run_production_benchmark.py",
+        "--mode", "ingest",
+        "--results-dir", str(workspace),
+        "--backend", "oauth",
+        "--ingest-schedule", "rolling-obd",
+        "--resume-day-lifecycle",
+        "--allow-non-haiku-answer-model",
+    ])
+
+    rpb.main()
+
+    assert seen["setup"] == 0
+    assert seen["resume_state"] == {"mode": "rolling-obd-resume"}
 
 
 def test_anthropic_oauth_headers_include_claude_code_identity():
