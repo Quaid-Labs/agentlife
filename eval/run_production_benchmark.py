@@ -107,6 +107,7 @@ def _resolve_quaid_script(*relative_paths: str) -> Path:
 
 _QUAID_DIR = _resolve_quaid_dir()
 _MEMORY_GRAPH_SCRIPT = _resolve_quaid_script("memory_graph.py", "datastore/memorydb/memory_graph.py")
+_EXTRACTION_PROMPT_FILE = _resolve_quaid_script("prompts/extraction.txt")
 _RECALL_TOOL_DESCRIPTION = (
     "Unified Quaid recall across memory and docs stores. "
     "Use one broad query first. If stores are omitted, default memory recall uses vector only. "
@@ -138,6 +139,27 @@ def _python_cmd_for_quaid_script(script_path: Path) -> List[str]:
     except Exception:
         pass
     return [sys.executable, str(script_path)]
+
+
+def _extraction_prompt_telemetry() -> Dict[str, Any]:
+    """Small prompt fingerprint so run logs can identify extraction variants."""
+    path = _EXTRACTION_PROMPT_FILE
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "sha1": "",
+            "atomic_rules": False,
+            "canonical_entity_rules": False,
+        }
+    text = path.read_text(encoding="utf-8")
+    return {
+        "path": str(path),
+        "exists": True,
+        "sha1": hashlib.sha1(text.encode("utf-8")).hexdigest()[:12],
+        "atomic_rules": "ATOMIC FACT RULES" in text,
+        "canonical_entity_rules": "CANONICAL ENTITY RULES" in text,
+    }
 
 
 def _load_claude_code_oauth_token() -> Optional[str]:
@@ -191,6 +213,24 @@ def _find_anthropic_credential() -> str:
 
 def _is_anthropic_oauth_token(token: str) -> bool:
     return str(token or "").strip().startswith("sk-ant-oat")
+
+
+def _rehydrate_nested_runtime_auth(env: Dict[str, str]) -> Dict[str, str]:
+    """Ensure nested runtime subprocesses keep the active benchmark auth."""
+    out = dict(env)
+    if _BACKEND == "claude-code":
+        return out
+    credential = (
+        str(out.get("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", "") or "").strip()
+        or str(out.get("ANTHROPIC_API_KEY", "") or "").strip()
+        or _find_anthropic_credential()
+    )
+    if not credential:
+        return out
+    if _is_anthropic_oauth_token(credential):
+        out.setdefault("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", credential)
+    out.setdefault("ANTHROPIC_API_KEY", credential)
+    return out
 
 
 _ANTHROPIC_OAUTH_IDENTITY_TEXT = (
@@ -3175,7 +3215,7 @@ def _run_runtime_rolling_driver(
         "    'remaining_tokens': remaining_tokens,\n"
         "} ))\n"
     )
-    driver_env = dict(env)
+    driver_env = _rehydrate_nested_runtime_auth(env)
     driver_env["BENCHMARK_QUAID_DIR"] = str(_QUAID_DIR.resolve())
     driver_env["BENCHMARK_SESSION_ID"] = str(session_id)
     driver_env["BENCHMARK_TRANSCRIPT_PATH"] = str(transcript_path)
@@ -3239,7 +3279,7 @@ def _write_runtime_rolling_signal(
         "    meta={'reason': 'benchmark_rolling_flush'},\n"
         ")\n"
     )
-    driver_env = dict(env)
+    driver_env = _rehydrate_nested_runtime_auth(env)
     driver_env["BENCHMARK_QUAID_DIR"] = str(_QUAID_DIR.resolve())
     driver_env["BENCHMARK_SESSION_ID"] = str(session_id)
     driver_env["BENCHMARK_TRANSCRIPT_PATH"] = str(transcript_path)
@@ -4121,12 +4161,33 @@ def run_per_day_extraction(
             total_project_logs_written += int(project_log_metrics.get("entries_written", 0) or 0)
             total_project_logs_seen += int(project_log_metrics.get("entries_seen", 0) or 0)
             total_project_logs_projects_updated += int(project_log_metrics.get("projects_updated", 0) or 0)
+            rolling_root_chunks = int(extract_result.get("root_chunks", 0) or 0)
+            rolling_split_events = int(extract_result.get("split_events", 0) or 0)
+            rolling_split_child_chunks = int(extract_result.get("split_child_chunks", 0) or 0)
+            rolling_leaf_chunks = int(extract_result.get("leaf_chunks", 0) or 0)
+            rolling_max_split_depth = int(extract_result.get("max_split_depth", 0) or 0)
+            rolling_deep_calls = int(extract_result.get("deep_calls", 0) or 0)
+            rolling_repair_calls = int(extract_result.get("repair_calls", 0) or 0)
+            rolling_assessment_usable = int(extract_result.get("assessment_usable", 0) or 0)
+            rolling_carry_context_enabled = bool(extract_result.get("carry_context_enabled", True))
             print(
                 f"  Rolling flush: facts={day_facts}/{stored}, edges={edges}, "
                 f"batches={int(extract_result.get('rolling_batches', 0) or 0)}, "
                 f"signal_to_publish={extract_result.get('signal_to_publish_seconds')}s, "
                 f"extract={extract_result.get('extract_wall_seconds')}s, "
                 f"publish={extract_result.get('publish_wall_seconds')}s"
+            )
+            print(
+                "  Rolling extract telemetry: "
+                f"roots={rolling_root_chunks} "
+                f"splits={rolling_split_events} "
+                f"split_children={rolling_split_child_chunks} "
+                f"leaves={rolling_leaf_chunks} "
+                f"max_depth={rolling_max_split_depth} "
+                f"deep_calls={rolling_deep_calls} "
+                f"repair_calls={rolling_repair_calls} "
+                f"assessment_usable={rolling_assessment_usable} "
+                f"carry={'on' if rolling_carry_context_enabled else 'off'}"
             )
             if project_log_metrics:
                 print(
@@ -8279,6 +8340,13 @@ def main():
     print(f"  Include statement grounding: {args.include_statement_grounding}")
     print(f"  Judge: {args.judge}")
     print(f"  Allow non-Haiku answer model: {allow_non_haiku_answer_model}")
+    prompt_telemetry = _extraction_prompt_telemetry()
+    print(
+        "  Extraction prompt: "
+        f"sha1={prompt_telemetry['sha1'] or 'missing'} "
+        f"atomic_rules={'yes' if prompt_telemetry['atomic_rules'] else 'no'} "
+        f"canonical_entity_rules={'yes' if prompt_telemetry['canonical_entity_rules'] else 'no'}"
+    )
     if args.mode == "fc":
         print(f"  FC answer models: {', '.join(fc_models)}")
     print()

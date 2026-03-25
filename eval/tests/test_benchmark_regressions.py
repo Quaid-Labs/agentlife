@@ -944,6 +944,50 @@ class TestOBDExtractionTimeoutEnv:
         assert out["signals_processed"] == 0
         assert "rolling driver saw repeated pending signals without progress" in captured["driver_code"]
 
+    def test_run_runtime_rolling_driver_rehydrates_anthropic_auth(self, tmp_path, monkeypatch):
+        transcript = tmp_path / "obd.jsonl"
+        transcript.write_text('{"role":"user","content":"hi"}\n', encoding="utf-8")
+
+        captured = {}
+
+        def _run(cmd, **kwargs):
+            captured["env"] = dict(kwargs.get("env") or {})
+            result = type("Result", (), {})()
+            result.returncode = 0
+            result.stdout = (
+                '{\n'
+                '  "session_id": "obd-compaction-0001",\n'
+                '  "signals_processed": 0,\n'
+                '  "signal_loops": 0,\n'
+                '  "cursor_line_offset": 0,\n'
+                '  "cursor_transcript_path": "",\n'
+                '  "total_lines": 1,\n'
+                '  "rolling_state_exists": false,\n'
+                '  "rolling_state_path": "/tmp/state.json",\n'
+                '  "metrics_path": "/tmp/rolling.jsonl",\n'
+                '  "remaining_tokens": 0\n'
+                '}\n'
+            )
+            result.stderr = ""
+            return result
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
+
+        rpb._run_runtime_rolling_driver(
+            workspace=tmp_path,
+            env={},
+            session_id="obd-compaction-0001",
+            transcript_path=transcript,
+            timeout_seconds=60,
+            chunk_tokens=12000,
+            final_signal=None,
+        )
+
+        assert captured["env"]["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] == "sk-ant-oat01-test-token"
+        assert captured["env"]["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
+
     def test_obd_propagates_runtime_extract_wall_timeout(self, tmp_path, monkeypatch):
         import sqlite3
         from types import SimpleNamespace
