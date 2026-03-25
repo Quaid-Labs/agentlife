@@ -2292,7 +2292,7 @@ def run_extraction(
     # Check cache
     if not no_cache and cache_path.exists():
         cached = json.loads(cache_path.read_text())
-        n_facts = len(cached.get("facts", []))
+        n_facts = len(cached.get("facts") or [])
         print(f"  Cached: {n_facts} facts")
         try:
             progress_path.write_text(
@@ -2448,7 +2448,7 @@ def run_extraction(
                     f"{c['elapsed']:.1f}s, {c['usage'].get('input_tokens', 0)} in + "
                     f"{c['usage'].get('output_tokens', 0)} out tokens"
                 )
-                merged_facts.extend(c.get("facts", []))
+                merged_facts.extend(c.get("facts") or [])
                 for filename, bullets in (c.get("soul_snippets", {}) or {}).items():
                     merged_snippets.setdefault(filename, []).extend(_normalize_bullets(bullets))
                 for filename, content in (c.get("journal_entries", {}) or {}).items():
@@ -2536,7 +2536,7 @@ def run_extraction(
 
             result = parse_extraction_response(raw_response)
             cached = {
-                "facts": result.get("facts", []),
+                "facts": result.get("facts") or [],
                 "soul_snippets": result.get("soul_snippets", {}),
                 "journal_entries": result.get("journal_entries", {}),
                 "project_logs": _normalize_project_logs(result.get("project_logs", {})),
@@ -2553,7 +2553,7 @@ def run_extraction(
     extraction_log_entries = sum(len(v) for v in extraction_project_logs.values())
 
     # Store facts into DB
-    facts = cached.get("facts", [])
+    facts = cached.get("facts") or []
     last_date = SESSION_DATES.get(reviews[-1].session_num, "unknown") if reviews else "unknown"
     stored, edges = _store_facts(workspace, facts, _with_quaid_now(env, last_date), 0, last_date)
     domain_missing = int(_LAST_STORE_METRICS.get("domain_missing", 0))
@@ -2725,7 +2725,7 @@ def _store_facts(
             if stored_match:
                 stored += 1
                 fact_id = stored_match.group(1)
-                for edge in fact.get("edges", []):
+                for edge in (fact.get("edges") or []):
                     subj = edge.get("subject", "")
                     rel = edge.get("relation", "")
                     obj = edge.get("object", "")
@@ -4224,7 +4224,7 @@ def run_per_day_extraction(
             for cached in sorted(cached_list, key=lambda item: int(item.get("chunk_idx", 0))):
                 if date not in [str(v) for v in cached.get("day_keys", [cached.get("date", "")])]:
                     continue
-                facts.extend(cached.get("facts", []))
+                facts.extend(cached.get("facts") or [])
                 total_day_sessions.extend(int(s) for s in cached.get("sessions", []) if str(s).strip())
                 for project, entries in _normalize_project_logs(cached.get("project_logs", {})).items():
                     day_project_logs_input.setdefault(project, []).extend(entries)

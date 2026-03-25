@@ -3197,6 +3197,42 @@ class TestStoreFact:
         assert captured["cmd"][idx + 1] == "2026-03-18T09:15:00Z"
 
 
+class TestBenchmarkStoreFacts:
+    def test_store_facts_tolerates_null_edges(self, monkeypatch, tmp_path):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["work", "personal"])
+
+        def _fake_run(cmd, capture_output, text, timeout, cwd, env):
+            return SimpleNamespace(returncode=0, stdout="Stored: node-1", stderr="")
+
+        monkeypatch.setattr(rpb.subprocess, "run", _fake_run)
+
+        facts = [
+            {
+                "text": "Maya has 8+ years of experience shipping B2B SaaS products",
+                "category": "fact",
+                "extraction_confidence": "high",
+                "privacy": "shared",
+                "keywords": "experience years background saas b2b",
+                "domains": ["work", "personal"],
+                "edges": None,
+            }
+        ]
+
+        stored, edges_created = rpb._store_facts(
+            workspace,
+            facts,
+            {"PATH": os.environ.get("PATH", "")},
+            14,
+            "2026-03-29",
+        )
+
+        assert stored == 1
+        assert edges_created == 0
+
+
 class TestStoreSessionFacts:
     def test_store_session_facts_prefers_fact_created_at(self, monkeypatch):
         captured = {}
