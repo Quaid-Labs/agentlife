@@ -3358,6 +3358,50 @@ class TestWriteJournalEntry:
         assert ec.write_journal_entry(str(tmp_path), "SOUL.md", "   ") is False
 
 
+class TestBenchmarkCoreArtifactMirroring:
+    def test_cached_core_artifacts_write_to_workspace_and_instance(self, tmp_path):
+        workspace = tmp_path / "ws"
+        (workspace / "config").mkdir(parents=True, exist_ok=True)
+        (workspace / "projects").mkdir(parents=True, exist_ok=True)
+        (workspace / "config" / "memory.json").write_text("{}")
+
+        snippets, journals = rpb._write_cached_core_artifacts(
+            workspace,
+            soul_snippets={"SOUL.md": ["noticed a pattern"]},
+            journal_entries={"SOUL.md": "A deeper reflection."},
+            trigger="Compaction",
+            date_str="2026-03-26",
+        )
+
+        assert snippets == 1
+        assert journals == 1
+        assert (workspace / "SOUL.snippets.md").exists()
+        assert (workspace / "journal" / "SOUL.journal.md").exists()
+        assert (workspace / "benchrunner" / "SOUL.snippets.md").exists()
+        assert (workspace / "benchrunner" / "journal" / "SOUL.journal.md").exists()
+
+    def test_syncs_evolved_instance_identity_back_to_workspace_root(self, tmp_path):
+        workspace = tmp_path / "ws"
+        (workspace / "config").mkdir(parents=True, exist_ok=True)
+        (workspace / "projects").mkdir(parents=True, exist_ok=True)
+        (workspace / "config" / "memory.json").write_text("{}")
+        identity_dir = rpb._ensure_quaid_instance_layout(workspace) / "identity"
+        identity_dir.mkdir(parents=True, exist_ok=True)
+
+        (workspace / "SOUL.md").write_text("seed soul")
+        (workspace / "USER.md").write_text("seed user")
+        (workspace / "ENVIRONMENT.md").write_text("seed env")
+        (identity_dir / "SOUL.md").write_text("evolved soul")
+        (identity_dir / "USER.md").write_text("evolved user")
+        (identity_dir / "ENVIRONMENT.md").write_text("evolved env")
+
+        rpb._sync_instance_identity_to_workspace_root(workspace)
+
+        assert (workspace / "SOUL.md").read_text() == "evolved soul"
+        assert (workspace / "USER.md").read_text() == "evolved user"
+        assert (workspace / "ENVIRONMENT.md").read_text() == "evolved env"
+
+
 class TestReadSessionMessages:
     """Tests for read_session_messages: JSONL parsing."""
 

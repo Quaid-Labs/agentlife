@@ -2559,25 +2559,20 @@ def run_extraction(
     domain_missing = int(_LAST_STORE_METRICS.get("domain_missing", 0))
 
     # Write snippets and journal entries
-    ws = str(workspace)
     total_snippets = 0
     total_journals = 0
     project_log_metrics = {}
 
-    for filename, bullets in cached.get("soul_snippets", {}).items():
-        if isinstance(bullets, str):
-            bullets = [bullets] if bullets.strip() else []
-        if bullets and write_snippet_entry(ws, filename, bullets, "Compaction", last_date):
-            total_snippets += len(bullets)
-
-    for filename, content in cached.get("journal_entries", {}).items():
-        if isinstance(content, list):
-            content = "\n\n".join(str(c) for c in content if c)
-        if content and write_journal_entry(ws, filename, content, "Compaction", last_date):
-            total_journals += 1
+    total_snippets, total_journals = _write_cached_core_artifacts(
+        workspace,
+        soul_snippets=cached.get("soul_snippets", {}),
+        journal_entries=cached.get("journal_entries", {}),
+        trigger="Compaction",
+        date_str=last_date,
+    )
 
     project_log_metrics = write_project_logs(
-        ws,
+        str(workspace),
         extraction_project_logs,
         trigger="Compaction",
         date_str=last_date,
@@ -4233,16 +4228,15 @@ def run_per_day_extraction(
                 total_day_sessions.extend(int(s) for s in cached.get("sessions", []) if str(s).strip())
                 for project, entries in _normalize_project_logs(cached.get("project_logs", {})).items():
                     day_project_logs_input.setdefault(project, []).extend(entries)
-                for filename, bullets in cached.get("soul_snippets", {}).items():
-                    if isinstance(bullets, str):
-                        bullets = [bullets] if bullets.strip() else []
-                    if bullets and write_snippet_entry(str(workspace), filename, bullets, "Compaction", date):
-                        total_snippets += len(bullets)
-                for filename, content in cached.get("journal_entries", {}).items():
-                    if isinstance(content, list):
-                        content = "\n\n".join(str(c) for c in content if c)
-                    if content and write_journal_entry(str(workspace), filename, content, "Compaction", date):
-                        total_journals += 1
+                wrote_snippets, wrote_journals = _write_cached_core_artifacts(
+                    workspace,
+                    soul_snippets=cached.get("soul_snippets", {}),
+                    journal_entries=cached.get("journal_entries", {}),
+                    trigger="Compaction",
+                    date_str=date,
+                )
+                total_snippets += wrote_snippets
+                total_journals += wrote_journals
 
             if not total_day_sessions:
                 total_day_sessions = snums
@@ -4458,6 +4452,8 @@ def run_janitor(workspace: Path, *, timeout_seconds: int = 900) -> None:
                 print(f"    STDERR: {line}")
     else:
         print(f"\n  Janitor completed in {elapsed:.1f}s")
+
+    _sync_instance_identity_to_workspace_root(workspace)
 
     print()
 
@@ -7586,10 +7582,60 @@ def _ensure_quaid_instance_layout(workspace: Path, instance_id: str = _BENCHMARK
             shutil.rmtree(instance_projects)
         else:
             instance_projects.unlink()
-    if not instance_projects.exists():
+    if not instance_projects.exists() and not instance_projects.is_symlink():
         instance_projects.symlink_to(flat_projects, target_is_directory=True)
 
     return instance_root
+
+
+def _write_cached_core_artifacts(
+    workspace: Path,
+    *,
+    soul_snippets: Dict[str, Any],
+    journal_entries: Dict[str, Any],
+    trigger: str,
+    date_str: str,
+) -> Tuple[int, int]:
+    """Write extracted snippets/journals to both workspace and instance roots."""
+    root_ws = str(workspace)
+    instance_ws = str(_ensure_quaid_instance_layout(workspace))
+    total_snippets = 0
+    total_journals = 0
+
+    for filename, bullets in (soul_snippets or {}).items():
+        if isinstance(bullets, str):
+            bullets = [bullets] if bullets.strip() else []
+        if not bullets:
+            continue
+        wrote_root = write_snippet_entry(root_ws, filename, bullets, trigger, date_str)
+        wrote_instance = write_snippet_entry(instance_ws, filename, bullets, trigger, date_str)
+        if wrote_root or wrote_instance:
+            total_snippets += len(bullets)
+
+    for filename, content in (journal_entries or {}).items():
+        if isinstance(content, list):
+            content = "\n\n".join(str(c) for c in content if c)
+        if not content:
+            continue
+        wrote_root = write_journal_entry(root_ws, filename, content, trigger, date_str)
+        wrote_instance = write_journal_entry(instance_ws, filename, content, trigger, date_str)
+        if wrote_root or wrote_instance:
+            total_journals += 1
+
+    return total_snippets, total_journals
+
+
+def _sync_instance_identity_to_workspace_root(
+    workspace: Path,
+    *,
+    instance_id: str = _BENCHMARK_QUAID_INSTANCE,
+) -> None:
+    """Mirror evolved instance identity back to workspace root markdowns."""
+    identity_dir = _ensure_quaid_instance_layout(workspace, instance_id) / "identity"
+    for fname in _EVAL_CORE_MARKDOWN_FILES:
+        src = identity_dir / fname
+        if src.exists():
+            shutil.copy2(src, workspace / fname)
 
 
 def _seed_instance_identity_from_sources(
