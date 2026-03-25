@@ -61,6 +61,12 @@ def _parse_args() -> argparse.Namespace:
         help="Fresh workspace/results directory",
     )
     parser.add_argument(
+        "--seed-results-dir",
+        type=Path,
+        default=None,
+        help="Copy an existing imported-Claude run into the fresh results dir before continuing",
+    )
+    parser.add_argument(
         "--backend",
         choices=["claude-code", "oauth", "api"],
         default="oauth",
@@ -76,6 +82,12 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=0,
         help="Limit to the first N imported days (0 = all)",
+    )
+    parser.add_argument(
+        "--start-day",
+        type=int,
+        default=1,
+        help="1-based imported day index to start or continue from",
     )
     parser.add_argument(
         "--rolling",
@@ -142,6 +154,43 @@ def _summary_path(results_dir: Path) -> Path:
 def _write_summary_payload(summary_path: Path, payload: Dict[str, Any]) -> None:
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(payload, indent=2))
+
+
+def _seed_results_dir(seed_dir: Path, results_dir: Path) -> None:
+    if not seed_dir.exists() or not seed_dir.is_dir():
+        raise RuntimeError(f"Seed results dir does not exist: {seed_dir}")
+    shutil.copytree(seed_dir, results_dir, dirs_exist_ok=True)
+
+
+def _load_existing_summary_rows(results_dir: Path) -> List[Dict[str, Any]]:
+    summary_path = _summary_path(results_dir)
+    if not summary_path.exists():
+        return []
+    try:
+        payload = json.loads(summary_path.read_text())
+    except Exception:
+        return []
+    rows = payload.get("days")
+    if not isinstance(rows, list):
+        return []
+    out: List[Dict[str, Any]] = []
+    for row in rows:
+        if isinstance(row, dict):
+            out.append(json.loads(json.dumps(row)))
+    return out
+
+
+def _trim_seed_summary_rows(
+    rows: List[Dict[str, Any]],
+    remaining_session_ids: set[str],
+) -> List[Dict[str, Any]]:
+    if not remaining_session_ids:
+        return list(rows)
+    return [
+        row
+        for row in rows
+        if str(row.get("session_id", "") or "") not in remaining_session_ids
+    ]
 
 
 def _rewrite_workspace_for_claude_history(workspace: Path) -> None:
@@ -504,6 +553,7 @@ def _clear_stale_janitor_lock(workspace: Path) -> bool:
 def main() -> None:
     args = _parse_args()
     results_dir = args.results_dir.expanduser().resolve()
+    seed_results_dir = args.seed_results_dir.expanduser().resolve() if args.seed_results_dir else None
     if args.repair_summary:
         repaired = _repair_summary_extract_telemetry(results_dir)
         print(f"Repaired summary telemetry for {repaired['days_repaired']} day(s)")
@@ -514,10 +564,16 @@ def main() -> None:
     days: List[Dict[str, Any]] = list(manifest["days"])
     if args.max_days > 0:
         days = days[: args.max_days]
+    start_day = max(1, int(args.start_day or 1))
+    if start_day > len(days):
+        raise RuntimeError(f"start-day {start_day} exceeds selected manifest length {len(days)}")
+    days = days[start_day - 1 :]
     if not days:
         raise RuntimeError("No imported Claude days selected")
 
     _ensure_fresh_results_dir(results_dir)
+    if seed_results_dir:
+        _seed_results_dir(seed_results_dir, results_dir)
 
     backend = "oauth" if args.backend == "api" else args.backend
     rpb._BACKEND = backend
@@ -534,17 +590,21 @@ def main() -> None:
             )
         os.environ.setdefault("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", credential)
         os.environ.setdefault("ANTHROPIC_API_KEY", credential)
-    rpb.setup_workspace(results_dir, extraction_model=args.model)
-    _rewrite_workspace_for_claude_history(results_dir)
-    if args.rolling:
-        rpb._set_workspace_obd_capture_limits(
-            results_dir,
-            chunk_tokens=args.chunk_tokens,
-            chunk_max_lines=args.chunk_max_lines,
-        )
+    if not seed_results_dir:
+        rpb.setup_workspace(results_dir, extraction_model=args.model)
+        _rewrite_workspace_for_claude_history(results_dir)
+        if args.rolling:
+            rpb._set_workspace_obd_capture_limits(
+                results_dir,
+                chunk_tokens=args.chunk_tokens,
+                chunk_max_lines=args.chunk_max_lines,
+            )
 
-    summary_rows: List[Dict[str, Any]] = []
-    for idx, day in enumerate(days, start=1):
+    summary_rows: List[Dict[str, Any]] = _load_existing_summary_rows(results_dir)
+    remaining_session_ids = {str(day["session_id"]) for day in days}
+    summary_rows = _trim_seed_summary_rows(summary_rows, remaining_session_ids)
+
+    for idx, day in enumerate(days, start=start_day):
         session_id = str(day["session_id"])
         operational_day = str(day["operational_day"])
         session_file = Path(day["path"]).expanduser().resolve()
@@ -655,6 +715,7 @@ def main() -> None:
                 "schema_version": 2,
                 "summary_type": "imported_claude_history_replay",
                 "manifest_path": str(args.manifest.expanduser().resolve()),
+                "seed_results_dir": str(seed_results_dir) if seed_results_dir else None,
                 "manifest": {
                     "schema_version": manifest.get("schema_version"),
                     "source_path": manifest.get("source_path"),
@@ -668,6 +729,7 @@ def main() -> None:
                 "rolling": bool(args.rolling),
                 "chunk_tokens": int(args.chunk_tokens),
                 "chunk_max_lines": int(args.chunk_max_lines),
+                "start_day": start_day,
                 "days": summary_rows,
             },
         )
