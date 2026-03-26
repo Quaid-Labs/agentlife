@@ -56,6 +56,7 @@ except Exception:  # pragma: no cover - optional dependency in some environments
 _DIR = Path(__file__).resolve().parent
 _PROJECT_DIR = _DIR.parent
 _CLAWD = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
+_JANITOR_ALL_TIMEOUT_SECONDS = 1800
 
 
 def _resolve_quaid_dir() -> Path:
@@ -354,6 +355,25 @@ def _tail_file(path: Path, *, max_lines: int = 80) -> List[str]:
     if max_lines <= 0:
         return lines
     return lines[-max_lines:]
+
+
+def _completed_process_from_timeout(exc: subprocess.TimeoutExpired) -> subprocess.CompletedProcess[str]:
+    """Normalize TimeoutExpired into a CompletedProcess-like artifact payload."""
+
+    def _coerce_text(value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, bytes):
+            return value.decode("utf-8", errors="replace")
+        return str(value)
+
+    cmd = exc.cmd if isinstance(exc.cmd, list) else [str(exc.cmd)]
+    return subprocess.CompletedProcess(
+        args=cmd,
+        returncode=124,
+        stdout=_coerce_text(getattr(exc, "output", None)),
+        stderr=_coerce_text(getattr(exc, "stderr", None)),
+    )
 
 
 def _record_janitor_failure_context(
@@ -4290,11 +4310,36 @@ def run_per_day_extraction(
                 current_day=date,
                 state="running",
             )
-            result = subprocess.run(
-                janitor_cmd + ["--task", "all", "--apply"],
-                env=day_env, cwd=str(_QUAID_DIR),
-                capture_output=True, text=True, timeout=900,
-            )
+            try:
+                result = subprocess.run(
+                    janitor_cmd + ["--task", "all", "--apply"],
+                    env=day_env, cwd=str(_QUAID_DIR),
+                    capture_output=True, text=True, timeout=_JANITOR_ALL_TIMEOUT_SECONDS,
+                )
+            except subprocess.TimeoutExpired as exc:
+                result = _completed_process_from_timeout(exc)
+                preview = (
+                    f"timeout after {_JANITOR_ALL_TIMEOUT_SECONDS}s"
+                    + (f" | {_subprocess_failure_preview(result)}" if _subprocess_failure_preview(result) != "no stdout/stderr" else "")
+                )
+                failure_artifact = _record_janitor_failure_context(
+                    workspace=workspace,
+                    label="all",
+                    cmd=janitor_cmd + ["--task", "all", "--apply"],
+                    result=result,
+                    simulated_day=date,
+                )
+                print(f"    janitor all timed out: {preview}")
+                _write_janitor_progress(
+                    completed_days=day_idx,
+                    total_days=len(days),
+                    current_day=date,
+                    state="failed",
+                )
+                raise RuntimeError(
+                    "Janitor cycle timed out and benchmark janitor timeouts are fatal. "
+                    f"day={date} timeout={_JANITOR_ALL_TIMEOUT_SECONDS}s preview={preview} artifact={failure_artifact}"
+                ) from exc
             if result.returncode != 0:
                 preview = _subprocess_failure_preview(result)
                 failure_artifact = _record_janitor_failure_context(
@@ -4417,7 +4462,7 @@ def run_per_day_extraction(
 # Phase 4: Janitor
 # ---------------------------------------------------------------------------
 
-def run_janitor(workspace: Path, *, timeout_seconds: int = 900) -> None:
+def run_janitor(workspace: Path, *, timeout_seconds: int = _JANITOR_ALL_TIMEOUT_SECONDS) -> None:
     """Run full janitor via subprocess."""
     print("=" * 60)
     print("PHASE 4: FULL JANITOR")

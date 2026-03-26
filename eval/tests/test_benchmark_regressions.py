@@ -4443,9 +4443,11 @@ class TestPerDayExtraction:
         monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
 
         calls = []
+        timeouts = []
 
         def _run(cmd, **kwargs):
             calls.append(list(cmd))
+            timeouts.append(kwargs.get("timeout"))
             result = _FakeSubprocessResult()
             result.returncode = 1
             result.stderr = "janitor exploded"
@@ -4464,12 +4466,65 @@ class TestPerDayExtraction:
         assert progress["state"] == "failed"
         jan_calls = [c for c in calls if "--task" in c and "all" in c]
         assert len(jan_calls) == 1
+        assert timeouts == [rpb._JANITOR_ALL_TIMEOUT_SECONDS]
         failure_files = sorted((workspace / "logs").glob("janitor_failure_all_*.json"))
         assert len(failure_files) == 1
         failure_payload = json.loads(failure_files[0].read_text())
         assert failure_payload["returncode"] == 1
         assert failure_payload["stderr"] == "janitor exploded"
         assert failure_payload["stdout"] == "janitor stdout"
+        assert "artifact=" in str(excinfo.value)
+
+    def test_daily_janitor_timeout_is_fatal_and_records_artifact(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+
+        fake_dates = {1: "2026-03-01"}
+        monkeypatch.setattr(rpb, "SESSION_DATES", fake_dates)
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+        monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
+        monkeypatch.setattr(
+            rpb, "parse_extraction_response",
+            lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
+        )
+        monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_project_logs", lambda *a, **k: {})
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
+
+        def _run(cmd, **kwargs):
+            raise subprocess.TimeoutExpired(
+                cmd=cmd,
+                timeout=kwargs.get("timeout", 0),
+                output="janitor stdout",
+                stderr="janitor stderr",
+            )
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+
+        with pytest.raises(RuntimeError, match="Janitor cycle timed out") as excinfo:
+            rpb.run_per_day_extraction(
+                workspace=workspace, api_key="dummy", no_cache=True,
+                run_janitor_each_day=True,
+            )
+
+        progress = json.loads((workspace / "logs" / "janitor_progress.json").read_text())
+        assert progress["state"] == "failed"
+        failure_files = sorted((workspace / "logs").glob("janitor_failure_all_*.json"))
+        assert len(failure_files) == 1
+        failure_payload = json.loads(failure_files[0].read_text())
+        assert failure_payload["returncode"] == 124
+        assert failure_payload["stdout"] == "janitor stdout"
+        assert failure_payload["stderr"] == "janitor stderr"
         assert "artifact=" in str(excinfo.value)
 
     def test_weekly_distillation_failure_is_fatal(self, tmp_path, monkeypatch):
