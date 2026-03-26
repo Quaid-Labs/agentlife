@@ -2885,6 +2885,26 @@ class TestSetupWorkspaceConfig:
         assert models["deepReasoning"] == "claude-sonnet-4-6"
         assert models["fastReasoning"] == "claude-haiku-4-5-20251001"
 
+    def test_workspace_sets_2000_token_caps_for_core_markdown(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(json.dumps({}), encoding="utf-8")
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+
+        rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        files = cfg["docs"]["coreMarkdown"]["files"]
+        assert files["SOUL.md"]["maxTokens"] == 2000
+        assert files["USER.md"]["maxTokens"] == 2000
+        assert files["ENVIRONMENT.md"]["maxTokens"] == 2000
+
     def test_workspace_writes_separate_embedding_workers(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         quaid_dir = tmp_path / "modules" / "quaid"

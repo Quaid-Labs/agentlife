@@ -1588,9 +1588,9 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     if not isinstance(prod_config["docs"].get("coreMarkdown"), dict):
         prod_config["docs"]["coreMarkdown"] = {}
     prod_config["docs"]["coreMarkdown"]["files"] = {
-        "SOUL.md": {"purpose": "Personality and values", "maxLines": 80, "maxTokens": 1500},
-        "USER.md": {"purpose": "User biography", "maxLines": 150, "maxTokens": 1500},
-        "ENVIRONMENT.md": {"purpose": "Shared environment and world context", "maxLines": 100, "maxTokens": 1500},
+        "SOUL.md": {"purpose": "Personality and values", "maxLines": 80, "maxTokens": 2000},
+        "USER.md": {"purpose": "User biography", "maxLines": 150, "maxTokens": 2000},
+        "ENVIRONMENT.md": {"purpose": "Shared environment and world context", "maxLines": 100, "maxTokens": 2000},
         "IDENTITY.md": {"purpose": "Name and identity", "maxLines": 20},
         "TOOLS.md": {"purpose": "Tool reference", "maxLines": 150},
     }
