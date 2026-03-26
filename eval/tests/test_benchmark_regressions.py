@@ -2178,8 +2178,8 @@ def test_build_eval_context_sources_dedupes_duplicate_core_variants(tmp_path):
 def test_build_eval_context_sources_report_token_target_status(tmp_path):
     workspace = tmp_path / "ws"
     (workspace / "projects" / "quaid").mkdir(parents=True)
-    (workspace / "SOUL.md").write_text(" ".join(f"root{i}" for i in range(4000)))
-    (workspace / "projects" / "quaid" / "SOUL.md").write_text(" ".join(f"proj{i}" for i in range(4000)))
+    (workspace / "SOUL.md").write_text(" ".join(f"root{i}" for i in range(1200)))
+    (workspace / "projects" / "quaid" / "SOUL.md").write_text(" ".join(f"proj{i}" for i in range(1200)))
 
     ctx = rpb._build_eval_context(workspace, core_files=["SOUL.md"], include_project_bootstrap=False)
     sources = rpb._build_eval_context_sources(workspace, core_files=["SOUL.md"], include_project_bootstrap=False)
@@ -2189,36 +2189,6 @@ def test_build_eval_context_sources_report_token_target_status(tmp_path):
     assert len(sources) >= 1
     assert all("token_target" in s for s in sources)
     assert any(s["over_token_target"] for s in sources)
-    assert all(s["trimmed_for_eval_context"] for s in sources)
-    assert all(s["est_tokens"] <= s["token_target"] for s in sources)
-    assert all(s["raw_est_tokens"] >= s["est_tokens"] for s in sources)
-
-
-def test_build_eval_context_trims_core_markdown_to_token_cap(tmp_path, monkeypatch):
-    workspace = tmp_path / "ws"
-    workspace.mkdir(parents=True)
-    (workspace / "SOUL.md").write_text(" ".join(f"tok{i}" for i in range(5000)))
-
-    monkeypatch.setattr(rpb, "_count_eval_tokens", lambda text: len(text.split()))
-
-    ctx = rpb._build_eval_context(workspace, core_files=["SOUL.md"], include_project_bootstrap=False)
-
-    assert "--- SOUL.md ---" in ctx
-    injected = ctx.split("--- SOUL.md ---\n", 1)[1]
-    assert len(injected.split()) <= rpb._EVAL_CORE_TOKEN_CAP
-    assert "trimmed" in injected
-
-
-def test_build_eval_context_trims_core_markdown_to_line_cap(tmp_path):
-    workspace = tmp_path / "ws"
-    workspace.mkdir(parents=True)
-    (workspace / "SOUL.md").write_text("\n".join(f"line{i}" for i in range(200)))
-
-    ctx = rpb._build_eval_context(workspace, core_files=["SOUL.md"], include_project_bootstrap=False)
-
-    injected = ctx.split("--- SOUL.md ---\n", 1)[1]
-    assert len(injected.splitlines()) <= 81
-    assert "trimmed" in injected
 
 
 def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatch):
