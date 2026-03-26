@@ -124,6 +124,11 @@ _EXTRACT_SCRIPT = _resolve_quaid_script("extract.py", "ingest/extract.py")
 # Last store telemetry (updated by _store_facts for extraction summaries).
 _LAST_STORE_METRICS: Dict[str, int] = {"domain_missing": 0}
 _EVAL_CORE_TOKEN_CAP = 1500
+_EVAL_CORE_MARKDOWN_LIMITS = {
+    "SOUL.md": {"max_lines": 80, "max_tokens": _EVAL_CORE_TOKEN_CAP},
+    "USER.md": {"max_lines": 150, "max_tokens": _EVAL_CORE_TOKEN_CAP},
+    "ENVIRONMENT.md": {"max_lines": 100, "max_tokens": _EVAL_CORE_TOKEN_CAP},
+}
 _EVAL_TOKEN_ENCODER = None
 _FC_CONTEXT_WINDOW_TOKENS = 200_000
 _FC_CONTEXT_COMPACT_TRIGGER_TOKENS = int(_FC_CONTEXT_WINDOW_TOKENS * 0.80)
@@ -5103,7 +5108,9 @@ def _build_eval_context(
     for md in core_files:
         if _is_eval_core_markdown(md):
             for rel, content in _collect_eval_core_markdown_variants(workspace, md):
-                parts.append(f"--- {rel} ---\n{content}")
+                injected = _trim_eval_core_markdown_content(md, content)
+                if injected:
+                    parts.append(f"--- {rel} ---\n{injected}")
             continue
 
         path = workspace / md
@@ -5165,6 +5172,70 @@ def _collect_eval_core_markdown_variants(workspace: Path, md_name: str) -> List[
     return variants
 
 
+def _trim_eval_core_markdown_lines(lines: List[str], keep_lines: int) -> List[str]:
+    """Keep the head and tail of oversized core markdown with a trim marker."""
+    if keep_lines <= 0 or len(lines) <= keep_lines:
+        return list(lines)
+    head = max(1, int(keep_lines * 0.6))
+    head = min(head, keep_lines)
+    tail = max(0, keep_lines - head)
+    trimmed = len(lines) - keep_lines
+    marker = f"... [trimmed {trimmed} lines for eval cap] ..."
+    if tail > 0:
+        return lines[:head] + [marker] + lines[-tail:]
+    return lines[:head] + [marker]
+
+
+def _trim_eval_core_markdown_content(md_name: str, content: str) -> str:
+    """Enforce the advertised eval caps for core markdown injection."""
+    text = (content or "").strip()
+    limits = _EVAL_CORE_MARKDOWN_LIMITS.get(_eval_core_markdown_display_name(md_name))
+    if not text or not limits:
+        return text
+
+    raw_lines = text.splitlines()
+    max_lines = int(limits.get("max_lines") or 0)
+    max_tokens = int(limits.get("max_tokens") or 0)
+
+    working_lines = raw_lines
+    if max_lines > 0 and len(raw_lines) > max_lines:
+        working_lines = _trim_eval_core_markdown_lines(raw_lines, max_lines)
+
+    working_text = "\n".join(working_lines).strip()
+    if max_tokens <= 0 or _count_eval_tokens(working_text) <= max_tokens:
+        return working_text
+
+    lo = 1
+    hi = min(len(raw_lines), max_lines if max_lines > 0 else len(raw_lines))
+    best = 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        candidate = "\n".join(_trim_eval_core_markdown_lines(raw_lines, mid)).strip()
+        if _count_eval_tokens(candidate) <= max_tokens:
+            best = mid
+            lo = mid + 1
+        else:
+            hi = mid - 1
+
+    working_text = "\n".join(_trim_eval_core_markdown_lines(raw_lines, best)).strip()
+    if _count_eval_tokens(working_text) <= max_tokens:
+        return working_text
+
+    marker = "\n... [trimmed for eval token cap] ..."
+    lo = 0
+    hi = len(text)
+    best_chars = 0
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        candidate = (text[:mid].rstrip() + marker).strip()
+        if _count_eval_tokens(candidate) <= max_tokens:
+            best_chars = mid
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return (text[:best_chars].rstrip() + marker).strip()
+
+
 def _build_eval_context_sources(
     workspace: Path,
     core_files: Optional[List[str]] = None,
@@ -5179,13 +5250,18 @@ def _build_eval_context_sources(
     for md in core_files:
         if _is_eval_core_markdown(md):
             for rel, content in _collect_eval_core_markdown_variants(workspace, md):
-                est_tokens = _count_eval_tokens(content)
+                raw_est_tokens = _count_eval_tokens(content)
+                injected = _trim_eval_core_markdown_content(md, content)
+                est_tokens = _count_eval_tokens(injected)
                 sources.append({
                     "path": str(rel),
-                    "chars": len(content),
+                    "chars": len(injected),
                     "est_tokens": est_tokens,
+                    "raw_chars": len(content),
+                    "raw_est_tokens": raw_est_tokens,
                     "token_target": _EVAL_CORE_TOKEN_CAP,
-                    "over_token_target": est_tokens > _EVAL_CORE_TOKEN_CAP,
+                    "over_token_target": raw_est_tokens > _EVAL_CORE_TOKEN_CAP,
+                    "trimmed_for_eval_context": injected != content,
                     "source_group": "core_markdown",
                 })
             continue
