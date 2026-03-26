@@ -236,6 +236,30 @@ def _first_launch_text(root: Path, run_name: str) -> str:
     return ""
 
 
+def infer_ingest_schedule(root: Path, run_name: str) -> Optional[str]:
+    meta = load_json(root / "runs" / str(run_name) / "run_metadata.json") or {}
+    for key in ("ingest_schedule", "schedule_mode"):
+        value = meta.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip().lower()
+
+    txt = _first_launch_text(root, run_name)
+    patterns = (
+        re.compile(r"^\s*Ingest schedule:\s*([A-Za-z0-9._-]+)\s*$", re.M),
+        re.compile(r"^\s*ingest schedule=([A-Za-z0-9._-]+)\s*$", re.M),
+        re.compile(r"--ingest-schedule\s+([A-Za-z0-9._-]+)"),
+    )
+    for pat in patterns:
+        m = pat.search(txt)
+        if m:
+            return str(m.group(1)).strip().lower()
+    return None
+
+
+def _is_obd_schedule(schedule: Optional[str]) -> bool:
+    return schedule in {"obd", "rolling-obd"}
+
+
 def infer_parallel(root: Path, run_name: str) -> Optional[int]:
     meta = load_json(root / "runs" / str(run_name) / "run_metadata.json") or {}
     try:
@@ -326,8 +350,7 @@ def extract_preview_score(root: Path, run_name: str) -> Optional[float]:
 def infer_metric_label(root: Path, run_name: str) -> str:
     name = str(run_name or "")
     low_name = name.lower()
-    low_text = _first_launch_text(root, run_name).lower()
-    is_obd = "rolling-obd" in low_text or " one-big-day " in f" {low_text} " or " obd " in f" {low_text} "
+    is_obd = _is_obd_schedule(infer_ingest_schedule(root, run_name))
     if ("quaid-l" in low_name or "al-l" in low_name) and is_obd:
         return "AL-L Quaid OBD"
     if ("quaid-s" in low_name or "al-s" in low_name) and is_obd:
@@ -463,8 +486,7 @@ def day_plan_status(root: Path, run_name: str) -> Optional[Dict[str, Any]]:
 def run_progress(root: Path, run_name: str) -> str:
     run = root / "runs" / str(run_name)
     launch_text = _first_launch_text(root, run_name)
-    low_text = launch_text.lower()
-    is_obd_run = "rolling-obd" in low_text or " one-big-day " in f" {low_text} " or " obd " in f" {low_text} "
+    is_obd_run = _is_obd_schedule(infer_ingest_schedule(root, run_name))
     chunk_count = 0
     try:
         chunk_count = len(list((run / "extraction_cache").glob("chunk-*.json")))

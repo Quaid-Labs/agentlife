@@ -60,6 +60,49 @@ def test_build_run_detail_matches_status_report_for_active_rolling_run(tmp_path,
     assert detail["active_pid"] == 12345
 
 
+def test_run_progress_ignores_rolling_flush_for_per_day_runs(tmp_path):
+    root = tmp_path
+    run_name = "quaid-s-r997-20260325-000000"
+    run_dir = root / "runs" / run_name
+    (run_dir / "logs" / "daemon").mkdir(parents=True)
+    (run_dir / "logs").mkdir(exist_ok=True)
+
+    rolling_rows = [
+        {
+            "event": "rolling_flush",
+            "signal_to_publish_seconds": 86.0,
+            "publish_wall_seconds": 5.8,
+        }
+    ]
+    (run_dir / "logs" / "daemon" / "rolling-extraction.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rolling_rows),
+        encoding="utf-8",
+    )
+    (run_dir / "logs" / "janitor_progress.json").write_text(
+        json.dumps({"phase": "janitor(9/20)"}),
+        encoding="utf-8",
+    )
+    (root / "runs" / f"{run_name}.launch.log").write_text(
+        "  Ingest schedule: per-day\n  Auto-rolling days: 2026-03-11, 2026-03-18\n",
+        encoding="utf-8",
+    )
+
+    assert brs.run_progress(root, run_name) == "janitor(9/20)"
+
+
+def test_infer_metric_label_does_not_mark_per_day_run_as_obd(tmp_path):
+    root = tmp_path
+    run_name = "quaid-s-r996-20260325-000000"
+    run_dir = root / "runs" / run_name
+    run_dir.mkdir(parents=True)
+    (root / "runs" / f"{run_name}.launch.log").write_text(
+        "  Ingest schedule: per-day\n  Auto-rolling days: 2026-03-11, 2026-03-18\n",
+        encoding="utf-8",
+    )
+
+    assert brs.infer_metric_label(root, run_name) == "AL-S Quaid"
+
+
 def test_build_run_detail_uses_shared_failed_classification(tmp_path, monkeypatch):
     root = tmp_path
     run_name = "quaid-l-r998-20260325-000000"
