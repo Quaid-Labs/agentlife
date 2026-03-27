@@ -7861,7 +7861,6 @@ def _call_claude_code(
         "--no-session-persistence",
         "--tools", "",
         "--system-prompt", system_prompt,
-        user_message,
     ]
 
     env = os.environ.copy()
@@ -7891,6 +7890,7 @@ def _call_claude_code(
             text=True,
             timeout=600,
             env=env,
+            input=user_message,
             cwd="/tmp",  # Avoid loading CLAUDE.md project context
         )
 

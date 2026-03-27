@@ -278,6 +278,42 @@ class TestFcBaselinesFailHard:
 
 
 class TestClaudeCodeEvalFailHard:
+    def test_call_claude_code_sends_prompt_via_stdin(self, monkeypatch):
+        captured = {}
+
+        def _fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            captured["kwargs"] = kwargs
+            return SimpleNamespace(
+                returncode=0,
+                stdout=json.dumps(
+                    {
+                        "result": "ok",
+                        "modelUsage": {
+                            "claude-sonnet-4-6": {
+                                "inputTokens": 10,
+                                "outputTokens": 5,
+                            }
+                        },
+                    }
+                ),
+                stderr="",
+            )
+
+        monkeypatch.setattr(subprocess, "run", _fake_run)
+
+        text, usage = rpb._call_claude_code(
+            system_prompt="system prompt",
+            user_message="very long prompt payload",
+            model="claude-sonnet-4-6",
+        )
+
+        assert text == "ok"
+        assert usage["api_calls"] == 1
+        assert captured["kwargs"]["input"] == "very long prompt payload"
+        assert captured["cmd"][-2:] == ["--system-prompt", "system prompt"]
+        assert "very long prompt payload" not in captured["cmd"]
+
     def test_tool_use_loop_claude_code_raises_on_nonzero_return(self, monkeypatch, tmp_path):
         ws = tmp_path / "ws"
         (ws / "data").mkdir(parents=True, exist_ok=True)
