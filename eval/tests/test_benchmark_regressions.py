@@ -970,7 +970,7 @@ class TestOBDExtractionTimeoutEnv:
                 timeout_seconds=60,
             )
 
-    def test_run_runtime_rolling_driver_embeds_repeated_signal_guard(self, tmp_path, monkeypatch):
+    def test_run_runtime_rolling_driver_embeds_preserved_signal_retry_guard(self, tmp_path, monkeypatch):
         transcript = tmp_path / "obd.jsonl"
         transcript.write_text('{"role":"user","content":"hi"}\n', encoding="utf-8")
 
@@ -1012,7 +1012,8 @@ class TestOBDExtractionTimeoutEnv:
         )
 
         assert out["signals_processed"] == 0
-        assert "rolling driver saw repeated pending signals without progress" in captured["driver_code"]
+        assert "max_repeated_signal_retries" in captured["driver_code"]
+        assert "rolling driver signal preserved after" in captured["driver_code"]
 
     def test_run_runtime_rolling_driver_rehydrates_anthropic_auth(self, tmp_path, monkeypatch):
         transcript = tmp_path / "obd.jsonl"
