@@ -629,6 +629,8 @@ class TestOBDExtractionTimeoutEnv:
             return result
 
         monkeypatch.setattr(rpb.subprocess, "run", _run)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
 
         out = rpb._run_runtime_rolling_driver(
             workspace=tmp_path,
@@ -996,6 +998,8 @@ class TestOBDExtractionTimeoutEnv:
             return result
 
         monkeypatch.setattr(rpb.subprocess, "run", _run)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
 
         out = rpb._run_runtime_rolling_driver(
             workspace=tmp_path,
@@ -1098,6 +1102,59 @@ class TestOBDExtractionTimeoutEnv:
             final_signal=None,
         )
 
+        assert captured["env"]["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] == "sk-ant-oat01-test-token"
+        assert captured["env"]["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
+
+    def test_run_runtime_rolling_driver_resolves_blank_oauth_auth_from_api_key(self, tmp_path, monkeypatch):
+        transcript = tmp_path / "obd.jsonl"
+        transcript.write_text('{"role":"user","content":"hi"}\n', encoding="utf-8")
+
+        captured = {"api_key_calls": 0}
+
+        def _run(cmd, **kwargs):
+            captured["env"] = dict(kwargs.get("env") or {})
+            result = type("Result", (), {})()
+            result.returncode = 0
+            result.stdout = (
+                '{\n'
+                '  "session_id": "obd-compaction-0001",\n'
+                '  "signals_processed": 0,\n'
+                '  "signal_loops": 0,\n'
+                '  "cursor_line_offset": 0,\n'
+                '  "cursor_transcript_path": "",\n'
+                '  "total_lines": 1,\n'
+                '  "rolling_state_exists": false,\n'
+                '  "rolling_state_path": "/tmp/state.json",\n'
+                '  "metrics_path": "/tmp/rolling.jsonl",\n'
+                '  "remaining_tokens": 0\n'
+                '}\n'
+            )
+            result.stderr = ""
+            return result
+
+        def _get_api_key():
+            captured["api_key_calls"] += 1
+            return "sk-ant-oat01-test-token"
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "")
+        monkeypatch.setattr(rpb, "_get_api_key", _get_api_key)
+
+        rpb._run_runtime_rolling_driver(
+            workspace=tmp_path,
+            env={
+                "BENCHMARK_ANTHROPIC_OAUTH_TOKEN": "",
+                "ANTHROPIC_API_KEY": "",
+            },
+            session_id="obd-compaction-0001",
+            transcript_path=transcript,
+            timeout_seconds=60,
+            chunk_tokens=12000,
+            final_signal=None,
+        )
+
+        assert captured["api_key_calls"] == 1
         assert captured["env"]["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] == "sk-ant-oat01-test-token"
         assert captured["env"]["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
 

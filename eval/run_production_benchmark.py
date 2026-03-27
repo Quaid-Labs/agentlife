@@ -234,6 +234,27 @@ def _rehydrate_nested_runtime_auth(env: Dict[str, str]) -> Dict[str, str]:
     return out
 
 
+def _ensure_nested_runtime_auth(env: Dict[str, str]) -> Dict[str, str]:
+    """Guarantee nested runtime subprocesses inherit benchmark Anthropic auth."""
+    out = _rehydrate_nested_runtime_auth(env)
+    if _BACKEND == "claude-code":
+        return out
+
+    credential = (
+        str(out.get("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", "") or "").strip()
+        or str(out.get("ANTHROPIC_API_KEY", "") or "").strip()
+    )
+    if credential:
+        return out
+
+    # Rolling/runtime subprocesses should never silently lose benchmark auth.
+    credential = _get_api_key()
+    if _is_anthropic_oauth_token(credential):
+        out["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] = credential
+    out["ANTHROPIC_API_KEY"] = credential
+    return out
+
+
 _ANTHROPIC_OAUTH_IDENTITY_TEXT = (
     "You are Claude Code, Anthropic's official CLI for Claude."
 )
@@ -3249,7 +3270,7 @@ def _run_runtime_rolling_driver(
         "    'remaining_tokens': remaining_tokens,\n"
         "} ))\n"
     )
-    driver_env = _rehydrate_nested_runtime_auth(env)
+    driver_env = _ensure_nested_runtime_auth(env)
     driver_env["BENCHMARK_QUAID_DIR"] = str(_QUAID_DIR.resolve())
     driver_env["BENCHMARK_SESSION_ID"] = str(session_id)
     driver_env["BENCHMARK_TRANSCRIPT_PATH"] = str(transcript_path)
@@ -3313,7 +3334,7 @@ def _write_runtime_rolling_signal(
         "    meta={'reason': 'benchmark_rolling_flush'},\n"
         ")\n"
     )
-    driver_env = _rehydrate_nested_runtime_auth(env)
+    driver_env = _ensure_nested_runtime_auth(env)
     driver_env["BENCHMARK_QUAID_DIR"] = str(_QUAID_DIR.resolve())
     driver_env["BENCHMARK_SESSION_ID"] = str(session_id)
     driver_env["BENCHMARK_TRANSCRIPT_PATH"] = str(transcript_path)
