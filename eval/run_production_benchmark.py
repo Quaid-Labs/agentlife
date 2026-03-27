@@ -5027,6 +5027,18 @@ def run_fc_baseline(
         )
     print(f"  {len(all_queries)} queries, {len(reviews)} sessions")
 
+    checkpoint_path: Optional[Path] = None
+    if results_dir:
+        results_dir.mkdir(parents=True, exist_ok=True)
+        checkpoint_path = _fc_resume_checkpoint_path(results_dir, _fc_result_stem(answer_model))
+    resumed_results, resumed_usage = _load_fc_resume_checkpoint(
+        checkpoint_path,
+        answer_model=answer_model,
+        questions=all_queries,
+    )
+    if resumed_results:
+        print(f"  Resuming FC checkpoint: {len(resumed_results)}/{len(all_queries)} queries already scored")
+
     full_transcripts, compaction_stats = _build_fc_transcript_context(
         reviews,
         api_key=api_key,
@@ -5038,18 +5050,26 @@ def run_fc_baseline(
         f"(~{compaction_stats['context_tokens']} tokens, {compaction_stats['compaction_count']} compactions)"
     )
 
-    results = []
+    results = list(resumed_results)
     correct = 0
     partial_count = 0
     wrong = 0
+    for row in resumed_results:
+        label = str(row.get("judge_label", "") or "").upper()
+        if label == "CORRECT":
+            correct += 1
+        elif label == "PARTIAL":
+            partial_count += 1
+        else:
+            wrong += 1
     fc_usage = {
-        "input_tokens": int(compaction_stats.get("input_tokens", 0) or 0),
-        "output_tokens": int(compaction_stats.get("output_tokens", 0) or 0),
-        "api_calls": int(compaction_stats.get("api_calls", 0) or 0),
+        "input_tokens": int(resumed_usage.get("input_tokens", 0) or 0) + int(compaction_stats.get("input_tokens", 0) or 0),
+        "output_tokens": int(resumed_usage.get("output_tokens", 0) or 0) + int(compaction_stats.get("output_tokens", 0) or 0),
+        "api_calls": int(resumed_usage.get("api_calls", 0) or 0) + int(compaction_stats.get("api_calls", 0) or 0),
     }
     t_start = time.time()
 
-    for i, query in enumerate(all_queries):
+    for i, query in enumerate(all_queries[len(resumed_results):], start=len(resumed_results)):
         question = query["question"]
         ground_truth = query["ground_truth"]
         query_type = query.get("query_type", "unknown")
@@ -5114,6 +5134,13 @@ def run_fc_baseline(
             "source_session": query.get("source_session", 0),
         }
         results.append(result)
+        _save_fc_resume_checkpoint(
+            checkpoint_path,
+            answer_model=answer_model,
+            total_queries=len(all_queries),
+            results=results,
+            usage=fc_usage,
+        )
 
         scored_so_far = correct + partial_count + wrong
         acc_so_far = (correct + 0.5 * partial_count) / scored_so_far * 100 if scored_so_far > 0 else 0
@@ -5154,6 +5181,8 @@ def run_fc_baseline(
                 "avg_tokens_per_query": round(fc_total / len(results)) if results else 0,
             }, f, indent=2)
         print(f"  Saved to {fc_path}")
+        if checkpoint_path and checkpoint_path.exists():
+            checkpoint_path.unlink()
 
     return results
 

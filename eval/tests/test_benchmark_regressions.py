@@ -276,6 +276,94 @@ class TestFcBaselinesFailHard:
         with pytest.raises(RuntimeError, match=r"Tier 5 FC answer failed.*How are you feeling about your mom"):
             rpb.run_tier5_fc_baseline(api_key="test-key", answer_model="claude-sonnet-4-6")
 
+    def test_run_fc_baseline_resumes_from_checkpoint(self, monkeypatch, tmp_path):
+        assets_dir = tmp_path / "assets"
+        assets_dir.mkdir()
+        results_dir = tmp_path / "fc_baselines"
+        results_dir.mkdir()
+        monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "0")
+
+        questions = [
+            {
+                "question": "What does Maya do for work?",
+                "ground_truth": "Product manager at TechFlow",
+                "query_type": "factual_recall",
+            },
+            {
+                "question": "Where does Maya's mom live?",
+                "ground_truth": "Houston",
+                "query_type": "factual_recall",
+            },
+        ]
+        checkpoint_path = rpb._fc_resume_checkpoint_path(
+            results_dir,
+            rpb._fc_result_stem("claude-sonnet-4-6"),
+        )
+        rpb._save_fc_resume_checkpoint(
+            checkpoint_path,
+            answer_model="claude-sonnet-4-6",
+            total_queries=len(questions),
+            results=[
+                {
+                    "question": questions[0]["question"],
+                    "ground_truth": questions[0]["ground_truth"],
+                    "prediction": "Product manager at TechFlow",
+                    "judge_label": "CORRECT",
+                    "score": 1.0,
+                    "query_type": "factual_recall",
+                    "recall_difficulty": "unknown",
+                    "source_session": 0,
+                }
+            ],
+            usage={"input_tokens": 100, "output_tokens": 50, "api_calls": 1},
+        )
+
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda max_sessions: (assets_dir, [_FakeReview(1)], [_FakeReview(1)], "v-test", 268),
+        )
+        monkeypatch.setattr(rpb, "get_all_eval_queries", lambda _reviews: questions)
+        monkeypatch.setattr(
+            rpb,
+            "_build_fc_transcript_context",
+            lambda *a, **k: (
+                "session transcript",
+                {
+                    "context_tokens": 123,
+                    "compaction_count": 0,
+                    "input_tokens": 5,
+                    "output_tokens": 2,
+                    "api_calls": 1,
+                },
+            ),
+        )
+        monkeypatch.setattr(rpb, "_append_usage_event", lambda *a, **k: None)
+
+        calls = []
+
+        def _answer(_system, _user, _model, _api_key, max_tokens=0):
+            calls.append(max_tokens)
+            return ("Houston", {"input_tokens": 20, "output_tokens": 10, "api_calls": 1})
+
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", _answer)
+        monkeypatch.setattr(rpb, "_judge", lambda *a, **k: ("CORRECT", 1.0))
+
+        results = rpb.run_fc_baseline(
+            api_key="test-key",
+            answer_model="claude-sonnet-4-6",
+            results_dir=results_dir,
+            judge_model="gpt-4o-mini",
+        )
+
+        assert calls == [512]
+        assert [row["question"] for row in results] == [q["question"] for q in questions]
+        usage = json.loads((results_dir / "fc_claude_sonnet_4_6_token_usage.json").read_text())
+        assert usage["eval"]["input_tokens"] == 125
+        assert usage["eval"]["output_tokens"] == 62
+        assert usage["eval"]["api_calls"] == 3
+        assert not checkpoint_path.exists()
+
 
 class TestClaudeCodeEvalFailHard:
     def test_call_claude_code_sends_prompt_via_stdin(self, monkeypatch):
