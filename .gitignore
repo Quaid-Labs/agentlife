@@ -3,6 +3,7 @@ node_modules/
 __pycache__/
 *.pyc
 .pytest_cache/
+.pytest-home/
 
 # Databases
 *.db
@@ -10,12 +11,19 @@ __pycache__/
 *.db-wal
 *.db-shm
 
-# Results (generated during benchmark runs)
+# Generated benchmark state
+runs/
+tmp/
+logs/
 data/results*/
+data/imported-*/
+recovered-from-spark-r*/
+recovered-from-spark-*/
 
 # Environment
 .env
 *.env.local
+.agentlife-benchmark.local.json
 
 # OS
 .DS_Store
@@ -36,7 +44,10 @@ venv/
 
 # Logs
 *.log
-logs/
 
 # Temporary
 /tmp/
+
+# Release artifacts
+release/
+agentlife-benchmark-release.tar.gz

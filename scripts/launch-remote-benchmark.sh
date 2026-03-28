@@ -13,6 +13,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOCAL_BENCH_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCAL_CHECKPOINT_ROOT="${LOCAL_CHECKPOINT_ROOT:-$HOME/quaid/benchmark-checkpoint}"
+LOCAL_DEV_ROOT="${LOCAL_DEV_ROOT:-$HOME/quaid/dev}"
+LOCAL_BENCH_CONFIG="${AGENTLIFE_BENCH_LOCAL_CONFIG:-$LOCAL_BENCH_ROOT/.agentlife-benchmark.local.json}"
+LOCAL_DEV_CONFIG="${QUAID_DEV_LOCAL_CONFIG:-$LOCAL_DEV_ROOT/.quaid-dev.local.json}"
 
 REMOTE=""
 REMOTE_BENCH_ROOT=""
@@ -142,6 +145,52 @@ run_cmd_redacted() {
   fi
 }
 
+resolve_local_config_secret_path() {
+  local section="$1"
+  local key_name="$2"
+  python3 - "$section" "$key_name" "$LOCAL_BENCH_CONFIG" "$LOCAL_DEV_CONFIG" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+section = sys.argv[1]
+key_name = sys.argv[2]
+candidate_paths = [Path(p).expanduser() for p in sys.argv[3:]]
+
+for cfg_path in candidate_paths:
+    if not cfg_path.is_file():
+        continue
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    except Exception:
+        continue
+
+    paths = cfg.get("paths") if isinstance(cfg.get("paths"), dict) else {}
+    auth = cfg.get("auth") if isinstance(cfg.get("auth"), dict) else {}
+    section_cfg = auth.get(section) if isinstance(auth.get(section), dict) else {}
+    raw_path = str(section_cfg.get(key_name) or "").strip()
+    if not raw_path:
+        continue
+
+    root_key = "benchRoot" if "benchRoot" in paths else "devRoot"
+    base_root = str(paths.get(root_key) or ".").strip() or "."
+    base_root_path = Path(base_root)
+    if not base_root_path.is_absolute():
+        base_root_path = (cfg_path.parent / base_root_path).resolve()
+    else:
+        base_root_path = base_root_path.expanduser().resolve()
+
+    secret_path = Path(raw_path).expanduser()
+    if not secret_path.is_absolute():
+        secret_path = (base_root_path / secret_path).resolve()
+    else:
+        secret_path = secret_path.resolve()
+
+    print(secret_path)
+    raise SystemExit(0)
+PY
+}
+
 run_local_checks() {
   echo "--- Local harness checks (required) ---"
   run_cmd python3 -m py_compile "$LOCAL_BENCH_ROOT/eval/run_production_benchmark.py"
@@ -269,6 +318,8 @@ RSYNC_COMMON=(
   --delete
   --itemize-changes
   --exclude='.git'
+  --exclude='.env'
+  --exclude='.agentlife-benchmark.local.json'
   --exclude='node_modules'
   --exclude='.ruff_cache'
   --exclude='.venv'
@@ -278,12 +329,18 @@ RSYNC_COMMON=(
   --exclude='*.pyc'
   --exclude='.DS_Store'
   --exclude='runs/'
+  --exclude='release/'
   --exclude='recovered-from-spark-*'
   --exclude='*.db'
   --exclude='*.db-shm'
   --exclude='*.db-wal'
 )
 run_cmd rsync "${RSYNC_COMMON[@]}" "$LOCAL_BENCH_ROOT/" "$REMOTE:$REMOTE_BENCH_ROOT/"
+
+echo ""
+echo "--- 2b) Remove local-only benchmark artifacts from remote root ---"
+run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" \
+  "rm -f $REMOTE_BENCH_ROOT/.agentlife-benchmark.local.json $REMOTE_BENCH_ROOT/.env && rm -rf $REMOTE_BENCH_ROOT/release"
 
 echo ""
 echo "--- 3) Sync canonical checkpoint repo ---"
@@ -307,14 +364,32 @@ echo "--- 6) Launch remote benchmark ---"
 OPTIONAL_BENCH_ENV=""
 if [[ -n "${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=$(printf %q "$BENCHMARK_ANTHROPIC_OAUTH_TOKEN")"$'\n'
-elif [[ -f "$HOME/quaid/anthtoken.md" ]]; then
-  LOCAL_BENCHMARK_OAUTH_TOKEN="$(tr -d '[:space:]' < "$HOME/quaid/anthtoken.md")"
+else
+  LOCAL_BENCHMARK_PRIMARY_KEY_PATH="$(resolve_local_config_secret_path anthropic primaryKeyPath || true)"
+  if [[ -n "$LOCAL_BENCHMARK_PRIMARY_KEY_PATH" && -f "$LOCAL_BENCHMARK_PRIMARY_KEY_PATH" ]]; then
+    LOCAL_BENCHMARK_OAUTH_TOKEN="$(tr -d '[:space:]' < "$LOCAL_BENCHMARK_PRIMARY_KEY_PATH")"
+  else
+    LOCAL_BENCHMARK_OAUTH_TOKEN=""
+  fi
   if [[ -n "$LOCAL_BENCHMARK_OAUTH_TOKEN" ]]; then
     OPTIONAL_BENCH_ENV+="export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=$(printf %q "$LOCAL_BENCHMARK_OAUTH_TOKEN")"$'\n'
   fi
 fi
 if [[ -n "${BENCHMARK_MAX_QUERIES:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_MAX_QUERIES=$(printf %q "$BENCHMARK_MAX_QUERIES")"$'\n'
+fi
+if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export OPENAI_API_KEY=$(printf %q "$OPENAI_API_KEY")"$'\n'
+else
+  LOCAL_OPENAI_KEY_PATH="$(resolve_local_config_secret_path openai judgeKeyPath || true)"
+  if [[ -n "$LOCAL_OPENAI_KEY_PATH" && -f "$LOCAL_OPENAI_KEY_PATH" ]]; then
+    LOCAL_OPENAI_KEY="$(tr -d '\r\n' < "$LOCAL_OPENAI_KEY_PATH")"
+  else
+    LOCAL_OPENAI_KEY=""
+  fi
+  if [[ -n "$LOCAL_OPENAI_KEY" ]]; then
+    OPTIONAL_BENCH_ENV+="export OPENAI_API_KEY=$(printf %q "$LOCAL_OPENAI_KEY")"$'\n'
+  fi
 fi
 if [[ -n "${BENCHMARK_REQUIRE_QUERY_COUNT:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_REQUIRE_QUERY_COUNT=$(printf %q "$BENCHMARK_REQUIRE_QUERY_COUNT")"$'\n'
@@ -399,7 +474,7 @@ if [[ -n \"\$BENCHMARK_OAUTH_TOKEN\" ]]; then
   export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=\"\$BENCHMARK_OAUTH_TOKEN\"
   export ANTHROPIC_API_KEY=\"\$BENCHMARK_OAUTH_TOKEN\"
 else
-  echo \"ERROR: BENCHMARK_ANTHROPIC_OAUTH_TOKEN missing; set it explicitly or populate ~/quaid/anthtoken.md before launch\" >&2
+  echo \"ERROR: BENCHMARK_ANTHROPIC_OAUTH_TOKEN missing; set it explicitly or configure auth.anthropic.primaryKeyPath in .agentlife-benchmark.local.json before launch\" >&2
   exit 1
 fi
 if [[ -n \"\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}\" ]]; then

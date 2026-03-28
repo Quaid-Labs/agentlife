@@ -2,6 +2,11 @@
 
 ## Directory Structure
 
+### `../benchmark-assets/`
+Session-scoped project asset snapshots used by the production benchmark runtime
+for project-aware context and state questions. These are packaged with the
+benchmark release and should stay in sync with the scripted app history.
+
 ### `sessions/`
 20 arc session transcripts (`session-XX-review-vY.txt`). Each file contains 4 sections:
 1. **Session Brief** — Goal, turn count, learning objectives

@@ -48,27 +48,17 @@ Each query includes ground truth, evidence sessions, query type, and recall diff
 
 ## Results
 
-This is the current clean runbook-backed snapshot as of `2026-03-25`.
+Public release numbers no longer live inline in the root README because they
+go stale too quickly during active rerun work.
 
-### Current Quaid Matrix
+Use these tracked locations instead:
 
-| Lane | Haiku | Sonnet | Opus |
-|------|------:|-------:|-----:|
-| **AL-S Quaid** | 83.39 | 90.11 | 84.45 |
-| **AL-L Quaid** | 81.21 | 83.75 | 82.16 |
-| **AL-L Quaid OBD** | 80.04 | 85.87 | 83.21 |
+- public release-ready summaries: [`published/runbooks/`](published/runbooks/)
+- frozen public-supporting artifacts: [`published/checkpoints/`](published/checkpoints/)
+- methodology and lane definitions: [`METHODOLOGY.md`](METHODOLOGY.md)
 
-Reference baselines:
-
-| Baseline | Score |
-|----------|------:|
-| **AL-S FC Sonnet** | 92.90 |
-| **AL-L FC Haiku** | 83.60 |
-| **AL-S native OpenClaw** | 69.40 |
-| **AL-L native OpenClaw** | 63.06 |
-
-Current practical default: Sonnet on the Quaid lanes. Opus is useful as a
-ceiling datapoint, but it does not currently justify its cost.
+Internal working matrices may move faster than the released package. Only copy
+numbers into `published/` after they have been reviewed for release.
 
 ## Quick Start
 
@@ -84,31 +74,37 @@ ceiling datapoint, but it does not currently justify its cost.
 ```bash
 git clone https://github.com/quaid-labs/agentlife.git
 cd agentlife
-cp .env.example .env
-# Edit .env with your API keys
+cp .agentlife-benchmark.example.json .agentlife-benchmark.local.json
+# Create secret files referenced by the local config
 ```
+
+Canonical local setup is documented in
+[docs/LOCAL-DEVELOPMENT.md](docs/LOCAL-DEVELOPMENT.md).
+
+For quick local-only scripts that still read environment variables directly,
+`.env.example` remains available as a convenience template.
 
 ### Benchmark OAuth Token
 
-For benchmark direct Anthropic API runs, prefer an explicit benchmark token instead of
-relying on local Claude Code login state:
+For benchmark direct Anthropic API runs, prefer an explicit benchmark token
+path in `.agentlife-benchmark.local.json` instead of relying on local Claude
+Code login state:
 
-1. On the machine that will run benchmarks, generate a token with:
+1. Generate a token with:
    ```bash
    claude setup-token
    ```
-2. Put the issued token in that machine's benchmark env as:
-   ```bash
-   BENCHMARK_ANTHROPIC_OAUTH_TOKEN=sk-ant-oat01-...
-   ```
+2. Put the token in a local secret file.
+3. Point `auth.anthropic.primaryKeyPath` at that file in
+   `.agentlife-benchmark.local.json`.
 
 Notes:
-- This is benchmark-only harness behavior.
-- The token is sent as `Authorization: Bearer ...` with the required Anthropic OAuth beta header.
-- Canonical benchmark OAuth source is `~/quaid/anthtoken.md` via the launcher, unless you explicitly export `BENCHMARK_ANTHROPIC_OAUTH_TOKEN` yourself.
-- Do not add automatic fallback across multiple Anthropic OAuth accounts/tokens.
-- Secondary token switching is manual-only by operator action.
-- The harness only uses credentials explicitly exported into the launch environment; it does not read hidden local/remote `.env` files at runtime.
+- this is benchmark-only harness behavior
+- the launcher prefers `.agentlife-benchmark.local.json`
+- legacy fallback to `~/quaid/dev/.quaid-dev.local.json` still exists for local
+  compatibility
+- do not add automatic fallback across multiple Anthropic OAuth accounts/tokens
+- secondary token switching is manual-only by operator action
 
 ### Run Evaluation
 
@@ -151,11 +147,13 @@ schema, replay summary schema, and rolling telemetry surfaces.
 
 ```
 agentlife/
-├── README.md                  # This file
-├── METHODOLOGY.md             # Full methodology (publication-ready)
+├── README.md                  # Package overview
+├── METHODOLOGY.md             # Benchmark methodology and lane definitions
 ├── SPEC.md                    # Original specification
 ├── LICENSE                    # MIT
-├── .env.example               # Configuration template
+├── .agentlife-benchmark.example.json
+│   └── Local benchmark config template
+├── .env.example               # Optional quick local env template
 ├── generate.py                # Session generation script
 ├── eval/                      # Benchmark scripts
 │   ├── dataset.py             # Session parser + query collector
@@ -166,15 +164,34 @@ agentlife/
 │   ├── densify.py             # Filler session generator
 │   ├── session_splitter.py    # Timeout-based session splitting
 │   └── ...                    # Analysis and utility scripts
+├── scripts/                   # Launch, monitor, release, and utility scripts
+├── docs/                      # Operational docs
+├── published/                 # Release-ready runbooks and frozen public artifacts
 ├── data/
 │   ├── sessions/              # 20 arc session transcripts
 │   ├── filler-sessions/       # 259 filler sessions (AgentLife L)
 │   └── timestamps/            # Session timing metadata
+├── benchmark-assets/          # Session-scoped project asset snapshots used by eval/runtime
 ├── apps/                      # Reference project implementations
 │   ├── recipe-app/            # Express.js + SQLite recipe app
 │   └── portfolio-site/        # Static portfolio site
 └── briefs/                    # Session generation briefs
 ```
+
+## Benchmark Package Boundaries
+
+This repo contains the benchmark harness package.
+
+- canonical harness path: `eval/`
+- canonical operational scripts: `scripts/`
+- release-ready benchmark artifacts: `published/`
+- packaged project snapshots for session-aware eval context: `benchmark-assets/`
+
+Quaid runtime intelligence is benchmarked from a sibling checkout, not from
+this repo.
+
+There is also a legacy `agentlife/eval/` mirror in the tree for older
+compatibility paths. It is not the primary harness entrypoint for release docs.
 
 ## Adding a New System
 
@@ -220,8 +237,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Notes
 
-- Public benchmark claims in this repo should stay aligned with
-  [METHODOLOGY.md](METHODOLOGY.md) and the current runbook matrix.
-- Historical experiment artifacts still exist in the repo and run logs, but the
-  README should describe the active benchmark lanes and the latest clean
-  runbook-backed numbers.
+- Public benchmark claims in this repo should stay aligned with the release
+  runbooks stored under `published/`.
+- Historical experiment artifacts and local scratch runs may still exist in the
+  working tree, but they should not leak into release docs or tarballs.

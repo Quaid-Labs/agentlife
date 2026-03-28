@@ -1,8 +1,8 @@
 # AgentLife Benchmark Methodology
 
-**Version:** 8.0
-**Status:** Active runbook snapshot
-**Last updated:** 2026-03-25
+**Version:** 8.1
+**Status:** Release-prep methodology
+**Last updated:** 2026-03-28
 
 This document now tracks the current benchmark runbook rather than preserving
  every historical experiment. Public benchmark claims should be grounded in the
@@ -115,35 +115,31 @@ FC runs skip ingest entirely:
 - no memory DB or janitor lifecycle is involved
 - only the answer model changes in FC experiments
 
-## 5. Current Public Runbook Snapshot
+## 5. Public Runbook Policy
 
-These are the current clean runbook-backed numbers as of 2026-03-25.
+Exact public numbers are now kept out of this file.
 
-### Quaid
+Why:
 
-| Scale | Haiku | Sonnet | Opus |
-| --- | ---: | ---: | ---: |
-| `AL-S` | `83.39` (`r802`) | `90.11` (`r803`) | `84.45` (`r807`) |
-| `AL-L` | `81.21` (`r804`) | `83.75` (`r796`) | `82.16` (`r808`) |
-| `AL-L OBD` | `80.04` (`r805`) | `85.87` (`r806`) | `83.21` (`r812`) |
+- release numbers change more often than the stable lane definitions
+- root docs should not lag a reviewed public runbook
+- the repo now has a dedicated tracked home for released benchmark snapshots
 
-### Reference Baselines
+Public released numbers should live in:
 
-| Baseline | Score |
-| --- | ---: |
-| `AL-S FC Haiku` | `87.70` (`r600`) |
-| `AL-S FC Sonnet` | `92.90` (`r606`) |
-| `AL-L FC Haiku` | `83.60` (`r607`) |
-| `AL-S native OpenClaw` | `69.40` |
-| `AL-L native OpenClaw` | `63.06` |
+- `published/runbooks/`
 
-### Current Read
+Frozen public-supporting artifacts should live in:
 
-- `Sonnet` is the strongest practical Quaid line across all three lanes.
-- `Opus` acts as a costly ceiling datapoint rather than the best value line.
-- `AL-L OBD Sonnet` currently outperforms the full `AL-L` Sonnet lane.
-- The current `8k` rolling window remains the best default; larger Sonnet probe
-  windows did not improve quality enough to justify the extra split pressure.
+- `published/checkpoints/`
+
+This methodology file should describe:
+
+- what the lanes mean
+- how runs are launched
+- how scores are interpreted
+
+It should not become a second competing source of exact leaderboard numbers.
 
 ## 6. Reproduction
 
@@ -174,7 +170,7 @@ Examples:
 ./scripts/launch-remote-benchmark.sh --remote spark --scale l -- \
   --mode full \
   --backend oauth \
-  --schedule rolling-obd \
+  --ingest-schedule rolling-obd \
   --model claude-sonnet-4-6 \
   --judge gpt-4o-mini
 ```
@@ -191,9 +187,14 @@ they are not leaderboard lanes.
 
 ## 8. Source of Truth
 
-For the active matrix and richer per-run cost/token telemetry, use:
+For released/public numbers:
 
-- `~/quaid/util/agents/codex-benchmark/RUN_COMPARISON_MATRIX_20260325.md`
+- `published/runbooks/`
+- `published/checkpoints/`
 
-This methodology file should stay aligned with that runbook snapshot rather
-than drifting into a second competing benchmark narrative.
+For working/internal rerun matrices:
+
+- benchmark operator runbooks outside this repo
+
+This methodology file should stay aligned with the released runbooks without
+duplicating their exact numeric tables inline.

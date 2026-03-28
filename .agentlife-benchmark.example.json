@@ -1,0 +1,15 @@
+{
+  "paths": {
+    "benchRoot": ".",
+    "checkpointRoot": "../quaid/benchmark-checkpoint"
+  },
+  "auth": {
+    "anthropic": {
+      "primaryKeyPath": "../secrets/anthropic-primary.txt",
+      "secondaryKeyPath": "../secrets/anthropic-secondary.txt"
+    },
+    "openai": {
+      "judgeKeyPath": "../secrets/openai.txt"
+    }
+  }
+}
