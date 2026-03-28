@@ -7014,6 +7014,38 @@ def _save_ingest_usage(workspace: Path, ingest_stats: dict, extraction_model: st
     print(f"  Ingest token usage saved to {workspace / 'ingest_usage.json'}")
 
 
+def _infer_existing_extraction_model(workspace: Path) -> str:
+    """Infer extraction model from existing workspace artifacts.
+
+    Eval-only reruns can reuse an ingest workspace that was built with a
+    different extraction model than argparse's default. Use persisted metadata
+    so dashboard/model-lane labels reflect the actual ingest lineage.
+    """
+    candidates = [
+        (workspace / "ingest_usage.json", ("ingest", "model")),
+        (workspace / "ingest_complete.json", ("extraction_model",)),
+        (workspace / "scores.json", ("metadata", "extraction_model")),
+        (workspace / "run_metadata.json", ("model",)),
+    ]
+    for path, key_path in candidates:
+        if not path.exists():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        cur: Any = payload
+        for key in key_path:
+            if not isinstance(cur, dict):
+                cur = None
+                break
+            cur = cur.get(key)
+        value = str(cur or "").strip()
+        if value:
+            return value
+    return ""
+
+
 def _judge(
     question: str,
     ground_truth: str,
@@ -8667,6 +8699,10 @@ def main():
     parser.add_argument("--fc-models", type=str, default=None,
                         help="Comma-separated answer models for --mode fc (default: claude-haiku-4-5-20251001)")
     args = parser.parse_args()
+    model_explicitly_set = any(
+        arg == "--model" or arg.startswith("--model=")
+        for arg in sys.argv[1:]
+    )
     if args.ingest_schedule == "obd":
         print("  Note: --ingest-schedule obd now aliases to rolling-obd; use plain-obd for the legacy direct compaction path")
         args.ingest_schedule = "rolling-obd"
@@ -8685,6 +8721,14 @@ def main():
         args.backend = "oauth"
 
     workspace = Path(args.results_dir).resolve()
+    if args.mode == "eval" and not model_explicitly_set:
+        inferred_model = _infer_existing_extraction_model(workspace)
+        if inferred_model and inferred_model != args.model:
+            print(
+                "  Note: --mode eval inferred extraction model from workspace metadata: "
+                f"{inferred_model} (instead of default {args.model})"
+            )
+            args.model = inferred_model
     if args.backend == "oauth":
         api_key = _get_api_key()
     else:
