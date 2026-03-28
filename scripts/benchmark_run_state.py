@@ -81,8 +81,12 @@ def run_start_sort_key(run_dir: Path) -> Tuple[float, str]:
 
 
 def detect_active_runs(root: Path, runs_dirs: List[Path]) -> Dict[str, int]:
+    return {name: info["pid"] for name, info in detect_active_processes(root, runs_dirs).items()}
+
+
+def detect_active_processes(root: Path, runs_dirs: List[Path]) -> Dict[str, Dict[str, Any]]:
     proc = run_cmd(["ps", "-eo", "pid,cmd"], cwd=root)
-    active: Dict[str, int] = {}
+    active: Dict[str, Dict[str, Any]] = {}
     if proc.returncode != 0:
         return active
 
@@ -110,12 +114,12 @@ def detect_active_runs(root: Path, runs_dirs: List[Path]) -> Dict[str, int]:
         m = re.search(r"--results-dir\s+(?:'([^']+)'|\"([^\"]+)\"|(\S+))", cmd)
         if m:
             rdir = m.group(1) or m.group(2) or m.group(3) or ""
-            active[Path(rdir).name] = pid
+            active[Path(rdir).name] = {"pid": pid, "cmd": cmd}
             continue
 
         for p in _iter_visible_run_dirs(runs_dirs):
             if p.name in cmd:
-                active[p.name] = pid
+                active[p.name] = {"pid": pid, "cmd": cmd}
                 break
 
     return active
@@ -285,8 +289,10 @@ def infer_parallel(root: Path, run_name: str) -> Optional[int]:
     return None
 
 
-def infer_provider_lane(root: Path, run_name: str) -> Optional[str]:
+def infer_provider_lane(root: Path, run_name: str, active_cmd: Optional[str] = None) -> Optional[str]:
     txt = _first_launch_text(root, run_name)
+    if active_cmd:
+        txt = f"{txt}\n{active_cmd}"
     m = re.search(r"^\s*Backend:\s*([A-Za-z0-9._-]+)\s*$", txt, re.M)
     if m:
         return m.group(1).lower()
@@ -297,6 +303,107 @@ def infer_provider_lane(root: Path, run_name: str) -> Optional[str]:
         return "oauth"
     if "--backend api" in low:
         return "api"
+    return None
+
+
+def _short_model_name(model: str) -> str:
+    raw = str(model or "").strip()
+    if not raw:
+        return ""
+    low = raw.lower()
+    if "haiku" in low:
+        return "Haiku"
+    if "sonnet" in low:
+        return "Sonnet"
+    if "opus" in low:
+        return "Opus"
+    if "gpt-4o-mini" in low:
+        return "4o-mini"
+    if "gpt-4o" in low:
+        return "4o"
+    if raw.startswith("claude-"):
+        raw = raw[len("claude-") :]
+    return raw
+
+
+def infer_model_lane(root: Path, run_name: str, active_cmd: Optional[str] = None) -> Optional[str]:
+    run = root / "runs" / str(run_name)
+    meta = load_json(run / "run_metadata.json") or {}
+
+    extraction_model = str(meta.get("model", "") or "").strip()
+    eval_model = str(meta.get("eval_model", "") or "").strip()
+    mode = str(meta.get("mode", "") or "").strip().lower()
+
+    scores = load_json(run / "scores.json") or {}
+    scores_meta = scores.get("metadata") or {}
+    if not extraction_model:
+        extraction_model = str(scores_meta.get("extraction_model", "") or "").strip()
+    if not eval_model:
+        eval_model = str(scores_meta.get("eval_model", "") or "").strip()
+    if not mode:
+        mode = str(scores_meta.get("mode", "") or "").strip().lower()
+
+    txt = _first_launch_text(root, run_name)
+    if not mode:
+        for pat in (
+            re.compile(r"^\s*Mode:\s*([A-Za-z0-9._-]+)\s*$", re.M),
+            re.compile(r"--mode\s+([A-Za-z0-9._-]+)"),
+        ):
+            m = pat.search(txt)
+            if m:
+                mode = str(m.group(1)).strip().lower()
+                break
+    if not extraction_model:
+        for pat in (
+            re.compile(r"^\s*Model:\s*([A-Za-z0-9._-]+)\s*$", re.M),
+            re.compile(r"Loaded \d+ sessions \(model:\s*([A-Za-z0-9._-]+)\)"),
+            re.compile(r"--model\s+([A-Za-z0-9._-]+)"),
+        ):
+            m = pat.search(txt)
+            if m:
+                extraction_model = str(m.group(1)).strip()
+                break
+    if not eval_model:
+        for pat in (
+            re.compile(r"PHASE 5: EVALUATION \(([A-Za-z0-9._-]+)"),
+            re.compile(r"^\s*FC answer models:\s*([A-Za-z0-9._,-]+)\s*$", re.M),
+            re.compile(r"--eval-model\s+([A-Za-z0-9._-]+)"),
+            re.compile(r"--fc-models\s+([A-Za-z0-9._,-]+)"),
+            re.compile(r"FC Baseline \(([A-Za-z0-9._-]+)\)"),
+        ):
+            m = pat.search(txt)
+            if m:
+                eval_model = str(m.group(1)).strip().split(",")[0].strip()
+                break
+
+    if active_cmd:
+        if not mode:
+            m = re.search(r"--mode\s+([A-Za-z0-9._-]+)", active_cmd)
+            if m:
+                mode = str(m.group(1)).strip().lower()
+        if not extraction_model:
+            m = re.search(r"--model\s+([A-Za-z0-9._-]+)", active_cmd)
+            if m:
+                extraction_model = str(m.group(1)).strip()
+        if not eval_model:
+            m = re.search(r"--eval-model\s+([A-Za-z0-9._-]+)", active_cmd)
+            if m:
+                eval_model = str(m.group(1)).strip()
+        if not eval_model:
+            m = re.search(r"--fc-models\s+([A-Za-z0-9._,-]+)", active_cmd)
+            if m:
+                eval_model = str(m.group(1)).strip().split(",")[0].strip()
+
+    short_extract = _short_model_name(extraction_model)
+    short_eval = _short_model_name(eval_model)
+    if mode == "fc":
+        return f"FC {short_eval or short_extract}".strip()
+    if short_extract and short_eval:
+        return f"{short_extract}/{short_eval}"
+    if short_extract:
+        return short_extract
+    if short_eval:
+        return short_eval
     return None
 
 
@@ -444,6 +551,32 @@ def rolling_status(run: Path) -> Optional[Dict[str, Any]]:
     }
 
 
+def plain_obd_status(run: Path, launch_text: str) -> Optional[str]:
+    if "Runtime extraction: one compaction event via ingest/extract.py" not in launch_text:
+        return None
+    checkpoint = load_json(run / "logs" / "extraction_checkpoint.json") or {}
+    if str(checkpoint.get("mode") or "").strip() != "obd":
+        return None
+    progress = load_json(run / "logs" / "obd_extract_progress.json") or {}
+    if progress:
+        total_chunks = progress.get("total_chunks")
+        current_chunk = progress.get("current_chunk")
+        try:
+            total_chunks = int(total_chunks)
+            current_chunk = int(current_chunk)
+        except Exception:
+            total_chunks = None
+            current_chunk = None
+        if total_chunks is not None and total_chunks > 0 and current_chunk is not None:
+            return f"obd extract {current_chunk}/{total_chunks}"
+    trace_rows = _safe_count_lines(run / "logs" / "llm-call-trace.jsonl")
+    if trace_rows and trace_rows > 0:
+        return f"obd extract | calls {trace_rows}"
+    if str(checkpoint.get("state") or "").strip() == "running":
+        return "obd extract"
+    return None
+
+
 def day_plan_status(root: Path, run_name: str) -> Optional[Dict[str, Any]]:
     total_days = None
     current_day = None
@@ -577,6 +710,9 @@ def run_progress(root: Path, run_name: str) -> str:
     if matches:
         cur, total, pct = matches[-1]
         return f"eval {cur}/{total} ({pct}%)"
+    plain_obd = plain_obd_status(run, launch_text)
+    if is_obd_run and plain_obd is not None:
+        return plain_obd
     janitor_seen = (run / "logs" / "janitor-task-telemetry.jsonl").exists() or (run / "logs" / "janitor-stats.json").exists()
     if janitor_seen and total_chunks is not None:
         current = 1 if last_chunk is None else max(1, min(total_chunks, last_chunk + 1))
@@ -659,7 +795,7 @@ def _classify_run(run_dir: Path, runs_dirs: List[Path], active: Dict[str, int]) 
     }
 
 
-def enrich_run(root: Path, row: Dict[str, Any]) -> Dict[str, Any]:
+def enrich_run(root: Path, row: Dict[str, Any], active_cmd: Optional[str] = None) -> Dict[str, Any]:
     run_name = str(row.get("name") or "")
     meta_path = root / "runs" / run_name / "run_metadata.json"
     elapsed = None
@@ -691,7 +827,8 @@ def enrich_run(root: Path, row: Dict[str, Any]) -> Dict[str, Any]:
     final_score = extract_final_score(root, run_name)
     row["elapsed_seconds"] = elapsed
     row["parallel"] = parallel
-    row["provider_lane"] = infer_provider_lane(root, run_name)
+    row["provider_lane"] = infer_provider_lane(root, run_name, active_cmd=active_cmd)
+    row["model_lane"] = infer_model_lane(root, run_name, active_cmd=active_cmd)
     row["metric_label"] = infer_metric_label(root, run_name)
     row["started_at"] = started_at
     row["completed_at"] = completed_at
@@ -705,10 +842,18 @@ def build_status_report(root: Path, runs_dir: str = "runs", extra_runs_dirs: Ite
     root = root.resolve()
     primary_runs_dir = (root / runs_dir).resolve()
     visible_runs_dirs = [primary_runs_dir, *(Path(p).expanduser().resolve() for p in extra_runs_dirs)]
-    active_map = detect_active_runs(root, visible_runs_dirs)
+    active_processes = detect_active_processes(root, visible_runs_dirs)
+    active_map = {name: int(info["pid"]) for name, info in active_processes.items()}
     run_dirs = list(_iter_visible_run_dirs(visible_runs_dirs))
     run_dirs.sort(key=run_start_sort_key, reverse=True)
-    runs = [enrich_run(root, _classify_run(p, visible_runs_dirs, active_map)) for p in run_dirs]
+    runs = [
+        enrich_run(
+            root,
+            _classify_run(p, visible_runs_dirs, active_map),
+            active_cmd=(active_processes.get(p.name) or {}).get("cmd"),
+        )
+        for p in run_dirs
+    ]
     counts = {"active": 0, "complete": 0, "failed": 0, "incomplete": 0}
     for item in runs:
         state = str(item.get("state") or "")
@@ -729,8 +874,13 @@ def build_run_detail(root: Path, run_name: str) -> Dict[str, Any]:
     root = root.resolve()
     run = root / "runs" / run_name
     visible_runs_dirs = [root / "runs"]
-    active_map = detect_active_runs(root, visible_runs_dirs)
-    classified = enrich_run(root, _classify_run(run, visible_runs_dirs, active_map))
+    active_processes = detect_active_processes(root, visible_runs_dirs)
+    active_map = {name: int(info["pid"]) for name, info in active_processes.items()}
+    classified = enrich_run(
+        root,
+        _classify_run(run, visible_runs_dirs, active_map),
+        active_cmd=(active_processes.get(run_name) or {}).get("cmd"),
+    )
     out: Dict[str, Any] = {
         "name": run_name,
         "state": classified.get("state") or "unknown",
@@ -741,6 +891,7 @@ def build_run_detail(root: Path, run_name: str) -> Dict[str, Any]:
         "started_at": classified.get("started_at"),
         "completed_at": classified.get("completed_at"),
         "provider_lane": classified.get("provider_lane"),
+        "model_lane": classified.get("model_lane"),
         "metric_label": classified.get("metric_label"),
         "active_pid": classified.get("active_pid"),
         "per_type": {},

@@ -41,6 +41,7 @@ import statistics
 import subprocess
 import sys
 import time
+import threading
 import urllib.error
 import urllib.request
 import uuid
@@ -424,6 +425,46 @@ def _record_janitor_failure_context(
         "janitor_checkpoint_tail": _tail_file(logs_dir / "janitor" / "checkpoint-all.json", max_lines=120),
     }
     failure_path = logs_dir / f"janitor_failure_{label}_{simulated_day}.json"
+    failure_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return failure_path
+
+
+def _record_runtime_extract_failure_context(
+    *,
+    workspace: Path,
+    label: str,
+    cmd: List[str],
+    result: subprocess.CompletedProcess[str],
+    session_file: Path,
+    progress_path: Optional[Path] = None,
+) -> Path:
+    """Persist runtime extract subprocess failure context for benchmark diagnosis."""
+    logs_dir = workspace / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    stdout_path = logs_dir / "runtime_extract_failure.stdout.log"
+    stderr_path = logs_dir / "runtime_extract_failure.stderr.log"
+    stdout_path.write_text(result.stdout or "", encoding="utf-8")
+    stderr_path.write_text(result.stderr or "", encoding="utf-8")
+
+    progress_payload = None
+    if progress_path and progress_path.exists():
+        try:
+            progress_payload = json.loads(progress_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            progress_payload = {"read_error": str(exc)}
+
+    payload = {
+        "label": label,
+        "returncode": result.returncode,
+        "cmd": cmd,
+        "session_file": str(session_file),
+        "preview": _subprocess_failure_preview(result),
+        "stdout_log": str(stdout_path),
+        "stderr_log": str(stderr_path),
+        "progress": progress_payload,
+    }
+    failure_path = logs_dir / "runtime_extract_failure.json"
     failure_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return failure_path
 
@@ -1644,7 +1685,11 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     prod_config["notifications"].update({"fullText": False, "showProcessingStart": False})
     if not isinstance(prod_config.get("retrieval"), dict):
         prod_config["retrieval"] = {}
-    prod_config["retrieval"]["notifyOnRecall"] = False
+    # The runtime no longer accepts this legacy knob after camelCase normalization,
+    # so strip it if it exists instead of writing a dead key that only creates
+    # noisy "Unknown config key ignored" warnings during benchmark startup.
+    prod_config["retrieval"].pop("notifyOnRecall", None)
+    prod_config["retrieval"].pop("notify_on_recall", None)
     # Configure janitor parallelism explicitly for benchmark stability.
     # Keep extraction/eval harness parallelism independent (BENCHMARK_PARALLEL).
     if not isinstance(prod_config.get("core"), dict):
@@ -3054,6 +3099,7 @@ def _run_runtime_extract_jsonl(
     label: str,
     session_id: str,
     timeout_seconds: int,
+    progress_path: Optional[Path] = None,
 ) -> dict:
     """Invoke the runtime extraction entrypoint on a JSONL session file."""
     cmd = _python_cmd_for_quaid_script(_EXTRACT_SCRIPT) + [
@@ -3063,17 +3109,103 @@ def _run_runtime_extract_jsonl(
         "--session-id", session_id,
         "--json",
     ]
-    result = subprocess.run(
-        cmd,
-        env=env,
-        cwd=str(_QUAID_DIR),
-        capture_output=True,
-        text=True,
-        timeout=timeout_seconds,
-    )
+
+    def _write_obd_progress(state: Dict[str, Any]) -> None:
+        if progress_path is None:
+            return
+        payload = {
+            "state": str(state.get("state") or "").strip() or "running",
+            "mode": "obd",
+            "current_chunk": int(state.get("current_chunk", 0) or 0),
+            "total_chunks": int(state.get("total_chunks", 1) or 1),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        progress_path.parent.mkdir(parents=True, exist_ok=True)
+        progress_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    def _update_obd_progress_from_stderr(state: Dict[str, Any], line: str) -> None:
+        split_match = re.search(r"\[extract\]\s+.*?: splitting into (\d+) chunks\b", line)
+        if split_match:
+            state["total_chunks"] = max(1, int(split_match.group(1)))
+            state["current_chunk"] = 0
+            return
+        chunk_match = re.search(r"\[extract\]\s+.*?: chunk (\d+)/(\d+)\b", line)
+        if chunk_match:
+            state["current_chunk"] = max(0, int(chunk_match.group(1)))
+            state["total_chunks"] = max(1, int(chunk_match.group(2)))
+
+    if progress_path is None:
+        result = subprocess.run(
+            cmd,
+            env=env,
+            cwd=str(_QUAID_DIR),
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+    else:
+        progress_state: Dict[str, Any] = {"state": "running", "current_chunk": 0, "total_chunks": 1}
+        _write_obd_progress(progress_state)
+        proc = subprocess.Popen(
+            cmd,
+            env=env,
+            cwd=str(_QUAID_DIR),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+        stdout_lines: List[str] = []
+        stderr_lines: List[str] = []
+
+        def _consume_stdout() -> None:
+            assert proc.stdout is not None
+            for line in iter(proc.stdout.readline, ""):
+                stdout_lines.append(line)
+            proc.stdout.close()
+
+        def _consume_stderr() -> None:
+            assert proc.stderr is not None
+            for line in iter(proc.stderr.readline, ""):
+                stderr_lines.append(line)
+                _update_obd_progress_from_stderr(progress_state, line)
+                _write_obd_progress(progress_state)
+            proc.stderr.close()
+
+        stdout_thread = threading.Thread(target=_consume_stdout, daemon=True)
+        stderr_thread = threading.Thread(target=_consume_stderr, daemon=True)
+        stdout_thread.start()
+        stderr_thread.start()
+        try:
+            returncode = proc.wait(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            stdout_thread.join(timeout=1)
+            stderr_thread.join(timeout=1)
+            progress_state["state"] = "failed"
+            _write_obd_progress(progress_state)
+            raise
+        stdout_thread.join(timeout=5)
+        stderr_thread.join(timeout=5)
+        progress_state["state"] = "completed" if returncode == 0 else "failed"
+        _write_obd_progress(progress_state)
+        result = subprocess.CompletedProcess(
+            cmd,
+            returncode,
+            stdout="".join(stdout_lines),
+            stderr="".join(stderr_lines),
+        )
     if result.returncode != 0:
+        failure_path = _record_runtime_extract_failure_context(
+            workspace=workspace,
+            label=label,
+            cmd=cmd,
+            result=result,
+            session_file=session_file,
+            progress_path=progress_path,
+        )
         preview = _subprocess_failure_preview(result)
-        raise RuntimeError(f"Runtime extraction failed: {preview}")
+        raise RuntimeError(f"Runtime extraction failed: {preview} (details: {failure_path})")
     stdout = result.stdout.strip()
     if stdout:
         lines = stdout.splitlines()
@@ -3084,6 +3216,14 @@ def _run_runtime_extract_jsonl(
     try:
         return json.loads(stdout)
     except Exception as exc:
+        _record_runtime_extract_failure_context(
+            workspace=workspace,
+            label=label,
+            cmd=cmd,
+            result=result,
+            session_file=session_file,
+            progress_path=progress_path,
+        )
         raise RuntimeError(
             "Runtime extraction returned invalid JSON. "
             f"stdout={result.stdout[:400]!r} stderr={result.stderr[:400]!r}"
@@ -3678,6 +3818,7 @@ def run_per_day_extraction(
                 label="Compaction",
                 session_id="obd-compaction-0001",
                 timeout_seconds=extract_timeout,
+                progress_path=workspace / "logs" / "obd_extract_progress.json",
             )
         extraction_checkpoint_path.write_text(json.dumps({
             "state": "completed",
@@ -8488,8 +8629,8 @@ def main():
     parser = argparse.ArgumentParser(description="AgentLife Production Benchmark")
     parser.add_argument("--mode", choices=["full", "ingest", "eval", "fc", "per-day"],
                         default="full", help="Run mode (per-day = daily extraction+janitor, fc = full-context baseline)")
-    parser.add_argument("--ingest-schedule", choices=["per-day", "obd", "rolling-obd"], default="per-day",
-                        help="Ingest schedule for --mode full/ingest (per-day = normal daily lifecycle, obd = one-big-day stress compaction, rolling-obd = rolling staged one-big-day flush)")
+    parser.add_argument("--ingest-schedule", choices=["per-day", "obd", "rolling-obd", "plain-obd"], default="per-day",
+                        help="Ingest schedule for --mode full/ingest (per-day = normal daily lifecycle, obd = compatibility alias for rolling-obd, rolling-obd = rolling staged one-big-day flush, plain-obd = legacy one-big-day compaction path)")
     parser.add_argument("--results-dir", type=str,
                         default=str(_PROJECT_DIR / "data" / "results-production"),
                         help="Workspace/results directory")
@@ -8526,6 +8667,11 @@ def main():
     parser.add_argument("--fc-models", type=str, default=None,
                         help="Comma-separated answer models for --mode fc (default: claude-haiku-4-5-20251001)")
     args = parser.parse_args()
+    if args.ingest_schedule == "obd":
+        print("  Note: --ingest-schedule obd now aliases to rolling-obd; use plain-obd for the legacy direct compaction path")
+        args.ingest_schedule = "rolling-obd"
+    elif args.ingest_schedule == "plain-obd":
+        args.ingest_schedule = "obd"
     fc_models = _parse_fc_models(args.fc_models) if args.mode == "fc" else []
     allow_non_haiku_answer_model = _allow_non_haiku_answer_model(args.allow_non_haiku_answer_model)
     _validate_answer_model_policy(

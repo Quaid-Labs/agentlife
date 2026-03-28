@@ -728,6 +728,49 @@ class TestRuntimeExtractJsonl:
             "edges_created": 6,
         }
 
+    def test_streams_plain_obd_progress_when_progress_path_provided(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable, "-m", "stub"])
+
+        class _FakePopen:
+            def __init__(self, *_args, **_kwargs):
+                self.stdout = io.StringIO('{\n  "facts_stored": 12,\n  "facts_skipped": 0,\n  "edges_created": 2\n}\n')
+                self.stderr = io.StringIO(
+                    "[extract] Compaction: splitting into 31 chunks\n"
+                    "[extract] Compaction: chunk 7/31 (12345 chars)\n"
+                )
+                self.returncode = 0
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+            def kill(self):
+                self.returncode = -9
+
+        monkeypatch.setattr(rpb.subprocess, "Popen", _FakePopen)
+
+        progress_path = tmp_path / "ws" / "logs" / "obd_extract_progress.json"
+        out = rpb._run_runtime_extract_jsonl(
+            workspace=tmp_path / "ws",
+            env={},
+            session_file=tmp_path / "obd.jsonl",
+            owner_id="maya",
+            label="Compaction",
+            session_id="obd-compaction-0001",
+            timeout_seconds=123,
+            progress_path=progress_path,
+        )
+
+        progress = json.loads(progress_path.read_text(encoding="utf-8"))
+        assert out == {
+            "facts_stored": 12,
+            "facts_skipped": 0,
+            "edges_created": 2,
+        }
+        assert progress["state"] == "completed"
+        assert progress["current_chunk"] == 7
+        assert progress["total_chunks"] == 31
+
 
 class TestOBDExtractionTimeoutEnv:
     def test_run_runtime_rolling_driver_tolerates_stdout_noise(self, tmp_path, monkeypatch):
@@ -2898,7 +2941,11 @@ def test_main_resume_rolling_obd_skips_workspace_setup(tmp_path, monkeypatch):
     seen = {"setup": 0, "resume_state": None}
 
     monkeypatch.setattr(rpb, "_get_api_key", lambda: "sk-ant-oat01-test-token")
-    monkeypatch.setattr(rpb, "setup_workspace", lambda *_a, **_k: seen.__setitem__("setup", seen["setup"] + 1))
+    monkeypatch.setattr(
+        rpb,
+        "setup_workspace",
+        lambda path, **_k: (Path(path).mkdir(parents=True, exist_ok=True), seen.__setitem__("setup", seen["setup"] + 1)),
+    )
     monkeypatch.setattr(
         rpb,
         "run_per_day_extraction",
@@ -2928,6 +2975,47 @@ def test_main_resume_rolling_obd_skips_workspace_setup(tmp_path, monkeypatch):
 
     assert seen["setup"] == 0
     assert seen["resume_state"] == {"mode": "rolling-obd-resume"}
+
+
+def test_main_obd_aliases_to_rolling_obd(tmp_path, monkeypatch):
+    workspace = tmp_path / "run"
+
+    seen = {"setup": 0, "schedule_mode": None}
+
+    monkeypatch.setattr(rpb, "_get_api_key", lambda: "sk-ant-oat01-test-token")
+    monkeypatch.setattr(
+        rpb,
+        "setup_workspace",
+        lambda path, **_k: (Path(path).mkdir(parents=True, exist_ok=True), seen.__setitem__("setup", seen["setup"] + 1)),
+    )
+    monkeypatch.setattr(
+        rpb,
+        "run_per_day_extraction",
+        lambda *args, **kwargs: seen.__setitem__("schedule_mode", kwargs.get("schedule_mode")) or {
+            "schedule_mode": kwargs.get("schedule_mode"),
+            "total_facts": 0,
+            "stored": 0,
+            "edges": 0,
+            "semantic_dedup_checks": 0,
+            "semantic_duplicate_facts_collapsed": 0,
+            "signal_to_publish_seconds": 0.0,
+        },
+    )
+    monkeypatch.setattr(rpb, "verify_post_janitor", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "_save_ingest_usage", lambda *_a, **_k: None)
+    monkeypatch.setattr(sys, "argv", [
+        "run_production_benchmark.py",
+        "--mode", "ingest",
+        "--results-dir", str(workspace),
+        "--backend", "oauth",
+        "--ingest-schedule", "obd",
+        "--allow-non-haiku-answer-model",
+    ])
+
+    rpb.main()
+
+    assert seen["setup"] == 1
+    assert seen["schedule_mode"] == "rolling-obd"
 
 
 def test_anthropic_oauth_headers_include_claude_code_identity():
@@ -3086,6 +3174,28 @@ class TestSetupWorkspaceConfig:
         assert files["SOUL.md"]["maxTokens"] == 2000
         assert files["USER.md"]["maxTokens"] == 2000
         assert files["ENVIRONMENT.md"]["maxTokens"] == 2000
+
+    def test_workspace_removes_legacy_retrieval_notify_key(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(
+            json.dumps({"retrieval": {"notifyOnRecall": True, "notify_on_recall": True}}),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+
+        rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        retrieval = cfg["retrieval"]
+        assert "notifyOnRecall" not in retrieval
+        assert "notify_on_recall" not in retrieval
 
     def test_workspace_writes_separate_embedding_workers(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"

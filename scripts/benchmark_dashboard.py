@@ -63,7 +63,7 @@ HTML = """<!doctype html>
         <th>Provider Lane</th>
         <th>Threads</th>
         <th>Current Active Item</th>
-        <th>ETA</th>
+        <th>Model</th>
         <th>Score</th>
         <th>Deep Dive</th>
         <th>Notes</th>
@@ -98,6 +98,9 @@ function laneFromName(name) {
 function laneDisplay(x) {
   if (x.provider_lane) return x.provider_lane;
   return laneFromName(x.name);
+}
+function modelDisplay(x) {
+  return x.model_lane || '';
 }
 function statusMap(state) {
   const m = {active:'ACTIVE', complete:'DONE', failed:'FAILED', incomplete:'INCOMPLETE'};
@@ -160,7 +163,7 @@ async function refresh() {
       <td>${laneDisplay(x)}</td>
       <td>${x.parallel ?? 'unknown'}</td>
       <td>${x.current_active_item || (x.reason || '')}</td>
-      <td>${x.state === 'complete' ? fmtDuration(x.elapsed_seconds) : 'unknown'}</td>
+      <td>${modelDisplay(x)}</td>
       <td>${x.final_score != null ? `${Number(x.final_score).toFixed(2)}%` : (x.preview_score != null ? `Live ${Number(x.preview_score).toFixed(2)}%` : '')}</td>
       <td><a style="color:#9fd0ff" href="/run?name=${encodeURIComponent(x.name || '')}">Open</a></td>
       <td>${x.name || ''}${x.score != null ? ` | monitor=${x.score}` : ''}</td>
