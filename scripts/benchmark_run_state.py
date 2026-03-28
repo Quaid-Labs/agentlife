@@ -241,11 +241,23 @@ def _first_launch_text(root: Path, run_name: str) -> str:
 
 
 def infer_ingest_schedule(root: Path, run_name: str) -> Optional[str]:
+    run = root / "runs" / str(run_name)
     meta = load_json(root / "runs" / str(run_name) / "run_metadata.json") or {}
     for key in ("ingest_schedule", "schedule_mode"):
         value = meta.get(key)
         if isinstance(value, str) and value.strip():
             return value.strip().lower()
+
+    # Eval-only clones can carry OBD extraction artifacts while launch metadata
+    # defaults to per-day; prefer persisted extraction mode when available.
+    checkpoint = load_json(run / "logs" / "extraction_checkpoint.json") or {}
+    mode = str(checkpoint.get("mode") or "").strip().lower()
+    if mode in {"rolling-obd", "obd"}:
+        return mode
+    if mode == "obd-post-extract":
+        return "obd"
+    if mode in {"per-day", "daily", "rolling"}:
+        return mode
 
     txt = _first_launch_text(root, run_name)
     patterns = (

@@ -69,11 +69,15 @@ def _resolve_quaid_dir() -> Path:
             return p
 
     local_root = _PROJECT_DIR.parent  # e.g. /home/solomon/quaid-benchmark
+    home = Path.home()
     candidates = [
         local_root / "modules" / "quaid",
         local_root / "plugins" / "quaid",
         local_root / "benchmark-checkpoint" / "modules" / "quaid",
         local_root / "benchmark-checkpoint" / "plugins" / "quaid",
+        home / "quaidcode" / "dev" / "modules" / "quaid",
+        home / "quaidcode" / "benchmark-checkpoint" / "modules" / "quaid",
+        home / "quaidcode" / "benchmark-checkpoint" / "plugins" / "quaid",
         _CLAWD / "modules" / "quaid",
         _CLAWD / "plugins" / "quaid",
         _CLAWD / "benchmark-checkpoint" / "modules" / "quaid",
@@ -130,6 +134,9 @@ _EVAL_TOKEN_ENCODER = None
 _FC_CONTEXT_WINDOW_TOKENS = 200_000
 _FC_CONTEXT_COMPACT_TRIGGER_TOKENS = int(_FC_CONTEXT_WINDOW_TOKENS * 0.80)
 _FC_CONTEXT_TARGET_TOKENS = 120_000
+_HARD_QUERY_PROFILES = {"hard-representative-v1", "sonnet-canary-v1"}
+_DEFAULT_HARD_PROFILE_SIZE = 64
+_DEFAULT_HARD_PROFILE_MIN_PER_TYPE = 1
 
 
 def _python_cmd_for_quaid_script(script_path: Path) -> List[str]:
@@ -537,7 +544,7 @@ def _resolve_filler_dir() -> Path:
     return _PROJECT_DIR / "data" / "filler-sessions"
 
 
-def _resolve_eval_parallel_workers(default: str = "1") -> int:
+def _resolve_eval_parallel_workers(default: str = "6") -> int:
     return max(
         1,
         int(
@@ -1238,6 +1245,187 @@ def _resolve_eval_context_profile() -> Tuple[str, List[str], bool]:
     if profile == "none":
         return profile, [], False
     return profile, ["SOUL.md", "USER.md", "ENVIRONMENT.md", "TOOLS.md"], True
+
+
+def _difficulty_bucket_rank(value: Any) -> int:
+    text = str(value or "").strip().lower()
+    if text.startswith("very hard"):
+        return 4
+    if text == "hard":
+        return 3
+    if text == "medium":
+        return 2
+    if text == "easy":
+        return 1
+    return 2
+
+
+def _canonical_query_type_for_profile(value: Any) -> str:
+    qtype = str(value or "unknown").strip()
+    if " (" in qtype:
+        qtype = qtype.split(" (", 1)[0].strip()
+    return qtype or "unknown"
+
+
+def _query_hardness_sort_key(query: Dict[str, Any], idx: int) -> Tuple[int, str, int, str]:
+    query_num = int(query.get("query_num", idx + 1) or (idx + 1))
+    query_type = _canonical_query_type_for_profile(query.get("query_type", "unknown"))
+    question = str(query.get("question", "") or "")
+    return (
+        _difficulty_bucket_rank(query.get("recall_difficulty")),
+        query_type,
+        -query_num,
+        question,
+    )
+
+
+def _select_hard_representative_query_indices(
+    queries: List[Dict[str, Any]],
+    target_size: int,
+    min_per_type: int = 1,
+) -> List[int]:
+    total = len(queries)
+    if total == 0:
+        return []
+    if target_size <= 0 or target_size >= total:
+        return list(range(total))
+    min_per_type = max(0, int(min_per_type))
+    target_size = max(1, min(int(target_size), total))
+
+    by_type: Dict[str, List[Tuple[int, Dict[str, Any]]]] = {}
+    for idx, q in enumerate(queries):
+        qtype = _canonical_query_type_for_profile(q.get("query_type", "unknown"))
+        by_type.setdefault(qtype, []).append((idx, q))
+
+    for qtype in list(by_type.keys()):
+        by_type[qtype] = sorted(
+            by_type[qtype],
+            key=lambda pair: _query_hardness_sort_key(pair[1], pair[0]),
+            reverse=True,
+        )
+    types = sorted(by_type.keys())
+    assigned = {qtype: 0 for qtype in types}
+
+    # Baseline representation floor across query types.
+    if min_per_type > 0:
+        for _ in range(min_per_type):
+            for qtype in types:
+                if sum(assigned.values()) >= target_size:
+                    break
+                if assigned[qtype] < len(by_type[qtype]):
+                    assigned[qtype] += 1
+            if sum(assigned.values()) >= target_size:
+                break
+
+    # Proportional fill using D'Hondt-style allocation over remaining slots.
+    while sum(assigned.values()) < target_size:
+        candidates: List[Tuple[float, str]] = []
+        for qtype in types:
+            if assigned[qtype] >= len(by_type[qtype]):
+                continue
+            score = float(len(by_type[qtype])) / float(assigned[qtype] + 1)
+            candidates.append((score, qtype))
+        if not candidates:
+            break
+        candidates.sort(key=lambda row: (-row[0], row[1]))
+        assigned[candidates[0][1]] += 1
+
+    selected: Set[int] = set()
+    for qtype in types:
+        take = assigned[qtype]
+        for idx, _q in by_type[qtype][:take]:
+            selected.add(idx)
+
+    if len(selected) < target_size:
+        remaining = sorted(
+            [(idx, q) for idx, q in enumerate(queries) if idx not in selected],
+            key=lambda pair: _query_hardness_sort_key(pair[1], pair[0]),
+            reverse=True,
+        )
+        for idx, _q in remaining:
+            selected.add(idx)
+            if len(selected) >= target_size:
+                break
+
+    # Preserve canonical eval order for comparable run traces.
+    return [idx for idx in range(total) if idx in selected]
+
+
+def _apply_eval_query_profile(queries: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    profile = str(os.environ.get("BENCHMARK_QUERY_PROFILE", "") or "").strip().lower()
+    if not profile or profile in {"full", "canonical"}:
+        return list(queries), {"profile": "full", "requested": len(queries), "selected": len(queries)}
+
+    if profile not in _HARD_QUERY_PROFILES:
+        raise RuntimeError(
+            f"Unknown BENCHMARK_QUERY_PROFILE={profile!r}. "
+            f"Supported profiles: full, canonical, {', '.join(sorted(_HARD_QUERY_PROFILES))}"
+        )
+
+    try:
+        target = int(os.environ.get("BENCHMARK_QUERY_PROFILE_SIZE", str(_DEFAULT_HARD_PROFILE_SIZE)) or str(_DEFAULT_HARD_PROFILE_SIZE))
+    except Exception:
+        target = _DEFAULT_HARD_PROFILE_SIZE
+    try:
+        min_per_type = int(
+            os.environ.get(
+                "BENCHMARK_QUERY_PROFILE_MIN_PER_TYPE",
+                str(_DEFAULT_HARD_PROFILE_MIN_PER_TYPE),
+            ) or str(_DEFAULT_HARD_PROFILE_MIN_PER_TYPE)
+        )
+    except Exception:
+        min_per_type = _DEFAULT_HARD_PROFILE_MIN_PER_TYPE
+
+    indices = _select_hard_representative_query_indices(queries, target, min_per_type=min_per_type)
+    selected = [queries[i] for i in indices]
+    by_type: Dict[str, int] = {}
+    by_difficulty: Dict[str, int] = {}
+    for q in selected:
+        qtype = _canonical_query_type_for_profile(q.get("query_type", "unknown"))
+        by_type[qtype] = by_type.get(qtype, 0) + 1
+        diff = str(q.get("recall_difficulty", "unknown") or "unknown")
+        by_difficulty[diff] = by_difficulty.get(diff, 0) + 1
+    metadata = {
+        "profile": profile,
+        "requested": len(queries),
+        "selected": len(selected),
+        "target_size": max(1, target),
+        "min_per_type": max(0, min_per_type),
+        "selected_indices_1based": [i + 1 for i in indices],
+        "by_type": dict(sorted(by_type.items())),
+        "by_difficulty": dict(sorted(by_difficulty.items())),
+    }
+    return selected, metadata
+
+
+def _write_eval_query_profile_manifest(
+    workspace: Path,
+    selected_queries: List[Dict[str, Any]],
+    selection_metadata: Dict[str, Any],
+) -> None:
+    try:
+        logs_dir = workspace / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        rows = []
+        for idx, query in enumerate(selected_queries, start=1):
+            rows.append(
+                {
+                    "selected_order": idx,
+                    "query_num": query.get("query_num"),
+                    "query_type": query.get("query_type", "unknown"),
+                    "query_type_canonical": _canonical_query_type_for_profile(query.get("query_type", "unknown")),
+                    "recall_difficulty": query.get("recall_difficulty", "unknown"),
+                    "question_sha1": hashlib.sha1(str(query.get("question", "")).encode("utf-8")).hexdigest()[:12],
+                }
+            )
+        payload = dict(selection_metadata)
+        payload["queries"] = rows
+        (logs_dir / "eval_query_profile.json").write_text(
+            json.dumps(payload, indent=2),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
 
 
 _EVAL_ENVIRONMENT_ALIASES = ("ENVIRONMENT.md", "MEMORY.md")
@@ -4768,12 +4956,18 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     all_queries = get_all_eval_queries(arc_reviews)
     if include_statement_grounding:
         all_queries.extend(get_statement_context_queries())
+    all_queries, query_profile_meta = _apply_eval_query_profile(all_queries)
+    query_profile = str(query_profile_meta.get("profile", "full") or "full")
+    source_query_count = int(query_profile_meta.get("requested", len(all_queries)) or len(all_queries))
     try:
         max_queries_env = int(os.environ.get("BENCHMARK_MAX_QUERIES", "0") or "0")
     except Exception:
         max_queries_env = 0
     if max_queries_env > 0 and len(all_queries) > max_queries_env:
         all_queries = all_queries[:max_queries_env]
+        query_profile_meta = dict(query_profile_meta)
+        query_profile_meta["selected"] = len(all_queries)
+        query_profile_meta["smoke_trimmed"] = True
 
     # Dataset integrity gate (full/eval runs): fail fast if query-set drifts.
     # Smoke/sample runs can bypass via BENCHMARK_MAX_QUERIES>0.
@@ -4782,14 +4976,22 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         required_query_count = int(os.environ.get("BENCHMARK_REQUIRE_QUERY_COUNT", str(default_query_count)) or str(default_query_count))
     except Exception:
         required_query_count = default_query_count
-    if required_query_count > 0 and max_queries_env <= 0 and len(all_queries) != required_query_count:
+    if required_query_count > 0 and max_queries_env <= 0 and source_query_count != required_query_count:
         raise RuntimeError(
-            f"Dataset integrity gate failed: expected {required_query_count} eval queries, got {len(all_queries)}. "
+            f"Dataset integrity gate failed: expected {required_query_count} eval queries, got {source_query_count} "
+            f"(profile={query_profile}, selected={len(all_queries)}). "
             "Refusing to run to avoid invalid benchmark spend. "
             "Set BENCHMARK_MAX_QUERIES for smoke runs or BENCHMARK_REQUIRE_QUERY_COUNT=0 to override intentionally."
         )
     print(f"  Assets dir: {assets_dir}")
     print(f"  {len(all_queries)} queries to evaluate (from {len(reviews)} sessions)")
+    if query_profile not in {"", "full", "canonical"}:
+        print(
+            "  Query profile: "
+            f"{query_profile} "
+            f"(selected {query_profile_meta.get('selected')}/{query_profile_meta.get('requested')}, "
+            f"target={query_profile_meta.get('target_size')}, min/type={query_profile_meta.get('min_per_type')})"
+        )
     if include_statement_grounding:
         print(f"  Statement-grounding experiment: +{len(get_statement_context_queries())} queries")
     if len(reviews) == 0:
@@ -4803,6 +5005,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         max_sessions=max_sessions,
         max_queries_env=max_queries_env,
     )
+    _write_eval_query_profile_manifest(workspace, all_queries, query_profile_meta)
 
     # Build eval context from evolved workspace files.
     # Default to lean context when pre-injection is enabled to reduce
@@ -5640,6 +5843,42 @@ def _analyze_tool_call_details(tool_call_details: List[dict]) -> Dict[str, Any]:
     }
 
 
+def _build_tool_result_telemetry(result_text: Any) -> Dict[str, Any]:
+    """Build compact, stable telemetry for a tool result payload.
+
+    Keeps backward-compatible short preview fields while adding richer signal
+    for forensic diffs of recall formatting/labeling changes.
+    """
+    raw = str(result_text or "")
+    stripped = raw.strip()
+    lines = [ln.strip() for ln in stripped.splitlines() if ln.strip()]
+    label_lines = [ln for ln in lines if ln.startswith("[")]
+    category_counts: Dict[str, int] = {}
+    for ln in label_lines:
+        m = re.match(r"^\[[0-9.]+\]\s+\[([^\]]+)\]", ln)
+        if not m:
+            continue
+        cat = str(m.group(1) or "").strip().lower()
+        if not cat:
+            continue
+        category_counts[cat] = category_counts.get(cat, 0) + 1
+
+    return {
+        "result_preview_30": lines[0][:30] if lines else "",
+        "result_excerpt_200": stripped[:200],
+        "result_excerpt_1200": stripped[:1200],
+        "result_sha1": hashlib.sha1(raw.encode("utf-8")).hexdigest() if raw else "",
+        "result_line_count": len(lines),
+        "result_label_stats": {
+            "label_lines": len(label_lines),
+            "confidence_tag_lines": sum(1 for ln in lines if "[C:" in ln),
+            "id_tag_lines": sum(1 for ln in lines if "|ID:" in ln),
+            "graph_arrow_lines": sum(1 for ln in lines if "→" in ln),
+            "category_counts": category_counts,
+        },
+    }
+
+
 def _statement_grounding_audit_prompt(question: str, prediction: str) -> str:
     return (
         "Do not use tools for this response.\n"
@@ -5801,6 +6040,42 @@ def _tool_use_loop(
     tool_result_summaries = []
     retrieval_texts = []  # Raw recall text for retrieval-only metric
 
+    def _finalize_with_replay(answer_text: str) -> Tuple[str, List[str], List[str], List[str], dict]:
+        """Match claude-code retrieval fallback behavior for oauth/backend parity."""
+        # Only replay when this answer path actually used tools but produced no
+        # captured retrieval payload (oauth parity with claude-code traces).
+        if not retrieval_texts and tool_call_names:
+            try:
+                replay, replay_meta = _tool_memory_recall(
+                    question,
+                    workspace,
+                    env,
+                    max_session=max_session,
+                    telemetry_source="fallback_replay",
+                )
+            except Exception as e:
+                tool_result_summaries.append(f"memory_recall(replay_error): {type(e).__name__}")
+                replay = ""
+                replay_meta = None
+            if replay:
+                tool_call_names.append("memory_recall(replay)")
+                tool_result_summaries.append(f"memory_recall(replay:{question[:40]}): {len(replay)} chars")
+                retrieval_texts.append(replay)
+                usage_total["tool_call_details"].append({
+                    "tool": "memory_recall(replay)",
+                    "query": question,
+                    "query_preview_30": question[:30],
+                    "duration_ms": None,
+                    "result_chars": len(replay),
+                    "raw_output": replay,
+                    **_build_tool_result_telemetry(replay),
+                    "error": "",
+                    "source": "fallback_replay",
+                    "recall_meta": replay_meta,
+                    "call_id": ((replay_meta or {}).get("harness_telemetry") or {}).get("top_level_call_id") if isinstance(replay_meta, dict) else None,
+                })
+        return answer_text, tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+
     if context_inject:
         pre_t0 = time.time()
         usage_total["preinject"]["attempted"] = True
@@ -5850,8 +6125,8 @@ def _tool_use_loop(
                 "query_preview_30": query_used[:30],
                 "duration_ms": pre_duration_ms,
                 "result_chars": len(recall_text or ""),
-                "result_preview_30": str(recall_text or "").strip().splitlines()[0][:30] if recall_text else "",
-                "result_excerpt_200": str(recall_text or "").strip()[:200],
+                "raw_output": recall_text,
+                **_build_tool_result_telemetry(recall_text),
                 "error": "",
                 "source": "preinject",
                 "recall_meta": recall_meta,
@@ -5988,8 +6263,8 @@ def _tool_use_loop(
                         "time_frame": tool_input.get("time_frame"),
                         "duration_ms": duration_ms,
                         "result_chars": len(result_text or ""),
-                        "result_preview_30": str(result_text or "").strip().splitlines()[0][:30] if result_text else "",
-                        "result_excerpt_200": str(result_text or "").strip()[:200],
+                        "raw_output": result_text,
+                        **_build_tool_result_telemetry(result_text),
                         "error": str(result_text or "")[:80] if str(result_text).startswith("Error:") else "",
                         "source": "tool",
                         "stores": tool_input.get("stores"),
@@ -6013,14 +6288,14 @@ def _tool_use_loop(
         for block in content_blocks:
             if block.get("type") == "text":
                 text_parts.append(block["text"])
-        return " ".join(text_parts).strip(), tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+        return _finalize_with_replay(" ".join(text_parts).strip())
 
     # Exhausted turns — extract whatever text we have
     text_parts = []
     for block in content_blocks:
         if block.get("type") == "text":
             text_parts.append(block["text"])
-    return " ".join(text_parts).strip() or "Unable to determine answer.", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+    return _finalize_with_replay(" ".join(text_parts).strip() or "Unable to determine answer.")
 
 
 def _execute_tool(
@@ -6068,30 +6343,121 @@ def _execute_tool(
         return f"Unknown tool: {tool_name}", None
 
 
+def _render_recall_surface_warning(recall_meta: Optional[dict]) -> str:
+    """Render high-signal warning lines when recall surface quality is weak/conflicted."""
+    if not isinstance(recall_meta, dict):
+        return ""
+    quality = recall_meta.get("memory_quality")
+    if not isinstance(quality, dict):
+        return ""
+    surface = str(quality.get("surface_quality") or "").strip().lower()
+    note = str(quality.get("note") or "").strip()
+    if surface not in {"conflicted", "mixed", "low"} and not note:
+        return ""
+    if note:
+        return f"WARNING: {note}"
+    fallback = {
+        "conflicted": "Retrieved memory for this topic appears conflicted; verify current state carefully.",
+        "mixed": "Retrieved memory for this topic looks mixed; reconcile before finalizing.",
+        "low": "Retrieved memory confidence is low; another targeted recall may help.",
+    }.get(surface, "")
+    return f"WARNING: {fallback}" if fallback else ""
+
+
 def _render_recall_results(results: list[dict]) -> str:
-    """Render recall JSON results back into the legacy plain-text format."""
+    """Render recall JSON results into minimal readable rows + explicit graph expansions."""
     lines: list[str] = []
+    grouped_expansions: Dict[str, Dict[str, Any]] = {}
+    regular_rows: List[Dict[str, Any]] = []
+
     for r in results:
-        try:
-            flags = []
-            if r.get("verified"):
-                flags.append("V")
-            if r.get("pinned"):
-                flags.append("P")
-            flag_str = f"[{''.join(flags)}]" if flags else ""
-            conf = float(r.get("extraction_confidence", 0.5) or 0.5)
-            created = str(r.get("created_at", "") or "")
-            privacy = str(r.get("privacy", "shared") or "shared")
-            owner = str(r.get("owner_id", "") or "")
-            text = str(r.get("text", "") or "")
-            rid = str(r.get("id", "") or "")
-            similarity = float(r.get("similarity", 0.0) or 0.0)
-            category = str(r.get("category", "fact") or "fact")
-        except Exception:
+        if not isinstance(r, dict):
             continue
-        lines.append(
-            f"[{similarity:.2f}] [{category}]{flag_str}[C:{conf:.1f}] {text} |ID:{rid}|T:{created}|P:{privacy}|O:{owner}"
-        )
+        via = str(r.get("via") or "").strip().lower()
+        anchor_key = str(
+            r.get("graph_expansion_anchor_id")
+            or r.get("anchor_id")
+            or r.get("graph_expansion_anchor_text")
+            or r.get("anchor_text")
+            or ""
+        ).strip()
+        is_expansion = via == "graph_anchor_expansion" or bool(anchor_key)
+        if not is_expansion:
+            regular_rows.append(r)
+            continue
+
+        key = anchor_key or str(
+            r.get("graph_expansion_anchor_text")
+            or r.get("anchor_text")
+            or r.get("source_name")
+            or r.get("text")
+            or ""
+        ).strip()
+        if not key:
+            regular_rows.append(r)
+            continue
+        bucket = grouped_expansions.get(key)
+        if bucket is None:
+            bucket = {
+                "anchor": str(
+                    r.get("graph_expansion_anchor_text")
+                    or r.get("anchor_text")
+                    or r.get("source_name")
+                    or key
+                ).strip(),
+                "shown": r.get("graph_expansion_shown_connections") if r.get("graph_expansion_shown_connections") is not None else r.get("anchor_shown_connections"),
+                "total": r.get("graph_expansion_total_connections") if r.get("graph_expansion_total_connections") is not None else r.get("anchor_total_connections"),
+                "rows": [],
+            }
+            grouped_expansions[key] = bucket
+        shown_connections = r.get("graph_expansion_shown_connections")
+        if shown_connections is None:
+            shown_connections = r.get("anchor_shown_connections")
+        total_connections = r.get("graph_expansion_total_connections")
+        if total_connections is None:
+            total_connections = r.get("anchor_total_connections")
+        if shown_connections is not None:
+            bucket["shown"] = shown_connections
+        if total_connections is not None:
+            bucket["total"] = total_connections
+        bucket["rows"].append(r)
+
+    for r in regular_rows:
+        text = str(r.get("text") or "").strip()
+        if not text:
+            continue
+        rid = str(r.get("id") or "").strip()
+        created = str(r.get("created_at") or "").strip()
+        valid_from = str(r.get("valid_from") or "").strip()
+        valid_until = str(r.get("valid_until") or "").strip()
+        suffix_parts: List[str] = []
+        if rid:
+            suffix_parts.append(f"ID:{rid}")
+        if created:
+            suffix_parts.append(f"T:{created}")
+        if valid_from or valid_until:
+            vf = (valid_from.split("T")[0] if "T" in valid_from else valid_from) or "?"
+            vu = (valid_until.split("T")[0] if "T" in valid_until else valid_until) or "open"
+            suffix_parts.append(f"valid {vf} until {vu}")
+        suffix = f" |{'|'.join(suffix_parts)}" if suffix_parts else ""
+        lines.append(f"{text}{suffix}")
+
+    for bucket in grouped_expansions.values():
+        anchor = str(bucket.get("anchor") or "").strip()
+        if not anchor:
+            continue
+        lines.append(f"<graph_expansion:{anchor}>")
+        shown = bucket.get("shown")
+        total = bucket.get("total")
+        if isinstance(shown, (int, float)) and isinstance(total, (int, float)):
+            lines.append(f"<Showing top {int(shown)} of {int(total)} graph relations>")
+        for row in bucket.get("rows") or []:
+            row_text = str((row or {}).get("text") or "").replace("→", "->").strip()
+            if not row_text:
+                continue
+            lines.append(f"  {row_text}")
+        lines.append("</graph_expansion>")
+
     return "\n".join(lines).strip()
 
 
@@ -6372,9 +6738,20 @@ def _tool_memory_recall(
         # Post-filter by session number if max_session is set
         if max_session is not None:
             filtered_results = []
-            # Extract fact IDs from output and check their session_id in DB
+            # Extract fact IDs from output and check their session_id in the same DB
+            # recall subprocesses were pointed at (MEMORY_DB_PATH). Fallback order:
+            # explicit env path -> workspace/data -> instance/data.
             import sqlite3 as _sqlite3
-            db_path = workspace / "data" / "memory.db"
+            env_db = str(env.get("MEMORY_DB_PATH") or "").strip()
+            env_db_path = Path(env_db).expanduser() if env_db else None
+            legacy_db_path = workspace / "data" / "memory.db"
+            instance_db_path = workspace / _BENCHMARK_QUAID_INSTANCE / "data" / "memory.db"
+            if env_db_path and env_db_path.exists():
+                db_path = env_db_path
+            elif legacy_db_path.exists():
+                db_path = legacy_db_path
+            else:
+                db_path = instance_db_path
             conn = _sqlite3.connect(str(db_path))
             try:
                 for result_row in results:
@@ -6411,15 +6788,17 @@ def _tool_memory_recall(
                 conn.close()
 
             results = filtered_results
+            warning_text = _render_recall_surface_warning(recall_meta)
             memory_text = _render_recall_results(results)
             docs_text = _render_recall_docs_bundle(docs_bundle)
-            output = "\n\n".join(part for part in [memory_text, docs_text] if part)
+            output = "\n\n".join(part for part in [warning_text, memory_text, docs_text] if part)
             if not output:
                 return "No memories found for this time period.", recall_meta
 
+        warning_text = _render_recall_surface_warning(recall_meta)
         memory_text = _render_recall_results(results)
         docs_text = _render_recall_docs_bundle(docs_bundle)
-        output = "\n\n".join(part for part in [memory_text, docs_text] if part)
+        output = "\n\n".join(part for part in [warning_text, memory_text, docs_text] if part)
         _append_recall_telemetry_event(workspace, {
             **telemetry_base,
             "status": "ok",
@@ -8235,8 +8614,8 @@ def _tool_use_loop_claude_code(
                 "query_preview_30": query_used[:30],
                 "duration_ms": pre_duration_ms,
                 "result_chars": len(recall_text or ""),
-                "result_preview_30": str(recall_text or "").strip().splitlines()[0][:30] if recall_text else "",
-                "result_excerpt_200": str(recall_text or "").strip()[:200],
+                "raw_output": recall_text,
+                **_build_tool_result_telemetry(recall_text),
                 "error": "",
                 "source": "preinject",
                 "recall_meta": recall_meta,
@@ -8472,8 +8851,8 @@ def _tool_use_loop_claude_code(
                 "query_preview_30": question[:30],
                 "duration_ms": None,
                 "result_chars": len(replay),
-                "result_preview_30": replay.strip().splitlines()[0][:30] if replay else "",
-                "result_excerpt_200": replay.strip()[:200] if replay else "",
+                "raw_output": replay,
+                **_build_tool_result_telemetry(replay),
                 "error": "",
                 "source": "fallback_replay",
                 "recall_meta": replay_meta,
@@ -8634,8 +9013,8 @@ def _parse_claude_stream_output(stdout_text: str) -> Tuple[str, List[str], List[
                 if label == "memory_recall":
                     retrieval_texts.append(stdout)
             detail["result_chars"] = len(stdout or "")
-            detail["result_preview_30"] = str(stdout or "").strip().splitlines()[0][:30] if stdout else ""
-            detail["result_excerpt_200"] = str(stdout or "").strip()[:200]
+            detail["raw_output"] = stdout
+            detail.update(_build_tool_result_telemetry(stdout))
             detail["duration_ms"] = tool_meta.get("duration_ms") or tool_meta.get("durationMs")
             stderr = str(tool_meta.get("stderr") or "")
             detail["error"] = stderr[:160] if stderr else ""
@@ -8685,7 +9064,7 @@ def main():
                         help="Judge model (default: gpt-4o-mini for cross-vendor fairness)")
     parser.add_argument("--tier5", action="store_true",
                         help="(Deprecated) Tier-5 auto-runs whenever eval runs")
-    parser.add_argument("--backend", type=str, default="claude-code",
+    parser.add_argument("--backend", type=str, default="oauth",
                         choices=["claude-code", "oauth", "api"],
                         help="LLM backend: claude-code (CLI wrapper) or oauth (direct Anthropic OAuth/API transport); api is retained as a legacy alias for oauth")
     parser.add_argument("--allow-non-haiku-answer-model", action="store_true",
@@ -8859,6 +9238,8 @@ def main():
                 "max_sessions": args.max_sessions,
                 "include_statement_grounding": args.include_statement_grounding,
                 "dataset_variant": "canonical+statement_grounding" if args.include_statement_grounding else "canonical",
+                "query_profile": (os.environ.get("BENCHMARK_QUERY_PROFILE", "") or "full"),
+                "query_profile_size": int(os.environ.get("BENCHMARK_QUERY_PROFILE_SIZE", "0") or "0"),
             },
         }
         with open(scores_path, "w") as f:
@@ -9011,6 +9392,8 @@ def main():
                 "max_sessions": args.max_sessions,
                 "include_statement_grounding": args.include_statement_grounding,
                 "dataset_variant": "canonical+statement_grounding" if args.include_statement_grounding else "canonical",
+                "query_profile": (os.environ.get("BENCHMARK_QUERY_PROFILE", "") or "full"),
+                "query_profile_size": int(os.environ.get("BENCHMARK_QUERY_PROFILE_SIZE", "0") or "0"),
             },
         }
         with open(scores_path, "w") as f:

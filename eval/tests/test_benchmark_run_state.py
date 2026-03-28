@@ -161,6 +161,25 @@ def test_infer_metric_label_does_not_mark_per_day_run_as_obd(tmp_path):
     assert brs.infer_metric_label(root, run_name) == "AL-S Quaid"
 
 
+def test_infer_metric_label_marks_obd_when_checkpoint_mode_is_rolling_obd(tmp_path):
+    root = tmp_path
+    run_name = "quaid-l-r995-20260325-000000"
+    run_dir = root / "runs" / run_name
+    (run_dir / "logs").mkdir(parents=True)
+    (run_dir / "logs" / "extraction_checkpoint.json").write_text(
+        json.dumps({"mode": "rolling-obd", "state": "completed"}),
+        encoding="utf-8",
+    )
+    # Launch text can be misleading for eval-only clone runs; checkpoint mode
+    # should still drive OBD labeling.
+    (root / "runs" / f"{run_name}.launch.log").write_text(
+        "  Ingest schedule: per-day\n",
+        encoding="utf-8",
+    )
+
+    assert brs.infer_metric_label(root, run_name) == "AL-L Quaid OBD"
+
+
 def test_infer_model_lane_from_run_metadata(tmp_path):
     root = tmp_path
     run_name = "quaid-s-r995-20260325-000000"

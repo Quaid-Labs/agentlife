@@ -2785,6 +2785,56 @@ def test_tool_memory_recall_mixed_docs_temporal_split_defaults_memory_to_vector_
     assert meta == {"mode": "deliberate"}
 
 
+def test_tool_memory_recall_max_session_filter_prefers_memory_db_path(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    (workspace / "data").mkdir(parents=True)
+    (workspace / "benchrunner" / "data").mkdir(parents=True)
+    legacy_db = workspace / "data" / "memory.db"
+    instance_db = workspace / "benchrunner" / "data" / "memory.db"
+
+    conn = sqlite3.connect(legacy_db)
+    conn.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, session_id TEXT, type TEXT)")
+    conn.execute("INSERT INTO nodes (id, session_id, type) VALUES ('n1', 'session-1', 'Fact')")
+    conn.commit()
+    conn.close()
+
+    conn = sqlite3.connect(instance_db)
+    conn.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, session_id TEXT, type TEXT)")
+    conn.commit()
+    conn.close()
+
+    def _fake_run(_cmd, **_kwargs):
+        return SimpleNamespace(
+            stdout=json.dumps({
+                "results": [{
+                    "text": "Maya's partner is David",
+                    "category": "fact",
+                    "similarity": 0.95,
+                    "id": "n1",
+                    "privacy": "shared",
+                    "owner_id": "maya",
+                }],
+                "meta": {"mode": "deliberate"},
+            }),
+            stderr="",
+            returncode=0,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    text, _meta = rpb._tool_memory_recall(
+        "partner name",
+        workspace,
+        {
+            "PATH": os.environ.get("PATH", ""),
+            "MEMORY_DB_PATH": str(legacy_db),
+        },
+        max_session=1,
+    )
+
+    assert "Maya's partner is David" in text
+
+
 def test_run_janitor_uses_configured_timeout(tmp_path, monkeypatch, capsys):
     workspace = tmp_path / "ws"
     workspace.mkdir()
@@ -4411,6 +4461,57 @@ def test_statement_context_grounding_query_set_is_opt_in():
 
     assert len(dataset.get_statement_context_queries()) == 6
     assert all(q["query_type"] == "statement_context_grounding" for q in dataset.get_statement_context_queries())
+
+
+class TestEvalQueryProfiles:
+    def test_hard_representative_selector_keeps_type_coverage_and_hardness(self):
+        queries = [
+            {"question": "A-easy", "query_type": "factual_recall", "recall_difficulty": "Easy", "query_num": 1},
+            {"question": "A-hard", "query_type": "factual_recall", "recall_difficulty": "Hard", "query_num": 2},
+            {"question": "A-vhard", "query_type": "factual_recall", "recall_difficulty": "Very Hard", "query_num": 3},
+            {"question": "B-easy", "query_type": "project_state", "recall_difficulty": "Easy", "query_num": 4},
+            {"question": "B-hard", "query_type": "project_state", "recall_difficulty": "Hard", "query_num": 5},
+            {"question": "B-med", "query_type": "project_state", "recall_difficulty": "Medium", "query_num": 6},
+            {"question": "C-easy", "query_type": "non_question", "recall_difficulty": "Easy", "query_num": 7},
+            {"question": "C-hard", "query_type": "non_question", "recall_difficulty": "Hard", "query_num": 8},
+            {"question": "C-med", "query_type": "non_question", "recall_difficulty": "Medium", "query_num": 9},
+            {"question": "C-vhard", "query_type": "non_question", "recall_difficulty": "Very Hard", "query_num": 10},
+        ]
+
+        idx = rpb._select_hard_representative_query_indices(queries, target_size=6, min_per_type=1)
+        selected = [queries[i] for i in idx]
+        by_type = {q["query_type"] for q in selected}
+        hard_or_vhard = sum(
+            1 for q in selected if str(q.get("recall_difficulty", "")).startswith("Very Hard") or q.get("recall_difficulty") == "Hard"
+        )
+
+        assert len(selected) == 6
+        assert by_type == {"factual_recall", "project_state", "non_question"}
+        assert hard_or_vhard >= 4
+
+    def test_apply_eval_query_profile_uses_env_profile(self, monkeypatch):
+        queries = [
+            {"question": "q1", "query_type": "factual_recall", "recall_difficulty": "Easy", "query_num": 1},
+            {"question": "q2", "query_type": "project_state", "recall_difficulty": "Hard", "query_num": 2},
+            {"question": "q3", "query_type": "non_question", "recall_difficulty": "Very Hard", "query_num": 3},
+            {"question": "q4", "query_type": "project_state", "recall_difficulty": "Medium", "query_num": 4},
+            {"question": "q5", "query_type": "factual_recall", "recall_difficulty": "Hard", "query_num": 5},
+        ]
+        monkeypatch.setenv("BENCHMARK_QUERY_PROFILE", "hard-representative-v1")
+        monkeypatch.setenv("BENCHMARK_QUERY_PROFILE_SIZE", "3")
+        monkeypatch.setenv("BENCHMARK_QUERY_PROFILE_MIN_PER_TYPE", "1")
+
+        selected, meta = rpb._apply_eval_query_profile(queries)
+
+        assert len(selected) == 3
+        assert meta["profile"] == "hard-representative-v1"
+        assert meta["selected"] == 3
+        assert set(meta["by_type"].keys()) == {"factual_recall", "non_question", "project_state"}
+
+    def test_apply_eval_query_profile_rejects_unknown_profile(self, monkeypatch):
+        monkeypatch.setenv("BENCHMARK_QUERY_PROFILE", "nope-v9")
+        with pytest.raises(RuntimeError, match="Unknown BENCHMARK_QUERY_PROFILE"):
+            rpb._apply_eval_query_profile([{"question": "q", "ground_truth": "a"}])
 
 
 # ===================================================================
