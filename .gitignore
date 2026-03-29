@@ -47,6 +47,7 @@ venv/
 
 # Temporary
 /tmp/
+docs/internal/
 
 # Release artifacts
 release/
