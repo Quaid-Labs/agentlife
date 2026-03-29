@@ -2,6 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MODE="${1:-full}"
+
+if [[ "$MODE" != "full" && "$MODE" != "--full" && "$MODE" != "lite" && "$MODE" != "--lite" ]]; then
+  echo "Usage: $0 [--lite|--full]" >&2
+  exit 1
+fi
+if [[ "$MODE" == "--full" ]]; then MODE="full"; fi
+if [[ "$MODE" == "--lite" ]]; then MODE="lite"; fi
 
 echo "[release-check] docs/readme references"
 python3 - "$ROOT_DIR" <<'PY'
@@ -42,6 +50,9 @@ echo "[release-check] shell syntax"
 bash -n "$ROOT_DIR/scripts/launch-remote-benchmark.sh"
 bash -n "$ROOT_DIR/scripts/release-check.sh"
 bash -n "$ROOT_DIR/scripts/build-release-tarball.sh"
+bash -n "$ROOT_DIR/scripts/release-sync.sh"
+bash -n "$ROOT_DIR/scripts/push-main.sh"
+bash -n "$ROOT_DIR/scripts/adopt-main-workflow.sh"
 
 echo "[release-check] launcher sync exclusions"
 grep -q -- "--exclude='.env'" "$ROOT_DIR/scripts/launch-remote-benchmark.sh"
@@ -49,9 +60,10 @@ grep -q -- "--exclude='.agentlife-benchmark.local.json'" "$ROOT_DIR/scripts/laun
 grep -q -- "--exclude='release/'" "$ROOT_DIR/scripts/launch-remote-benchmark.sh"
 grep -q -- "Remove local-only benchmark artifacts from remote root" "$ROOT_DIR/scripts/launch-remote-benchmark.sh"
 
-echo "[release-check] release tarball contents"
-"$ROOT_DIR/scripts/build-release-tarball.sh" >/dev/null
-python3 - "$ROOT_DIR/release/agentlife-benchmark-release.tar.gz" <<'PY'
+if [[ "$MODE" == "full" ]]; then
+  echo "[release-check] release tarball contents"
+  "$ROOT_DIR/scripts/build-release-tarball.sh" >/dev/null
+  python3 - "$ROOT_DIR/release/agentlife-benchmark-release.tar.gz" <<'PY'
 import sys
 import tarfile
 
@@ -71,6 +83,9 @@ for needle in forbidden:
         raise SystemExit("forbidden AppleDouble entry found in release tarball")
 print("release tarball OK")
 PY
+else
+  echo "[release-check] lite mode: skipping tarball build/inspection"
+fi
 
 echo "[release-check] python compile"
 python3 -m py_compile \

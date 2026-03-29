@@ -7,7 +7,7 @@ This folder holds the tracked operational docs for the benchmark harness.
 - `LOCAL-DEVELOPMENT.md`
   - benchmark-local config, secret-path setup, and local machine conventions
 - `RELEASE-CHECKLIST.md`
-  - release-prep tasks for docs, ignores, public artifact layout, and gates
+  - main-only publish flow, release-candidate sync gate, and push path
 - `positioning-agentlife-vs-traditional-memory-benches.md`
   - external positioning brief for why AgentLife is the primary benchmark
 - `rolling-replay.md`
@@ -24,5 +24,6 @@ This folder holds the tracked operational docs for the benchmark harness.
 
 1. Start with `LOCAL-DEVELOPMENT.md` for setup.
 2. Use `RELEASE-CHECKLIST.md` before shipping the harness package.
-3. Use `rolling-replay.md` and `oc-native-vm-bootstrap.md` for specialized
+3. Use `./scripts/push-main.sh origin` for canonical pushes to GitHub `main`.
+4. Use `rolling-replay.md` and `oc-native-vm-bootstrap.md` for specialized
    benchmark lanes and VM-native baselines.

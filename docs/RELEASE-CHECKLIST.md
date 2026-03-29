@@ -6,6 +6,7 @@ Canonical split:
 
 - harness/orchestration: `eval/`, `scripts/`, `docs/`, `published/`
 - runtime-under-test: sibling Quaid checkpoint checkout
+- canonical publish branch: `main` (active use of `agentlife` is retired)
 
 ## Before Release
 
@@ -33,16 +34,16 @@ Canonical split:
 5. Confirm the canonical harness path is `eval/`.
    - `agentlife/eval/` is a legacy mirror and should not be treated as the
      primary entrypoint in release docs
-6. Run the release gate:
+6. Run the lightweight release-candidate sync gate:
 
 ```bash
-./scripts/release-check.sh
+./scripts/release-sync.sh
 ```
 
-7. Build a release tarball if needed:
+7. Optional full packaging gate (rare; usually unnecessary for this repo):
 
 ```bash
-./scripts/build-release-tarball.sh
+./scripts/release-check.sh --full
 ```
 
 ## Public Artifact Policy
@@ -56,7 +57,31 @@ Do not publish working matrices from internal runbooks by accident.
 - Before the tag is final, stage them in the matching `release-candidate/`
   directories instead of leaving them in scratch locations
 
-## Notes
+## Canonical Push Path
 
-- This repo is already connected to the `quaid-labs/agentlife` remote
-- do not push from here until the release review is complete
+Use `main` and the wrapper script:
+
+```bash
+./scripts/push-main.sh origin
+```
+
+This script enforces:
+
+- you are on `main`
+- worktree is clean
+- release-candidate publish layout is valid
+- `./scripts/release-check.sh --lite` passes before push
+
+## Migrating Existing Local Branches
+
+If your local checkout is still on `agentlife`, move it to `main` safely:
+
+```bash
+./scripts/adopt-main-workflow.sh origin
+```
+
+It will:
+
+- archive the current branch tip under `archive/<branch>-pre-main-only-<date>`
+- switch to `main` tracking `origin/main`
+- delete the previously active local branch

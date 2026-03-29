@@ -62,6 +62,22 @@ numbers into `published/` after they have been reviewed for release.
 
 ## Quick Start
 
+### Branch Workflow
+
+- Canonical branch for active development and publish is `main`.
+- `agentlife` is retained only as historical compatibility context.
+- For local migration from older branch state, run:
+
+```bash
+./scripts/adopt-main-workflow.sh origin
+```
+
+For canonical push flow to GitHub:
+
+```bash
+./scripts/push-main.sh origin
+```
+
 ### Prerequisites
 
 - Python 3.11+
