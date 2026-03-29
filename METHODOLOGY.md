@@ -1,8 +1,8 @@
 # AgentLife Benchmark Methodology
 
-**Version:** 8.1
+**Version:** 8.2
 **Status:** Release-prep methodology
-**Last updated:** 2026-03-28
+**Last updated:** 2026-03-29
 
 This document now tracks the current benchmark runbook rather than preserving
  every historical experiment. Public benchmark claims should be grounded in the
@@ -35,15 +35,16 @@ Reference baselines are kept alongside Quaid:
 ### AgentLife S
 
 - `20` scripted arc sessions
-- about `92k` transcript tokens
+- about `100k` transcript tokens
 - no filler sessions
 
 ### AgentLife L
 
 - `20` arc sessions plus `259` filler sessions
 - `279` total sessions
-- about `423k` transcript tokens
+- about `200k` transcript tokens in current release methodology accounting
 - same gold eval set as AgentLife S; filler sessions only add noise/scale
+- FC baseline for AL-L uses compaction at the `160k` boundary (summary prefix + trailing raw context window)
 
 ### AgentLife L OBD
 
@@ -56,10 +57,10 @@ Reference baselines are kept alongside Quaid:
 Current canonical scoring uses:
 
 - `268` mainline queries for Tiers 1-4
-- separate `30`-query Tier 5 lane
+- `15` Tier 5 emotional-intelligence queries
 
-The public headline score is the mainline `268`-query score. Tier 5 is tracked
-separately and should not be folded into the mainline number.
+The canonical full query set is `283` (`268 + 15`). Tier 5 is scored with a
+separate, looser rubric suitable for emotional and relational responses.
 
 ### Mainline
 
@@ -76,8 +77,9 @@ The `268` mainline queries cover:
 
 ### Tier 5
 
-Tier 5 is the separate emotional and boundary-awareness lane. It remains useful
-for product work, but it is reported separately from the mainline matrix.
+Tier 5 is the emotional and boundary-awareness lane. It remains useful for
+product work and is included in the canonical `283` query set, while retaining
+its own scoring rubric.
 
 ## 4. Canonical Quaid Methodology
 

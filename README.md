@@ -6,17 +6,18 @@ deduplication, project documentation, and tool-using recall.
 
 ## Why AgentLife?
 
-The public docs in this repo now mirror the current benchmark runbook instead
-of carrying a long narrative of older experiments. If a public number changes
-here, the clean runbook matrix changed first.
+Traditional memory benchmarks such as LoCoMo and LongMemEval are useful, but
+they primarily score retrospective QA-style recall. AgentLife is designed for
+agentic lifecycle behavior under real operating conditions:
 
-**Key innovations:**
-- Tests the **complete memory lifecycle**, not just store-and-retrieve
-- Interleaves personal conversations with project development sessions
-- Two scales: S (20 sessions, ~92K tokens) and L (279 sessions, ~423K tokens)
-- Filler sessions force natural compaction behavior in large-scale lanes
-- Current canonical scoring uses **268 mainline T1-T4 queries** plus a separate **30-query Tier 5** lane
-- Cross-vendor GPT-4o-mini judge for unbiased scoring
+- long-running multi-session interaction
+- context resets between sessions
+- retrieval and synthesis under context pressure
+- conflicting/stale facts over time
+- project-state continuity across sessions
+
+AgentLife is the primary release-gate KPI in this repo; external memory benches
+are supporting signals.
 
 ## Dataset
 
@@ -27,38 +28,45 @@ here, the clean runbook matrix changed first.
 
 All characters and events are fictional.
 
-### Scales
+### Benchmark Variants
 
-| Scale | Arc Sessions | Filler Sessions | Total | Tokens | Use Case |
-|-------|-------------|-----------------|-------|--------|----------|
-| **AgentLife S** | 20 | 0 | 20 | ~92K | Quick iteration, no compaction pressure |
-| **AgentLife L** | 20 | 259 | 279 | ~423K | Production-realistic with compaction events |
+| Variant | Description |
+| ------- | ----------- |
+| **AL-S (AgentLife Short)** | Core corpus only (~100K tokens, 20 arc sessions). |
+| **AL-L (AgentLife Long)** | AL-S plus filler sessions (~200K tokens) to force context-pressure behavior. |
+| **AL-L OBD (One Big Day)** | AL-L data compressed into a one-day ingest path to stress heavy-session load. |
+| **FC (Full Context)** | No memory system; answer model sees raw/compacted transcript each query. |
+| **OC Native** | OpenClaw built-in memory baseline (memory-core/session-memory/session-index). |
 
 ### Eval Queries
 
 | Tier | Count | What It Tests |
 |------|-------|---------------|
-| **Tier 1: Core** | part of 268 | Factual recall, temporal reasoning, cross-references, project state |
-| **Tier 2: Adversarial** | part of 268 | Contested facts, stale info, speaker attribution, false premises, negative/control queries |
-| **Tier 3: Non-Question** | part of 268 | "Hi", "Thanks" — should NOT trigger memory retrieval |
-| **Tier 4: Architecture** | part of 268 | Project knowledge and implementation planning for development tasks |
-| **Tier 5: Emotional Intelligence** | 30 | Boundary awareness, emotional context, self-awareness (scored separately) |
+| **T1-T4** | 268 | Factual recall, temporal reasoning, cross-reference synthesis, adversarial/stale facts, architecture/project-state |
+| **T5** | 15 | Emotional intelligence and relational boundary handling (separate rubric) |
 
 Each query includes ground truth, evidence sessions, query type, and recall difficulty.
 
-## Results
+## Launch Headline Results
 
-Public release numbers no longer live inline in the root README because they
-go stale too quickly during active rerun work.
+Headline launch comparison (`Quaid Sonnet/Haiku` vs strongest FC Sonnet and OC native baselines):
 
-Use these tracked locations instead:
+| Lane | Quaid Sonnet/Haiku | FC Sonnet | OpenClaw Native |
+| --- | ---: | ---: | ---: |
+| AL-S | 87.69% (`r880`) | 92.90% (`r606`) | 69.40% (`oc-native-als-20260315d`) |
+| AL-L | 85.82% (`r895`) | 87.70% (`r857`) | 63.06% (`oc-native-all-20260315d`) |
 
-- public release-ready summaries: [`published/runbooks/`](published/runbooks/)
-- frozen public-supporting artifacts: [`published/checkpoints/`](published/checkpoints/)
-- methodology and lane definitions: [`METHODOLOGY.md`](METHODOLOGY.md)
+Additional launch note:
 
-Internal working matrices may move faster than the released package. Only copy
-numbers into `published/` after they have been reviewed for release.
+- On AL-L Sonnet-eval study, Quaid reaches **88.69%** (`r944`), above AL-L FC Sonnet at **87.70%** (`r857`).
+
+Canonical docs for full tables and methodology:
+
+- Public overview: [`docs/AGENTLIFE_PUBLIC.md`](docs/AGENTLIFE_PUBLIC.md)
+- Technical report: [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT.md)
+- Hosted slugs:
+  - `https://quaid.ai/benchmarks/agentlife`
+  - `https://quaid.ai/benchmarks/agentlife/technical-report`
 
 ## Quick Start
 

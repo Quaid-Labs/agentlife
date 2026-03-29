@@ -1,4 +1,4 @@
-# Release Candidate Artifact Index (Draft 2026-03-28)
+# Release Candidate Artifact Index (2026-03-28)
 
 This file tracks which benchmark artifacts belong in the release-candidate
 checkpoint tree and what is already staged locally.
@@ -14,12 +14,7 @@ Use this as a packaging checklist, not as a working scratchpad.
 | `AL-L` `Haiku/Haiku` | `r881 (r849)` | `scores.json`, source `ingest_usage.json`, eval `token_usage.json` |
 | `AL-L` `Sonnet/Haiku` | `r895 (r863)` | `scores.json`, source `ingest_usage.json`, eval `token_usage.json` |
 | `AL-L OBD` `Haiku/Haiku` | `r890` | `scores.json`, `ingest_usage.json`, `token_usage.json` |
-
-## Pending Corrected Rolling OBD Sonnet
-
-| Lane | Run | Status |
-| --- | --- | --- |
-| `AL-L OBD` `Sonnet/Haiku` | `r891` | rolling OBD ingest completed cleanly; eval was intentionally stopped before completion, so no keeper `scores.json` is staged yet |
+| `AL-L OBD` `Sonnet/Haiku` | `r935 (r900)` | `scores.json`, source `ingest_usage.json` from `r900`, eval `token_usage.json` |
 
 ## Newly Landed Overnight Additions
 
@@ -39,7 +34,7 @@ before a final public package is committed:
 
 - `r865 (r863)` draft score/token payloads now superseded by `r895 (r863)`
 - `r882 (r860)` and `r883 (r859)` draft OBD payloads were based on the wrong
-  plain-OBD methodology and should be replaced by corrected rolling-OBD rows
+  plain-OBD methodology and are superseded by corrected rolling-OBD `r935 (r900)`
 
 ## Destination Layout
 
