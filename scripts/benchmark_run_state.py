@@ -671,6 +671,11 @@ def run_progress(root: Path, run_name: str) -> str:
         except Exception:
             pass
     if eval_total is not None:
+        tier5 = _tier5_progress(run, launch_text)
+        if tier5 is not None:
+            tier5_done, tier5_total = tier5
+            base_done = int(eval_done or 0)
+            return f"eval {base_done + tier5_done}/{int(eval_total) + tier5_total}"
         return f"eval {eval_done}/{eval_total}"
 
     day_plan = day_plan_status(root, run_name)
@@ -850,6 +855,40 @@ def enrich_run(root: Path, row: Dict[str, Any], active_cmd: Optional[str] = None
     return row
 
 
+def _tier5_progress(run: Path, launch_text: str) -> Optional[Tuple[int, int]]:
+    """Return (done, total) for Tier-5 progress when eval has entered EI phase."""
+    tier5_file = run / "tier5_results.json"
+    if tier5_file.exists():
+        payload = load_json(tier5_file)
+        if isinstance(payload, list):
+            count = len(payload)
+            return (count, count)
+
+    if "TIER 5: EMOTIONAL INTELLIGENCE" not in launch_text:
+        return None
+
+    total = None
+    m_total = re.search(r"^\s*(\d+)\s+EI queries\s*$", launch_text, re.M)
+    if m_total:
+        try:
+            total = int(m_total.group(1))
+        except Exception:
+            total = None
+
+    matches = re.findall(r"^\s*\[(\d+)/(\d+)\]\s+.*EI-\d+", launch_text, re.M)
+    if matches:
+        try:
+            done = int(matches[-1][0])
+            seen_total = int(matches[-1][1])
+            return (done, seen_total)
+        except Exception:
+            pass
+
+    if total is not None:
+        return (0, total)
+    return None
+
+
 def build_status_report(root: Path, runs_dir: str = "runs", extra_runs_dirs: Iterable[str] = ()) -> Dict[str, Any]:
     root = root.resolve()
     primary_runs_dir = (root / runs_dir).resolve()
@@ -954,6 +993,12 @@ def build_run_detail(root: Path, run_name: str) -> Dict[str, Any]:
         else:
             out["eval_completed"] = ev.get("completed")
         out["eval_total"] = ev.get("total_queries") if ev.get("total_queries") is not None else ev.get("total")
+    launch_text = _first_launch_text(root, run_name)
+    tier5 = _tier5_progress(run, launch_text)
+    if tier5 is not None and out.get("eval_total") is not None:
+        tier5_done, tier5_total = tier5
+        out["eval_completed"] = int(out.get("eval_completed") or 0) + tier5_done
+        out["eval_total"] = int(out.get("eval_total") or 0) + tier5_total
 
     db = run / "data" / "memory.db"
     if db.exists():

@@ -1176,6 +1176,95 @@ def _usage_log_path(workspace: Path) -> Path:
     return workspace / _BENCHMARK_QUAID_INSTANCE / "logs" / "llm-usage-events.jsonl"
 
 
+def _usage_run_start_marker_path(workspace: Path) -> Path:
+    return workspace / "logs" / "usage-run-start-utc.txt"
+
+
+def _write_usage_run_start_marker(workspace: Path) -> None:
+    """Stamp current run start so usage summaries can ignore inherited old events."""
+    try:
+        marker = _usage_run_start_marker_path(workspace)
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(datetime.now(timezone.utc).isoformat(), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def _read_usage_run_start_marker(workspace: Path) -> Optional[datetime]:
+    try:
+        raw = _usage_run_start_marker_path(workspace).read_text(encoding="utf-8").strip()
+    except Exception:
+        return None
+    if not raw:
+        return None
+    try:
+        dt = datetime.fromisoformat(raw)
+    except Exception:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _prune_usage_events_before_run_start(workspace: Path) -> None:
+    """Drop legacy usage rows older than the current run-start marker."""
+    run_start_utc = _read_usage_run_start_marker(workspace)
+    usage_path = _usage_log_path(workspace)
+    if run_start_utc is None or not usage_path.exists():
+        return
+    kept: List[str] = []
+    try:
+        for raw in usage_path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except Exception:
+                # Invalid historical rows are not useful for benchmark accounting.
+                continue
+            if not isinstance(event, dict):
+                continue
+            event_ts_raw = str(event.get("ts") or "").strip()
+            if not event_ts_raw:
+                continue
+            try:
+                event_dt = datetime.fromisoformat(event_ts_raw)
+            except Exception:
+                continue
+            if event_dt.tzinfo is None:
+                event_dt = event_dt.replace(tzinfo=timezone.utc)
+            if event_dt.astimezone(timezone.utc) >= run_start_utc:
+                kept.append(json.dumps(event, ensure_ascii=True))
+    except Exception:
+        return
+    try:
+        usage_path.parent.mkdir(parents=True, exist_ok=True)
+        text = ("\n".join(kept) + "\n") if kept else ""
+        usage_path.write_text(text, encoding="utf-8")
+    except Exception:
+        pass
+
+
+def _reset_eval_artifacts(workspace: Path) -> None:
+    """Clear prior eval outputs when reusing an ingest workspace for fresh eval."""
+    rel_paths = [
+        "evaluation_results.json",
+        "scores.json",
+        "token_usage.json",
+        "tier5_results.json",
+        "logs/eval_progress.json",
+        "logs/eval_query_profile.json",
+    ]
+    for rel in rel_paths:
+        p = workspace / rel
+        try:
+            if p.exists():
+                p.unlink()
+        except Exception:
+            pass
+
+
 def _recall_telemetry_log_path(workspace: Path) -> Path:
     return workspace / "logs" / "recall-telemetry.jsonl"
 
@@ -1640,6 +1729,7 @@ def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> 
     path = _usage_log_path(workspace)
     if not path.exists():
         return summary
+    run_start_utc = _read_usage_run_start_marker(workspace)
     for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line:
@@ -1652,6 +1742,17 @@ def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> 
             continue
         if phase and str(event.get("phase") or "") != phase:
             continue
+        if run_start_utc is not None:
+            event_ts_raw = str(event.get("ts") or "").strip()
+            if event_ts_raw:
+                try:
+                    event_dt = datetime.fromisoformat(event_ts_raw)
+                    if event_dt.tzinfo is None:
+                        event_dt = event_dt.replace(tzinfo=timezone.utc)
+                    if event_dt.astimezone(timezone.utc) < run_start_utc:
+                        continue
+                except Exception:
+                    pass
         api_calls = int(event.get("api_calls", 1) or 1)
         source = str(event.get("source") or "")
         tier = str(event.get("tier") or "")
@@ -9138,6 +9239,13 @@ def main():
     if args.mode == "fc":
         print(f"  FC answer models: {', '.join(fc_models)}")
     print()
+
+    # Important for eval refreshes from lineage workspaces: token accounting should
+    # include only events from this run, not inherited old usage logs.
+    _write_usage_run_start_marker(workspace)
+    _prune_usage_events_before_run_start(workspace)
+    if args.mode in {"full", "eval", "per-day"}:
+        _reset_eval_artifacts(workspace)
 
     # Set global backend for all LLM calls
     global _BACKEND

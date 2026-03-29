@@ -2307,6 +2307,143 @@ def test_summarize_usage_events_infers_tier_for_harness_logged_models(tmp_path):
     assert ingest_summary["by_tier"]["deep"]["total_tokens"] == 100
 
 
+def test_summarize_usage_events_ignores_pre_run_events_with_start_marker(tmp_path):
+    workspace = tmp_path / "ws"
+    usage_path = rpb._usage_log_path(workspace)
+    usage_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # 2 eval events: one before run start marker and one after.
+    usage_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "ts": "2026-03-29T01:00:00+00:00",
+                        "phase": "eval",
+                        "source": "answer_model",
+                        "tier": "fast",
+                        "requested_model": "claude-haiku-4-5-20251001",
+                        "resolved_model": "claude-haiku-4-5-20251001",
+                        "input_tokens": 100,
+                        "output_tokens": 20,
+                        "total_tokens": 120,
+                        "cache_read_tokens": 0,
+                        "cache_creation_tokens": 0,
+                        "api_calls": 1,
+                        "model_usage": {
+                            "claude-haiku-4-5-20251001": {
+                                "input_tokens": 100,
+                                "output_tokens": 20,
+                                "total_tokens": 120,
+                            }
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "ts": "2026-03-29T03:00:00+00:00",
+                        "phase": "eval",
+                        "source": "answer_model",
+                        "tier": "fast",
+                        "requested_model": "claude-haiku-4-5-20251001",
+                        "resolved_model": "claude-haiku-4-5-20251001",
+                        "input_tokens": 200,
+                        "output_tokens": 40,
+                        "total_tokens": 240,
+                        "cache_read_tokens": 0,
+                        "cache_creation_tokens": 0,
+                        "api_calls": 1,
+                        "model_usage": {
+                            "claude-haiku-4-5-20251001": {
+                                "input_tokens": 200,
+                                "output_tokens": 40,
+                                "total_tokens": 240,
+                            }
+                        },
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    # Marker should exclude the first event.
+    marker_path = rpb._usage_run_start_marker_path(workspace)
+    marker_path.parent.mkdir(parents=True, exist_ok=True)
+    marker_path.write_text("2026-03-29T02:00:00+00:00", encoding="utf-8")
+
+    summary = rpb._summarize_usage_events(workspace, phase="eval")
+    assert summary["total_tokens"] == 240
+    assert summary["api_calls"] == 1
+    assert summary["by_source"]["answer_model"]["total_tokens"] == 240
+
+
+def test_prune_usage_events_before_run_start(tmp_path):
+    workspace = tmp_path / "ws"
+    usage_path = rpb._usage_log_path(workspace)
+    usage_path.parent.mkdir(parents=True, exist_ok=True)
+    marker_path = rpb._usage_run_start_marker_path(workspace)
+    marker_path.parent.mkdir(parents=True, exist_ok=True)
+    marker_path.write_text("2026-03-29T02:00:00+00:00", encoding="utf-8")
+
+    rows = [
+        {
+            "ts": "2026-03-29T01:00:00+00:00",
+            "phase": "eval",
+            "source": "answer_model",
+            "input_tokens": 100,
+            "output_tokens": 20,
+            "total_tokens": 120,
+            "api_calls": 1,
+        },
+        {
+            "ts": "2026-03-29T03:00:00+00:00",
+            "phase": "eval",
+            "source": "answer_model",
+            "input_tokens": 200,
+            "output_tokens": 40,
+            "total_tokens": 240,
+            "api_calls": 1,
+        },
+    ]
+    usage_path.write_text(
+        "\n".join([json.dumps(rows[0]), "not-json", json.dumps(rows[1])]) + "\n",
+        encoding="utf-8",
+    )
+
+    rpb._prune_usage_events_before_run_start(workspace)
+    after = [json.loads(line) for line in usage_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(after) == 1
+    assert after[0]["total_tokens"] == 240
+    assert after[0]["ts"] == "2026-03-29T03:00:00+00:00"
+
+
+def test_reset_eval_artifacts_removes_only_eval_outputs(tmp_path):
+    workspace = tmp_path / "ws"
+    (workspace / "logs").mkdir(parents=True, exist_ok=True)
+    (workspace / "data").mkdir(parents=True, exist_ok=True)
+
+    targets = [
+        workspace / "evaluation_results.json",
+        workspace / "scores.json",
+        workspace / "token_usage.json",
+        workspace / "tier5_results.json",
+        workspace / "logs" / "eval_progress.json",
+        workspace / "logs" / "eval_query_profile.json",
+    ]
+    for p in targets:
+        p.write_text("x", encoding="utf-8")
+    survivor = workspace / "data" / "memory.db"
+    survivor.write_text("db", encoding="utf-8")
+
+    rpb._reset_eval_artifacts(workspace)
+
+    for p in targets:
+        assert not p.exists()
+    assert survivor.exists()
+
+
 def test_load_reviews_with_dataset_gate_includes_fillers_for_al_l(monkeypatch, tmp_path):
     assets = tmp_path / "assets"
     assets.mkdir()

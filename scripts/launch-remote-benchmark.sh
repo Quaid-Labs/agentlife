@@ -12,8 +12,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOCAL_BENCH_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-LOCAL_CHECKPOINT_ROOT="${LOCAL_CHECKPOINT_ROOT:-$HOME/quaid/benchmark-checkpoint}"
-LOCAL_DEV_ROOT="${LOCAL_DEV_ROOT:-$HOME/quaid/dev}"
+LOCAL_CHECKPOINT_ROOT="${LOCAL_CHECKPOINT_ROOT:-$HOME/quaidcode/benchmark-checkpoint}"
+LOCAL_DEV_ROOT="${LOCAL_DEV_ROOT:-$HOME/quaidcode/dev}"
 LOCAL_BENCH_CONFIG="${AGENTLIFE_BENCH_LOCAL_CONFIG:-$LOCAL_BENCH_ROOT/.agentlife-benchmark.local.json}"
 LOCAL_DEV_CONFIG="${QUAID_DEV_LOCAL_CONFIG:-$LOCAL_DEV_ROOT/.quaid-dev.local.json}"
 
@@ -42,7 +42,7 @@ Options:
   --remote-plugin-root PATH        Remote plugin checkout used by harness
                                   (default: ~/clawd/plugins/quaid)
   --local-checkpoint-root PATH     Local checkpoint root
-                                  (default: ~/quaid/benchmark-checkpoint)
+                                  (default: ~/quaidcode/benchmark-checkpoint)
   --dry-run                        Print actions without running rsync/ssh
   --skip-local-checks              Skip local compile/test gate before sync+launch
   --parallel N                     Parallel workers hint (default: 6)
@@ -411,6 +411,18 @@ if [[ -n "${BENCHMARK_CAPTURE_CHUNK_MAX_LINES:-}" ]]; then
 fi
 if [[ -n "${BENCHMARK_EVAL_CONTEXT_PROFILE:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_EVAL_CONTEXT_PROFILE=$(printf %q "$BENCHMARK_EVAL_CONTEXT_PROFILE")"$'\n'
+fi
+if [[ -n "${BENCHMARK_QUERY_PROFILE:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_QUERY_PROFILE=$(printf %q "$BENCHMARK_QUERY_PROFILE")"$'\n'
+fi
+if [[ -n "${BENCHMARK_QUERY_PROFILE_SIZE:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_QUERY_PROFILE_SIZE=$(printf %q "$BENCHMARK_QUERY_PROFILE_SIZE")"$'\n'
+fi
+if [[ -n "${BENCHMARK_QUERY_PROFILE_MIN_PER_TYPE:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_QUERY_PROFILE_MIN_PER_TYPE=$(printf %q "$BENCHMARK_QUERY_PROFILE_MIN_PER_TYPE")"$'\n'
+fi
+if [[ -n "${QUAID_RECALL_NON_GRAPH_LABELS:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export QUAID_RECALL_NON_GRAPH_LABELS=$(printf %q "$QUAID_RECALL_NON_GRAPH_LABELS")"$'\n'
 fi
 if [[ -n "${BENCHMARK_OBD_EXTRACT_TIMEOUT:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_OBD_EXTRACT_TIMEOUT=$(printf %q "$BENCHMARK_OBD_EXTRACT_TIMEOUT")"$'\n'
