@@ -125,8 +125,7 @@ Code login state:
 Notes:
 - this is benchmark-only harness behavior
 - the launcher prefers `.agentlife-benchmark.local.json`
-- legacy fallback to `~/quaid/dev/.quaid-dev.local.json` still exists for local
-  compatibility
+- no legacy config fallback is supported in launch mode
 - do not add automatic fallback across multiple Anthropic OAuth accounts/tokens
 - secondary token switching is manual-only by operator action
 
@@ -213,9 +212,6 @@ This repo contains the benchmark harness package.
 
 Quaid runtime intelligence is benchmarked from a sibling checkout, not from
 this repo.
-
-There is also a legacy `agentlife/eval/` mirror in the tree for older
-compatibility paths. It is not the primary harness entrypoint for release docs.
 
 ## Adding a New System
 

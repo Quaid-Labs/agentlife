@@ -68,7 +68,7 @@ These benchmark tools read `.agentlife-benchmark.local.json` today:
 Current behavior:
 
 - prefers `.agentlife-benchmark.local.json`
-- falls back to `~/quaid/dev/.quaid-dev.local.json` for compatibility
+- no legacy config fallback path is supported
 - never stores secret values in tracked JSON
 - benchmark launch sync excludes `.agentlife-benchmark.local.json`, `.env`, and
   `release/`, so local-only secrets and built artifacts are not copied to the

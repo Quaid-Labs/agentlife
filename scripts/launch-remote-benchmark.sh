@@ -13,9 +13,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOCAL_BENCH_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCAL_CHECKPOINT_ROOT="${LOCAL_CHECKPOINT_ROOT:-$HOME/quaidcode/benchmark-checkpoint}"
-LOCAL_DEV_ROOT="${LOCAL_DEV_ROOT:-$HOME/quaidcode/dev}"
 LOCAL_BENCH_CONFIG="${AGENTLIFE_BENCH_LOCAL_CONFIG:-$LOCAL_BENCH_ROOT/.agentlife-benchmark.local.json}"
-LOCAL_DEV_CONFIG="${QUAID_DEV_LOCAL_CONFIG:-$LOCAL_DEV_ROOT/.quaid-dev.local.json}"
 
 REMOTE=""
 REMOTE_BENCH_ROOT=""
@@ -148,7 +146,7 @@ run_cmd_redacted() {
 resolve_local_config_secret_path() {
   local section="$1"
   local key_name="$2"
-  python3 - "$section" "$key_name" "$LOCAL_BENCH_CONFIG" "$LOCAL_DEV_CONFIG" <<'PY'
+  python3 - "$section" "$key_name" "$LOCAL_BENCH_CONFIG" <<'PY'
 import json
 import sys
 from pathlib import Path
