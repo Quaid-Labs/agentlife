@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/agentlife-feather.png" alt="AgentLife" width="500">
+  <img src="assets/agentlife-crop.jpg" alt="AgentLife" width="500">
   <br>
   <em>A full-lifecycle benchmark for AI agent memory systems.</em>
 </p>
