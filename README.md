@@ -101,16 +101,22 @@ model. The question is not "can memory beat raw transcript in every short
 horizon case," but whether a persistent system can stay competitive while
 surviving resets and reducing long-run token cost.
 
-Headline launch comparison (`Quaid Sonnet/Haiku` vs strongest FC Sonnet and OC native baselines):
+Headline launch summary:
 
-| Lane | Quaid Sonnet/Haiku | FC Sonnet | OpenClaw Native |
-| --- | ---: | ---: | ---: |
-| AL-S | 87.69% (`r880`) | 92.90% (`r606`) | 69.40% (`oc-native-als-20260315d`) |
-| AL-L | 85.82% (`r895`) | 87.70% (`r857`) | 63.06% (`oc-native-all-20260315d`) |
+| Lane | Quaid | FC Sonnet | OpenClaw Native | Eval Tokens | What It Represents |
+| --- | ---: | ---: | ---: | ---: | --- |
+| AL-S | 87.69% | 92.90% | 69.40% | 5.75M | Clean data: the core AgentLife corpus with no filler/noise sessions. Useful as the clean/idealized lane, but less realistic than the noisy long-horizon variants. |
+| AL-L | 87.10% | 87.70% | 63.06% | 6.46M | Noisy data: large context window, filler sessions, and FC compaction pressure. |
+| AL-L OBD | 86.04% | — | — | 6.08M | AL-L compressed into a single operational day to stress heavy-session ingest. |
 
-Additional launch note:
+The published Sonnet-eval study currently covers `AL-L` and `AL-L OBD`.
+`AL-S` uses the current published clean-lane row.
 
-- On AL-L Sonnet-eval study, Quaid reaches **88.69%** (`r944`), above AL-L FC Sonnet at **87.70%** (`r857`).
+For data cleanliness and overall benchmark tradeoffs, `Sonnet/Haiku` was chosen
+as the flagship configuration. `Opus` was evaluated, but underperformed
+`Sonnet` overall and is not the recommended launch configuration.
+
+Token counts shown here are benchmark eval tokens for the scored query set.
 
 Benchmark note:
 
@@ -119,7 +125,6 @@ Benchmark note:
 
 Canonical docs for full tables and methodology:
 
-- Public overview: [`docs/AGENTLIFE_PUBLIC.md`](docs/AGENTLIFE_PUBLIC.md)
 - Technical report: [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT.md)
 
 ## Quick Start

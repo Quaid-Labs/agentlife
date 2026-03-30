@@ -14,7 +14,6 @@ Suggested naming:
 Current stable launch docs:
 
 - `AGENTLIFE_TECHNICAL_REPORT.md`
-- `../docs/AGENTLIFE_PUBLIC.md`
 
 These files should be the public-facing counterparts to the internal benchmark
 runner notes, not raw scratch logs.
