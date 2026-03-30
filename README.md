@@ -1,29 +1,38 @@
 <p align="center">
   <img src="assets/agentlife-crop-feather.png" alt="AgentLife" width="500">
-  <br>
-  <em>A full-lifecycle benchmark for AI agent memory systems.</em>
 </p>
 
 # AgentLife
 
 A full-lifecycle benchmark for AI agent memory systems. AgentLife tests the
-full production memory pipeline: extraction, rolling carryover, janitor review,
-deduplication, project documentation, and tool-using recall.
+full agentic pipeline: days and months of data, projects, conversations,
+evolving context, and a user whose story changes over time.
 
 ## Why AgentLife?
 
-Traditional memory benchmarks such as LoCoMo and LongMemEval are useful, but
-they primarily score retrospective QA-style recall. AgentLife is designed for
-agentic lifecycle behavior under real operating conditions:
+AgentLife is designed for agentic lifecycle behavior under real operating
+conditions:
 
 - long-running multi-session interaction
 - context resets between sessions
 - retrieval and synthesis under context pressure
 - conflicting/stale facts over time
 - project-state continuity across sessions
+- assistant-style judgment about what to surface and what not to surface
 
-AgentLife is the primary release-gate KPI in this repo; external memory benches
-are supporting signals.
+AgentLife is the primary release-gate KPI for the Quaid project; external memory
+benchmarks are supporting signals for the development of personalized agentic memory.
+
+Full-context baselines are useful upper bounds for short-horizon tasks, but
+they grow linearly in cost and do not persist state across session resets.
+AgentLife is built to test the regime where persistent knowledge and continuity
+matter.
+
+It also covers categories that most memory benchmarks skip entirely: non-question
+restraint, emotional intelligence, privacy boundaries, hallucination resistance,
+and adversarial "don't make things up" behavior. That makes it a benchmark for
+assistant-like agentic systems, not just a benchmark for retrieval. It measures
+both what a system should share and what it should not.
 
 ## Dataset
 
@@ -46,14 +55,51 @@ All characters and events are fictional.
 
 ### Eval Queries
 
+The canonical query set is `283` scored prompts. Broken out by tier:
+
 | Tier | Count | What It Tests |
-|------|-------|---------------|
-| **T1-T4** | 268 | Factual recall, temporal reasoning, cross-reference synthesis, adversarial/stale facts, architecture/project-state |
-| **T5** | 15 | Emotional intelligence and relational boundary handling (separate rubric) |
+|------|------:|---------------|
+| **T1** | 201 | Personal memory and long-horizon continuity: fact retention, updates over time, synthesis, callbacks, relationship reasoning, and adversarial resistance on the user's changing life story. |
+| **T2** | 34 | Project and tool-derived memory: project-state tracking plus facts the agent found during research/tool use. |
+| **T3** | 16 | Non-question grounding and restraint on casual chat. |
+| **T4** | 17 | Architecture comprehension and implementation planning. |
+| **T5** | 15 | Emotional intelligence, privacy boundaries, relational context, and socially appropriate responses under memory pressure. |
+
+#### Category Breakdown
+
+| Tier | Category | Count | What It Tests |
+|------|----------|------:|---------------|
+| **T1** | **factual_recall** | 29 | Basic extraction and retention of directly stated facts. |
+| **T1** | **temporal_current** | 16 | Current-state reasoning after updates, corrections, and time passing. |
+| **T1** | **graph_traversal** | 14 | Multi-hop relationship recall through the memory graph. |
+| **T1** | **multi_session_synthesis** | 14 | Combining information across many sessions into one answer. |
+| **T1** | **cross_reference** | 13 | Linking facts across different arcs or domains. |
+| **T1** | **inference** | 13 | Inferring the right answer from multiple stored facts. |
+| **T1** | **stale_fact** | 12 | Replacing outdated memories with the latest valid state. |
+| **T1** | **negative** | 12 | Hallucination resistance when the correct answer is no or not established. |
+| **T1** | **evolution** | 12 | Tracking how a person, project, or situation changes over time. |
+| **T1** | **adversarial_confirm** | 11 | Confirming true facts even when the phrasing is adversarial or trap-like. |
+| **T1** | **surprise_callback** | 11 | Long-range recall of early details that return much later. |
+| **T1** | **speaker_attribution** | 10 | Distinguishing who said, suggested, or did what. |
+| **T1** | **contested_fact** | 10 | Facts with corrections, changing states, or multiple valid positions. |
+| **T1** | **adversarial_false_attribution** | 10 | Resisting entity confusion and wrong-person/source attribution. |
+| **T1** | **adversarial_idk** | 8 | Saying unknown when the corpus does not support an answer. |
+| **T1** | **tangent_recall** | 6 | Pulling relevant facts out of side remarks and conversational noise. |
+| **T2** | **project_state** | 24 | Current state of active projects, tools, and implementation work. |
+| **T2** | **agent_retrieved** | 10 | Facts the agent found or established through tool use or research. |
+| **T3** | **non_question** | 16 | Appropriate restraint on casual utterances without dumping memory. |
+| **T4** | **arch_comprehension** | 11 | Architectural/codebase understanding from remembered project history. |
+| **T4** | **arch_planning** | 6 | Implementation planning that depends on remembered architecture. |
+| **T5** | **emotional_intelligence** | 15 | Empathy, privacy boundaries, relational context, and socially appropriate responses under memory pressure. |
 
 Each query includes ground truth, evidence sessions, query type, and recall difficulty.
 
 ## Launch Headline Results
+
+FC is included here as an upper-bound baseline, not as the target operating
+model. The question is not "can memory beat raw transcript in every short
+horizon case," but whether a persistent system can stay competitive while
+surviving resets and reducing long-run token cost.
 
 Headline launch comparison (`Quaid Sonnet/Haiku` vs strongest FC Sonnet and OC native baselines):
 
@@ -66,27 +112,28 @@ Additional launch note:
 
 - On AL-L Sonnet-eval study, Quaid reaches **88.69%** (`r944`), above AL-L FC Sonnet at **87.70%** (`r857`).
 
+Benchmark note:
+
+- Results are measured on synthetic high-density conversations designed to stress memory systems.
+- Public rows are single-run per lane/configuration; informal repeat variance on stable configs has typically been about `+-1pp`.
+
 Canonical docs for full tables and methodology:
 
 - Public overview: [`docs/AGENTLIFE_PUBLIC.md`](docs/AGENTLIFE_PUBLIC.md)
 - Technical report: [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT.md)
-- Hosted slugs:
-  - `https://quaid.ai/benchmarks/agentlife`
-  - `https://quaid.ai/benchmarks/agentlife/technical-report`
 
 ## Quick Start
 
 ### Branch Workflow
 
-- Canonical branch for active development and publish is `main`.
-- `agentlife` is retained only as historical compatibility context.
-- For local migration from older branch state, run:
+- Canonical branch for development and publish is `main`.
+- If you are carrying an older local checkout from the previous branch model, run:
 
 ```bash
 ./scripts/adopt-main-workflow.sh origin
 ```
 
-For canonical push flow to GitHub:
+Canonical push flow to GitHub:
 
 ```bash
 ./scripts/push-main.sh origin
@@ -151,10 +198,14 @@ python eval/evaluate.py \
 python eval/metrics.py data/results/my-system/
 ```
 
-### Generate Filler Sessions (AgentLife L)
+### Generate Additional Filler Sessions (Optional)
+
+The repo already includes the canonical AgentLife L filler corpus in
+`data/filler-sessions/`. You only need this if you want to generate more filler
+sessions or build a variant large-scale lane.
 
 ```bash
-python eval/densify.py --count 259 --output data/filler-sessions/
+python eval/densify.py --count 259 --output data/filler-sessions-extra/
 ```
 
 ### Rolling Replay Utilities
