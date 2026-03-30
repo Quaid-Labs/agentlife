@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="assets/agentlife.jpg" alt="AgentLife" width="500">
+  <br>
+  <em>A full-lifecycle benchmark for AI agent memory systems.</em>
+</p>
+
 # AgentLife
 
 A full-lifecycle benchmark for AI agent memory systems. AgentLife tests the
@@ -35,7 +41,7 @@ All characters and events are fictional.
 | **AL-S (AgentLife Short)** | Core corpus only (~100K tokens, 20 arc sessions). |
 | **AL-L (AgentLife Long)** | AL-S plus filler sessions (~200K tokens) to force context-pressure behavior. |
 | **AL-L OBD (One Big Day)** | AL-L data compressed into a one-day ingest path to stress heavy-session load. |
-| **FC (Full Context)** | No memory system; answer model sees raw/compacted transcript each query. |
+| **FC (Full Context)** | No memory system; answer model sees raw/compacted transcript each query, but FC does not persist state across session resets. |
 | **OC Native** | OpenClaw built-in memory baseline (memory-core/session-memory/session-index). |
 
 ### Eval Queries
