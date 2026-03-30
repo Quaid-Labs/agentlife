@@ -114,8 +114,7 @@ Headline launch summary:
 
 Quaid was measured with Haiku fast, Sonnet deep, and a Sonnet agent running
 eval. `AL-L` and `AL-L OBD` are chosen here as the best representation of real
-use data; `AL-S` remains the cleaner, more idealized lane and a full Sonnet-eval
-row for it is planned before public launch. `Sonnet/Haiku` remains the flagship
+use data; `AL-S` remains the cleaner, more idealized lane. `Sonnet/Haiku` remains the flagship
 configuration on cleanliness and overall benchmark tradeoffs. `Opus` was
 evaluated, but underperformed `Sonnet` overall and is not the recommended
 launch configuration. On `AL-L` and `AL-L OBD`, FC is forced to compact, and
