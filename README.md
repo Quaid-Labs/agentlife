@@ -103,20 +103,26 @@ surviving resets and reducing long-run token cost.
 
 Headline launch summary:
 
-| Lane | Quaid | FC Sonnet | OpenClaw Native | Eval Tokens | What It Represents |
-| --- | ---: | ---: | ---: | ---: | --- |
-| AL-S | 87.69% | 92.90% | 69.40% | 5.75M | Clean data: the core AgentLife corpus with no filler/noise sessions. Useful as the clean/idealized lane, but less realistic than the noisy long-horizon variants. |
-| AL-L | 87.10% | 87.70% | 63.06% | 6.46M | Noisy data: large context window, filler sessions, and FC compaction pressure. |
-| AL-L OBD | 86.04% | — | — | 6.08M | AL-L compressed into a single operational day to stress heavy-session ingest. |
+| Metric | Quaid | FC Sonnet | OpenClaw Native |
+| --- | ---: | ---: | ---: |
+| AL-S | 87.69% | 92.90% | 69.40% |
+| Tokens | 5.75M | 29.83M | unknown |
+| AL-L | 87.10% | 87.70% | 63.06% |
+| Tokens | 6.46M | 34.60M | unknown |
+| AL-L OBD | 86.04% | 87.70% | unknown |
+| Tokens | 6.08M | 34.60M | unknown |
 
-The published Sonnet-eval study currently covers `AL-L` and `AL-L OBD`.
-`AL-S` uses the current published clean-lane row.
-
-For data cleanliness and overall benchmark tradeoffs, `Sonnet/Haiku` was chosen
-as the flagship configuration. `Opus` was evaluated, but underperformed
-`Sonnet` overall and is not the recommended launch configuration.
-
-Token counts shown here are benchmark eval tokens for the scored query set.
+Quaid was measured with Haiku fast, Sonnet deep, and a Sonnet agent running
+eval. `AL-L` and `AL-L OBD` are chosen here as the best representation of real
+use data; `AL-S` remains the cleaner, more idealized lane and a full Sonnet-eval
+row for it is planned before public launch. `Sonnet/Haiku` remains the flagship
+configuration on cleanliness and overall benchmark tradeoffs. `Opus` was
+evaluated, but underperformed `Sonnet` overall and is not the recommended
+launch configuration. On `AL-L` and `AL-L OBD`, FC is forced to compact, and
+the drop in FC quality reflects that compaction plus the added noise in the
+larger corpus. OpenClaw Native tokens remain unknown due to telemetry
+restrictions. Token counts here are the minimum tokens used to answer the full
+set of 283 eval questions.
 
 Benchmark note:
 
