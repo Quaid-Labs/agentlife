@@ -4,9 +4,10 @@
 
 # AgentLife
 
-A full-lifecycle benchmark for AI agent memory systems. AgentLife tests the
-full agentic pipeline: days and months of data, projects, conversations,
-evolving context, and a user whose story changes over time.
+A full-lifecycle benchmark for AI agent memory systems and other agent
+architectures that must operate over time. AgentLife tests the full agentic
+pipeline: days and months of data, projects, conversations, evolving context,
+and a user whose story changes over time.
 
 ## Why AgentLife?
 
@@ -20,13 +21,19 @@ conditions:
 - project-state continuity across sessions
 - assistant-style judgment about what to surface and what not to surface
 
-AgentLife is the primary release-gate KPI for the Quaid project; external memory
-benchmarks are supporting signals for the development of personalized agentic memory.
+AgentLife was created to evaluate systems like Quaid — persistent knowledge
+layers that must survive resets, continuity breaks, and rising context cost —
+but the benchmark itself is intended to evaluate any agent architecture
+operating beyond a single context window.
 
-Full-context baselines are useful upper bounds for short-horizon tasks, but
-they grow linearly in cost and do not persist state across session resets.
-AgentLife is built to test the regime where persistent knowledge and continuity
-matter.
+For Quaid, AgentLife is the primary release-gate KPI. External memory
+benchmarks remain supporting signals for the development of personalized
+agentic memory.
+
+Full-context baselines are useful short-horizon upper bounds, but they grow
+linearly in cost and do not persist state across session resets. AgentLife is
+built to test the regime where persistence, cost scaling, and cross-session
+continuity decide whether an agent system actually holds up over time.
 
 It also covers categories that most memory benchmarks skip entirely: non-question
 restraint, emotional intelligence, privacy boundaries, hallucination resistance,
