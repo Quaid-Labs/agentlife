@@ -166,7 +166,7 @@ async function refresh() {
       <td>${modelDisplay(x)}</td>
       <td>${x.final_score != null ? `${Number(x.final_score).toFixed(2)}%` : (x.preview_score != null ? `Live ${Number(x.preview_score).toFixed(2)}%` : '')}</td>
       <td><a style="color:#9fd0ff" href="/run?name=${encodeURIComponent(x.name || '')}">Open</a></td>
-      <td>${x.name || ''}${x.score != null ? ` | monitor=${x.score}` : ''}</td>
+      <td>${x.note || ''}</td>
     </tr>
   `).join('');
 }

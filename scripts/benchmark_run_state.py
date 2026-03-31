@@ -341,10 +341,22 @@ def _short_model_name(model: str) -> str:
 def infer_model_lane(root: Path, run_name: str, active_cmd: Optional[str] = None) -> Optional[str]:
     run = root / "runs" / str(run_name)
     meta = load_json(run / "run_metadata.json") or {}
+    ingest_usage = load_json(run / "ingest_usage.json") or {}
+    ingest_complete = load_json(run / "ingest_complete.json") or {}
 
     extraction_model = str(meta.get("model", "") or "").strip()
     eval_model = str(meta.get("eval_model", "") or "").strip()
     mode = str(meta.get("mode", "") or "").strip().lower()
+
+    # Lineage-truth for extraction model should come from ingest artifacts, not
+    # eval-only launch defaults.
+    lineage_extraction_model = str(
+        (ingest_usage.get("ingest") or {}).get("model")
+        or ingest_complete.get("extraction_model")
+        or ""
+    ).strip()
+    if lineage_extraction_model:
+        extraction_model = lineage_extraction_model
 
     scores = load_json(run / "scores.json") or {}
     scores_meta = scores.get("metadata") or {}
@@ -405,6 +417,14 @@ def infer_model_lane(root: Path, run_name: str, active_cmd: Optional[str] = None
             m = re.search(r"--fc-models\s+([A-Za-z0-9._,-]+)", active_cmd)
             if m:
                 eval_model = str(m.group(1)).strip().split(",")[0].strip()
+
+    # Guardrail: eval-only runs can inherit a misleading `model` default in
+    # run_metadata when ingest artifacts are absent (lineage copied from an
+    # eval-only run). In that case, prefer blank over mislabeling a lane.
+    if mode == "eval" and not lineage_extraction_model:
+        meta_model = str(meta.get("model", "") or "").strip()
+        if extraction_model and meta_model and extraction_model == meta_model:
+            extraction_model = ""
 
     short_extract = _short_model_name(extraction_model)
     short_eval = _short_model_name(eval_model)
@@ -847,12 +867,29 @@ def enrich_run(root: Path, row: Dict[str, Any], active_cmd: Optional[str] = None
     row["provider_lane"] = infer_provider_lane(root, run_name, active_cmd=active_cmd)
     row["model_lane"] = infer_model_lane(root, run_name, active_cmd=active_cmd)
     row["metric_label"] = infer_metric_label(root, run_name)
+    row["note"] = infer_run_note(root, run_name)
     row["started_at"] = started_at
     row["completed_at"] = completed_at
     row["final_score"] = final_score
     row["preview_score"] = None if final_score is not None else extract_preview_score(root, run_name)
     row["current_active_item"] = run_progress(root, run_name) if row.get("state") == "active" else (row.get("reason") or "")
     return row
+
+
+def infer_run_note(root: Path, run_name: str) -> str:
+    run = root / "runs" / str(run_name)
+    note_path = run / "run_note.txt"
+    if note_path.exists():
+        try:
+            return str(note_path.read_text(encoding="utf-8").strip())
+        except Exception:
+            return ""
+    meta = load_json(run / "run_metadata.json") or {}
+    for key in ("note", "notes", "description", "run_note"):
+        value = meta.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
 
 
 def _tier5_progress(run: Path, launch_text: str) -> Optional[Tuple[int, int]]:

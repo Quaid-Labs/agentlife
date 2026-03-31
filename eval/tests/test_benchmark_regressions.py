@@ -364,6 +364,279 @@ class TestFcBaselinesFailHard:
         assert usage["eval"]["api_calls"] == 3
         assert not checkpoint_path.exists()
 
+    def test_eval_resume_checkpoint_round_trip_preserves_sparse_results(self, tmp_path):
+        workspace = tmp_path / "ws"
+        questions = [
+            {"question": "What does Maya do for work?"},
+            {"question": "Where does Maya live?"},
+            {"question": "What is Biscuit?"},
+        ]
+        checkpoint_path = rpb._eval_resume_checkpoint_path(workspace)
+        rpb._save_eval_resume_checkpoint(
+            checkpoint_path,
+            eval_model="claude-haiku-4-5-20251001",
+            total_queries=len(questions),
+            results_by_idx={
+                0: {
+                    "question": questions[0]["question"],
+                    "judge_label": "CORRECT",
+                },
+                2: {
+                    "question": questions[2]["question"],
+                    "judge_label": "WRONG",
+                },
+            },
+        )
+
+        loaded = rpb._load_eval_resume_checkpoint(
+            checkpoint_path,
+            eval_model="claude-haiku-4-5-20251001",
+            questions=questions,
+        )
+
+        assert sorted(loaded) == [0, 2]
+        assert loaded[0]["question"] == questions[0]["question"]
+        assert loaded[2]["question"] == questions[2]["question"]
+
+    def test_run_eval_resumes_from_checkpoint(self, monkeypatch, tmp_path):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+        assets_dir = tmp_path / "assets"
+        assets_dir.mkdir()
+        questions = [
+            {
+                "question": "What does Maya do for work?",
+                "ground_truth": "Product manager at TechFlow",
+                "query_type": "factual_recall",
+                "source_session": 1,
+            },
+            {
+                "question": "Where does Maya's mom live?",
+                "ground_truth": "Houston",
+                "query_type": "factual_recall",
+                "source_session": 2,
+            },
+        ]
+        checkpoint_path = rpb._eval_resume_checkpoint_path(workspace)
+        rpb._save_eval_resume_checkpoint(
+            checkpoint_path,
+            eval_model="claude-haiku-4-5-20251001",
+            total_queries=len(questions),
+            results_by_idx={
+                0: {
+                    "question": questions[0]["question"],
+                    "ground_truth": questions[0]["ground_truth"],
+                    "prediction": "Product manager at TechFlow",
+                    "judge_label": "CORRECT",
+                    "score": 1.0,
+                    "retrieval_label": "CORRECT",
+                    "retrieval_score": 1.0,
+                    "query_type": "factual_recall",
+                    "recall_difficulty": "unknown",
+                    "source_session": 1,
+                    "evidence_sessions": [],
+                    "tool_calls": ["memory_recall(pre-inject)"],
+                    "tool_call_details": [],
+                    "tool_results_summary": [],
+                    "tool_analysis": {},
+                    "statement_context_audit": "",
+                    "provenance": {},
+                    "required_context": [],
+                    "retrieval_texts": [],
+                    "answer_duration_s": 0.1,
+                    "query_duration_ms": 100,
+                    "preinject_duration_ms": 5,
+                    "eval_tokens": {"input_tokens": 3, "output_tokens": 1, "api_calls": 1},
+                }
+            },
+        )
+
+        monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "0")
+        monkeypatch.setattr(rpb, "_sync_instance_identity_to_workspace_root", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda max_sessions: (assets_dir, [_FakeReview(1), _FakeReview(2)], [_FakeReview(1), _FakeReview(2)], "v-test", 268),
+        )
+        monkeypatch.setattr(rpb, "get_all_eval_queries", lambda _reviews: list(questions))
+        monkeypatch.setattr(rpb, "get_statement_context_queries", lambda: [])
+        monkeypatch.setattr(
+            rpb,
+            "_apply_eval_query_profile",
+            lambda qs: (
+                list(qs),
+                {
+                    "profile": "full",
+                    "requested": len(qs),
+                    "selected": len(qs),
+                    "target_size": len(qs),
+                    "min_per_type": 1,
+                },
+            ),
+        )
+        monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_write_eval_query_profile_manifest", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_resolve_eval_context_profile", lambda: ("lean", [], True))
+        monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
+        monkeypatch.setattr(rpb, "_build_eval_context_sources", lambda *a, **k: [])
+        monkeypatch.setattr(rpb, "_resolve_eval_provider", lambda *a, **k: "oauth")
+        monkeypatch.setattr(rpb, "_benchmark_env", lambda *a, **k: {})
+        monkeypatch.setattr(rpb, "_resolve_eval_parallel_workers", lambda: 1)
+
+        calls = []
+
+        def _tool_use_loop(**kwargs):
+            calls.append(kwargs["question"])
+            return (
+                "Houston",
+                ["memory_recall(pre-inject)"],
+                [{"tool": "memory_recall"}],
+                ["Linda lives in Houston"],
+                {
+                    "input_tokens": 5,
+                    "output_tokens": 2,
+                    "api_calls": 1,
+                    "tool_call_details": [],
+                    "preinject_duration_ms": 7,
+                },
+            )
+
+        monkeypatch.setattr(rpb, "_tool_use_loop", _tool_use_loop)
+        monkeypatch.setattr(rpb, "_judge", lambda *a, **k: ("CORRECT", 1.0))
+        monkeypatch.setattr(
+            rpb,
+            "_summarize_usage_events",
+            lambda *_a, **_k: {
+                "input_tokens": 5,
+                "output_tokens": 2,
+                "total_tokens": 7,
+                "uncached_input_tokens": 5,
+                "cache_read_tokens": 0,
+                "cache_creation_tokens": 0,
+                "api_calls": 1,
+                "cost_usd": 0.0,
+                "by_model": {},
+                "by_tier": {},
+                "by_source": {},
+            },
+        )
+
+        results = rpb.run_eval(
+            workspace,
+            api_key="test-key",
+            eval_model="claude-haiku-4-5-20251001",
+            judge_model="gpt-4o-mini",
+            resume_eval=True,
+        )
+
+        assert calls == [questions[1]["question"]]
+        assert [row["question"] for row in results] == [q["question"] for q in questions]
+        assert not checkpoint_path.exists()
+        progress = json.loads((workspace / "logs" / "eval_progress.json").read_text())
+        assert progress["completed"] == 2
+
+    def test_run_eval_writes_resume_checkpoint_for_fresh_runs(self, monkeypatch, tmp_path):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+        assets_dir = tmp_path / "assets"
+        assets_dir.mkdir()
+        questions = [
+            {
+                "question": "What does Maya do for work?",
+                "ground_truth": "Product manager at TechFlow",
+                "query_type": "factual_recall",
+                "source_session": 1,
+            }
+        ]
+
+        monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "0")
+        monkeypatch.setattr(rpb, "_sync_instance_identity_to_workspace_root", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda max_sessions: (assets_dir, [_FakeReview(1)], [_FakeReview(1)], "v-test", 268),
+        )
+        monkeypatch.setattr(rpb, "get_all_eval_queries", lambda _reviews: list(questions))
+        monkeypatch.setattr(rpb, "get_statement_context_queries", lambda: [])
+        monkeypatch.setattr(
+            rpb,
+            "_apply_eval_query_profile",
+            lambda qs: (
+                list(qs),
+                {
+                    "profile": "full",
+                    "requested": len(qs),
+                    "selected": len(qs),
+                    "target_size": len(qs),
+                    "min_per_type": 1,
+                },
+            ),
+        )
+        monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_write_eval_query_profile_manifest", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_resolve_eval_context_profile", lambda: ("lean", [], True))
+        monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
+        monkeypatch.setattr(rpb, "_build_eval_context_sources", lambda *a, **k: [])
+        monkeypatch.setattr(rpb, "_resolve_eval_provider", lambda *a, **k: "oauth")
+        monkeypatch.setattr(rpb, "_benchmark_env", lambda *a, **k: {})
+        monkeypatch.setattr(rpb, "_resolve_eval_parallel_workers", lambda: 1)
+        monkeypatch.setattr(
+            rpb,
+            "_tool_use_loop",
+            lambda **kwargs: (
+                "Product manager at TechFlow",
+                ["memory_recall(pre-inject)"],
+                [{"tool": "memory_recall"}],
+                ["Maya works at TechFlow"],
+                {
+                    "input_tokens": 5,
+                    "output_tokens": 2,
+                    "api_calls": 1,
+                    "tool_call_details": [],
+                    "preinject_duration_ms": 7,
+                },
+            ),
+        )
+        monkeypatch.setattr(rpb, "_judge", lambda *a, **k: ("CORRECT", 1.0))
+        monkeypatch.setattr(
+            rpb,
+            "_summarize_usage_events",
+            lambda *_a, **_k: {
+                "input_tokens": 5,
+                "output_tokens": 2,
+                "total_tokens": 7,
+                "uncached_input_tokens": 5,
+                "cache_read_tokens": 0,
+                "cache_creation_tokens": 0,
+                "api_calls": 1,
+                "cost_usd": 0.0,
+                "by_model": {},
+                "by_tier": {},
+                "by_source": {},
+            },
+        )
+
+        checkpoint_paths = []
+        real_save = rpb._save_eval_resume_checkpoint
+
+        def _capture_save(checkpoint_path, **kwargs):
+            checkpoint_paths.append(checkpoint_path)
+            return real_save(checkpoint_path, **kwargs)
+
+        monkeypatch.setattr(rpb, "_save_eval_resume_checkpoint", _capture_save)
+
+        results = rpb.run_eval(
+            workspace,
+            api_key="test-key",
+            eval_model="claude-haiku-4-5-20251001",
+            judge_model="gpt-4o-mini",
+            resume_eval=False,
+        )
+
+        assert len(results) == 1
+        assert checkpoint_paths == [rpb._eval_resume_checkpoint_path(workspace)]
+        assert not rpb._eval_resume_checkpoint_path(workspace).exists()
+
 
 class TestClaudeCodeEvalFailHard:
     def test_call_claude_code_sends_prompt_via_stdin(self, monkeypatch):
@@ -1806,6 +2079,193 @@ def test_tool_use_loop_api_sets_temperature_zero(tmp_path, monkeypatch):
     assert retrieval_texts == []
     assert usage["api_calls"] == 1
     assert seen_payloads[0]["temperature"] == 0.0
+    assert seen_payloads[0]["system"][0]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_tool_use_loop_api_caches_static_eval_context_but_not_injected_recall(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+    monkeypatch.setattr(rpb, "_append_usage_event", lambda *a, **k: None)
+    monkeypatch.setattr(
+        rpb,
+        "_pre_recall",
+        lambda *a, **k: ("Fact one\\nFact two", "query used", {"stop_reason": "", "harness_telemetry": {}}),
+    )
+
+    seen_payloads = []
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "stop_reason": "end_turn",
+                    "content": [{"type": "text", "text": "final answer"}],
+                    "usage": {"input_tokens": 1, "output_tokens": 1},
+                }
+            ).encode()
+
+    def _fake_urlopen(req, timeout=120):
+        seen_payloads.append(json.loads(req.data.decode()))
+        return _Resp()
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    answer, tool_calls, tool_logs, retrieval_texts, usage = rpb._tool_use_loop(
+        question="What is the answer?",
+        eval_context="ctx",
+        workspace=workspace,
+        api_key="sk-ant-oat01-test-token",
+        env={},
+        model="claude-haiku-4-5-20251001",
+        context_inject=True,
+    )
+
+    assert answer == "final answer"
+    assert tool_calls == ["memory_recall(pre-inject)"]
+    assert retrieval_texts == ["Fact one\\nFact two"]
+    assert usage["api_calls"] == 1
+    system_blocks = seen_payloads[0]["system"]
+    assert system_blocks[0]["cache_control"] == {"type": "ephemeral"}
+    assert system_blocks[1]["cache_control"] == {"type": "ephemeral"}
+    assert "cache_control" not in system_blocks[2]
+    assert "Retrieved Memories" in system_blocks[2]["text"]
+
+
+def test_call_anthropic_cached_supports_cached_user_prefix_blocks(monkeypatch):
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+    seen_payloads = []
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "content": [{"type": "text", "text": "ok"}],
+                    "usage": {"input_tokens": 10, "output_tokens": 2},
+                }
+            ).encode()
+
+    def _fake_urlopen(req, timeout=300):
+        seen_payloads.append(json.loads(req.data.decode()))
+        return _Resp()
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    text, usage = rpb._call_anthropic_cached(
+        "sys",
+        [
+            {"text": "full transcript", "cache": True},
+            {"text": "Question: hi", "cache": False},
+        ],
+        "claude-haiku-4-5-20251001",
+        "test-key",
+        max_tokens=32,
+    )
+
+    assert text == "ok"
+    assert usage["input_tokens"] == 10
+    payload = seen_payloads[0]
+    user_blocks = payload["messages"][0]["content"]
+    assert user_blocks[0]["text"] == "full transcript"
+    assert user_blocks[0]["cache_control"] == {"type": "ephemeral"}
+    assert user_blocks[1]["text"] == "Question: hi"
+    assert "cache_control" not in user_blocks[1]
+
+
+def test_tool_use_loop_api_retries_timeout_once_then_succeeds(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+    monkeypatch.setattr(rpb, "_append_usage_event", lambda *a, **k: None)
+    monkeypatch.setattr(rpb.time, "sleep", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb.random, "uniform", lambda *_a, **_k: 0.0)
+    monkeypatch.setenv("ANTHROPIC_TOOL_USE_RETRY_ATTEMPTS", "2")
+
+    calls = {"n": 0}
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "stop_reason": "end_turn",
+                    "content": [{"type": "text", "text": "final answer"}],
+                    "usage": {"input_tokens": 1, "output_tokens": 1},
+                }
+            ).encode()
+
+    def _fake_urlopen(_req, timeout=120):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise TimeoutError("The read operation timed out")
+        return _Resp()
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    answer, tool_calls, tool_logs, retrieval_texts, usage = rpb._tool_use_loop(
+        question="What is the answer?",
+        eval_context="ctx",
+        workspace=workspace,
+        api_key="test-key",
+        env={},
+        model="claude-haiku-4-5-20251001",
+        context_inject=False,
+    )
+
+    assert calls["n"] == 2
+    assert answer == "final answer"
+    assert tool_calls == []
+    assert tool_logs == []
+    assert retrieval_texts == []
+    assert usage["api_calls"] == 1
+
+
+def test_tool_use_loop_api_timeout_fails_hard_after_retry(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+    monkeypatch.setattr(rpb, "_append_usage_event", lambda *a, **k: None)
+    monkeypatch.setattr(rpb.time, "sleep", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb.random, "uniform", lambda *_a, **_k: 0.0)
+    monkeypatch.setenv("ANTHROPIC_TOOL_USE_RETRY_ATTEMPTS", "2")
+
+    calls = {"n": 0}
+
+    def _fake_urlopen(_req, timeout=120):
+        calls["n"] += 1
+        raise TimeoutError("The read operation timed out")
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    with pytest.raises(RuntimeError, match="Eval answer model timeout"):
+        rpb._tool_use_loop(
+            question="What is the answer?",
+            eval_context="ctx",
+            workspace=workspace,
+            api_key="test-key",
+            env={},
+            model="claude-haiku-4-5-20251001",
+            context_inject=False,
+        )
+
+    assert calls["n"] == 2
 
 
 class TestGroupSessionsByDate:
@@ -2419,6 +2879,45 @@ def test_prune_usage_events_before_run_start(tmp_path):
     assert after[0]["ts"] == "2026-03-29T03:00:00+00:00"
 
 
+def test_reset_usage_events_for_eval_clears_inherited_rows(tmp_path):
+    workspace = tmp_path / "ws"
+    usage_path = rpb._usage_log_path(workspace)
+    usage_path.parent.mkdir(parents=True, exist_ok=True)
+    usage_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "ts": "2026-03-29T01:00:00+00:00",
+                        "phase": "eval",
+                        "source": "answer_model",
+                        "input_tokens": 100,
+                        "output_tokens": 20,
+                        "total_tokens": 120,
+                        "api_calls": 1,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "ts": "2026-03-29T03:00:00+00:00",
+                        "phase": "ingest",
+                        "source": "extract",
+                        "input_tokens": 200,
+                        "output_tokens": 40,
+                        "total_tokens": 240,
+                        "api_calls": 1,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    rpb._reset_usage_events_for_eval(workspace)
+    assert usage_path.read_text(encoding="utf-8") == ""
+
+
 def test_reset_eval_artifacts_removes_only_eval_outputs(tmp_path):
     workspace = tmp_path / "ws"
     (workspace / "logs").mkdir(parents=True, exist_ok=True)
@@ -2431,6 +2930,9 @@ def test_reset_eval_artifacts_removes_only_eval_outputs(tmp_path):
         workspace / "tier5_results.json",
         workspace / "logs" / "eval_progress.json",
         workspace / "logs" / "eval_query_profile.json",
+        workspace / "logs" / "eval_resume.json",
+        workspace / "logs" / "llm-call-trace.jsonl",
+        workspace / "logs" / "recall-telemetry.jsonl",
     ]
     for p in targets:
         p.write_text("x", encoding="utf-8")
@@ -3226,6 +3728,20 @@ def test_anthropic_oauth_system_blocks_include_claude_code_identity():
     assert blocks[1]["text"] == "Answer directly."
 
 
+def test_anthropic_text_blocks_support_mixed_cache_policy():
+    blocks = rpb._anthropic_text_blocks(
+        [
+            {"text": "cached prefix", "cache": True},
+            {"text": "dynamic suffix", "cache": False},
+        ],
+        prompt_caching=False,
+    )
+    assert blocks[0]["text"] == "cached prefix"
+    assert blocks[0]["cache_control"] == {"type": "ephemeral"}
+    assert blocks[1]["text"] == "dynamic suffix"
+    assert "cache_control" not in blocks[1]
+
+
 class TestSetupWorkspaceConfig:
     def test_claude_code_workspace_forces_split_tiers(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
@@ -3404,6 +3920,71 @@ class TestSetupWorkspaceConfig:
         parallel = cfg["core"]["parallel"]
         assert parallel["llmWorkers"] == 6
         assert parallel["embeddingWorkers"] == 2
+
+    def test_workspace_applies_embedding_backend_overrides(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(json.dumps({}), encoding="utf-8")
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+        monkeypatch.setenv("BENCHMARK_EMBEDDINGS_PROVIDER", "ollama")
+        monkeypatch.setenv("BENCHMARK_OLLAMA_URL", "http://127.0.0.1:11434")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_MODEL", "nomic-embed-text")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_DIM", "768")
+
+        rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        assert cfg["models"]["embeddingsProvider"] == "ollama"
+        assert cfg["ollama"]["url"] == "http://127.0.0.1:11434"
+        assert cfg["ollama"]["embeddingModel"] == "nomic-embed-text"
+        assert cfg["ollama"]["embeddingDim"] == 768
+
+    def test_known_qwen4b_embedding_dim_defaults_when_override_omitted(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(json.dumps({}), encoding="utf-8")
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+        monkeypatch.setenv("BENCHMARK_EMBEDDINGS_PROVIDER", "ollama")
+        monkeypatch.setenv("BENCHMARK_OLLAMA_URL", "http://127.0.0.1:11434")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_MODEL", "qwen3-embedding:4b")
+        monkeypatch.delenv("BENCHMARK_EMBEDDING_DIM", raising=False)
+
+        rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        assert cfg["ollama"]["embeddingModel"] == "qwen3-embedding:4b"
+        assert cfg["ollama"]["embeddingDim"] == 2560
+
+    def test_known_embedding_dim_mismatch_fails_early(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(json.dumps({}), encoding="utf-8")
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+        monkeypatch.setenv("BENCHMARK_EMBEDDINGS_PROVIDER", "ollama")
+        monkeypatch.setenv("BENCHMARK_OLLAMA_URL", "http://127.0.0.1:11434")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_MODEL", "qwen3-embedding:4b")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_DIM", "2048")
+
+        with pytest.raises(RuntimeError, match="canonical dimension.*2560.*2048"):
+            rpb.setup_workspace(workspace)
 
 
 class TestRequireProjectSourceRepo:
@@ -4568,7 +5149,7 @@ def test_canonical_eval_query_count_is_268():
     import importlib.util
     from pathlib import Path
 
-    dataset_path = Path("~/<username>/agentlife-benchmark/eval/dataset.py")
+    dataset_path = Path(__file__).resolve().parents[1] / "dataset.py"
     spec = importlib.util.spec_from_file_location("benchmark_dataset", dataset_path)
     assert spec is not None and spec.loader is not None
     dataset = importlib.util.module_from_spec(spec)
@@ -4590,7 +5171,7 @@ def test_statement_context_grounding_query_set_is_opt_in():
     import importlib.util
     from pathlib import Path
 
-    dataset_path = Path("~/<username>/agentlife-benchmark/eval/dataset.py")
+    dataset_path = Path(__file__).resolve().parents[1] / "dataset.py"
     spec = importlib.util.spec_from_file_location("benchmark_dataset", dataset_path)
     assert spec is not None and spec.loader is not None
     dataset = importlib.util.module_from_spec(spec)
@@ -4765,6 +5346,61 @@ class TestPerDayExtraction:
         assert result["janitor_runs"] == 0
         assert result["weekly_distill_runs"] == 0
         assert result["rolling_days"] == 0
+
+    def test_corrupt_cached_chunk_is_regenerated(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+
+        fake_dates = {1: "2026-03-01"}
+        monkeypatch.setattr(rpb, "SESSION_DATES", fake_dates)
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+        monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+
+        llm_calls = []
+
+        def _call_cached(*args, **kwargs):
+            llm_calls.append((args, kwargs))
+            return "{}", {"input_tokens": 1, "output_tokens": 1}
+
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", _call_cached)
+        monkeypatch.setattr(
+            rpb,
+            "parse_extraction_response",
+            lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
+        )
+        monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_project_logs", lambda *a, **k: {})
+        fake_repo = tmp_path / "recipe-app"
+        (fake_repo / ".git").mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(rpb, "_resolve_project_source_repo", lambda _p: fake_repo)
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
+        monkeypatch.setattr(rpb.subprocess, "run", lambda *a, **k: _FakeSubprocessResult())
+
+        cache_path = workspace / "extraction_cache" / "chunk-000.json"
+        cache_path.write_text("")
+
+        result = rpb.run_per_day_extraction(
+            workspace=workspace,
+            api_key="dummy",
+            no_cache=False,
+            model="claude-haiku-4-5-20251001",
+            max_sessions=1,
+            run_janitor_each_day=False,
+        )
+
+        assert len(llm_calls) == 1
+        cached_payload = json.loads(cache_path.read_text())
+        assert cached_payload["chunk_idx"] == 0
+        assert result["days"] == 1
 
     def test_auto_rolls_oversized_days_through_runtime_extract(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"

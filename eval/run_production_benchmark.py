@@ -293,30 +293,76 @@ def _anthropic_headers(credential: str, *, prompt_caching: bool = True) -> dict:
 
 
 def _anthropic_system_blocks(
-    system_prompt: Optional[str],
+    system_prompt: Optional[Any],
     credential: str,
     *,
     prompt_caching: bool = True,
 ) -> Optional[List[dict]]:
     blocks: List[dict] = []
-    cache_control = {"type": "ephemeral"} if prompt_caching else None
+    default_cache_control = {"type": "ephemeral"} if prompt_caching else None
     if _is_anthropic_oauth_token(credential):
         block = {
             "type": "text",
             "text": _ANTHROPIC_OAUTH_IDENTITY_TEXT,
         }
-        if cache_control:
-            block["cache_control"] = cache_control
+        if default_cache_control:
+            block["cache_control"] = default_cache_control
         blocks.append(block)
-    if system_prompt:
+    if isinstance(system_prompt, list):
+        for item in system_prompt:
+            if not isinstance(item, dict):
+                continue
+            text = str(item.get("text", "") or "")
+            if not text:
+                continue
+            block = {
+                "type": "text",
+                "text": text,
+            }
+            cache_enabled = item.get("cache")
+            if cache_enabled is None:
+                cache_enabled = prompt_caching
+            if cache_enabled:
+                block["cache_control"] = {"type": "ephemeral"}
+            blocks.append(block)
+    elif system_prompt:
         block = {
             "type": "text",
             "text": system_prompt,
         }
-        if cache_control:
-            block["cache_control"] = cache_control
+        if default_cache_control:
+            block["cache_control"] = default_cache_control
         blocks.append(block)
     return blocks or None
+
+
+def _anthropic_text_blocks(
+    text_or_blocks: Optional[Any],
+    *,
+    prompt_caching: bool = False,
+) -> Any:
+    """Build Anthropic text blocks, optionally mixing cached and uncached parts."""
+    if isinstance(text_or_blocks, list):
+        blocks: List[dict] = []
+        for item in text_or_blocks:
+            if isinstance(item, dict):
+                text = str(item.get("text", "") or "")
+                if not text:
+                    continue
+                block = {
+                    "type": "text",
+                    "text": text,
+                }
+                cache_enabled = item.get("cache")
+                if cache_enabled is None:
+                    cache_enabled = prompt_caching
+                if cache_enabled:
+                    block["cache_control"] = {"type": "ephemeral"}
+                blocks.append(block)
+            elif item:
+                blocks.append({"type": "text", "text": str(item)})
+        return blocks
+    return text_or_blocks or ""
 
 
 def _resolve_assets_dir() -> Path:
@@ -892,6 +938,18 @@ def _normalize_project_logs(project_logs: object) -> dict:
     return normalized
 
 
+_KNOWN_EMBEDDING_MODEL_DIMS = {
+    "nomic-embed-text": 768,
+    "qwen3-embedding:4b": 2560,
+    "qwen3-embedding:8b": 4096,
+}
+
+
+def _known_embedding_dim(model_name: str) -> Optional[int]:
+    """Return the canonical vector dimension for known local embedding models."""
+    return _KNOWN_EMBEDDING_MODEL_DIMS.get(str(model_name or "").strip())
+
+
 def _parse_fc_models(raw: Optional[str]) -> List[str]:
     """Parse comma-separated FC answer models while preserving order."""
     if not raw:
@@ -961,6 +1019,10 @@ def _tier5_fc_result_stem(answer_model: str) -> str:
 
 def _fc_resume_checkpoint_path(results_dir: Path, stem: str) -> Path:
     return results_dir / f"{stem}_resume.json"
+
+
+def _eval_resume_checkpoint_path(results_dir: Path) -> Path:
+    return results_dir / "logs" / "eval_resume.json"
 
 
 def _has_rolling_obd_resume_state(workspace: Path) -> bool:
@@ -1045,6 +1107,64 @@ def _save_fc_resume_checkpoint(
             "output_tokens": int(usage.get("output_tokens", 0) or 0),
             "api_calls": int(usage.get("api_calls", 0) or 0),
         },
+    }
+    checkpoint_path.write_text(json.dumps(payload, indent=2))
+
+
+def _load_eval_resume_checkpoint(
+    checkpoint_path: Optional[Path],
+    *,
+    eval_model: str,
+    questions: List[dict],
+) -> Dict[int, dict]:
+    if checkpoint_path is None or not checkpoint_path.exists():
+        return {}
+    payload = json.loads(checkpoint_path.read_text())
+    if payload.get("eval_model") != eval_model:
+        raise RuntimeError(
+            f"Eval resume checkpoint model mismatch: expected {eval_model}, "
+            f"got {payload.get('eval_model')!r}"
+        )
+    expected_total = len(questions)
+    saved_total = int(payload.get("total_queries", expected_total) or 0)
+    if saved_total != expected_total:
+        raise RuntimeError(
+            f"Eval resume checkpoint query-count mismatch: expected {expected_total}, got {saved_total}"
+        )
+    rows = payload.get("results_by_index", [])
+    if not isinstance(rows, list):
+        raise RuntimeError("Eval resume checkpoint is invalid: results_by_index must be a list")
+    if len(rows) > len(questions):
+        raise RuntimeError("Eval resume checkpoint contains too many rows")
+    results_by_idx: Dict[int, dict] = {}
+    for idx, row in enumerate(rows):
+        if row is None:
+            continue
+        if not isinstance(row, dict):
+            raise RuntimeError(f"Eval resume checkpoint row {idx} is invalid")
+        if row.get("question") != questions[idx].get("question"):
+            raise RuntimeError(
+                "Eval resume checkpoint question mismatch at "
+                f"{idx + 1}: {row.get('question')!r} != {questions[idx].get('question')!r}"
+            )
+        results_by_idx[idx] = row
+    return results_by_idx
+
+
+def _save_eval_resume_checkpoint(
+    checkpoint_path: Optional[Path],
+    *,
+    eval_model: str,
+    total_queries: int,
+    results_by_idx: Dict[int, dict],
+) -> None:
+    if checkpoint_path is None:
+        return
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "eval_model": eval_model,
+        "total_queries": total_queries,
+        "results_by_index": [results_by_idx.get(i) for i in range(total_queries)],
     }
     checkpoint_path.write_text(json.dumps(payload, indent=2))
 
@@ -1246,6 +1366,22 @@ def _prune_usage_events_before_run_start(workspace: Path) -> None:
         pass
 
 
+def _reset_usage_events_for_eval(workspace: Path) -> None:
+    """Force eval-only runs to account only usage emitted in this eval execution.
+
+    Eval refreshes reuse lineage workspaces by design; keeping historical usage
+    rows in-place can pollute token accounting if timestamps are malformed or
+    inherited rows bypass marker-based pruning. For `--mode eval`, clear usage
+    events up front so `token_usage.json` reflects only the current eval pass.
+    """
+    usage_path = _usage_log_path(workspace)
+    try:
+        usage_path.parent.mkdir(parents=True, exist_ok=True)
+        usage_path.write_text("", encoding="utf-8")
+    except Exception:
+        pass
+
+
 def _reset_eval_artifacts(workspace: Path) -> None:
     """Clear prior eval outputs when reusing an ingest workspace for fresh eval."""
     rel_paths = [
@@ -1255,6 +1391,9 @@ def _reset_eval_artifacts(workspace: Path) -> None:
         "tier5_results.json",
         "logs/eval_progress.json",
         "logs/eval_query_profile.json",
+        "logs/eval_resume.json",
+        "logs/llm-call-trace.jsonl",
+        "logs/recall-telemetry.jsonl",
     ]
     for rel in rel_paths:
         p = workspace / rel
@@ -1912,6 +2051,40 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
         # BENCHMARK_FAST_REASONING_MODEL.
         prod_config["models"]["deepReasoning"] = deep_reasoning_model
         prod_config["models"]["fastReasoning"] = fast_reasoning_model
+
+    # Optional embedding-lane overrides for benchmark A/Bs.
+    # Keep these harness-scoped: they only shape generated workspace config.
+    embeddings_provider_override = os.environ.get("BENCHMARK_EMBEDDINGS_PROVIDER", "").strip()
+    if embeddings_provider_override:
+        prod_config["models"]["embeddingsProvider"] = embeddings_provider_override
+    if not isinstance(prod_config.get("ollama"), dict):
+        prod_config["ollama"] = {}
+    ollama_url_override = os.environ.get("BENCHMARK_OLLAMA_URL", "").strip()
+    if ollama_url_override:
+        prod_config["ollama"]["url"] = ollama_url_override
+    embedding_model_override = os.environ.get("BENCHMARK_EMBEDDING_MODEL", "").strip()
+    if embedding_model_override:
+        prod_config["ollama"]["embeddingModel"] = embedding_model_override
+    effective_embedding_model = str(
+        (prod_config.get("ollama") or {}).get("embeddingModel", "") or ""
+    ).strip()
+    known_embedding_dim = _known_embedding_dim(effective_embedding_model)
+    embedding_dim_override = os.environ.get("BENCHMARK_EMBEDDING_DIM", "").strip()
+    if embedding_dim_override:
+        try:
+            parsed_dim = int(embedding_dim_override)
+        except ValueError as exc:
+            raise RuntimeError(f"BENCHMARK_EMBEDDING_DIM must be an integer, got: {embedding_dim_override!r}") from exc
+        if parsed_dim <= 0:
+            raise RuntimeError(f"BENCHMARK_EMBEDDING_DIM must be positive, got: {parsed_dim}")
+        if known_embedding_dim is not None and parsed_dim != known_embedding_dim:
+            raise RuntimeError(
+                "BENCHMARK_EMBEDDING_DIM does not match the canonical dimension for "
+                f"{effective_embedding_model!r}: expected {known_embedding_dim}, got {parsed_dim}"
+            )
+        prod_config["ollama"]["embeddingDim"] = parsed_dim
+    elif known_embedding_dim is not None:
+        prod_config["ollama"]["embeddingDim"] = known_embedding_dim
     if not isinstance(prod_config.get("users"), dict):
         prod_config["users"] = {}
     prod_config["users"]["defaultOwner"] = "maya"
@@ -2307,6 +2480,33 @@ def _save_obd_post_extract_checkpoint(
     metadata_path = workspace / "logs" / "obd_post_extract_checkpoint.json"
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metadata_path.write_text(json.dumps(payload, indent=2))
+    return payload
+
+
+def _load_cached_preextract_chunk(cache_path: Path) -> Optional[dict]:
+    """Load a cached preextract chunk, tolerating outage-corrupted files.
+
+    Power/network interruptions can leave a zero-byte or truncated cache file in
+    place after the chunk worker finished opening the path but before the JSON
+    payload was fully written. Treat those cache entries as stale so the chunk
+    is regenerated instead of killing the whole benchmark run.
+    """
+    try:
+        payload = json.loads(cache_path.read_text())
+    except (OSError, UnicodeError, ValueError) as exc:
+        print(f"  Invalid cached chunk {cache_path.name} ({type(exc).__name__}); regenerating")
+        try:
+            cache_path.unlink()
+        except OSError:
+            pass
+        return None
+    if not isinstance(payload, dict):
+        print(f"  Invalid cached chunk {cache_path.name} (non-object payload); regenerating")
+        try:
+            cache_path.unlink()
+        except OSError:
+            pass
+        return None
     return payload
 
 
@@ -4439,14 +4639,15 @@ def run_per_day_extraction(
             continue
         cache_path = cache_dir / f"chunk-{chunk_idx:03d}.json"
         if not no_cache and cache_path.exists():
-            cached = json.loads(cache_path.read_text())
-            day_cache.setdefault(chunk_day, []).append(cached)
-            print(
-                f"  Cached chunk {chunk_idx + 1}/{len(extracted_chunks)} "
-                f"({chunk_day} sessions {cached.get('sessions', [])}): "
-                f"{len(cached.get('facts', []))} facts"
-            )
-            continue
+            cached = _load_cached_preextract_chunk(cache_path)
+            if cached is not None:
+                day_cache.setdefault(chunk_day, []).append(cached)
+                print(
+                    f"  Cached chunk {chunk_idx + 1}/{len(extracted_chunks)} "
+                    f"({chunk_day} sessions {cached.get('sessions', [])}): "
+                    f"{len(cached.get('facts', []))} facts"
+                )
+                continue
 
         combined_transcript = "\n\n".join(item["block"] for item in chunk_blocks)
         chunk_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
@@ -5038,7 +5239,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
              context_inject: bool = True,
              judge_model: str = "gpt-4o-mini",
              include_statement_grounding: bool = False,
-             preinject_planner_profile: str = "fast") -> List[dict]:
+             preinject_planner_profile: str = "fast",
+             resume_eval: bool = False) -> List[dict]:
     """Evaluate using tool use (memory_recall + search_project_docs).
 
     If context_inject=True, pre-recalls memories and injects them into the
@@ -5132,6 +5334,15 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     db_path = workspace / "data" / "memory.db"
     env = _benchmark_env(workspace, "eval")
 
+    checkpoint_path = _eval_resume_checkpoint_path(workspace)
+    results_by_idx = _load_eval_resume_checkpoint(
+        checkpoint_path,
+        eval_model=eval_model,
+        questions=all_queries,
+    ) if resume_eval else {}
+    if results_by_idx:
+        print(f"  Resuming eval checkpoint: {len(results_by_idx)}/{len(all_queries)} queries already scored")
+
     results = []
     correct = 0
     partial_count = 0
@@ -5141,11 +5352,11 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     progress_path = workspace / "logs" / "eval_progress.json"
     progress_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def _write_eval_progress(current_idx: int, completed_idx: int) -> None:
+    def _write_eval_progress(current_idx: int, completed_count: int, completed_idx: int) -> None:
         payload = {
             "total_queries": len(all_queries),
             "current_query": current_idx,
-            "completed": max(0, completed_idx + 1),
+            "completed": max(0, completed_count),
             "last_completed_query": completed_idx,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -5154,10 +5365,21 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         except Exception:
             pass
 
-    _write_eval_progress(current_idx=0, completed_idx=-1)
+    for row in results_by_idx.values():
+        label = str(row.get("judge_label", "") or "").upper()
+        if label == "CORRECT":
+            correct += 1
+        elif label == "PARTIAL":
+            partial_count += 1
+        else:
+            wrong += 1
+    completed = len(results_by_idx)
+    completed_idx = max(results_by_idx.keys(), default=-1)
+    _write_eval_progress(current_idx=completed, completed_count=completed, completed_idx=completed_idx)
 
     parallel_workers = _resolve_eval_parallel_workers()
-    parallel_workers = min(parallel_workers, max(1, len(all_queries)))
+    pending_queries = [(i, q) for i, q in enumerate(all_queries) if i not in results_by_idx]
+    parallel_workers = min(parallel_workers, max(1, len(pending_queries)))
     if parallel_workers > 1:
         print(f"  Eval parallel workers: {parallel_workers}")
 
@@ -5274,10 +5496,13 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         }
         return i, result, marker, query_type, tool_calls
 
-    completed = 0
     if parallel_workers == 1:
-        for i, query in enumerate(all_queries):
-            _write_eval_progress(current_idx=i, completed_idx=i - 1)
+        for i, query in pending_queries:
+            _write_eval_progress(
+                current_idx=len(results_by_idx),
+                completed_count=len(results_by_idx),
+                completed_idx=max(results_by_idx.keys(), default=-1),
+            )
             i2, result, marker, query_type, tool_calls = _eval_one(i, query)
             q_usage = result.get("eval_tokens", {})
             eval_usage["input_tokens"] += q_usage.get("input_tokens", 0)
@@ -5289,17 +5514,27 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 partial_count += 1
             else:
                 wrong += 1
-            results.append(result)
+            results_by_idx[i2] = result
+            _save_eval_resume_checkpoint(
+                checkpoint_path,
+                eval_model=eval_model,
+                total_queries=len(all_queries),
+                results_by_idx=results_by_idx,
+            )
+            completed = len(results_by_idx)
             scored_so_far = correct + partial_count + wrong
             acc_so_far = (correct + 0.5 * partial_count) / scored_so_far * 100 if scored_so_far > 0 else 0
             tools_str = f" tools=[{','.join(tool_calls)}]" if tool_calls else " (no tools)"
-            print(f"  [{i2+1}/{len(all_queries)}] {marker} ({query_type}) "
+            print(f"  [{completed}/{len(all_queries)}|q{i2+1}] {marker} ({query_type}) "
                   f"{result['question'][:50]}...{tools_str} [{acc_so_far:.1f}%]")
-            _write_eval_progress(current_idx=i2 + 1, completed_idx=i2)
+            _write_eval_progress(
+                current_idx=completed,
+                completed_count=completed,
+                completed_idx=max(results_by_idx.keys(), default=-1),
+            )
     else:
-        results_by_idx = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_workers) as ex:
-            fut_map = {ex.submit(_eval_one, i, q): i for i, q in enumerate(all_queries)}
+            fut_map = {ex.submit(_eval_one, i, q): i for i, q in pending_queries}
             for fut in concurrent.futures.as_completed(fut_map):
                 i2, result, marker, query_type, tool_calls = fut.result()
                 q_usage = result.get("eval_tokens", {})
@@ -5313,14 +5548,24 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 else:
                     wrong += 1
                 results_by_idx[i2] = result
-                completed += 1
-                _write_eval_progress(current_idx=completed, completed_idx=completed - 1)
+                _save_eval_resume_checkpoint(
+                    checkpoint_path,
+                    eval_model=eval_model,
+                    total_queries=len(all_queries),
+                    results_by_idx=results_by_idx,
+                )
+                completed = len(results_by_idx)
+                _write_eval_progress(
+                    current_idx=completed,
+                    completed_count=completed,
+                    completed_idx=max(results_by_idx.keys(), default=-1),
+                )
                 scored_so_far = correct + partial_count + wrong
                 acc_so_far = (correct + 0.5 * partial_count) / scored_so_far * 100 if scored_so_far > 0 else 0
                 tools_str = f" tools=[{','.join(tool_calls)}]" if tool_calls else " (no tools)"
                 print(f"  [{completed}/{len(all_queries)}|q{i2+1}] {marker} ({query_type}) "
                       f"{result['question'][:50]}...{tools_str} [{acc_so_far:.1f}%]")
-        results = [results_by_idx[i] for i in range(len(all_queries))]
+    results = [results_by_idx[i] for i in range(len(all_queries))]
 
     elapsed = time.time() - t_start
     scored = correct + partial_count + wrong
@@ -5352,6 +5597,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     # Attach usage summary to results for later saving
     if results:
         results[0].setdefault("_eval_usage_summary", eval_usage)
+    if checkpoint_path and checkpoint_path.exists():
+        checkpoint_path.unlink()
     return results
 
 
@@ -5526,11 +5773,19 @@ def run_fc_baseline(
             "Answer concisely and accurately. If the conversations don't contain "
             "enough information, say \"I don't have information about that.\""
         )
-        user_message = (
-            f"Here are transcripts of past conversations with Maya:\n\n"
-            f"{full_transcripts}\n\n"
-            f"Question: {question}\n\nAnswer:"
-        )
+        user_message = [
+            {
+                "text": (
+                    "Here are transcripts of past conversations with Maya:\n\n"
+                    f"{full_transcripts}\n\n"
+                ),
+                "cache": True,
+            },
+            {
+                "text": f"Question: {question}\n\nAnswer:",
+                "cache": False,
+            },
+        ]
 
         try:
             raw_response, usage = _call_anthropic_cached(
@@ -6237,23 +6492,38 @@ def _tool_use_loop(
             })
 
     if context_inject:
-        system_prompt = (
+        static_system_prompt = (
             "You are an AI assistant answering questions about a user named Maya "
             "based on your memory of past conversations.\n\n"
             "Below are memories retrieved for this question. Use them if helpful. "
             "You may search for more if needed.\n\n"
             f"{eval_context}"
-            f"{injected_context}"
         )
+        dynamic_injected_prompt = injected_context
     else:
-        system_prompt = (
+        static_system_prompt = (
             "You are an AI assistant answering questions about a user named Maya "
             "based on your memory of past conversations. Use the available tools "
             "if you need to search your memory before answering.\n\n"
             f"{eval_context}"
         )
+        dynamic_injected_prompt = ""
 
     messages = [{"role": "user", "content": question}]
+    retry_attempts = max(1, int(os.environ.get("ANTHROPIC_TOOL_USE_RETRY_ATTEMPTS", "2")))
+    backoff_s = max(0.5, float(os.environ.get("ANTHROPIC_TOOL_USE_RETRY_BACKOFF_S", "2")))
+    backoff_cap_s = max(backoff_s, float(os.environ.get("ANTHROPIC_TOOL_USE_RETRY_BACKOFF_CAP_S", "10")))
+
+    def _is_timeout_like(exc: BaseException) -> bool:
+        if isinstance(exc, TimeoutError):
+            return True
+        if isinstance(exc, urllib.error.URLError):
+            reason = getattr(exc, "reason", None)
+            if isinstance(reason, TimeoutError):
+                return True
+            if "timed out" in str(reason or "").lower():
+                return True
+        return "timed out" in str(exc).lower()
 
     for turn in range(max_turns):
         payload = {
@@ -6263,10 +6533,15 @@ def _tool_use_loop(
             "messages": messages,
             "tools": tools,
         }
+        system_prompt_blocks: List[Dict[str, Any]] = [
+            {"text": static_system_prompt, "cache": True},
+        ]
+        if dynamic_injected_prompt:
+            system_prompt_blocks.append({"text": dynamic_injected_prompt, "cache": False})
         system_blocks = _anthropic_system_blocks(
-            system_prompt,
+            system_prompt_blocks,
             api_key,
-            prompt_caching=False,
+            prompt_caching=True,
         )
         if system_blocks:
             payload["system"] = system_blocks
@@ -6277,11 +6552,58 @@ def _tool_use_loop(
             headers=_anthropic_headers(api_key, prompt_caching=False),
         )
 
-        try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                data = json.loads(resp.read())
-        except Exception as e:
-            return f"Error: {e}", tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+        data = None
+        last_err: Optional[Exception] = None
+        for attempt in range(1, retry_attempts + 1):
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    data = json.loads(resp.read())
+                break
+            except urllib.error.HTTPError as exc:
+                body = ""
+                try:
+                    body = (exc.read() or b"").decode("utf-8", errors="ignore")
+                except Exception:
+                    body = ""
+                retriable = exc.code in {408, 429, 500, 502, 503, 504, 520, 529}
+                last_err = RuntimeError(
+                    f"Eval answer model HTTP {exc.code} for query {question!r} "
+                    f"(turn {turn + 1}/{max_turns}): {body[:300]}"
+                )
+                if not retriable or attempt == retry_attempts:
+                    raise last_err from exc
+            except urllib.error.URLError as exc:
+                last_err = RuntimeError(
+                    f"Eval answer model URL error for query {question!r} "
+                    f"(turn {turn + 1}/{max_turns}): {exc}"
+                )
+                if not _is_timeout_like(exc) or attempt == retry_attempts:
+                    raise last_err from exc
+            except TimeoutError as exc:
+                last_err = RuntimeError(
+                    f"Eval answer model timeout for query {question!r} "
+                    f"(turn {turn + 1}/{max_turns}): {exc}"
+                )
+                if attempt == retry_attempts:
+                    raise last_err from exc
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Eval answer model failed for query {question!r} "
+                    f"(turn {turn + 1}/{max_turns}): {exc}"
+                ) from exc
+
+            delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
+            delay *= 1.0 + random.uniform(0.0, 0.25)
+            print(
+                f"  [anthropic-tool-use] attempt {attempt}/{retry_attempts} failed for "
+                f"query {question[:60]!r}; retrying in {delay:.1f}s"
+            )
+            time.sleep(delay)
+
+        if data is None:
+            raise last_err or RuntimeError(
+                f"Eval answer model failed with no response payload for query {question!r}"
+            )
 
         # Track token usage
         _usage = data.get("usage", {})
@@ -8072,11 +8394,19 @@ def run_tier5_fc_baseline(
             "Answer naturally and conversationally. Pay attention to emotional "
             "context, sensitivities, and interpersonal dynamics."
         )
-        user_message = (
-            f"Here are transcripts of past conversations with Maya:\n\n"
-            f"{full_transcripts}\n\n"
-            f"Question: {question}\n\nAnswer:"
-        )
+        user_message = [
+            {
+                "text": (
+                    "Here are transcripts of past conversations with Maya:\n\n"
+                    f"{full_transcripts}\n\n"
+                ),
+                "cache": True,
+            },
+            {
+                "text": f"Question: {question}\n\nAnswer:",
+                "cache": False,
+            },
+        ]
 
         try:
             raw_response, usage = _call_anthropic_cached(
@@ -8433,8 +8763,8 @@ def _seed_instance_identity_from_sources(
 
 
 def _call_anthropic_cached(
-    system_prompt: str,
-    user_message: str,
+    system_prompt: Any,
+    user_message: Any,
     model: str,
     api_key: str,
     max_tokens: int = 8192,
@@ -8446,7 +8776,7 @@ def _call_anthropic_cached(
     payload = {
         "model": model,
         "max_tokens": max_tokens,
-        "messages": [{"role": "user", "content": user_message}],
+        "messages": [{"role": "user", "content": _anthropic_text_blocks(user_message, prompt_caching=False)}],
     }
     system_blocks = _anthropic_system_blocks(system_prompt, api_key, prompt_caching=True)
     if system_blocks:
@@ -9172,6 +9502,10 @@ def main():
                         help="Override the default Haiku-only answer-model policy for intentional experiments")
     parser.add_argument("--resume-day-lifecycle", action="store_true",
                         help="Resume ingest/day-janitor from latest successful day checkpoint in results-dir")
+    parser.add_argument("--resume-extraction", dest="resume_day_lifecycle", action="store_true",
+                        help=argparse.SUPPRESS)
+    parser.add_argument("--resume-eval", action="store_true",
+                        help="Resume eval from the per-query checkpoint in results-dir")
     parser.add_argument("--include-statement-grounding", action="store_true",
                         help="Include the opt-in statement-context-grounding eval set (dataset experiment)")
     parser.add_argument("--preinject-planner-profile", choices=["off", "fast", "aggressive"], default="fast",
@@ -9196,6 +9530,8 @@ def main():
         fc_models=fc_models,
         allow_non_haiku=allow_non_haiku_answer_model,
     )
+    if args.resume_eval and args.mode != "eval":
+        raise SystemExit("--resume-eval is only supported with --mode eval")
 
     if args.backend == "api":
         args.backend = "oauth"
@@ -9224,6 +9560,7 @@ def main():
     print(f"  No-cache: {args.no_cache}")
     print(f"  Skip-janitor: {args.skip_janitor}")
     print(f"  Resume-day-lifecycle: {args.resume_day_lifecycle}")
+    print(f"  Resume-eval: {args.resume_eval}")
     print(f"  Context-inject: {args.context_inject}")
     print(f"  Preinject planner profile: {args.preinject_planner_profile}")
     print(f"  Include statement grounding: {args.include_statement_grounding}")
@@ -9240,11 +9577,18 @@ def main():
         print(f"  FC answer models: {', '.join(fc_models)}")
     print()
 
-    # Important for eval refreshes from lineage workspaces: token accounting should
-    # include only events from this run, not inherited old usage logs.
-    _write_usage_run_start_marker(workspace)
-    _prune_usage_events_before_run_start(workspace)
-    if args.mode in {"full", "eval", "per-day"}:
+    # Important for lineage workspaces:
+    # - full/per-day: keep marker+prune behavior so ingest/eval usage in one run
+    #   is preserved while older history is dropped.
+    # - eval-only: hard-reset usage rows so token accounting cannot inherit
+    #   lineage history.
+    if not args.resume_eval:
+        _write_usage_run_start_marker(workspace)
+        if args.mode == "eval":
+            _reset_usage_events_for_eval(workspace)
+        else:
+            _prune_usage_events_before_run_start(workspace)
+    if args.mode in {"full", "eval", "per-day"} and not args.resume_eval:
         _reset_eval_artifacts(workspace)
 
     # Set global backend for all LLM calls
@@ -9290,7 +9634,8 @@ def main():
                           context_inject=args.context_inject,
                           judge_model=args.judge,
                           include_statement_grounding=args.include_statement_grounding,
-                          preinject_planner_profile=args.preinject_planner_profile)
+                          preinject_planner_profile=args.preinject_planner_profile,
+                          resume_eval=args.resume_eval)
 
         results_path = workspace / "evaluation_results.json"
         with open(results_path, "w") as f:

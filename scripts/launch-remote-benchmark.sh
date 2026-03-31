@@ -23,6 +23,7 @@ DRY_RUN=false
 SKIP_LOCAL_CHECKS=false
 PARALLEL="${BENCHMARK_PARALLEL:-6}"
 SCALE="${BENCHMARK_SCALE:-s}"
+RUN_NOTE=""
 
 usage() {
   cat <<'USAGE'
@@ -45,6 +46,7 @@ Options:
   --skip-local-checks              Skip local compile/test gate before sync+launch
   --parallel N                     Parallel workers hint (default: 6)
   --scale s|l                      AgentLife scale for naming/env (default: s)
+  --note TEXT                      Short dashboard note for this run (optional)
   -h, --help                       Show help
 
 Examples:
@@ -65,6 +67,7 @@ while [[ $# -gt 0 ]]; do
     --skip-local-checks) SKIP_LOCAL_CHECKS=true; shift ;;
     --parallel) PARALLEL="$2"; shift 2 ;;
     --scale) SCALE="$2"; shift 2 ;;
+    --note) RUN_NOTE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     --) shift; break ;;
     *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
@@ -228,6 +231,7 @@ echo "Remote benchmark root:      $REMOTE_BENCH_ROOT"
 echo "Remote checkpoint root:     $REMOTE_CHECKPOINT_ROOT"
 echo "Remote plugin root:         $REMOTE_CHECKPOINT_PLUGIN_ROOT"
 echo "Parallel workers:           $PARALLEL"
+echo "Run note:                   ${RUN_NOTE:-<empty>}"
 echo "Benchmark args:             $*"
 echo ""
 
@@ -373,6 +377,9 @@ else
     OPTIONAL_BENCH_ENV+="export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=$(printf %q "$LOCAL_BENCHMARK_OAUTH_TOKEN")"$'\n'
   fi
 fi
+if [[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export CLAUDE_CODE_OAUTH_TOKEN=$(printf %q "$CLAUDE_CODE_OAUTH_TOKEN")"$'\n'
+fi
 if [[ -n "${BENCHMARK_MAX_QUERIES:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_MAX_QUERIES=$(printf %q "$BENCHMARK_MAX_QUERIES")"$'\n'
 fi
@@ -439,6 +446,21 @@ if [[ -n "${QUAID_CAPTURE_CHUNK_MAX_LINES:-}" ]]; then
 fi
 if [[ -n "${BENCHMARK_OBD_CHUNK_MAX_LINES:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_OBD_CHUNK_MAX_LINES=$(printf %q "$BENCHMARK_OBD_CHUNK_MAX_LINES")"$'\n'
+fi
+if [[ -n "${BENCHMARK_EMBEDDINGS_PROVIDER:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_EMBEDDINGS_PROVIDER=$(printf %q "$BENCHMARK_EMBEDDINGS_PROVIDER")"$'\n'
+fi
+if [[ -n "${BENCHMARK_OLLAMA_URL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_OLLAMA_URL=$(printf %q "$BENCHMARK_OLLAMA_URL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_EMBEDDING_MODEL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_EMBEDDING_MODEL=$(printf %q "$BENCHMARK_EMBEDDING_MODEL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_EMBEDDING_DIM:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_EMBEDDING_DIM=$(printf %q "$BENCHMARK_EMBEDDING_DIM")"$'\n'
+fi
+if [[ -n "$RUN_NOTE" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_RUN_NOTE=$(printf %q "$RUN_NOTE")"$'\n'
 fi
 OPTIONAL_BENCH_ENV+="export BENCHMARK_SCALE=$(printf %q "$SCALE")"$'\n'
 if [[ "$SCALE" == "l" ]]; then
@@ -524,6 +546,9 @@ else
 fi
 echo \"Using runner: \$RUNNER\"
 mkdir -p $(printf %q "$RESULTS_DIR")
+if [[ -n \"\${BENCHMARK_RUN_NOTE:-}\" ]]; then
+  printf '%s\n' \"\$BENCHMARK_RUN_NOTE\" > $(printf %q "$RESULTS_DIR")/run_note.txt
+fi
 LAUNCH_LOG=${RESULTS_DIR}.launch.log
 nohup env PYTHONUNBUFFERED=1 python3 \"\$RUNNER\" $LAUNCH_ARGS_ESCAPED > \"\$LAUNCH_LOG\" 2>&1 &
 RPID=\$!
