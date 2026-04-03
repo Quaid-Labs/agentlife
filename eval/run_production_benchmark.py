@@ -7448,7 +7448,7 @@ def _render_recall_docs_bundle(bundle: Any) -> str:
 def _recall_subprocess_timeout_seconds(*, fast: bool) -> int:
     env_name = "BENCHMARK_RECALL_FAST_TIMEOUT_S" if fast else "BENCHMARK_RECALL_TIMEOUT_S"
     strict_default = 30 if fast else 90
-    if not _uses_openai_compatible_backend():
+    if not _relaxed_local_timeouts_enabled():
         return strict_default
     local_default = 120 if fast else 180
     raw = str(os.environ.get(env_name, "") or "").strip()
@@ -9302,6 +9302,48 @@ def _uses_openai_compatible_backend(backend: Optional[str] = None) -> bool:
     return str(backend or _BACKEND).strip().lower() in {"vllm", "llama-cpp"}
 
 
+def _env_truthy(name: str) -> bool:
+    return str(os.environ.get(name, "") or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_local_host(host: str) -> bool:
+    host = str(host or "").strip().lower()
+    if host in {"", "localhost", "127.0.0.1", "::1"}:
+        return True
+    if host.startswith("10.") or host.startswith("192.168."):
+        return True
+    if host.startswith("172."):
+        parts = host.split(".")
+        if len(parts) >= 2:
+            try:
+                second = int(parts[1])
+            except Exception:
+                second = -1
+            if 16 <= second <= 31:
+                return True
+    return False
+
+
+def _openai_compatible_is_local_provider() -> bool:
+    if not _uses_openai_compatible_backend():
+        return False
+    url = _get_openai_compatible_url()
+    host = str(urllib.parse.urlsplit(url).hostname or "").strip().lower()
+    return _is_local_host(host)
+
+
+def _relaxed_local_timeouts_enabled() -> bool:
+    return _env_truthy("BENCHMARK_RELAX_TIMEOUTS") and _openai_compatible_is_local_provider()
+
+
+def _require_relax_timeouts_for_local_provider(*, relax_requested: bool) -> None:
+    if _openai_compatible_is_local_provider() and not relax_requested:
+        raise SystemExit(
+            "True local openai-compatible provider detected; pass --relax-timeouts "
+            "to acknowledge relaxed local timeout policy"
+        )
+
+
 def _openai_compatible_backend_label(backend: Optional[str] = None) -> str:
     return str(backend or _BACKEND or "openai-compatible").strip().lower()
 
@@ -9404,7 +9446,10 @@ def _openai_compatible_answer_timeout_s() -> Optional[int]:
     feasibility tests without changing product/runtime behavior. A value of 0
     disables the client-side timeout entirely for long-running local runs.
     """
-    raw = str(os.environ.get("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "120") or "120").strip()
+    strict_default = 120
+    if not _relaxed_local_timeouts_enabled():
+        return strict_default
+    raw = str(os.environ.get("OPENAI_COMPAT_ANSWER_TIMEOUT_S", str(strict_default)) or str(strict_default)).strip()
     try:
         value = int(raw)
     except ValueError as exc:
@@ -10506,6 +10551,8 @@ def main():
                         help="Model name served by the llama.cpp endpoint (required when --backend llama-cpp)")
     parser.add_argument("--llama-cpp-api-key-env", type=str, default="BENCHMARK_LLAMA_CPP_API_KEY",
                         help="Env var name holding the llama.cpp bearer token (default: BENCHMARK_LLAMA_CPP_API_KEY)")
+    parser.add_argument("--relax-timeouts", action="store_true",
+                        help="Explicitly allow wider timeout budgets for true local providers only")
     parser.add_argument("--allow-non-haiku-answer-model", action="store_true",
                         help="Override the default Haiku-only answer-model policy for intentional experiments")
     parser.add_argument("--resume-day-lifecycle", action="store_true",
@@ -10573,6 +10620,10 @@ def main():
             args.model = args.llama_cpp_model
         if not eval_model_explicitly_set:
             args.eval_model = args.llama_cpp_model
+    if args.relax_timeouts:
+        os.environ["BENCHMARK_RELAX_TIMEOUTS"] = "1"
+    else:
+        os.environ.pop("BENCHMARK_RELAX_TIMEOUTS", None)
 
     workspace = Path(args.results_dir).resolve()
     if args.mode == "eval" and not model_explicitly_set:
@@ -10611,6 +10662,7 @@ def main():
     print(f"  Preinject planner profile: {args.preinject_planner_profile}")
     print(f"  Include statement grounding: {args.include_statement_grounding}")
     print(f"  Judge: {args.judge}")
+    print(f"  Relax-timeouts: {args.relax_timeouts}")
     print(f"  Allow non-Haiku answer model: {allow_non_haiku_answer_model}")
     prompt_telemetry = _extraction_prompt_telemetry()
     print(
@@ -10651,6 +10703,7 @@ def main():
         _OPENAI_COMPAT_URL = str(args.vllm_url or "").strip().rstrip("/")
         _OPENAI_COMPAT_MODEL = str(args.vllm_model or "").strip()
         _OPENAI_COMPAT_API_KEY_ENV = str(args.vllm_api_key_env or "BENCHMARK_VLLM_API_KEY").strip() or "BENCHMARK_VLLM_API_KEY"
+    _require_relax_timeouts_for_local_provider(relax_requested=args.relax_timeouts)
     # Ensure helper modules that import dynamically (e.g. project_updater append)
     # resolve the same Quaid root as the harness.
     os.environ["BENCHMARK_PLUGIN_DIR"] = str(_QUAID_DIR.resolve())
@@ -10663,6 +10716,7 @@ def main():
             "model": args.model,
             "eval_model": args.eval_model,
             "judge": args.judge,
+            "relax_timeouts": args.relax_timeouts,
             "parallel": _resolve_eval_parallel_workers(),
             "max_sessions": args.max_sessions,
             "openai_compat_url": _OPENAI_COMPAT_URL,

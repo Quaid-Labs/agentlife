@@ -2392,10 +2392,13 @@ def test_tool_use_loop_llama_cpp_dispatches_to_openai_compatible_loop(tmp_path, 
     assert seen["kwargs"]["model"] == "gemma-3-31b-it"
 
 
-def test_tool_use_loop_openai_compatible_uses_timeout_env_override(tmp_path, monkeypatch):
+def test_tool_use_loop_openai_compatible_uses_timeout_env_override_with_relax_flag(tmp_path, monkeypatch):
     workspace = tmp_path / "ws"
     workspace.mkdir()
     monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "600")
+    monkeypatch.setenv("BENCHMARK_RELAX_TIMEOUTS", "1")
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://127.0.0.1:30001")
 
     seen: dict[str, object] = {}
 
@@ -2449,7 +2452,20 @@ def test_tool_use_loop_openai_compatible_uses_timeout_env_override(tmp_path, mon
     assert seen["timeout"] == 600
 
 
-def test_openai_compatible_answer_timeout_env_validation(monkeypatch):
+def test_openai_compatible_answer_timeout_ignores_env_without_relax_flag(monkeypatch):
+    monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "600")
+    monkeypatch.delenv("BENCHMARK_RELAX_TIMEOUTS", raising=False)
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://127.0.0.1:30001")
+
+    assert rpb._openai_compatible_answer_timeout_s() == 120
+
+
+def test_openai_compatible_answer_timeout_env_validation_requires_relax_flag(monkeypatch):
+    monkeypatch.setenv("BENCHMARK_RELAX_TIMEOUTS", "1")
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://127.0.0.1:30001")
+
     monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "slow")
     with pytest.raises(RuntimeError, match="must be an integer"):
         rpb._openai_compatible_answer_timeout_s()
@@ -2460,6 +2476,27 @@ def test_openai_compatible_answer_timeout_env_validation(monkeypatch):
     monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "-1")
     with pytest.raises(RuntimeError, match="must be >= 0"):
         rpb._openai_compatible_answer_timeout_s()
+
+
+def test_recall_subprocess_timeout_defaults_strict_without_relax_flag(monkeypatch):
+    monkeypatch.delenv("BENCHMARK_RELAX_TIMEOUTS", raising=False)
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://127.0.0.1:30001")
+    monkeypatch.setenv("BENCHMARK_RECALL_FAST_TIMEOUT_S", "120")
+    monkeypatch.setenv("BENCHMARK_RECALL_TIMEOUT_S", "180")
+
+    assert rpb._recall_subprocess_timeout_seconds(fast=True) == 30
+    assert rpb._recall_subprocess_timeout_seconds(fast=False) == 90
+
+
+def test_require_relax_timeouts_for_local_provider(monkeypatch):
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://127.0.0.1:30001")
+
+    with pytest.raises(SystemExit, match="--relax-timeouts"):
+        rpb._require_relax_timeouts_for_local_provider(relax_requested=False)
+
+    rpb._require_relax_timeouts_for_local_provider(relax_requested=True)
 
 
 def test_call_openai_compatible_chat_writes_trace_events(tmp_path, monkeypatch):
@@ -3595,7 +3632,9 @@ def test_tool_memory_recall_allows_fast_timeout_override(tmp_path, monkeypatch):
 
     monkeypatch.setattr(subprocess, "run", _fake_run)
     monkeypatch.setenv("BENCHMARK_RECALL_FAST_TIMEOUT_S", "120")
+    monkeypatch.setenv("BENCHMARK_RELAX_TIMEOUTS", "1")
     monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://127.0.0.1:30001")
 
     _text, meta = rpb._tool_memory_recall(
         "coffee",
