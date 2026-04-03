@@ -2392,6 +2392,73 @@ def test_tool_use_loop_llama_cpp_dispatches_to_openai_compatible_loop(tmp_path, 
     assert seen["kwargs"]["model"] == "gemma-3-31b-it"
 
 
+def test_tool_use_loop_openai_compatible_uses_timeout_env_override(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "600")
+
+    seen: dict[str, object] = {}
+
+    def _fake_pre_recall(*args, **kwargs):
+        return ("", "recent plans", {"stop_reason": "no_memories"})
+
+    def _fake_chat(*, timeout, **kwargs):
+        seen["timeout"] = timeout
+        return (
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "Final answer.",
+                            "tool_calls": [],
+                        }
+                    }
+                ]
+            },
+            {
+                "input_tokens": 11,
+                "output_tokens": 7,
+                "api_calls": 1,
+                "model_usage": {
+                    "gemma-4-31b-q8": {
+                        "input_tokens": 11,
+                        "output_tokens": 7,
+                        "total_tokens": 18,
+                    }
+                },
+            },
+        )
+
+    monkeypatch.setattr(rpb, "_pre_recall", _fake_pre_recall)
+    monkeypatch.setattr(rpb, "_call_openai_compatible_chat", _fake_chat)
+
+    answer, tool_calls, tool_logs, retrieval_texts, usage = rpb._tool_use_loop_openai_compatible(
+        question="exercise habits recent plans",
+        eval_context="ctx",
+        workspace=workspace,
+        env={},
+        model="gemma-4-31b-q8",
+        context_inject=True,
+    )
+
+    assert answer == "Final answer."
+    assert tool_calls == []
+    assert tool_logs == []
+    assert retrieval_texts == []
+    assert usage["api_calls"] == 1
+    assert seen["timeout"] == 600
+
+
+def test_openai_compatible_answer_timeout_env_validation(monkeypatch):
+    monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "slow")
+    with pytest.raises(RuntimeError, match="must be an integer"):
+        rpb._openai_compatible_answer_timeout_s()
+
+    monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "0")
+    with pytest.raises(RuntimeError, match="must be positive"):
+        rpb._openai_compatible_answer_timeout_s()
+
+
 class TestGroupSessionsByDate:
     """Tests for _group_sessions_by_date: session grouping."""
 

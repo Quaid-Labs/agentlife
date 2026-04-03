@@ -6972,7 +6972,7 @@ def _tool_use_loop_openai_compatible(
             messages=messages,
             model=model,
             max_tokens=2048,
-            timeout=120,
+            timeout=_openai_compatible_answer_timeout_s(),
             tools=tools,
             workspace=workspace,
             source="answer_model",
@@ -9105,6 +9105,23 @@ def _openai_message_text(message: Dict[str, Any]) -> str:
                 parts.append(str(item))
         return "\n".join(parts).strip()
     return str(content or "")
+
+
+def _openai_compatible_answer_timeout_s() -> int:
+    """Return per-request timeout for openai-compatible answer/model calls.
+
+    Local self-hosted lanes can have much longer end-to-end latency than Haiku.
+    Keep the historical 120s default, but allow harness-side override for
+    feasibility tests without changing product/runtime behavior.
+    """
+    raw = str(os.environ.get("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "120") or "120").strip()
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"OPENAI_COMPAT_ANSWER_TIMEOUT_S must be an integer, got: {raw!r}") from exc
+    if value <= 0:
+        raise RuntimeError(f"OPENAI_COMPAT_ANSWER_TIMEOUT_S must be positive, got: {value}")
+    return value
 
 
 def _call_openai_compatible_chat(
