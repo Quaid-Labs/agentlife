@@ -2506,7 +2506,7 @@ def test_call_openai_compatible_chat_writes_trace_events(tmp_path, monkeypatch):
     monkeypatch.setenv("BENCHMARK_LLAMA_CPP_URL", "http://example.test")
     monkeypatch.setenv("BENCHMARK_LLAMA_CPP_MODEL", "gemma-4-31b-q8")
     monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
-    monkeypatch.setattr(rpb, "_get_openai_compatible_api_key", lambda: "")
+    monkeypatch.setattr(rpb, "_get_openai_compatible_api_key", lambda source=None: "")
 
     def _fake_urlopen(_req, timeout=300):
         payload = {
@@ -2545,7 +2545,7 @@ def test_call_openai_compatible_chat_clears_active_request_on_error(tmp_path, mo
     monkeypatch.setenv("BENCHMARK_LLAMA_CPP_URL", "http://example.test")
     monkeypatch.setenv("BENCHMARK_LLAMA_CPP_MODEL", "gemma-4-31b-q8")
     monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
-    monkeypatch.setattr(rpb, "_get_openai_compatible_api_key", lambda: "")
+    monkeypatch.setattr(rpb, "_get_openai_compatible_api_key", lambda source=None: "")
 
     def _fake_urlopen(_req, timeout=300):
         raise TimeoutError("timed out")
@@ -4904,7 +4904,15 @@ def test_resolve_judge_provider_prefers_openai_for_gpt(monkeypatch):
 def test_resolve_judge_provider_uses_openai_compatible_for_served_model(monkeypatch):
     monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
     monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "gemma-4-31b-q8")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_JUDGE_MODEL", "")
     assert rpb._resolve_judge_provider("gemma-4-31b-q8") == "openai-compatible"
+
+
+def test_resolve_judge_provider_uses_openai_compatible_for_separate_judge_model(monkeypatch):
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "gemma-4-31b-q8")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_JUDGE_MODEL", "gemma-4-26b-q6k")
+    assert rpb._resolve_judge_provider("gemma-4-26b-q6k") == "openai-compatible"
 
 
 def test_judge_with_prompt_routes_to_openai_compatible(monkeypatch):
@@ -4949,6 +4957,25 @@ def test_judge_openai_compatible_uses_compact_strict_cap(monkeypatch):
     assert seen["max_tokens"] == 24
     assert seen["source"] == "judge"
     assert seen["chat_template_kwargs"] == {"enable_thinking": False}
+
+
+def test_openai_compatible_helpers_route_judge_to_separate_endpoint(monkeypatch):
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://answer.local:30001")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "gemma-4-31b-q8")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "BENCHMARK_LLAMA_CPP_API_KEY")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_JUDGE_URL", "http://judge.local:30002")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_JUDGE_MODEL", "gemma-4-26b-q6k")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_JUDGE_API_KEY_ENV", "BENCHMARK_LLAMA_CPP_JUDGE_API_KEY")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_API_KEY", "answer-key")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_JUDGE_API_KEY", "judge-key")
+
+    assert rpb._get_openai_compatible_url() == "http://answer.local:30001"
+    assert rpb._get_openai_compatible_url(source="judge") == "http://judge.local:30002"
+    assert rpb._get_openai_compatible_model() == "gemma-4-31b-q8"
+    assert rpb._get_openai_compatible_model(source="judge") == "gemma-4-26b-q6k"
+    assert rpb._get_openai_compatible_api_key() == "answer-key"
+    assert rpb._get_openai_compatible_api_key(source="judge") == "judge-key"
 
 
 def test_judge_non_question_uses_openai_compatible_when_requested(monkeypatch):

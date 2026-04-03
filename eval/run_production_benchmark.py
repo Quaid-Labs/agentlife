@@ -8574,8 +8574,12 @@ def _resolve_judge_provider(judge_model: str) -> str:
     if model.startswith("gpt-"):
         return "openai"
     if _uses_openai_compatible_backend():
-        served = _get_openai_compatible_model()
-        if model and served and model == served:
+        served_models = {
+            _get_openai_compatible_model(),
+            _get_openai_compatible_model(source="judge"),
+        }
+        served_models.discard("")
+        if model and model in served_models:
             return "openai-compatible"
     return "anthropic"
 
@@ -9296,6 +9300,9 @@ _BENCHMARK_QUAID_INSTANCE = "benchrunner"
 _OPENAI_COMPAT_URL = ""
 _OPENAI_COMPAT_MODEL = ""
 _OPENAI_COMPAT_API_KEY_ENV = "BENCHMARK_OPENAI_COMPAT_API_KEY"
+_OPENAI_COMPAT_JUDGE_URL = ""
+_OPENAI_COMPAT_JUDGE_MODEL = ""
+_OPENAI_COMPAT_JUDGE_API_KEY_ENV = ""
 
 
 def _uses_openai_compatible_backend(backend: Optional[str] = None) -> bool:
@@ -9362,26 +9369,61 @@ def _openai_compatible_env_defaults(backend: Optional[str] = None) -> Tuple[str,
         "BENCHMARK_VLLM_API_KEY",
     )
 
+def _openai_compatible_judge_env_defaults(backend: Optional[str] = None) -> Tuple[str, str, str]:
+    name = _openai_compatible_backend_label(backend)
+    if name == "llama-cpp":
+        return (
+            "BENCHMARK_LLAMA_CPP_JUDGE_URL",
+            "BENCHMARK_LLAMA_CPP_JUDGE_MODEL",
+            "BENCHMARK_LLAMA_CPP_JUDGE_API_KEY",
+        )
+    return (
+        "BENCHMARK_VLLM_JUDGE_URL",
+        "BENCHMARK_VLLM_JUDGE_MODEL",
+        "BENCHMARK_VLLM_JUDGE_API_KEY",
+    )
 
-def _get_openai_compatible_url() -> str:
+
+def _is_openai_compatible_judge_source(source: Optional[str]) -> bool:
+    return str(source or "").strip().lower() in {"judge", "tier5_judge"}
+
+
+def _get_openai_compatible_url(source: Optional[str] = None) -> str:
     url_env, _, _ = _openai_compatible_env_defaults()
+    judge_url_env, _, _ = _openai_compatible_judge_env_defaults()
+    if _is_openai_compatible_judge_source(source):
+        judge_url = str(_OPENAI_COMPAT_JUDGE_URL or os.environ.get(judge_url_env, "")).strip().rstrip("/")
+        if judge_url:
+            return judge_url
     return str(_OPENAI_COMPAT_URL or os.environ.get(url_env, "")).strip().rstrip("/")
 
 
-def _get_openai_compatible_model() -> str:
+def _get_openai_compatible_model(source: Optional[str] = None) -> str:
     _, model_env, _ = _openai_compatible_env_defaults()
+    _, judge_model_env, _ = _openai_compatible_judge_env_defaults()
+    if _is_openai_compatible_judge_source(source):
+        judge_model = str(_OPENAI_COMPAT_JUDGE_MODEL or os.environ.get(judge_model_env, "")).strip()
+        if judge_model:
+            return judge_model
     return str(_OPENAI_COMPAT_MODEL or os.environ.get(model_env, "")).strip()
 
 
-def _get_openai_compatible_api_key_env() -> str:
+def _get_openai_compatible_api_key_env(source: Optional[str] = None) -> str:
     _, _, api_env = _openai_compatible_env_defaults()
+    _, _, judge_api_env = _openai_compatible_judge_env_defaults()
+    if _is_openai_compatible_judge_source(source):
+        env_name = str(
+            _OPENAI_COMPAT_JUDGE_API_KEY_ENV or os.environ.get(f"{judge_api_env}_ENV", judge_api_env)
+        ).strip()
+        if env_name:
+            return env_name
     return str(
         _OPENAI_COMPAT_API_KEY_ENV or os.environ.get(f"{api_env}_ENV", api_env)
     ).strip() or api_env
 
 
-def _get_openai_compatible_api_key() -> str:
-    env_name = _get_openai_compatible_api_key_env()
+def _get_openai_compatible_api_key(source: Optional[str] = None) -> str:
+    env_name = _get_openai_compatible_api_key_env(source=source)
     key = str(os.environ.get(env_name, "") or "").strip()
     if key:
         return key
@@ -9473,13 +9515,13 @@ def _call_openai_compatible_chat(
     source: Optional[str] = None,
     provider: str = "vllm",
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    url = _get_openai_compatible_url()
+    url = _get_openai_compatible_url(source=source)
     if not url:
         backend = _openai_compatible_backend_label()
         if backend == "llama-cpp":
             raise RuntimeError("llama-cpp backend requires --llama-cpp-url or BENCHMARK_LLAMA_CPP_URL")
         raise RuntimeError("vllm backend requires --vllm-url or BENCHMARK_VLLM_URL")
-    api_key = _get_openai_compatible_api_key()
+    api_key = _get_openai_compatible_api_key(source=source)
 
     payload: Dict[str, Any] = {
         "model": model,
@@ -10566,6 +10608,18 @@ def main():
                         help="Model name served by the llama.cpp endpoint (required when --backend llama-cpp)")
     parser.add_argument("--llama-cpp-api-key-env", type=str, default="BENCHMARK_LLAMA_CPP_API_KEY",
                         help="Env var name holding the llama.cpp bearer token (default: BENCHMARK_LLAMA_CPP_API_KEY)")
+    parser.add_argument("--vllm-judge-url", type=str, default="",
+                        help="Optional base URL for a separate vLLM OpenAI-compatible judge endpoint")
+    parser.add_argument("--vllm-judge-model", type=str, default="",
+                        help="Optional model name served by the separate vLLM judge endpoint")
+    parser.add_argument("--vllm-judge-api-key-env", type=str, default="BENCHMARK_VLLM_JUDGE_API_KEY",
+                        help="Env var name holding the separate vLLM judge bearer token")
+    parser.add_argument("--llama-cpp-judge-url", type=str, default="",
+                        help="Optional base URL for a separate llama.cpp OpenAI-compatible judge endpoint")
+    parser.add_argument("--llama-cpp-judge-model", type=str, default="",
+                        help="Optional model name served by the separate llama.cpp judge endpoint")
+    parser.add_argument("--llama-cpp-judge-api-key-env", type=str, default="BENCHMARK_LLAMA_CPP_JUDGE_API_KEY",
+                        help="Env var name holding the separate llama.cpp judge bearer token")
     parser.add_argument("--relax-timeouts", action="store_true",
                         help="Explicitly allow wider timeout budgets for true local providers only")
     parser.add_argument("--allow-non-haiku-answer-model", action="store_true",
@@ -10614,10 +10668,16 @@ def main():
             args.vllm_url = str(os.environ.get("BENCHMARK_VLLM_URL", "") or "").strip()
         if not str(args.vllm_model or "").strip():
             args.vllm_model = str(os.environ.get("BENCHMARK_VLLM_MODEL", "") or "").strip()
+        if not str(args.vllm_judge_url or "").strip():
+            args.vllm_judge_url = str(os.environ.get("BENCHMARK_VLLM_JUDGE_URL", "") or "").strip()
+        if not str(args.vllm_judge_model or "").strip():
+            args.vllm_judge_model = str(os.environ.get("BENCHMARK_VLLM_JUDGE_MODEL", "") or "").strip()
         if not str(args.vllm_url or "").strip():
             raise SystemExit("--backend vllm requires --vllm-url")
         if not str(args.vllm_model or "").strip():
             raise SystemExit("--backend vllm requires --vllm-model")
+        if str(args.vllm_judge_url or "").strip() and not str(args.vllm_judge_model or "").strip():
+            raise SystemExit("Separate vllm judge endpoint requires --vllm-judge-model")
         if args.mode != "eval" and not model_explicitly_set:
             args.model = args.vllm_model
         if not eval_model_explicitly_set:
@@ -10627,10 +10687,16 @@ def main():
             args.llama_cpp_url = str(os.environ.get("BENCHMARK_LLAMA_CPP_URL", "") or "").strip()
         if not str(args.llama_cpp_model or "").strip():
             args.llama_cpp_model = str(os.environ.get("BENCHMARK_LLAMA_CPP_MODEL", "") or "").strip()
+        if not str(args.llama_cpp_judge_url or "").strip():
+            args.llama_cpp_judge_url = str(os.environ.get("BENCHMARK_LLAMA_CPP_JUDGE_URL", "") or "").strip()
+        if not str(args.llama_cpp_judge_model or "").strip():
+            args.llama_cpp_judge_model = str(os.environ.get("BENCHMARK_LLAMA_CPP_JUDGE_MODEL", "") or "").strip()
         if not str(args.llama_cpp_url or "").strip():
             raise SystemExit("--backend llama-cpp requires --llama-cpp-url")
         if not str(args.llama_cpp_model or "").strip():
             raise SystemExit("--backend llama-cpp requires --llama-cpp-model")
+        if str(args.llama_cpp_judge_url or "").strip() and not str(args.llama_cpp_judge_model or "").strip():
+            raise SystemExit("Separate llama-cpp judge endpoint requires --llama-cpp-judge-model")
         if args.mode != "eval" and not model_explicitly_set:
             args.model = args.llama_cpp_model
         if not eval_model_explicitly_set:
@@ -10709,15 +10775,28 @@ def main():
     global _OPENAI_COMPAT_URL
     global _OPENAI_COMPAT_MODEL
     global _OPENAI_COMPAT_API_KEY_ENV
+    global _OPENAI_COMPAT_JUDGE_URL
+    global _OPENAI_COMPAT_JUDGE_MODEL
+    global _OPENAI_COMPAT_JUDGE_API_KEY_ENV
     _BACKEND = args.backend
     if args.backend == "llama-cpp":
         _OPENAI_COMPAT_URL = str(args.llama_cpp_url or "").strip().rstrip("/")
         _OPENAI_COMPAT_MODEL = str(args.llama_cpp_model or "").strip()
         _OPENAI_COMPAT_API_KEY_ENV = str(args.llama_cpp_api_key_env or "BENCHMARK_LLAMA_CPP_API_KEY").strip() or "BENCHMARK_LLAMA_CPP_API_KEY"
+        _OPENAI_COMPAT_JUDGE_URL = str(args.llama_cpp_judge_url or "").strip().rstrip("/")
+        _OPENAI_COMPAT_JUDGE_MODEL = str(args.llama_cpp_judge_model or "").strip()
+        _OPENAI_COMPAT_JUDGE_API_KEY_ENV = str(
+            args.llama_cpp_judge_api_key_env or "BENCHMARK_LLAMA_CPP_JUDGE_API_KEY"
+        ).strip() or "BENCHMARK_LLAMA_CPP_JUDGE_API_KEY"
     else:
         _OPENAI_COMPAT_URL = str(args.vllm_url or "").strip().rstrip("/")
         _OPENAI_COMPAT_MODEL = str(args.vllm_model or "").strip()
         _OPENAI_COMPAT_API_KEY_ENV = str(args.vllm_api_key_env or "BENCHMARK_VLLM_API_KEY").strip() or "BENCHMARK_VLLM_API_KEY"
+        _OPENAI_COMPAT_JUDGE_URL = str(args.vllm_judge_url or "").strip().rstrip("/")
+        _OPENAI_COMPAT_JUDGE_MODEL = str(args.vllm_judge_model or "").strip()
+        _OPENAI_COMPAT_JUDGE_API_KEY_ENV = str(
+            args.vllm_judge_api_key_env or "BENCHMARK_VLLM_JUDGE_API_KEY"
+        ).strip() or "BENCHMARK_VLLM_JUDGE_API_KEY"
     _require_relax_timeouts_for_local_provider(relax_requested=args.relax_timeouts)
     # Ensure helper modules that import dynamically (e.g. project_updater append)
     # resolve the same Quaid root as the harness.
@@ -10737,12 +10816,21 @@ def main():
             "openai_compat_url": _OPENAI_COMPAT_URL,
             "openai_compat_model": _OPENAI_COMPAT_MODEL,
             "openai_compat_api_key_env": _OPENAI_COMPAT_API_KEY_ENV,
+            "openai_compat_judge_url": _OPENAI_COMPAT_JUDGE_URL,
+            "openai_compat_judge_model": _OPENAI_COMPAT_JUDGE_MODEL,
+            "openai_compat_judge_api_key_env": _OPENAI_COMPAT_JUDGE_API_KEY_ENV,
             "vllm_url": _OPENAI_COMPAT_URL if args.backend == "vllm" else "",
             "vllm_model": _OPENAI_COMPAT_MODEL if args.backend == "vllm" else "",
             "vllm_api_key_env": _OPENAI_COMPAT_API_KEY_ENV if args.backend == "vllm" else "",
+            "vllm_judge_url": _OPENAI_COMPAT_JUDGE_URL if args.backend == "vllm" else "",
+            "vllm_judge_model": _OPENAI_COMPAT_JUDGE_MODEL if args.backend == "vllm" else "",
+            "vllm_judge_api_key_env": _OPENAI_COMPAT_JUDGE_API_KEY_ENV if args.backend == "vllm" else "",
             "llama_cpp_url": _OPENAI_COMPAT_URL if args.backend == "llama-cpp" else "",
             "llama_cpp_model": _OPENAI_COMPAT_MODEL if args.backend == "llama-cpp" else "",
             "llama_cpp_api_key_env": _OPENAI_COMPAT_API_KEY_ENV if args.backend == "llama-cpp" else "",
+            "llama_cpp_judge_url": _OPENAI_COMPAT_JUDGE_URL if args.backend == "llama-cpp" else "",
+            "llama_cpp_judge_model": _OPENAI_COMPAT_JUDGE_MODEL if args.backend == "llama-cpp" else "",
+            "llama_cpp_judge_api_key_env": _OPENAI_COMPAT_JUDGE_API_KEY_ENV if args.backend == "llama-cpp" else "",
         },
     )
     normalize_model = args.model
