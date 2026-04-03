@@ -5620,6 +5620,14 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     # Attach usage summary to results for later saving
     if results:
         results[0].setdefault("_eval_usage_summary", eval_usage)
+        results[0].setdefault(
+            "_eval_run_summary",
+            {
+                "elapsed_seconds": round(float(elapsed), 3),
+                "parallel_workers": int(parallel_workers),
+                "queries": len(results),
+            },
+        )
     if checkpoint_path and checkpoint_path.exists():
         checkpoint_path.unlink()
     return results
@@ -7811,6 +7819,12 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
         for r in results
         if isinstance(r.get("eval_tokens", {}).get("preinject_duration_ms"), (int, float))
     ]
+    eval_run_summary = {}
+    for row in results:
+        candidate = row.get("_eval_run_summary")
+        if isinstance(candidate, dict):
+            eval_run_summary = candidate
+            break
 
     def _pct(values: list[float], q: float) -> int:
         if not values:
@@ -7818,6 +7832,11 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
         vals = sorted(values)
         idx = min(len(vals) - 1, max(0, int((len(vals) - 1) * q)))
         return round(vals[idx])
+
+    def _safe_rate(numerator: float, denominator: float, digits: int = 2) -> float:
+        if denominator <= 0:
+            return 0.0
+        return round(float(numerator) / float(denominator), digits)
 
     def _collect_recall_metas(source: str) -> list[dict]:
         metas: list[dict] = []
@@ -8094,6 +8113,37 @@ def _save_token_usage(results: list, workspace: Path, eval_model: str):
             "p95": _pct(preinject_durations, 0.95),
             "p99": _pct(preinject_durations, 0.99),
             "max": round(max(preinject_durations)) if preinject_durations else 0,
+        },
+        "eval_runtime": {
+            "elapsed_seconds": round(float(eval_run_summary.get("elapsed_seconds", 0.0) or 0.0), 3),
+            "parallel_workers": int(eval_run_summary.get("parallel_workers", 0) or 0),
+            "queries": int(eval_run_summary.get("queries", len(results)) or 0),
+            "queries_per_second": _safe_rate(
+                float(eval_run_summary.get("queries", len(results)) or 0),
+                float(eval_run_summary.get("elapsed_seconds", 0.0) or 0.0),
+                3,
+            ),
+            "input_tokens_per_second": _safe_rate(
+                eval_in,
+                float(eval_run_summary.get("elapsed_seconds", 0.0) or 0.0),
+                2,
+            ),
+            "output_tokens_per_second": _safe_rate(
+                eval_out,
+                float(eval_run_summary.get("elapsed_seconds", 0.0) or 0.0),
+                2,
+            ),
+            "total_tokens_per_second": _safe_rate(
+                eval_in + eval_out,
+                float(eval_run_summary.get("elapsed_seconds", 0.0) or 0.0),
+                2,
+            ),
+            "summed_query_seconds": round(sum(query_completion_durations) / 1000.0, 3) if query_completion_durations else 0.0,
+            "average_inflight_factor": _safe_rate(
+                sum(query_completion_durations) / 1000.0 if query_completion_durations else 0.0,
+                float(eval_run_summary.get("elapsed_seconds", 0.0) or 0.0),
+                2,
+            ),
         },
         "preinject_recall_telemetry": _aggregate_recall_phase_metas(preinject_recall_metas),
         "tool_recall_telemetry": _aggregate_recall_phase_metas(tool_recall_metas),

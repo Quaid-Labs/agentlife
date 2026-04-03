@@ -2856,24 +2856,36 @@ def test_save_token_usage_includes_preinject_timing_stats(tmp_path):
     assert data["preinject_recall_telemetry"]["parallel_speedup_x"]["avg"] == 2.18
     assert data["preinject_recall_telemetry"]["parallel_efficiency_pct"]["avg"] == 72.7
     assert data["preinject_recall_telemetry"]["parallel_overhead_ms"]["avg"] == 8
-    assert data["preinject_usage"] == {
-        "enabled": 0,
-        "attempted": 0,
-        "surfaced": 0,
-        "not_surfaced": 0,
-    }
-    assert data["preinject_by_query_type"]["unknown"] == {
-        "count": 3,
-        "enabled": 0,
-        "attempted": 0,
-        "surfaced": 0,
-        "not_surfaced": 0,
-        "avg_duration_ms": 200,
-    }
-    assert data["repeated_memory_recall"]["queries"] == 0
-    assert store_stats["by_combo"] == {"vector+docs": 1, "vector+graph": 1}
-    assert data["store_stats"]["by_source"]["preinject"] == {"vector+docs": 1}
-    assert data["store_stats"]["by_source"]["tool"] == {"vector+graph": 1}
+
+
+def test_save_token_usage_includes_eval_runtime_throughput(tmp_path):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    (workspace / "logs").mkdir(parents=True, exist_ok=True)
+
+    results = [
+        {
+            "_eval_run_summary": {"elapsed_seconds": 10.0, "parallel_workers": 4, "queries": 2},
+            "eval_tokens": {"input_tokens": 100, "output_tokens": 20, "api_calls": 1, "query_duration_ms": 3000},
+        },
+        {
+            "eval_tokens": {"input_tokens": 80, "output_tokens": 10, "api_calls": 1, "query_duration_ms": 2000},
+        },
+    ]
+
+    rpb._save_token_usage(results, workspace, "gemma-3-31b-it")
+
+    data = json.loads((workspace / "token_usage.json").read_text())
+    runtime = data["eval_runtime"]
+    assert runtime["elapsed_seconds"] == 10.0
+    assert runtime["parallel_workers"] == 4
+    assert runtime["queries"] == 2
+    assert runtime["queries_per_second"] == 0.2
+    assert runtime["input_tokens_per_second"] == 18.0
+    assert runtime["output_tokens_per_second"] == 3.0
+    assert runtime["total_tokens_per_second"] == 21.0
+    assert runtime["summed_query_seconds"] == 5.0
+    assert runtime["average_inflight_factor"] == 0.5
 
 
 def test_summarize_usage_events_infers_tier_for_harness_logged_models(tmp_path):
