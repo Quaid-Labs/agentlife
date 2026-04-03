@@ -4231,25 +4231,22 @@ def test_run_eval_parallel_progress_heartbeats_without_completed_queries(tmp_pat
     (workspace / "data").mkdir(parents=True)
     (workspace / "data" / "memory.db").write_text("", encoding="utf-8")
 
-    q1 = {
-        "question": "Q1?",
-        "ground_truth": "A1",
-        "query_type": "temporal",
-        "source_session": 1,
-    }
-    q2 = {
-        "question": "Q2?",
-        "ground_truth": "A2",
-        "query_type": "temporal",
-        "source_session": 2,
-    }
+    queries = [
+        {
+            "question": f"Q{i}?",
+            "ground_truth": f"A{i}",
+            "query_type": "temporal",
+            "source_session": i,
+        }
+        for i in range(1, 6)
+    ]
 
     monkeypatch.setattr(
         rpb,
         "_load_reviews_with_dataset_gate",
         lambda _max_sessions: (tmp_path / "assets", [], [object(), object()], "v-test", 268),
     )
-    monkeypatch.setattr(rpb, "get_all_eval_queries", lambda _reviews: [q1, q2])
+    monkeypatch.setattr(rpb, "get_all_eval_queries", lambda _reviews: queries)
     monkeypatch.setattr(rpb, "_apply_eval_query_profile", lambda queries: (queries, {"profile": "full", "selected": len(queries), "requested": len(queries)}))
     monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *_a, **_k: None)
     monkeypatch.setattr(rpb, "_write_eval_query_profile_manifest", lambda *_a, **_k: None)
@@ -4324,8 +4321,8 @@ def test_run_eval_parallel_progress_heartbeats_without_completed_queries(tmp_pat
         judge_model="gemma-4-31b-q8",
     )
 
-    assert len(results) == 2
-    assert heartbeat_snapshot["total_queries"] == 2
+    assert len(results) == 5
+    assert heartbeat_snapshot["total_queries"] == 5
     assert heartbeat_snapshot["completed"] == 0
     assert heartbeat_snapshot["active_queries"] == 2
     assert heartbeat_snapshot["scored"] == 0

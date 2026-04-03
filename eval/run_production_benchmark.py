@@ -5543,18 +5543,18 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     pending_queries = [(i, q) for i, q in enumerate(all_queries) if i not in results_by_idx]
     completed = len(results_by_idx)
     completed_idx = max(results_by_idx.keys(), default=-1)
+    parallel_workers = _resolve_eval_parallel_workers()
+    parallel_workers = min(parallel_workers, max(1, len(pending_queries)))
     _write_eval_progress(
         current_idx=completed,
         completed_count=completed,
         completed_idx=completed_idx,
-        active_count=len(pending_queries),
+        active_count=min(parallel_workers, len(pending_queries)),
         correct_count=correct,
         partials_count=partial_count,
         wrong_count=wrong,
     )
 
-    parallel_workers = _resolve_eval_parallel_workers()
-    parallel_workers = min(parallel_workers, max(1, len(pending_queries)))
     if parallel_workers > 1:
         print(f"  Eval parallel workers: {parallel_workers}")
 
@@ -5729,7 +5729,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                     current_idx=len(results_by_idx),
                     completed_count=len(results_by_idx),
                     completed_idx=max(results_by_idx.keys(), default=-1),
-                    active_count=len(pending),
+                    active_count=min(parallel_workers, len(pending)),
                     correct_count=correct,
                     partials_count=partial_count,
                     wrong_count=wrong,
@@ -5758,7 +5758,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                         current_idx=completed,
                         completed_count=completed,
                         completed_idx=max(results_by_idx.keys(), default=-1),
-                        active_count=len(pending),
+                        active_count=min(parallel_workers, len(pending)),
                         correct_count=correct,
                         partials_count=partial_count,
                         wrong_count=wrong,
