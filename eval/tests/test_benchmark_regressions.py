@@ -2032,6 +2032,39 @@ class TestAnthropicCachedRetries:
         assert usage.get("input_tokens") == 1
         assert calls["n"] == 2
 
+    def test_vllm_backend_routes_to_openai_compatible_chat(self, monkeypatch):
+        monkeypatch.setattr(rpb, "_BACKEND", "vllm")
+
+        seen: dict[str, object] = {}
+
+        def _fake_call(**kwargs):
+            seen.update(kwargs)
+            return (
+                {"choices": [{"message": {"content": "gemma ok"}}], "model": "gemma-3-31b-it"},
+                {"input_tokens": 7, "output_tokens": 3, "api_calls": 1},
+            )
+
+        monkeypatch.setattr(rpb, "_call_openai_compatible_chat", _fake_call)
+
+        text, usage = rpb._call_anthropic_cached(
+            "system prompt",
+            "user prompt",
+            "gemma-3-31b-it",
+            "ignored-key",
+            max_tokens=64,
+        )
+
+        assert text == "gemma ok"
+        assert usage["input_tokens"] == 7
+        assert seen["model"] == "gemma-3-31b-it"
+        assert seen["max_tokens"] == 64
+        assert seen["timeout"] == 300
+        assert seen["provider"] == "vllm"
+        assert seen["messages"] == [
+            {"role": "system", "content": "system prompt"},
+            {"role": "user", "content": "user prompt"},
+        ]
+
 
 def test_tool_use_loop_api_sets_temperature_zero(tmp_path, monkeypatch):
     workspace = tmp_path / "ws"
@@ -2266,6 +2299,40 @@ def test_tool_use_loop_api_timeout_fails_hard_after_retry(tmp_path, monkeypatch)
         )
 
     assert calls["n"] == 2
+
+
+def test_tool_use_loop_vllm_dispatches_to_openai_compatible_loop(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setattr(rpb, "_BACKEND", "vllm")
+
+    seen: dict[str, object] = {}
+
+    def _fake_vllm_loop(*args, **kwargs):
+        seen["args"] = args
+        seen["kwargs"] = kwargs
+        return ("final answer", ["recall"], ["recall(test)"], ["memory"], {"api_calls": 1})
+
+    monkeypatch.setattr(rpb, "_tool_use_loop_openai_compatible", _fake_vllm_loop)
+
+    answer, tool_calls, tool_logs, retrieval_texts, usage = rpb._tool_use_loop(
+        question="What is the answer?",
+        eval_context="ctx",
+        workspace=workspace,
+        api_key="ignored",
+        env={"X": "1"},
+        model="gemma-3-31b-it",
+        context_inject=False,
+    )
+
+    assert answer == "final answer"
+    assert tool_calls == ["recall"]
+    assert tool_logs == ["recall(test)"]
+    assert retrieval_texts == ["memory"]
+    assert usage["api_calls"] == 1
+    assert seen["args"] == ("What is the answer?", "ctx", workspace, {"X": "1"})
+    assert seen["kwargs"]["model"] == "gemma-3-31b-it"
+    assert seen["kwargs"]["context_inject"] is False
 
 
 class TestGroupSessionsByDate:
@@ -2592,6 +2659,23 @@ class TestMakeEnv:
         env = rpb._make_env(workspace)
         assert env["BENCHMARK_PARALLEL"] == "6"
         assert env["BENCHMARK_EVAL_PARALLEL"] == "1"
+
+    def test_vllm_sets_openai_compatible_transport_and_clears_anthropic(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+        monkeypatch.setattr(rpb, "_BACKEND", "vllm")
+        monkeypatch.setattr(rpb, "_VLLM_URL", "http://spark:8000")
+        monkeypatch.setattr(rpb, "_VLLM_API_KEY_ENV", "BENCHMARK_VLLM_API_KEY")
+        monkeypatch.setenv("BENCHMARK_VLLM_API_KEY", "test-vllm-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+        monkeypatch.setenv("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", "sk-ant-oat01-test-token")
+
+        env = rpb._make_env(workspace)
+
+        assert env["OPENAI_COMPATIBLE_BASE_URL"] == "http://spark:8000"
+        assert env["BENCHMARK_VLLM_API_KEY"] == "test-vllm-key"
+        assert "ANTHROPIC_API_KEY" not in env
+        assert "BENCHMARK_ANTHROPIC_OAUTH_TOKEN" not in env
 
 
 def test_resolve_eval_parallel_workers_prefers_eval_override(monkeypatch):
@@ -3619,6 +3703,121 @@ def test_main_normalizes_api_backend_alias_to_oauth(tmp_path, monkeypatch):
     assert seen["tier5_backend"] == "oauth"
 
 
+def test_main_vllm_requires_url_and_model(tmp_path, monkeypatch):
+    workspace = tmp_path / "run"
+
+    monkeypatch.setattr(sys, "argv", [
+        "run_production_benchmark.py",
+        "--mode", "eval",
+        "--results-dir", str(workspace),
+        "--backend", "vllm",
+    ])
+    with pytest.raises(SystemExit, match="--backend vllm requires --vllm-url"):
+        rpb.main()
+
+    monkeypatch.setattr(sys, "argv", [
+        "run_production_benchmark.py",
+        "--mode", "eval",
+        "--results-dir", str(workspace),
+        "--backend", "vllm",
+        "--vllm-url", "http://spark:8000",
+    ])
+    with pytest.raises(SystemExit, match="--backend vllm requires --vllm-model"):
+        rpb.main()
+
+
+def test_main_vllm_defaults_eval_model_to_served_model(tmp_path, monkeypatch):
+    workspace = tmp_path / "run"
+    (workspace / "data").mkdir(parents=True)
+    (workspace / "data" / "memory.db").write_text("")
+
+    seen = {"eval_model": None, "backend": None}
+
+    def _fake_run_eval(*_a, **kwargs):
+        seen["eval_model"] = kwargs.get("eval_model")
+        seen["backend"] = rpb._BACKEND
+        return []
+
+    monkeypatch.setattr(rpb, "run_eval", _fake_run_eval)
+    monkeypatch.setattr(rpb, "run_tier5_eval", lambda *_a, **_k: [])
+    monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        rpb,
+        "score_results",
+        lambda _results: {
+            "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+            "per_type": {},
+            "per_difficulty": {},
+        },
+    )
+    monkeypatch.setattr(sys, "argv", [
+        "run_production_benchmark.py",
+        "--mode", "eval",
+        "--results-dir", str(workspace),
+        "--backend", "vllm",
+        "--vllm-url", "http://spark:8000",
+        "--vllm-model", "gemma-3-31b-it",
+        "--allow-non-haiku-answer-model",
+    ])
+
+    rpb.main()
+
+    assert seen["backend"] == "vllm"
+    assert seen["eval_model"] == "gemma-3-31b-it"
+
+
+def test_main_vllm_defaults_ingest_model_to_served_model(tmp_path, monkeypatch):
+    workspace = tmp_path / "run"
+
+    seen = {"model": None}
+
+    monkeypatch.setattr(
+        rpb,
+        "setup_workspace",
+        lambda path, **kwargs: seen.__setitem__("model", kwargs.get("extraction_model")) or Path(path).mkdir(parents=True, exist_ok=True),
+    )
+    monkeypatch.setattr(
+        rpb,
+        "run_per_day_extraction",
+        lambda *_a, **kwargs: {
+            "schedule_mode": kwargs.get("schedule_mode"),
+            "total_facts": 0,
+            "stored": 0,
+            "edges": 0,
+            "semantic_dedup_checks": 0,
+            "semantic_duplicate_facts_collapsed": 0,
+            "signal_to_publish_seconds": 0.0,
+        },
+    )
+    monkeypatch.setattr(rpb, "verify_post_janitor", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "_save_ingest_usage", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "run_eval", lambda *_a, **_k: [])
+    monkeypatch.setattr(rpb, "run_tier5_eval", lambda *_a, **_k: [])
+    monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        rpb,
+        "score_results",
+        lambda _results: {
+            "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+            "per_type": {},
+            "per_difficulty": {},
+        },
+    )
+    monkeypatch.setattr(sys, "argv", [
+        "run_production_benchmark.py",
+        "--mode", "per-day",
+        "--results-dir", str(workspace),
+        "--backend", "vllm",
+        "--vllm-url", "http://spark:8000",
+        "--vllm-model", "gemma-3-31b-it",
+        "--allow-non-haiku-answer-model",
+    ])
+
+    rpb.main()
+
+    assert seen["model"] == "gemma-3-31b-it"
+
+
 def test_main_resume_rolling_obd_skips_workspace_setup(tmp_path, monkeypatch):
     workspace = tmp_path / "run"
     staged = workspace / rpb._BENCHMARK_QUAID_INSTANCE / "data" / "rolling-extraction"
@@ -3944,6 +4143,35 @@ class TestSetupWorkspaceConfig:
         assert cfg["ollama"]["url"] == "http://127.0.0.1:11434"
         assert cfg["ollama"]["embeddingModel"] == "nomic-embed-text"
         assert cfg["ollama"]["embeddingDim"] == 768
+
+    def test_vllm_workspace_sets_openai_compatible_reasoning_config(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(json.dumps({}), encoding="utf-8")
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "vllm")
+        monkeypatch.setattr(rpb, "_VLLM_URL", "http://spark:8000")
+        monkeypatch.setattr(rpb, "_VLLM_API_KEY_ENV", "BENCHMARK_VLLM_API_KEY")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+        monkeypatch.delenv("BENCHMARK_REASONING_MODEL", raising=False)
+        monkeypatch.setenv("BENCHMARK_DEEP_REASONING_MODEL", "gemma-3-31b-it")
+        monkeypatch.setenv("BENCHMARK_FAST_REASONING_MODEL", "gemma-3-31b-it")
+
+        rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        models = cfg["models"]
+        assert models["llmProvider"] == "openai-compatible"
+        assert models["deepReasoningProvider"] == "openai-compatible"
+        assert models["fastReasoningProvider"] == "openai-compatible"
+        assert models["deepReasoning"] == "gemma-3-31b-it"
+        assert models["fastReasoning"] == "gemma-3-31b-it"
+        assert models["baseUrl"] == "http://spark:8000"
+        assert models["apiKeyEnv"] == "BENCHMARK_VLLM_API_KEY"
 
     def test_known_qwen4b_embedding_dim_defaults_when_override_omitted(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"

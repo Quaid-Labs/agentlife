@@ -200,6 +200,23 @@ def test_infer_model_lane_from_run_metadata(tmp_path):
     assert brs.infer_model_lane(root, run_name) == "Sonnet/Haiku"
 
 
+def test_infer_provider_lane_detects_vllm_from_active_cmd(tmp_path):
+    root = tmp_path
+    run_name = "quaid-s-r996-20260325-000000"
+    run_dir = root / "runs" / run_name
+    run_dir.mkdir(parents=True)
+
+    cmd = (
+        "python3 eval/run_production_benchmark.py "
+        f"--results-dir runs/{run_name} "
+        "--backend vllm "
+        "--vllm-url http://spark:8000 "
+        "--vllm-model gemma-3-31b-it"
+    )
+
+    assert brs.infer_provider_lane(root, run_name, active_cmd=cmd) == "vllm"
+
+
 def test_infer_model_lane_uses_scores_metadata_when_completed(tmp_path):
     root = tmp_path
     run_name = "quaid-s-r994-20260325-000000"

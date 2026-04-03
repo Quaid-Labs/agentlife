@@ -311,6 +311,8 @@ def infer_provider_lane(root: Path, run_name: str, active_cmd: Optional[str] = N
     low = txt.lower()
     if "claude-code" in low or "claude -p" in low:
         return "claude-code"
+    if "backend=vllm" in low or "--backend vllm" in low:
+        return "vllm"
     if "benchmark anthropic oauth" in low or "--backend oauth" in low:
         return "oauth"
     if "--backend api" in low:

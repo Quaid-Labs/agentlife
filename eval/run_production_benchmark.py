@@ -1862,6 +1862,21 @@ def _append_usage_event(
         pass
 
 
+def _write_run_metadata(workspace: Path, payload: Dict[str, Any]) -> None:
+    path = workspace / "run_metadata.json"
+    existing: Dict[str, Any] = {}
+    if path.exists():
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                existing = raw
+        except Exception:
+            existing = {}
+    existing.update(payload)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(existing, indent=2, sort_keys=True), encoding="utf-8")
+
+
 def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> Dict[str, Any]:
     """Aggregate benchmark/runtime LLM usage events for a workspace."""
     summary = _empty_usage_summary()
@@ -2035,6 +2050,14 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
         # Avoid inheriting stale OpenAI-compatible transport config into Claude lanes.
         prod_config["models"].pop("baseUrl", None)
         prod_config["models"].pop("apiKeyEnv", None)
+    elif _BACKEND == "vllm":
+        prod_config["models"]["llmProvider"] = "openai-compatible"
+        prod_config["models"]["deepReasoningProvider"] = "openai-compatible"
+        prod_config["models"]["fastReasoningProvider"] = "openai-compatible"
+        prod_config["models"]["deepReasoning"] = deep_reasoning_model
+        prod_config["models"]["fastReasoning"] = fast_reasoning_model or deep_reasoning_model
+        prod_config["models"]["baseUrl"] = _get_vllm_url()
+        prod_config["models"]["apiKeyEnv"] = _get_vllm_api_key_env()
     else:
         prod_config["models"]["llmProvider"] = "anthropic"
         prod_config["models"]["deepReasoningProvider"] = "anthropic"
@@ -6327,6 +6350,13 @@ def _tool_use_loop(
             max_session=max_session, context_inject=context_inject,
             preinject_planner_profile=preinject_planner_profile,
         )
+    if _BACKEND == "vllm":
+        return _tool_use_loop_openai_compatible(
+            question, eval_context, workspace, env,
+            max_turns=max_turns, model=model, date_to=date_to,
+            max_session=max_session, context_inject=context_inject,
+            preinject_planner_profile=preinject_planner_profile,
+        )
 
     usage_total = {
         "input_tokens": 0,
@@ -6719,6 +6749,310 @@ def _tool_use_loop(
         if block.get("type") == "text":
             text_parts.append(block["text"])
     return _finalize_with_replay(" ".join(text_parts).strip() or "Unable to determine answer.")
+
+
+def _tool_use_loop_openai_compatible(
+    question: str,
+    eval_context: str,
+    workspace: Path,
+    env: dict,
+    max_turns: int = 4,
+    model: str = "",
+    date_to: Optional[str] = None,
+    max_session: Optional[int] = None,
+    context_inject: bool = True,
+    preinject_planner_profile: str = "fast",
+) -> Tuple[str, List[str], List[str], List[str], dict]:
+    """Run benchmark tool use through an OpenAI-compatible chat-completions endpoint."""
+    usage_total = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_calls": 0,
+        "model_usage": {},
+        "tool_call_details": [],
+        "preinject_duration_ms": None,
+        "preinject": {
+            "enabled": context_inject,
+            "attempted": False,
+            "surfaced": False,
+            "skip_reason": "disabled" if not context_inject else "",
+            "query": "",
+            "result_chars": 0,
+        },
+    }
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "recall",
+                "description": _RECALL_TOOL_DESCRIPTION,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Search query for project files",
+                        },
+                        "stores": {
+                            "type": "array",
+                            "description": "Datastores to search. Omit for default memory stores.",
+                            "items": {
+                                "type": "string",
+                                "enum": ["vector", "graph", "docs"],
+                            },
+                        },
+                        "project": {
+                            "type": "string",
+                            "description": "Optional project scope for docs recall (recipe-app, portfolio-site, quaid)",
+                        },
+                        "domain_filter": {
+                            "type": "object",
+                            "description": "Hard domain filter map, e.g. {\"technical\": true}",
+                        },
+                        "domain_boost": {
+                            "type": "array",
+                            "description": "Soft domain boosts, e.g. [\"technical\", \"project\"]",
+                            "items": {"type": "string"},
+                        },
+                        "date_from": {
+                            "type": "string",
+                            "description": "Only return memories from this date onward (YYYY-MM-DD)",
+                        },
+                        "date_to": {
+                            "type": "string",
+                            "description": "Only return memories up to this date (YYYY-MM-DD)",
+                        },
+                    },
+                    "required": ["query"],
+                },
+            },
+        },
+    ]
+    injected_context = ""
+    tool_call_names: List[str] = []
+    tool_result_summaries: List[str] = []
+    retrieval_texts: List[str] = []
+
+    def _record_usage(usage: Dict[str, Any]) -> None:
+        usage_total["input_tokens"] += int(usage.get("input_tokens", 0) or 0)
+        usage_total["output_tokens"] += int(usage.get("output_tokens", 0) or 0)
+        usage_total["api_calls"] += int(usage.get("api_calls", 1) or 1)
+        for model_name, row in (usage.get("model_usage") or {}).items():
+            if not isinstance(row, dict):
+                continue
+            current = usage_total["model_usage"].setdefault(
+                str(model_name),
+                {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+            )
+            current["input_tokens"] += int(row.get("input_tokens", 0) or 0)
+            current["output_tokens"] += int(row.get("output_tokens", 0) or 0)
+            current["total_tokens"] += int(row.get("total_tokens", 0) or 0)
+
+    def _finalize_with_replay(answer_text: str) -> Tuple[str, List[str], List[str], List[str], dict]:
+        if not retrieval_texts and tool_call_names:
+            try:
+                replay, replay_meta = _tool_memory_recall(
+                    question,
+                    workspace,
+                    env,
+                    max_session=max_session,
+                    telemetry_source="fallback_replay",
+                )
+            except Exception as e:
+                tool_result_summaries.append(f"memory_recall(replay_error): {type(e).__name__}")
+                replay = ""
+                replay_meta = None
+            if replay:
+                tool_call_names.append("memory_recall(replay)")
+                tool_result_summaries.append(f"memory_recall(replay:{question[:40]}): {len(replay)} chars")
+                retrieval_texts.append(replay)
+                usage_total["tool_call_details"].append({
+                    "tool": "memory_recall(replay)",
+                    "query": question,
+                    "query_preview_30": question[:30],
+                    "duration_ms": None,
+                    "result_chars": len(replay),
+                    "raw_output": replay,
+                    **_build_tool_result_telemetry(replay),
+                    "error": "",
+                    "source": "fallback_replay",
+                    "recall_meta": replay_meta,
+                    "call_id": ((replay_meta or {}).get("harness_telemetry") or {}).get("top_level_call_id") if isinstance(replay_meta, dict) else None,
+                })
+        return answer_text, tool_call_names, tool_result_summaries, retrieval_texts, usage_total
+
+    if context_inject:
+        pre_t0 = time.time()
+        usage_total["preinject"]["attempted"] = True
+        recall_text, query_used, recall_meta = _pre_recall(
+            question, workspace, env,
+            max_session=max_session, date_to=date_to,
+            planner_profile=preinject_planner_profile,
+        )
+        pre_duration_ms = int((time.time() - pre_t0) * 1000)
+        usage_total["preinject_duration_ms"] = pre_duration_ms
+        usage_total["preinject"]["query"] = query_used
+        usage_total["preinject"]["result_chars"] = len(recall_text or "")
+        if isinstance(recall_meta, dict):
+            usage_total["preinject"]["stop_reason"] = recall_meta.get("stop_reason")
+            usage_total["preinject"]["skip_reason"] = recall_meta.get("stop_reason") or ""
+            planner = None
+            turn_details = recall_meta.get("turn_details") or []
+            if turn_details and isinstance(turn_details[0], dict):
+                planner = turn_details[0].get("planner") or {}
+            planned_stores = (
+                recall_meta.get("planned_stores")
+                or (planner.get("planned_stores") if isinstance(planner, dict) else None)
+                or []
+            )
+            planned_project = (
+                recall_meta.get("planned_project")
+                or (planner.get("planned_project") if isinstance(planner, dict) else None)
+            )
+            usage_total["preinject"]["planned_stores"] = list(planned_stores) if isinstance(planned_stores, list) else []
+            usage_total["preinject"]["planned_project"] = planned_project
+        if recall_text and "No memories found" not in recall_text:
+            usage_total["preinject"]["surfaced"] = True
+            usage_total["preinject"]["skip_reason"] = ""
+            injected_context = (
+                f"\n\n## Retrieved Memories\n"
+                f"Query used: \"{query_used}\"\n\n"
+                f"{recall_text}\n"
+            )
+            tool_call_names.append("memory_recall(pre-inject)")
+            tool_result_summaries.append(f"pre-inject({query_used[:40]}): {len(recall_text)} chars")
+            retrieval_texts.append(recall_text)
+            usage_total["tool_call_details"].append({
+                "tool": "memory_recall(pre-inject)",
+                "query": query_used,
+                "query_preview_30": query_used[:30],
+                "duration_ms": pre_duration_ms,
+                "result_chars": len(recall_text or ""),
+                "raw_output": recall_text,
+                **_build_tool_result_telemetry(recall_text),
+                "error": "",
+                "source": "preinject",
+                "recall_meta": recall_meta,
+                "planned_stores": usage_total["preinject"].get("planned_stores", []),
+                "planned_project": usage_total["preinject"].get("planned_project"),
+                "call_id": ((recall_meta or {}).get("harness_telemetry") or {}).get("top_level_call_id") if isinstance(recall_meta, dict) else None,
+            })
+
+    if context_inject:
+        system_prompt = (
+            "You are an AI assistant answering questions about a user named Maya "
+            "based on your memory of past conversations.\n\n"
+            "Below are memories retrieved for this question. Use them if helpful. "
+            "You may search for more if needed.\n\n"
+            f"{eval_context}{injected_context}"
+        )
+    else:
+        system_prompt = (
+            "You are an AI assistant answering questions about a user named Maya "
+            "based on your memory of past conversations. Use the available tools "
+            "if you need to search your memory before answering.\n\n"
+            f"{eval_context}"
+        )
+
+    messages: List[Dict[str, Any]] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": question},
+    ]
+
+    for _turn in range(max_turns):
+        data, usage = _call_openai_compatible_chat(
+            messages=messages,
+            model=model,
+            max_tokens=2048,
+            timeout=120,
+            tools=tools,
+            workspace=workspace,
+            source="answer_model",
+            provider="vllm",
+        )
+        _record_usage(usage)
+
+        choice = ((data.get("choices") or [{}])[0] or {})
+        message = choice.get("message") or {}
+        tool_calls = list(message.get("tool_calls") or [])
+        if tool_calls:
+            messages.append({
+                "role": "assistant",
+                "content": _openai_message_text(message),
+                "tool_calls": tool_calls,
+            })
+            for tool_call in tool_calls:
+                if not isinstance(tool_call, dict):
+                    continue
+                function = tool_call.get("function") or {}
+                tool_name = str(function.get("name") or "")
+                if not tool_name:
+                    continue
+                raw_args = str(function.get("arguments") or "{}")
+                try:
+                    tool_input = json.loads(raw_args) if raw_args else {}
+                except Exception:
+                    tool_input = {"query": raw_args}
+                tool_id = str(tool_call.get("id") or "")
+                tool_call_names.append(tool_name)
+                t0 = time.time()
+                result_text, recall_meta = _execute_tool(
+                    tool_name, tool_input, workspace, env,
+                    max_session=max_session, date_to=date_to,
+                )
+                duration_ms = int((time.time() - t0) * 1000)
+                tool_result_summaries.append(
+                    f"{tool_name}({tool_input.get('query', '')[:40]}): {len(result_text)} chars"
+                )
+                if tool_name in {"recall", "memory_recall"}:
+                    retrieval_texts.append(result_text)
+                planner = None
+                if isinstance(recall_meta, dict):
+                    turn_details = recall_meta.get("turn_details") or []
+                    if turn_details and isinstance(turn_details[0], dict):
+                        planner = turn_details[0].get("planner") or {}
+                planned_stores = (
+                    (recall_meta or {}).get("planned_stores")
+                    or (planner.get("planned_stores") if isinstance(planner, dict) else None)
+                    or []
+                )
+                planned_project = (
+                    (recall_meta or {}).get("planned_project")
+                    or (planner.get("planned_project") if isinstance(planner, dict) else None)
+                )
+                usage_total["tool_call_details"].append({
+                    "tool": tool_name,
+                    "query": tool_input.get("query", ""),
+                    "query_preview_30": str(tool_input.get("query", ""))[:30],
+                    "project": tool_input.get("project"),
+                    "date_from": tool_input.get("date_from"),
+                    "date_to": tool_input.get("date_to"),
+                    "domains": tool_input.get("domains"),
+                    "domain_filter": tool_input.get("domain_filter"),
+                    "domain_boost": tool_input.get("domain_boost"),
+                    "time_frame": tool_input.get("time_frame"),
+                    "duration_ms": duration_ms,
+                    "result_chars": len(result_text or ""),
+                    "raw_output": result_text,
+                    **_build_tool_result_telemetry(result_text),
+                    "error": str(result_text or "")[:80] if str(result_text).startswith("Error:") else "",
+                    "source": "tool",
+                    "stores": tool_input.get("stores"),
+                    "planned_stores": list(planned_stores) if isinstance(planned_stores, list) else [],
+                    "planned_project": planned_project,
+                    "recall_meta": recall_meta if tool_name in {"recall", "memory_recall"} else None,
+                    "call_id": ((recall_meta or {}).get("harness_telemetry") or {}).get("top_level_call_id") if isinstance(recall_meta, dict) else None,
+                })
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_id,
+                    "content": result_text,
+                })
+            continue
+
+        return _finalize_with_replay(_openai_message_text(message).strip() or "Unable to determine answer.")
+
+    return _finalize_with_replay("Unable to determine answer.")
 
 
 def _execute_tool(
@@ -8601,6 +8935,11 @@ def _make_env(
                     "WARN: CLAUDE_CODE_OAUTH_TOKEN not found in env or ~/.claude credentials; "
                     "quaid subprocess LLM calls may fail-hard."
                 )
+    elif _BACKEND == "vllm":
+        env["OPENAI_COMPATIBLE_BASE_URL"] = _get_vllm_url()
+        env[_get_vllm_api_key_env()] = _get_vllm_api_key()
+        env.pop("ANTHROPIC_API_KEY", None)
+        env.pop("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", None)
     else:
         credential = _find_anthropic_credential()
         if _is_anthropic_oauth_token(credential):
@@ -8640,6 +8979,140 @@ def _get_openai_key() -> Optional[str]:
 
 _BACKEND = "oauth"  # Set to "claude-code" in main() to use the CLI wrapper
 _BENCHMARK_QUAID_INSTANCE = "benchrunner"
+_VLLM_URL = ""
+_VLLM_MODEL = ""
+_VLLM_API_KEY_ENV = "BENCHMARK_VLLM_API_KEY"
+
+
+def _get_vllm_url() -> str:
+    return str(_VLLM_URL or os.environ.get("BENCHMARK_VLLM_URL", "")).strip().rstrip("/")
+
+
+def _get_vllm_model() -> str:
+    return str(_VLLM_MODEL or os.environ.get("BENCHMARK_VLLM_MODEL", "")).strip()
+
+
+def _get_vllm_api_key_env() -> str:
+    return str(_VLLM_API_KEY_ENV or os.environ.get("BENCHMARK_VLLM_API_KEY_ENV", "BENCHMARK_VLLM_API_KEY")).strip() or "BENCHMARK_VLLM_API_KEY"
+
+
+def _get_vllm_api_key() -> str:
+    env_name = _get_vllm_api_key_env()
+    key = str(os.environ.get(env_name, "") or "").strip()
+    if key:
+        return key
+    # Avoid silently reusing the OpenAI judge key for openai-compatible runtime traffic.
+    return "benchmark-vllm"
+
+
+def _openai_compatible_headers(api_key: str) -> Dict[str, str]:
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    return headers
+
+
+def _openai_message_text(message: Dict[str, Any]) -> str:
+    content = message.get("content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: List[str] = []
+        for item in content:
+            if isinstance(item, dict):
+                text = str(item.get("text") or item.get("content") or "").strip()
+                if text:
+                    parts.append(text)
+            elif item:
+                parts.append(str(item))
+        return "\n".join(parts).strip()
+    return str(content or "")
+
+
+def _call_openai_compatible_chat(
+    *,
+    messages: List[Dict[str, Any]],
+    model: str,
+    max_tokens: int,
+    timeout: int,
+    tools: Optional[List[Dict[str, Any]]] = None,
+    workspace: Optional[Path] = None,
+    source: Optional[str] = None,
+    provider: str = "vllm",
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    url = _get_vllm_url()
+    if not url:
+        raise RuntimeError("vllm backend requires --vllm-url or BENCHMARK_VLLM_URL")
+    api_key = _get_vllm_api_key()
+
+    payload: Dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": max_tokens,
+        "temperature": 0.0,
+    }
+    if tools:
+        payload["tools"] = tools
+        payload["tool_choice"] = "auto"
+
+    req = urllib.request.Request(
+        f"{url}/v1/chat/completions",
+        data=json.dumps(payload).encode(),
+        headers=_openai_compatible_headers(api_key),
+    )
+
+    retry_attempts = max(1, int(os.environ.get("OPENAI_COMPAT_RETRY_ATTEMPTS", os.environ.get("ANTHROPIC_TOOL_USE_RETRY_ATTEMPTS", "2"))))
+    backoff_s = max(0.5, float(os.environ.get("OPENAI_COMPAT_RETRY_BACKOFF_S", os.environ.get("ANTHROPIC_TOOL_USE_RETRY_BACKOFF_S", "2"))))
+    backoff_cap_s = max(backoff_s, float(os.environ.get("OPENAI_COMPAT_RETRY_BACKOFF_CAP_S", os.environ.get("ANTHROPIC_TOOL_USE_RETRY_BACKOFF_CAP_S", "10"))))
+
+    data: Optional[Dict[str, Any]] = None
+    last_err: Optional[Exception] = None
+    for attempt in range(1, retry_attempts + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = json.loads(resp.read())
+            if not isinstance(raw, dict):
+                raise RuntimeError(f"OpenAI-compatible backend returned non-object JSON: {type(raw).__name__}")
+            data = raw
+            break
+        except urllib.error.HTTPError as exc:
+            body = ""
+            try:
+                body = (exc.read() or b"").decode("utf-8", errors="ignore")
+            except Exception:
+                body = ""
+            retriable = exc.code in {408, 409, 425, 429, 500, 502, 503, 504, 520, 529}
+            last_err = RuntimeError(f"OpenAI-compatible HTTP {exc.code}: {body[:300]}")
+            if not retriable or attempt == retry_attempts:
+                raise last_err from exc
+        except urllib.error.URLError as exc:
+            last_err = RuntimeError(f"OpenAI-compatible URL error: {exc}")
+            if attempt == retry_attempts:
+                raise last_err from exc
+        except TimeoutError as exc:
+            last_err = RuntimeError(f"OpenAI-compatible timeout: {exc}")
+            if attempt == retry_attempts:
+                raise last_err from exc
+        delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
+        delay *= 1.0 + random.uniform(0.0, 0.25)
+        print(f"  [openai-compatible] attempt {attempt}/{retry_attempts} failed; retrying in {delay:.1f}s")
+        time.sleep(delay)
+
+    if data is None:
+        raise last_err or RuntimeError("OpenAI-compatible call failed with no response payload")
+
+    usage = _openai_usage_dict(data, str(data.get("model") or model))
+    if workspace is not None and usage and source:
+        _append_usage_event(
+            workspace,
+            phase="eval",
+            source=source,
+            model=str(data.get("model") or model),
+            usage=usage,
+            tier=_infer_usage_tier(str(data.get("model") or model)),
+            provider=provider,
+        )
+    return data, usage
 
 
 def _ensure_quaid_instance_layout(workspace: Path, instance_id: str = _BENCHMARK_QUAID_INSTANCE) -> Path:
@@ -8770,6 +9243,37 @@ def _call_anthropic_cached(
     max_tokens: int = 8192,
 ) -> Tuple[str, dict]:
     """Call Anthropic API — routes through Claude Code or direct API based on _BACKEND."""
+    if _BACKEND == "vllm":
+        messages: List[Dict[str, Any]] = []
+        if system_prompt:
+            if isinstance(system_prompt, list):
+                system_text = "\n\n".join(
+                    str(block.get("text") or "").strip()
+                    for block in system_prompt
+                    if isinstance(block, dict) and str(block.get("text") or "").strip()
+                ).strip()
+            else:
+                system_text = str(system_prompt).strip()
+            if system_text:
+                messages.append({"role": "system", "content": system_text})
+        if isinstance(user_message, list):
+            user_text = "\n\n".join(
+                str(block.get("text") or "").strip()
+                for block in user_message
+                if isinstance(block, dict) and str(block.get("text") or "").strip()
+            ).strip()
+        else:
+            user_text = str(user_message or "")
+        messages.append({"role": "user", "content": user_text})
+        data, usage = _call_openai_compatible_chat(
+            messages=messages,
+            model=model,
+            max_tokens=max_tokens,
+            timeout=300,
+            provider="vllm",
+        )
+        message = ((data.get("choices") or [{}])[0] or {}).get("message") or {}
+        return _openai_message_text(message), usage
     if _BACKEND == "claude-code":
         return _call_claude_code(system_prompt, user_message, model, api_key, max_tokens)
 
@@ -9496,8 +10000,14 @@ def main():
     parser.add_argument("--tier5", action="store_true",
                         help="(Deprecated) Tier-5 auto-runs whenever eval runs")
     parser.add_argument("--backend", type=str, default="oauth",
-                        choices=["claude-code", "oauth", "api"],
-                        help="LLM backend: claude-code (CLI wrapper) or oauth (direct Anthropic OAuth/API transport); api is retained as a legacy alias for oauth")
+                        choices=["claude-code", "oauth", "api", "vllm"],
+                        help="LLM backend: claude-code (CLI wrapper), oauth (direct Anthropic OAuth/API transport), or vllm (OpenAI-compatible chat endpoint); api is retained as a legacy alias for oauth")
+    parser.add_argument("--vllm-url", type=str, default="",
+                        help="Base URL for the vLLM OpenAI-compatible endpoint (required when --backend vllm)")
+    parser.add_argument("--vllm-model", type=str, default="",
+                        help="Model name served by the vLLM endpoint (required when --backend vllm)")
+    parser.add_argument("--vllm-api-key-env", type=str, default="BENCHMARK_VLLM_API_KEY",
+                        help="Env var name holding the vLLM bearer token (default: BENCHMARK_VLLM_API_KEY)")
     parser.add_argument("--allow-non-haiku-answer-model", action="store_true",
                         help="Override the default Haiku-only answer-model policy for intentional experiments")
     parser.add_argument("--resume-day-lifecycle", action="store_true",
@@ -9515,6 +10025,10 @@ def main():
     args = parser.parse_args()
     model_explicitly_set = any(
         arg == "--model" or arg.startswith("--model=")
+        for arg in sys.argv[1:]
+    )
+    eval_model_explicitly_set = any(
+        arg == "--eval-model" or arg.startswith("--eval-model=")
         for arg in sys.argv[1:]
     )
     if args.ingest_schedule == "obd":
@@ -9535,6 +10049,15 @@ def main():
 
     if args.backend == "api":
         args.backend = "oauth"
+    if args.backend == "vllm":
+        if not str(args.vllm_url or "").strip():
+            raise SystemExit("--backend vllm requires --vllm-url")
+        if not str(args.vllm_model or "").strip():
+            raise SystemExit("--backend vllm requires --vllm-model")
+        if args.mode != "eval" and not model_explicitly_set:
+            args.model = args.vllm_model
+        if not eval_model_explicitly_set:
+            args.eval_model = args.vllm_model
 
     workspace = Path(args.results_dir).resolve()
     if args.mode == "eval" and not model_explicitly_set:
@@ -9553,6 +10076,10 @@ def main():
     print(f"AgentLife Production Benchmark")
     print(f"  Mode: {args.mode}")
     print(f"  Backend: {args.backend}")
+    if args.backend == "vllm":
+        print(f"  vLLM URL: {args.vllm_url}")
+        print(f"  vLLM Model: {args.vllm_model}")
+        print(f"  vLLM API key env: {args.vllm_api_key_env}")
     print(f"  Workspace: {workspace}")
     print(f"  Model: {args.model}")
     print(f"  Ingest schedule: {args.ingest_schedule}")
@@ -9593,10 +10120,32 @@ def main():
 
     # Set global backend for all LLM calls
     global _BACKEND
+    global _VLLM_URL
+    global _VLLM_MODEL
+    global _VLLM_API_KEY_ENV
     _BACKEND = args.backend
+    _VLLM_URL = str(args.vllm_url or "").strip().rstrip("/")
+    _VLLM_MODEL = str(args.vllm_model or "").strip()
+    _VLLM_API_KEY_ENV = str(args.vllm_api_key_env or "BENCHMARK_VLLM_API_KEY").strip() or "BENCHMARK_VLLM_API_KEY"
     # Ensure helper modules that import dynamically (e.g. project_updater append)
     # resolve the same Quaid root as the harness.
     os.environ["BENCHMARK_PLUGIN_DIR"] = str(_QUAID_DIR.resolve())
+    _write_run_metadata(
+        workspace,
+        {
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "mode": args.mode,
+            "backend": args.backend,
+            "model": args.model,
+            "eval_model": args.eval_model,
+            "judge": args.judge,
+            "parallel": _resolve_eval_parallel_workers(),
+            "max_sessions": args.max_sessions,
+            "vllm_url": _VLLM_URL,
+            "vllm_model": _VLLM_MODEL,
+            "vllm_api_key_env": _VLLM_API_KEY_ENV,
+        },
+    )
 
     t_global = time.time()
 
@@ -9687,6 +10236,9 @@ def main():
                 "extraction_model": args.model,
                 "eval_model": args.eval_model,
                 "judge_model": args.judge,
+                "backend": args.backend,
+                "vllm_url": _VLLM_URL,
+                "vllm_model": _VLLM_MODEL,
                 "tool_use": True,
                 "max_sessions": args.max_sessions,
                 "include_statement_grounding": args.include_statement_grounding,
@@ -9841,6 +10393,9 @@ def main():
                 "extraction_model": args.model,
                 "eval_model": args.eval_model,
                 "judge_model": args.judge,
+                "backend": args.backend,
+                "vllm_url": _VLLM_URL,
+                "vllm_model": _VLLM_MODEL,
                 "tool_use": True,
                 "max_sessions": args.max_sessions,
                 "include_statement_grounding": args.include_statement_grounding,
@@ -9906,6 +10461,13 @@ def main():
                 )
 
     elapsed = time.time() - t_global
+    _write_run_metadata(
+        workspace,
+        {
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "total_elapsed_seconds": round(float(elapsed), 3),
+        },
+    )
     print(f"\nTotal elapsed: {elapsed:.1f}s ({elapsed/60:.1f}m)")
 
 
