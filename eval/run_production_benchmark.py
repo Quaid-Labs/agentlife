@@ -8569,6 +8569,7 @@ def _judge_openai_compatible(prompt: str, model: str, workspace: Optional[Path] 
             model=model,
             max_tokens=24,
             timeout=_openai_compatible_answer_timeout_s(),
+            chat_template_kwargs={"enable_thinking": False},
             workspace=workspace,
             source="judge",
             provider=_openai_compatible_backend_label(),
@@ -9352,6 +9353,23 @@ def _openai_message_text(message: Dict[str, Any]) -> str:
     return str(content or "")
 
 
+def _openai_message_reasoning_text(message: Dict[str, Any]) -> str:
+    reasoning = message.get("reasoning_content", "")
+    if isinstance(reasoning, str):
+        return reasoning
+    if isinstance(reasoning, list):
+        parts: List[str] = []
+        for item in reasoning:
+            if isinstance(item, dict):
+                text = str(item.get("text") or item.get("content") or "").strip()
+                if text:
+                    parts.append(text)
+            elif item:
+                parts.append(str(item))
+        return "\n".join(parts).strip()
+    return str(reasoning or "")
+
+
 def _extract_openai_response_text(data: Dict[str, Any]) -> str:
     choice = ((data.get("choices") or [{}])[0] or {})
     message = choice.get("message") or {}
@@ -9387,6 +9405,7 @@ def _call_openai_compatible_chat(
     max_tokens: int,
     timeout: Optional[int],
     tools: Optional[List[Dict[str, Any]]] = None,
+    chat_template_kwargs: Optional[Dict[str, Any]] = None,
     workspace: Optional[Path] = None,
     source: Optional[str] = None,
     provider: str = "vllm",
@@ -9408,6 +9427,8 @@ def _call_openai_compatible_chat(
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
+    if chat_template_kwargs:
+        payload["chat_template_kwargs"] = chat_template_kwargs
 
     _ensure_openai_compatible_watchdog(workspace)
     message_chars = sum(len(json.dumps(m, ensure_ascii=False, sort_keys=True)) for m in messages)
@@ -9469,6 +9490,13 @@ def _call_openai_compatible_chat(
             data = raw
             duration_ms = int((time.time() - started_monotonic) * 1000)
             resolved_model = str(raw.get("model") or model)
+            choice = ((raw.get("choices") or [{}])[0] or {})
+            message = choice.get("message") or {}
+            content_excerpt = ""
+            reasoning_excerpt = ""
+            if isinstance(message, dict):
+                content_excerpt = _openai_message_text(message)[:200]
+                reasoning_excerpt = _openai_message_reasoning_text(message)[:200]
             _append_openai_compatible_trace(
                 workspace,
                 {
@@ -9486,6 +9514,8 @@ def _call_openai_compatible_chat(
                     "tools": bool(tools),
                     "max_tokens": max_tokens,
                     "output_tokens": int(_openai_usage_dict(raw, resolved_model).get("output_tokens", 0) or 0),
+                    "content_excerpt": content_excerpt,
+                    "reasoning_excerpt": reasoning_excerpt,
                 },
             )
             print(
@@ -10441,6 +10471,8 @@ def main():
                         help="Judge model (default: gpt-4o-mini for cross-vendor fairness)")
     parser.add_argument("--tier5", action="store_true",
                         help="(Deprecated) Tier-5 auto-runs whenever eval runs")
+    parser.add_argument("--skip-tier5", action="store_true",
+                        help="Skip Tier-5 so eval only runs T1-T4")
     parser.add_argument("--backend", type=str, default="oauth",
                         choices=["claude-code", "oauth", "api", "vllm", "llama-cpp"],
                         help="LLM backend: claude-code (CLI wrapper), oauth (direct Anthropic OAuth/API transport), or a self-hosted OpenAI-compatible endpoint via vllm/llama-cpp; api is retained as a legacy alias for oauth")
@@ -10738,29 +10770,32 @@ def main():
         with open(scores_path, "w") as f:
             json.dump(scores_payload, f, indent=2)
 
-        # Tier 5 runs automatically whenever eval runs.
-        tier5_results = run_tier5_eval(
-            workspace, api_key,
-            eval_model=args.eval_model or "claude-sonnet-4-6",
-            judge_model=os.environ.get("TIER5_JUDGE_MODEL") or args.judge,
-            context_inject=args.context_inject,
-        )
-        tier5_path = workspace / "tier5_results.json"
-        with open(tier5_path, "w") as f:
-            json.dump(tier5_results, f, indent=2)
-        print(f"\nSaved {len(tier5_results)} Tier 5 results to {tier5_path}")
-        total = sum(r["ei_score"] for r in tier5_results)
-        max_score = len(tier5_results) * 2
-        pct = (total / max_score * 100.0) if max_score else 0.0
-        print(f"Tier 5 EI Score: {total}/{max_score} ({pct:.1f}%)")
-        scores_payload["scores"] = _merge_tier5_into_scores(scores_payload["scores"], tier5_results)
-        with open(scores_path, "w") as f:
-            json.dump(scores_payload, f, indent=2)
-        merged = scores_payload["scores"]["overall"]
-        print(
-            "Combined Weighted Accuracy (T1-5): "
-            f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
-        )
+        if args.skip_tier5:
+            print("Tier 5 skipped (--skip-tier5)")
+        else:
+            # Tier 5 runs automatically whenever eval runs.
+            tier5_results = run_tier5_eval(
+                workspace, api_key,
+                eval_model=args.eval_model or "claude-sonnet-4-6",
+                judge_model=os.environ.get("TIER5_JUDGE_MODEL") or args.judge,
+                context_inject=args.context_inject,
+            )
+            tier5_path = workspace / "tier5_results.json"
+            with open(tier5_path, "w") as f:
+                json.dump(tier5_results, f, indent=2)
+            print(f"\nSaved {len(tier5_results)} Tier 5 results to {tier5_path}")
+            total = sum(r["ei_score"] for r in tier5_results)
+            max_score = len(tier5_results) * 2
+            pct = (total / max_score * 100.0) if max_score else 0.0
+            print(f"Tier 5 EI Score: {total}/{max_score} ({pct:.1f}%)")
+            scores_payload["scores"] = _merge_tier5_into_scores(scores_payload["scores"], tier5_results)
+            with open(scores_path, "w") as f:
+                json.dump(scores_payload, f, indent=2)
+            merged = scores_payload["scores"]["overall"]
+            print(
+                "Combined Weighted Accuracy (T1-5): "
+                f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
+            )
         scores_payload["store_stats"] = store_stats
         with open(scores_path, "w") as f:
             json.dump(scores_payload, f, indent=2)
@@ -10899,29 +10934,32 @@ def main():
         with open(scores_path, "w") as f:
             json.dump(scores_payload, f, indent=2)
 
-        # Tier 5 runs automatically whenever eval runs.
-        tier5_results = run_tier5_eval(
-            workspace, api_key,
-            eval_model=args.eval_model or "claude-sonnet-4-6",
-            judge_model=os.environ.get("TIER5_JUDGE_MODEL") or args.judge,
-            context_inject=args.context_inject,
-        )
-        tier5_path = workspace / "tier5_results.json"
-        with open(tier5_path, "w") as f:
-            json.dump(tier5_results, f, indent=2)
-        print(f"\nSaved {len(tier5_results)} Tier 5 results to {tier5_path}")
-        total = sum(r["ei_score"] for r in tier5_results)
-        max_score = len(tier5_results) * 2
-        pct = (total / max_score * 100.0) if max_score else 0.0
-        print(f"Tier 5 EI Score: {total}/{max_score} ({pct:.1f}%)")
-        scores_payload["scores"] = _merge_tier5_into_scores(scores_payload["scores"], tier5_results)
-        with open(scores_path, "w") as f:
-            json.dump(scores_payload, f, indent=2)
-        merged = scores_payload["scores"]["overall"]
-        print(
-            "Combined Weighted Accuracy (T1-5): "
-            f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
-        )
+        if args.skip_tier5:
+            print("Tier 5 skipped (--skip-tier5)")
+        else:
+            # Tier 5 runs automatically whenever eval runs.
+            tier5_results = run_tier5_eval(
+                workspace, api_key,
+                eval_model=args.eval_model or "claude-sonnet-4-6",
+                judge_model=os.environ.get("TIER5_JUDGE_MODEL") or args.judge,
+                context_inject=args.context_inject,
+            )
+            tier5_path = workspace / "tier5_results.json"
+            with open(tier5_path, "w") as f:
+                json.dump(tier5_results, f, indent=2)
+            print(f"\nSaved {len(tier5_results)} Tier 5 results to {tier5_path}")
+            total = sum(r["ei_score"] for r in tier5_results)
+            max_score = len(tier5_results) * 2
+            pct = (total / max_score * 100.0) if max_score else 0.0
+            print(f"Tier 5 EI Score: {total}/{max_score} ({pct:.1f}%)")
+            scores_payload["scores"] = _merge_tier5_into_scores(scores_payload["scores"], tier5_results)
+            with open(scores_path, "w") as f:
+                json.dump(scores_payload, f, indent=2)
+            merged = scores_payload["scores"]["overall"]
+            print(
+                "Combined Weighted Accuracy (T1-5): "
+                f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
+            )
         scores_payload["store_stats"] = store_stats
         with open(scores_path, "w") as f:
             json.dump(scores_payload, f, indent=2)

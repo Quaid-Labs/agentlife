@@ -4887,6 +4887,7 @@ def test_judge_openai_compatible_uses_compact_strict_cap(monkeypatch):
     assert (label, score) == ("CORRECT", 1.0)
     assert seen["max_tokens"] == 24
     assert seen["source"] == "judge"
+    assert seen["chat_template_kwargs"] == {"enable_thinking": False}
 
 
 def test_judge_non_question_uses_openai_compatible_when_requested(monkeypatch):
@@ -5055,6 +5056,45 @@ class TestMainTier5Auto:
         rpb.main()
         assert called["eval"] == 1
         assert called["tier5"] == 1
+
+    def test_eval_can_skip_tier5(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "run"
+        (workspace / "data").mkdir(parents=True)
+        (workspace / "data" / "memory.db").write_text("")
+
+        called = {"tier5": 0, "eval": 0}
+
+        def _fake_run_eval(*_a, **_k):
+            called["eval"] += 1
+            return []
+
+        def _fake_run_tier5(*_a, **_k):
+            called["tier5"] += 1
+            return []
+
+        monkeypatch.setattr(rpb, "run_eval", _fake_run_eval)
+        monkeypatch.setattr(rpb, "run_tier5_eval", _fake_run_tier5)
+        monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            rpb,
+            "score_results",
+            lambda _results: {
+                "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+                "per_type": {},
+                "per_difficulty": {},
+            },
+        )
+        monkeypatch.setattr(sys, "argv", [
+            "run_production_benchmark.py",
+            "--mode", "eval",
+            "--results-dir", str(workspace),
+            "--backend", "claude-code",
+            "--skip-tier5",
+        ])
+
+        rpb.main()
+        assert called["eval"] == 1
+        assert called["tier5"] == 0
 
 
 class TestMainContextInjectDefault:
