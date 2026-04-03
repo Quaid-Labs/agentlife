@@ -5637,6 +5637,20 @@ class TestWriteJournalEntry:
 
 
 class TestBenchmarkCoreArtifactMirroring:
+    def test_instance_layout_symlinks_data_to_workspace_root(self, tmp_path):
+        workspace = tmp_path / "ws"
+        (workspace / "config").mkdir(parents=True, exist_ok=True)
+        (workspace / "projects").mkdir(parents=True, exist_ok=True)
+        (workspace / "config" / "memory.json").write_text("{}")
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        (workspace / "data" / "memory.db").write_text("seed")
+
+        instance_root = rpb._ensure_quaid_instance_layout(workspace)
+
+        assert (instance_root / "data").is_symlink()
+        assert (instance_root / "data").resolve() == (workspace / "data").resolve()
+        assert (instance_root / "data" / "memory.db").read_text() == "seed"
+
     def test_cached_core_artifacts_write_to_workspace_and_instance(self, tmp_path):
         workspace = tmp_path / "ws"
         (workspace / "config").mkdir(parents=True, exist_ok=True)

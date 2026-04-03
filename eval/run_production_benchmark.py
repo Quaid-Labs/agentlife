@@ -9655,8 +9655,23 @@ def _ensure_quaid_instance_layout(workspace: Path, instance_id: str = _BENCHMARK
     """Materialize a minimal per-instance layout for checkpoint subprocesses."""
     workspace = workspace.resolve()
     instance_root = workspace / instance_id
-    for rel in ["config", "data", "identity", "journal", "logs"]:
+    for rel in ["config", "identity", "journal", "logs"]:
         (instance_root / rel).mkdir(parents=True, exist_ok=True)
+
+    flat_data = workspace / "data"
+    instance_data = instance_root / "data"
+    flat_data.mkdir(parents=True, exist_ok=True)
+    if instance_data.is_symlink():
+        current_target = instance_data.resolve(strict=False)
+        if current_target != flat_data:
+            instance_data.unlink()
+    elif instance_data.exists():
+        if instance_data.is_dir():
+            shutil.rmtree(instance_data)
+        else:
+            instance_data.unlink()
+    if not instance_data.exists() and not instance_data.is_symlink():
+        instance_data.symlink_to(flat_data, target_is_directory=True)
 
     flat_cfg = workspace / "config" / "memory.json"
     instance_cfg = instance_root / "config" / "memory.json"
