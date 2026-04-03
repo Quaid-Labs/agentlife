@@ -4978,6 +4978,17 @@ def test_openai_compatible_helpers_route_judge_to_separate_endpoint(monkeypatch)
     assert rpb._get_openai_compatible_api_key(source="judge") == "judge-key"
 
 
+def test_resolve_assets_dir_prefers_benchmark_assets_env(monkeypatch, tmp_path):
+    benchmark_assets = tmp_path / "bench-assets"
+    agentlife_assets = tmp_path / "agentlife-assets"
+    benchmark_assets.mkdir()
+    agentlife_assets.mkdir()
+    monkeypatch.setenv("BENCHMARK_ASSETS_DIR", str(benchmark_assets))
+    monkeypatch.setenv("AGENTLIFE_ASSETS_DIR", str(agentlife_assets))
+
+    assert rpb._resolve_assets_dir() == benchmark_assets
+
+
 def test_judge_non_question_uses_openai_compatible_when_requested(monkeypatch):
     seen = {}
 

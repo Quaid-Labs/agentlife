@@ -367,7 +367,7 @@ def _anthropic_text_blocks(
 
 def _resolve_assets_dir() -> Path:
     """Resolve benchmark assets path with explicit env override first."""
-    explicit = os.environ.get("AGENTLIFE_ASSETS_DIR")
+    explicit = os.environ.get("BENCHMARK_ASSETS_DIR") or os.environ.get("AGENTLIFE_ASSETS_DIR")
     if explicit:
         return Path(explicit)
     benchmark_assets = _CLAWD / "benchmark-assets"
