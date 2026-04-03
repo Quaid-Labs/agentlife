@@ -686,11 +686,12 @@ def run_progress(root: Path, run_name: str) -> str:
     if ev.exists():
         try:
             e = json.loads(ev.read_text())
-            lcq = e.get("last_completed_query")
-            if isinstance(lcq, int):
-                eval_done = max(0, lcq + 1)
+            completed = e.get("completed")
+            if isinstance(completed, int):
+                eval_done = max(0, completed)
             else:
-                eval_done = e.get("completed")
+                lcq = e.get("last_completed_query")
+                eval_done = max(0, lcq + 1) if isinstance(lcq, int) else None
             eval_total = e.get("total_queries") if e.get("total_queries") is not None else e.get("total")
         except Exception:
             pass
@@ -1028,11 +1029,12 @@ def build_run_detail(root: Path, run_name: str) -> Dict[str, Any]:
     out["chunk_count"] = len(list((run / "extraction_cache").glob("chunk-*.json")))
     ev = load_json(run / "logs" / "eval_progress.json")
     if ev:
-        lcq = ev.get("last_completed_query")
-        if isinstance(lcq, int):
-            out["eval_completed"] = max(0, lcq + 1)
+        completed = ev.get("completed")
+        if isinstance(completed, int):
+            out["eval_completed"] = max(0, completed)
         else:
-            out["eval_completed"] = ev.get("completed")
+            lcq = ev.get("last_completed_query")
+            out["eval_completed"] = max(0, lcq + 1) if isinstance(lcq, int) else None
         out["eval_total"] = ev.get("total_queries") if ev.get("total_queries") is not None else ev.get("total")
     launch_text = _first_launch_text(root, run_name)
     tier5 = _tier5_progress(run, launch_text)

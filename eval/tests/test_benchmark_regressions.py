@@ -3583,6 +3583,31 @@ def test_tool_memory_recall_uses_shorter_timeout_for_fast_calls(tmp_path, monkey
     assert meta["harness_telemetry"]["status"] == "ok"
 
 
+def test_tool_memory_recall_allows_fast_timeout_override(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    captured: dict[str, object] = {}
+
+    def _fake_run(_cmd, **kwargs):
+        captured["timeout"] = kwargs.get("timeout")
+        return SimpleNamespace(stdout=json.dumps({"results": [], "meta": {"mode": "fast"}}), stderr="", returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    monkeypatch.setenv("BENCHMARK_RECALL_FAST_TIMEOUT_S", "120")
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+
+    _text, meta = rpb._tool_memory_recall(
+        "coffee",
+        workspace,
+        {"PATH": os.environ.get("PATH", "")},
+        fast=True,
+    )
+
+    assert captured["timeout"] == 120
+    assert meta["harness_telemetry"]["status"] == "ok"
+
+
 def test_tool_memory_recall_parses_graph_direct_results_payload(tmp_path, monkeypatch):
     workspace = tmp_path / "ws"
     workspace.mkdir()

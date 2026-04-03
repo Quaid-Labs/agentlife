@@ -7445,6 +7445,24 @@ def _render_recall_docs_bundle(bundle: Any) -> str:
     return "\n".join(line for line in lines if line is not None).strip()
 
 
+def _recall_subprocess_timeout_seconds(*, fast: bool) -> int:
+    env_name = "BENCHMARK_RECALL_FAST_TIMEOUT_S" if fast else "BENCHMARK_RECALL_TIMEOUT_S"
+    strict_default = 30 if fast else 90
+    if not _uses_openai_compatible_backend():
+        return strict_default
+    local_default = 120 if fast else 180
+    raw = str(os.environ.get(env_name, "") or "").strip()
+    if not raw:
+        return local_default
+    try:
+        value = int(float(raw))
+    except Exception:
+        return local_default
+    if value <= 0:
+        return local_default
+    return value
+
+
 def _tool_memory_recall(
     query: str, workspace: Path, env: dict,
     date_from: Optional[str] = None, date_to: Optional[str] = None,
@@ -7550,7 +7568,7 @@ def _tool_memory_recall(
         if planner_profile:
             cfg["planner_profile"] = planner_profile
         cmd += ["recall", query, json.dumps(cfg), "--json"]
-    timeout_s = 30 if fast else 90
+    timeout_s = _recall_subprocess_timeout_seconds(fast=fast)
     try:
         recall_env = dict(env)
         recall_env["QUAID_LLM_USAGE_PHASE"] = "eval"
