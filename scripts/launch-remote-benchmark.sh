@@ -157,6 +157,11 @@ from pathlib import Path
 section = sys.argv[1]
 key_name = sys.argv[2]
 candidate_paths = [Path(p).expanduser() for p in sys.argv[3:]]
+alias_map = {
+    "firstKeyPath": ("firstKeyPath", "primaryKeyPath"),
+    "secondKeyPath": ("secondKeyPath", "secondaryKeyPath"),
+    "thirdKeyPath": ("thirdKeyPath",),
+}
 
 for cfg_path in candidate_paths:
     if not cfg_path.is_file():
@@ -169,7 +174,11 @@ for cfg_path in candidate_paths:
     paths = cfg.get("paths") if isinstance(cfg.get("paths"), dict) else {}
     auth = cfg.get("auth") if isinstance(cfg.get("auth"), dict) else {}
     section_cfg = auth.get(section) if isinstance(auth.get(section), dict) else {}
-    raw_path = str(section_cfg.get(key_name) or "").strip()
+    raw_path = ""
+    for candidate_key in alias_map.get(key_name, (key_name,)):
+        raw_path = str(section_cfg.get(candidate_key) or "").strip()
+        if raw_path:
+            break
     if not raw_path:
         continue
 
@@ -367,7 +376,7 @@ OPTIONAL_BENCH_ENV=""
 if [[ -n "${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=$(printf %q "$BENCHMARK_ANTHROPIC_OAUTH_TOKEN")"$'\n'
 else
-  LOCAL_BENCHMARK_PRIMARY_KEY_PATH="$(resolve_local_config_secret_path anthropic primaryKeyPath || true)"
+  LOCAL_BENCHMARK_PRIMARY_KEY_PATH="$(resolve_local_config_secret_path anthropic firstKeyPath || true)"
   if [[ -n "$LOCAL_BENCHMARK_PRIMARY_KEY_PATH" && -f "$LOCAL_BENCHMARK_PRIMARY_KEY_PATH" ]]; then
     LOCAL_BENCHMARK_OAUTH_TOKEN="$(tr -d '[:space:]' < "$LOCAL_BENCHMARK_PRIMARY_KEY_PATH")"
   else
@@ -399,6 +408,9 @@ fi
 if [[ -n "${BENCHMARK_REQUIRE_QUERY_COUNT:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_REQUIRE_QUERY_COUNT=$(printf %q "$BENCHMARK_REQUIRE_QUERY_COUNT")"$'\n'
 fi
+if [[ -n "${BENCHMARK_ALLOW_NON_HAIKU_ANSWER_MODEL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_ALLOW_NON_HAIKU_ANSWER_MODEL=$(printf %q "$BENCHMARK_ALLOW_NON_HAIKU_ANSWER_MODEL")"$'\n'
+fi
 if [[ -n "${BENCHMARK_EVAL_PARALLEL:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_EVAL_PARALLEL=$(printf %q "$BENCHMARK_EVAL_PARALLEL")"$'\n'
 fi
@@ -407,6 +419,12 @@ if [[ -n "${OPENAI_COMPAT_ANSWER_TIMEOUT_S:-}" ]]; then
 fi
 if [[ -n "${OPENAI_COMPAT_RETRY_ATTEMPTS:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export OPENAI_COMPAT_RETRY_ATTEMPTS=$(printf %q "$OPENAI_COMPAT_RETRY_ATTEMPTS")"$'\n'
+fi
+if [[ -n "${OPENAI_COMPAT_TRACE:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export OPENAI_COMPAT_TRACE=$(printf %q "$OPENAI_COMPAT_TRACE")"$'\n'
+fi
+if [[ -n "${OPENAI_COMPAT_TRACE_INTERVAL_S:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export OPENAI_COMPAT_TRACE_INTERVAL_S=$(printf %q "$OPENAI_COMPAT_TRACE_INTERVAL_S")"$'\n'
 fi
 if [[ -n "${BENCHMARK_FAST_REASONING_MODEL:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_FAST_REASONING_MODEL=$(printf %q "$BENCHMARK_FAST_REASONING_MODEL")"$'\n'
@@ -532,7 +550,7 @@ elif [[ -n \"\$BENCHMARK_OAUTH_TOKEN\" ]]; then
   export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=\"\$BENCHMARK_OAUTH_TOKEN\"
   export ANTHROPIC_API_KEY=\"\$BENCHMARK_OAUTH_TOKEN\"
 else
-  echo \"ERROR: BENCHMARK_ANTHROPIC_OAUTH_TOKEN missing; set it explicitly or configure auth.anthropic.primaryKeyPath in .agentlife-benchmark.local.json before launch\" >&2
+  echo \"ERROR: BENCHMARK_ANTHROPIC_OAUTH_TOKEN missing; set it explicitly or configure auth.anthropic.firstKeyPath in .agentlife-benchmark.local.json before launch\" >&2
   exit 1
 fi
 if [[ $(printf %q "$BACKEND_ARG") == "vllm" || $(printf %q "$BACKEND_ARG") == "llama-cpp" ]]; then

@@ -1292,6 +1292,96 @@ def _write_prompt_trace(
         pass
 
 
+_OPENAI_COMPAT_ACTIVE_LOCK = threading.Lock()
+_OPENAI_COMPAT_ACTIVE_REQUESTS: Dict[str, Dict[str, Any]] = {}
+_OPENAI_COMPAT_WATCHDOG_STARTED = False
+
+
+def _openai_compatible_trace_enabled() -> bool:
+    return str(os.environ.get("OPENAI_COMPAT_TRACE", "0") or "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _openai_compatible_trace_path(workspace: Path) -> Path:
+    return workspace / "logs" / "openai-compatible-trace.jsonl"
+
+
+def _append_openai_compatible_trace(workspace: Optional[Path], row: Dict[str, Any]) -> None:
+    if workspace is None or not _openai_compatible_trace_enabled():
+        return
+    try:
+        path = _openai_compatible_trace_path(workspace)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
+
+
+def _estimate_message_tokens(messages: List[Dict[str, Any]]) -> int:
+    parts: List[str] = []
+    for message in messages:
+        content = message.get("content")
+        if isinstance(content, str):
+            parts.append(content)
+        elif isinstance(content, list):
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    parts.append(str(item.get("text") or ""))
+    return _estimate_text_tokens("\n".join(parts))
+
+
+def _ensure_openai_compatible_watchdog(workspace: Optional[Path]) -> None:
+    global _OPENAI_COMPAT_WATCHDOG_STARTED
+    if workspace is None or not _openai_compatible_trace_enabled():
+        return
+    with _OPENAI_COMPAT_ACTIVE_LOCK:
+        if _OPENAI_COMPAT_WATCHDOG_STARTED:
+            return
+        _OPENAI_COMPAT_WATCHDOG_STARTED = True
+
+    interval_s = max(5.0, float(os.environ.get("OPENAI_COMPAT_TRACE_INTERVAL_S", "15") or "15"))
+
+    def _watchdog() -> None:
+        while True:
+            time.sleep(interval_s)
+            with _OPENAI_COMPAT_ACTIVE_LOCK:
+                active = list(_OPENAI_COMPAT_ACTIVE_REQUESTS.values())
+            if not active:
+                continue
+            now = time.time()
+            rows = []
+            for row in active:
+                age_s = round(now - float(row.get("started_monotonic", now)), 1)
+                rows.append(
+                    {
+                        "request_id": row.get("request_id"),
+                        "source": row.get("source"),
+                        "model": row.get("model"),
+                        "attempt": row.get("attempt"),
+                        "age_s": age_s,
+                        "message_tokens_est": row.get("message_tokens_est"),
+                        "message_chars": row.get("message_chars"),
+                        "tools": row.get("tools"),
+                    }
+                )
+            rows.sort(key=lambda item: (-float(item.get("age_s", 0.0)), str(item.get("source") or "")))
+            summary = ", ".join(
+                f"{item['request_id']}:{item['source']}:{item['age_s']}s:{item['message_tokens_est']}tok"
+                for item in rows[:8]
+            )
+            print(f"  [openai-compatible] active requests={len(rows)} {summary}")
+            _append_openai_compatible_trace(
+                workspace,
+                {
+                    "event": "heartbeat",
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                    "active_requests": rows,
+                },
+            )
+
+    threading.Thread(target=_watchdog, daemon=True, name="openai-compatible-trace").start()
+
+
 def _usage_log_path(workspace: Path) -> Path:
     return workspace / _BENCHMARK_QUAID_INSTANCE / "logs" / "llm-usage-events.jsonl"
 
@@ -2025,55 +2115,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     prod_config["capture"]["chunkMaxLines"] = benchmark_chunk_max_lines
     if not isinstance(prod_config.get("models"), dict):
         prod_config["models"] = {}
-    # New Quaid strict mode requires explicit provider selection.
-    # Keep this aligned with harness backend so janitor/recall do not fail-hard.
-    requested_extraction_model = str(extraction_model or "").strip()
-    deep_reasoning_model = os.environ.get("BENCHMARK_DEEP_REASONING_MODEL", "").strip()
-    fast_reasoning_model = os.environ.get("BENCHMARK_FAST_REASONING_MODEL", "").strip()
-    if not deep_reasoning_model:
-        if requested_extraction_model:
-            deep_reasoning_model = requested_extraction_model
-        else:
-            deep_reasoning_model = "claude-sonnet-4-6" if _BACKEND == "claude-code" else "claude-haiku-4-5-20251001"
-    if not fast_reasoning_model:
-        fast_reasoning_model = "claude-haiku-4-5-20251001"
-    if _BACKEND == "claude-code":
-        prod_config["models"]["llmProvider"] = "claude-code"
-        prod_config["models"]["deepReasoningProvider"] = "claude-code"
-        # Split tiers when API key is available: keep deep on Claude Code,
-        # route fast calls to Anthropic API (Haiku) for lower-latency paths.
-        prod_config["models"]["fastReasoningProvider"] = (
-            "anthropic" if _find_anthropic_api_key().strip() else "claude-code"
-        )
-        prod_config["models"]["deepReasoning"] = deep_reasoning_model
-        prod_config["models"]["fastReasoning"] = fast_reasoning_model
-        # Avoid inheriting stale OpenAI-compatible transport config into Claude lanes.
-        prod_config["models"].pop("baseUrl", None)
-        prod_config["models"].pop("apiKeyEnv", None)
-    elif _uses_openai_compatible_backend():
-        prod_config["models"]["llmProvider"] = "openai-compatible"
-        prod_config["models"]["deepReasoningProvider"] = "openai-compatible"
-        prod_config["models"]["fastReasoningProvider"] = "openai-compatible"
-        prod_config["models"]["deepReasoning"] = deep_reasoning_model
-        prod_config["models"]["fastReasoning"] = fast_reasoning_model or deep_reasoning_model
-        prod_config["models"]["baseUrl"] = _get_openai_compatible_url()
-        prod_config["models"]["apiKeyEnv"] = _get_openai_compatible_api_key_env()
-    else:
-        prod_config["models"]["llmProvider"] = "anthropic"
-        prod_config["models"]["deepReasoningProvider"] = "anthropic"
-        prod_config["models"]["fastReasoningProvider"] = "anthropic"
-
-    # Allow run-level override of both reasoning tiers (used for direct Anthropic haiku runs).
-    reasoning_model = os.environ.get("BENCHMARK_REASONING_MODEL", "").strip()
-    if reasoning_model:
-        prod_config["models"]["deepReasoning"] = reasoning_model
-        prod_config["models"]["fastReasoning"] = reasoning_model
-    elif _BACKEND == "oauth":
-        # Default direct Anthropic backend: keep both tiers on Haiku unless the operator
-        # explicitly requested a split via BENCHMARK_DEEP_REASONING_MODEL /
-        # BENCHMARK_FAST_REASONING_MODEL.
-        prod_config["models"]["deepReasoning"] = deep_reasoning_model
-        prod_config["models"]["fastReasoning"] = fast_reasoning_model
+    _apply_backend_reasoning_config(prod_config, requested_model=extraction_model)
 
     # Optional embedding-lane overrides for benchmark A/Bs.
     # Keep these harness-scoped: they only shape generated workspace config.
@@ -2622,6 +2664,75 @@ def _set_workspace_capture_limits(
         payload["capture"]["chunk_max_lines"] = int(chunk_max_lines)
         payload["capture"]["chunkMaxLines"] = int(chunk_max_lines)
     config_path.write_text(json.dumps(payload, indent=2))
+
+
+def _apply_backend_reasoning_config(payload: Dict[str, Any], *, requested_model: Optional[str] = None) -> None:
+    if not isinstance(payload.get("models"), dict):
+        payload["models"] = {}
+    models = payload["models"]
+
+    requested_reasoning_model = str(requested_model or "").strip()
+    deep_reasoning_model = os.environ.get("BENCHMARK_DEEP_REASONING_MODEL", "").strip()
+    fast_reasoning_model = os.environ.get("BENCHMARK_FAST_REASONING_MODEL", "").strip()
+    if _uses_openai_compatible_backend():
+        default_local_model = requested_reasoning_model or _get_openai_compatible_model()
+        if not deep_reasoning_model:
+            deep_reasoning_model = default_local_model
+        if not fast_reasoning_model:
+            fast_reasoning_model = default_local_model or deep_reasoning_model
+    else:
+        if not deep_reasoning_model:
+            if requested_reasoning_model:
+                deep_reasoning_model = requested_reasoning_model
+            else:
+                deep_reasoning_model = "claude-sonnet-4-6" if _BACKEND == "claude-code" else "claude-haiku-4-5-20251001"
+        if not fast_reasoning_model:
+            fast_reasoning_model = "claude-haiku-4-5-20251001"
+
+    if _BACKEND == "claude-code":
+        models["llmProvider"] = "claude-code"
+        models["deepReasoningProvider"] = "claude-code"
+        models["fastReasoningProvider"] = "anthropic" if _find_anthropic_api_key().strip() else "claude-code"
+        models["deepReasoning"] = deep_reasoning_model
+        models["fastReasoning"] = fast_reasoning_model
+        models.pop("baseUrl", None)
+        models.pop("apiKeyEnv", None)
+    elif _uses_openai_compatible_backend():
+        models["llmProvider"] = "openai-compatible"
+        models["deepReasoningProvider"] = "openai-compatible"
+        models["fastReasoningProvider"] = "openai-compatible"
+        models["deepReasoning"] = deep_reasoning_model
+        models["fastReasoning"] = fast_reasoning_model or deep_reasoning_model
+        models["baseUrl"] = _get_openai_compatible_url()
+        models["apiKeyEnv"] = _get_openai_compatible_api_key_env()
+    else:
+        models["llmProvider"] = "anthropic"
+        models["deepReasoningProvider"] = "anthropic"
+        models["fastReasoningProvider"] = "anthropic"
+
+    reasoning_model = os.environ.get("BENCHMARK_REASONING_MODEL", "").strip()
+    if reasoning_model:
+        models["deepReasoning"] = reasoning_model
+        models["fastReasoning"] = reasoning_model
+    elif _BACKEND == "oauth":
+        models["deepReasoning"] = deep_reasoning_model
+        models["fastReasoning"] = fast_reasoning_model
+
+
+def _normalize_workspace_runtime_config(workspace: Path, *, requested_model: Optional[str] = None) -> None:
+    config_path = workspace / "config" / "memory.json"
+    if not config_path.exists():
+        return
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"Workspace config is not a JSON object: {config_path}")
+    _apply_backend_reasoning_config(payload, requested_model=requested_model)
+    if not isinstance(payload.get("retrieval"), dict):
+        payload["retrieval"] = {}
+    payload["retrieval"].pop("notifyOnRecall", None)
+    payload["retrieval"].pop("notify_on_recall", None)
+    config_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    _ensure_quaid_instance_layout(workspace)
 
 
 def restore_lifecycle_resume_checkpoint(workspace: Path) -> Optional[dict]:
@@ -5375,12 +5486,33 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
     progress_path = workspace / "logs" / "eval_progress.json"
     progress_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def _write_eval_progress(current_idx: int, completed_count: int, completed_idx: int) -> None:
+    def _write_eval_progress(
+        current_idx: int,
+        completed_count: int,
+        completed_idx: int,
+        *,
+        active_count: int = 0,
+        correct_count: int = 0,
+        partials_count: int = 0,
+        wrong_count: int = 0,
+    ) -> None:
+        scored_so_far = max(0, correct_count + partials_count + wrong_count)
+        accuracy_so_far = (
+            (correct_count + 0.5 * partials_count) / scored_so_far * 100.0
+            if scored_so_far > 0
+            else 0.0
+        )
         payload = {
             "total_queries": len(all_queries),
             "current_query": current_idx,
             "completed": max(0, completed_count),
             "last_completed_query": completed_idx,
+            "active_queries": max(0, active_count),
+            "correct": max(0, correct_count),
+            "partial": max(0, partials_count),
+            "wrong": max(0, wrong_count),
+            "scored": scored_so_far,
+            "accuracy_so_far": round(accuracy_so_far, 2),
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
         try:
@@ -5396,12 +5528,20 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             partial_count += 1
         else:
             wrong += 1
+    pending_queries = [(i, q) for i, q in enumerate(all_queries) if i not in results_by_idx]
     completed = len(results_by_idx)
     completed_idx = max(results_by_idx.keys(), default=-1)
-    _write_eval_progress(current_idx=completed, completed_count=completed, completed_idx=completed_idx)
+    _write_eval_progress(
+        current_idx=completed,
+        completed_count=completed,
+        completed_idx=completed_idx,
+        active_count=len(pending_queries),
+        correct_count=correct,
+        partials_count=partial_count,
+        wrong_count=wrong,
+    )
 
     parallel_workers = _resolve_eval_parallel_workers()
-    pending_queries = [(i, q) for i, q in enumerate(all_queries) if i not in results_by_idx]
     parallel_workers = min(parallel_workers, max(1, len(pending_queries)))
     if parallel_workers > 1:
         print(f"  Eval parallel workers: {parallel_workers}")
@@ -5438,7 +5578,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         audit_response = ""
         if query_type == "non_question":
             label, score = _judge_non_question(
-                question, ground_truth, prediction, api_key, judge_model=None, workspace=workspace
+                question, ground_truth, prediction, api_key, judge_model=judge_model, workspace=workspace
             )
         elif query_type == "statement_context_grounding":
             audit_response, audit_usage = _run_no_tool_followup(
@@ -5461,7 +5601,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 audit_response=audit_response,
                 provenance=provenance,
                 api_key=api_key,
-                judge_model=None,
+                judge_model=judge_model,
                 workspace=workspace,
             )
         else:
@@ -5471,7 +5611,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         if query_type == "non_question":
             if retrieval_context:
                 ret_label, ret_score = _judge_non_question(
-                    question, ground_truth, retrieval_context, api_key, judge_model=None, workspace=workspace
+                    question, ground_truth, retrieval_context, api_key, judge_model=judge_model, workspace=workspace
                 )
             else:
                 ret_label, ret_score = "CORRECT", 1.0
@@ -5482,7 +5622,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 audit_response=audit_response,
                 provenance=provenance,
                 api_key=api_key,
-                judge_model=None,
+                judge_model=judge_model,
                 workspace=workspace,
             ) if retrieval_context else ("WRONG", 0.0)
         elif retrieval_context:
@@ -5525,6 +5665,10 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 current_idx=len(results_by_idx),
                 completed_count=len(results_by_idx),
                 completed_idx=max(results_by_idx.keys(), default=-1),
+                active_count=1,
+                correct_count=correct,
+                partials_count=partial_count,
+                wrong_count=wrong,
             )
             i2, result, marker, query_type, tool_calls = _eval_one(i, query)
             q_usage = result.get("eval_tokens", {})
@@ -5554,40 +5698,64 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 current_idx=completed,
                 completed_count=completed,
                 completed_idx=max(results_by_idx.keys(), default=-1),
+                active_count=0,
+                correct_count=correct,
+                partials_count=partial_count,
+                wrong_count=wrong,
             )
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_workers) as ex:
             fut_map = {ex.submit(_eval_one, i, q): i for i, q in pending_queries}
-            for fut in concurrent.futures.as_completed(fut_map):
-                i2, result, marker, query_type, tool_calls = fut.result()
-                q_usage = result.get("eval_tokens", {})
-                eval_usage["input_tokens"] += q_usage.get("input_tokens", 0)
-                eval_usage["output_tokens"] += q_usage.get("output_tokens", 0)
-                eval_usage["api_calls"] += q_usage.get("api_calls", 0)
-                if result["judge_label"] == "CORRECT":
-                    correct += 1
-                elif result["judge_label"] == "PARTIAL":
-                    partial_count += 1
-                else:
-                    wrong += 1
-                results_by_idx[i2] = result
-                _save_eval_resume_checkpoint(
-                    checkpoint_path,
-                    eval_model=eval_model,
-                    total_queries=len(all_queries),
-                    results_by_idx=results_by_idx,
+            pending = set(fut_map.keys())
+            while pending:
+                done, pending = concurrent.futures.wait(
+                    pending,
+                    timeout=5.0,
+                    return_when=concurrent.futures.FIRST_COMPLETED,
                 )
-                completed = len(results_by_idx)
                 _write_eval_progress(
-                    current_idx=completed,
-                    completed_count=completed,
+                    current_idx=len(results_by_idx),
+                    completed_count=len(results_by_idx),
                     completed_idx=max(results_by_idx.keys(), default=-1),
+                    active_count=len(pending),
+                    correct_count=correct,
+                    partials_count=partial_count,
+                    wrong_count=wrong,
                 )
-                scored_so_far = correct + partial_count + wrong
-                acc_so_far = (correct + 0.5 * partial_count) / scored_so_far * 100 if scored_so_far > 0 else 0
-                tools_str = f" tools=[{','.join(tool_calls)}]" if tool_calls else " (no tools)"
-                print(f"  [{completed}/{len(all_queries)}|q{i2+1}] {marker} ({query_type}) "
-                      f"{result['question'][:50]}...{tools_str} [{acc_so_far:.1f}%]")
+                for fut in done:
+                    i2, result, marker, query_type, tool_calls = fut.result()
+                    q_usage = result.get("eval_tokens", {})
+                    eval_usage["input_tokens"] += q_usage.get("input_tokens", 0)
+                    eval_usage["output_tokens"] += q_usage.get("output_tokens", 0)
+                    eval_usage["api_calls"] += q_usage.get("api_calls", 0)
+                    if result["judge_label"] == "CORRECT":
+                        correct += 1
+                    elif result["judge_label"] == "PARTIAL":
+                        partial_count += 1
+                    else:
+                        wrong += 1
+                    results_by_idx[i2] = result
+                    _save_eval_resume_checkpoint(
+                        checkpoint_path,
+                        eval_model=eval_model,
+                        total_queries=len(all_queries),
+                        results_by_idx=results_by_idx,
+                    )
+                    completed = len(results_by_idx)
+                    _write_eval_progress(
+                        current_idx=completed,
+                        completed_count=completed,
+                        completed_idx=max(results_by_idx.keys(), default=-1),
+                        active_count=len(pending),
+                        correct_count=correct,
+                        partials_count=partial_count,
+                        wrong_count=wrong,
+                    )
+                    scored_so_far = correct + partial_count + wrong
+                    acc_so_far = (correct + 0.5 * partial_count) / scored_so_far * 100 if scored_so_far > 0 else 0
+                    tools_str = f" tools=[{','.join(tool_calls)}]" if tool_calls else " (no tools)"
+                    print(f"  [{completed}/{len(all_queries)}|q{i2+1}] {marker} ({query_type}) "
+                          f"{result['question'][:50]}...{tools_str} [{acc_so_far:.1f}%]")
     results = [results_by_idx[i] for i in range(len(all_queries))]
 
     elapsed = time.time() - t_start
@@ -8274,9 +8442,7 @@ def _judge_non_question(
         prediction=prediction,
     )
     effective_model = (judge_model or os.environ.get("NON_QUESTION_JUDGE_MODEL", "gpt-4o")).strip()
-    if not effective_model.startswith("gpt-"):
-        effective_model = "gpt-4o"
-    return _judge_openai(prompt, model=effective_model, workspace=workspace)
+    return _judge_with_prompt(prompt, api_key, judge_model=effective_model, workspace=workspace)
 
 
 def _judge_statement_context_grounding(
@@ -8301,9 +8467,7 @@ def _judge_statement_context_grounding(
         provenance=json.dumps(provenance, ensure_ascii=True, sort_keys=True),
     )
     effective_model = (judge_model or os.environ.get("STATEMENT_GROUNDING_JUDGE_MODEL", "gpt-4o")).strip()
-    if not effective_model.startswith("gpt-"):
-        effective_model = "gpt-4o"
-    return _judge_openai(prompt, model=effective_model, workspace=workspace)
+    return _judge_with_prompt(prompt, api_key, judge_model=effective_model, workspace=workspace)
 
 
 def _judge_with_prompt(
@@ -8314,8 +8478,11 @@ def _judge_with_prompt(
 ) -> Tuple[str, float]:
     """Route judge call by model/provider."""
     model = (judge_model or "gpt-4o-mini").strip()
-    if model.startswith("gpt-"):
+    provider = _resolve_judge_provider(model)
+    if provider == "openai":
         return _judge_openai(prompt, model=model, workspace=workspace)
+    if provider == "openai-compatible":
+        return _judge_openai_compatible(prompt, model=model, workspace=workspace)
     return _judge_anthropic(prompt, api_key, model=model, workspace=workspace)
 
 
@@ -8360,6 +8527,48 @@ def _judge_openai(prompt: str, model: str = "gpt-4o-mini", workspace: Optional[P
         return _parse_judge_label(text)
     except Exception as e:
         print(f"    Judge error (openai:{model}): {e}")
+        return "ERROR", 0.0
+
+
+def _resolve_judge_provider(judge_model: str) -> str:
+    override = str(os.environ.get("BENCHMARK_JUDGE_PROVIDER", "") or "").strip().lower()
+    if override in {"openai", "anthropic", "openai-compatible"}:
+        return override
+    model = str(judge_model or "").strip()
+    if model.startswith("gpt-"):
+        return "openai"
+    if _uses_openai_compatible_backend():
+        served = _get_openai_compatible_model()
+        if model and served and model == served:
+            return "openai-compatible"
+    return "anthropic"
+
+
+def _judge_openai_compatible(prompt: str, model: str, workspace: Optional[Path] = None) -> Tuple[str, float]:
+    try:
+        data, usage = _call_openai_compatible_chat(
+            messages=[{"role": "user", "content": prompt}],
+            model=model,
+            max_tokens=150,
+            timeout=_openai_compatible_answer_timeout_s(),
+            workspace=workspace,
+            source="judge",
+            provider=_openai_compatible_backend_label(),
+        )
+        if workspace is not None and usage:
+            _append_usage_event(
+                workspace,
+                phase="eval",
+                source="judge",
+                model=model,
+                usage=usage,
+                tier=_infer_usage_tier(model),
+                provider=_openai_compatible_backend_label(),
+            )
+        text = _extract_openai_response_text(data)
+        return _parse_judge_label(text)
+    except Exception as e:
+        print(f"    Judge error ({_openai_compatible_backend_label()}:{model}): {e}")
         return "ERROR", 0.0
 
 
@@ -8601,23 +8810,49 @@ def _judge_tier5(
     )
 
     try:
-        text, _usage = _call_anthropic_cached(
-            system_prompt="You are an evaluation judge. Score responses on a 0-2 scale.",
-            user_message=prompt,
-            model=judge_model,
-            api_key=api_key,
-            max_tokens=300,
-        )
-        if workspace is not None and _usage:
-            _append_usage_event(
-                workspace,
-                phase="eval",
-                source="tier5_judge",
+        provider = _resolve_judge_provider(judge_model)
+        if provider == "openai-compatible":
+            data, usage = _call_openai_compatible_chat(
+                messages=[
+                    {"role": "system", "content": "You are an evaluation judge. Score responses on a 0-2 scale."},
+                    {"role": "user", "content": prompt},
+                ],
                 model=judge_model,
-                usage=_usage,
-                tier=_infer_usage_tier(judge_model),
-                provider=_BACKEND,
+                max_tokens=300,
+                timeout=_openai_compatible_answer_timeout_s(),
+                workspace=workspace,
+                source="tier5_judge",
+                provider=_openai_compatible_backend_label(),
             )
+            if workspace is not None and usage:
+                _append_usage_event(
+                    workspace,
+                    phase="eval",
+                    source="tier5_judge",
+                    model=judge_model,
+                    usage=usage,
+                    tier=_infer_usage_tier(judge_model),
+                    provider=_openai_compatible_backend_label(),
+                )
+            text = _extract_openai_response_text(data)
+        else:
+            text, _usage = _call_anthropic_cached(
+                system_prompt="You are an evaluation judge. Score responses on a 0-2 scale.",
+                user_message=prompt,
+                model=judge_model,
+                api_key=api_key,
+                max_tokens=300,
+            )
+            if workspace is not None and _usage:
+                _append_usage_event(
+                    workspace,
+                    phase="eval",
+                    source="tier5_judge",
+                    model=judge_model,
+                    usage=_usage,
+                    tier=_infer_usage_tier(judge_model),
+                    provider=_BACKEND,
+                )
 
         # Parse score from JSON
         try:
@@ -8639,7 +8874,9 @@ def _judge_tier5(
 
     except Exception as e:
         print(f"    Tier 5 judge error: {e}")
-        # Reliability fallback: avoid zeroing all EI scores due transient Claude Code judge failures.
+        if _resolve_judge_provider(judge_model) == "openai-compatible":
+            raise
+        # Reliability fallback: avoid zeroing all EI scores due transient remote judge failures.
         return _judge_tier5_openai(query, prediction, workspace=workspace)
 
 
@@ -9107,20 +9344,31 @@ def _openai_message_text(message: Dict[str, Any]) -> str:
     return str(content or "")
 
 
-def _openai_compatible_answer_timeout_s() -> int:
+def _extract_openai_response_text(data: Dict[str, Any]) -> str:
+    choice = ((data.get("choices") or [{}])[0] or {})
+    message = choice.get("message") or {}
+    if not isinstance(message, dict):
+        return ""
+    return _openai_message_text(message).strip()
+
+
+def _openai_compatible_answer_timeout_s() -> Optional[int]:
     """Return per-request timeout for openai-compatible answer/model calls.
 
     Local self-hosted lanes can have much longer end-to-end latency than Haiku.
     Keep the historical 120s default, but allow harness-side override for
-    feasibility tests without changing product/runtime behavior.
+    feasibility tests without changing product/runtime behavior. A value of 0
+    disables the client-side timeout entirely for long-running local runs.
     """
     raw = str(os.environ.get("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "120") or "120").strip()
     try:
         value = int(raw)
     except ValueError as exc:
         raise RuntimeError(f"OPENAI_COMPAT_ANSWER_TIMEOUT_S must be an integer, got: {raw!r}") from exc
-    if value <= 0:
-        raise RuntimeError(f"OPENAI_COMPAT_ANSWER_TIMEOUT_S must be positive, got: {value}")
+    if value < 0:
+        raise RuntimeError(f"OPENAI_COMPAT_ANSWER_TIMEOUT_S must be >= 0, got: {value}")
+    if value == 0:
+        return None
     return value
 
 
@@ -9129,7 +9377,7 @@ def _call_openai_compatible_chat(
     messages: List[Dict[str, Any]],
     model: str,
     max_tokens: int,
-    timeout: int,
+    timeout: Optional[int],
     tools: Optional[List[Dict[str, Any]]] = None,
     workspace: Optional[Path] = None,
     source: Optional[str] = None,
@@ -9153,6 +9401,11 @@ def _call_openai_compatible_chat(
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
 
+    _ensure_openai_compatible_watchdog(workspace)
+    message_chars = sum(len(json.dumps(m, ensure_ascii=False, sort_keys=True)) for m in messages)
+    message_tokens_est = _estimate_message_tokens(messages)
+    request_id = uuid.uuid4().hex[:10]
+
     req = urllib.request.Request(
         f"{url}/v1/chat/completions",
         data=json.dumps(payload).encode(),
@@ -9166,12 +9419,71 @@ def _call_openai_compatible_chat(
     data: Optional[Dict[str, Any]] = None
     last_err: Optional[Exception] = None
     for attempt in range(1, retry_attempts + 1):
+        should_raise = False
+        started_monotonic = time.time()
+        active_row = {
+            "request_id": request_id,
+            "source": source or "",
+            "model": model,
+            "attempt": attempt,
+            "provider": provider,
+            "started_monotonic": started_monotonic,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "timeout_s": timeout,
+            "message_count": len(messages),
+            "message_chars": message_chars,
+            "message_tokens_est": message_tokens_est,
+            "tools": bool(tools),
+            "max_tokens": max_tokens,
+        }
+        with _OPENAI_COMPAT_ACTIVE_LOCK:
+            _OPENAI_COMPAT_ACTIVE_REQUESTS[request_id] = dict(active_row)
+        _append_openai_compatible_trace(
+            workspace,
+            {
+                "event": "start",
+                **active_row,
+            },
+        )
+        print(
+            f"  [openai-compatible] start id={request_id} source={source or '-'} attempt={attempt}/{retry_attempts} "
+            f"model={model} msg_tokens~={message_tokens_est} msg_chars={message_chars} tools={1 if tools else 0}"
+        )
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                raw = json.loads(resp.read())
+            if timeout is None:
+                with urllib.request.urlopen(req) as resp:
+                    raw = json.loads(resp.read())
+            else:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    raw = json.loads(resp.read())
             if not isinstance(raw, dict):
                 raise RuntimeError(f"OpenAI-compatible backend returned non-object JSON: {type(raw).__name__}")
             data = raw
+            duration_ms = int((time.time() - started_monotonic) * 1000)
+            resolved_model = str(raw.get("model") or model)
+            _append_openai_compatible_trace(
+                workspace,
+                {
+                    "event": "success",
+                    "request_id": request_id,
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                    "source": source or "",
+                    "model": model,
+                    "resolved_model": resolved_model,
+                    "attempt": attempt,
+                    "duration_ms": duration_ms,
+                    "message_count": len(messages),
+                    "message_chars": message_chars,
+                    "message_tokens_est": message_tokens_est,
+                    "tools": bool(tools),
+                    "max_tokens": max_tokens,
+                    "output_tokens": int(_openai_usage_dict(raw, resolved_model).get("output_tokens", 0) or 0),
+                },
+            )
+            print(
+                f"  [openai-compatible] done id={request_id} source={source or '-'} attempt={attempt} "
+                f"duration_ms={duration_ms} model={resolved_model}"
+            )
             break
         except urllib.error.HTTPError as exc:
             body = ""
@@ -9182,15 +9494,40 @@ def _call_openai_compatible_chat(
             retriable = exc.code in {408, 409, 425, 429, 500, 502, 503, 504, 520, 529}
             last_err = RuntimeError(f"OpenAI-compatible HTTP {exc.code}: {body[:300]}")
             if not retriable or attempt == retry_attempts:
-                raise last_err from exc
+                should_raise = True
         except urllib.error.URLError as exc:
             last_err = RuntimeError(f"OpenAI-compatible URL error: {exc}")
             if attempt == retry_attempts:
-                raise last_err from exc
+                should_raise = True
         except TimeoutError as exc:
             last_err = RuntimeError(f"OpenAI-compatible timeout: {exc}")
             if attempt == retry_attempts:
-                raise last_err from exc
+                should_raise = True
+        finally:
+            with _OPENAI_COMPAT_ACTIVE_LOCK:
+                _OPENAI_COMPAT_ACTIVE_REQUESTS.pop(request_id, None)
+        if last_err is not None:
+            duration_ms = int((time.time() - started_monotonic) * 1000)
+            _append_openai_compatible_trace(
+                workspace,
+                {
+                    "event": "error",
+                    "request_id": request_id,
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                    "source": source or "",
+                    "model": model,
+                    "attempt": attempt,
+                    "duration_ms": duration_ms,
+                    "message_count": len(messages),
+                    "message_chars": message_chars,
+                    "message_tokens_est": message_tokens_est,
+                    "tools": bool(tools),
+                    "max_tokens": max_tokens,
+                    "error": str(last_err),
+                },
+            )
+        if should_raise:
+            raise last_err
         delay = min(backoff_cap_s, backoff_s * (2 ** (attempt - 1)))
         delay *= 1.0 + random.uniform(0.0, 0.25)
         print(f"  [openai-compatible] attempt {attempt}/{retry_attempts} failed; retrying in {delay:.1f}s")
@@ -10093,7 +10430,6 @@ def main():
     parser.add_argument("--no-context-inject", dest="context_inject", action="store_false",
                         help="Disable pre-inject recall results into context")
     parser.add_argument("--judge", type=str, default="gpt-4o-mini",
-                        choices=["gpt-4o-mini", "haiku"],
                         help="Judge model (default: gpt-4o-mini for cross-vendor fairness)")
     parser.add_argument("--tier5", action="store_true",
                         help="(Deprecated) Tier-5 auto-runs whenever eval runs")
@@ -10155,6 +10491,10 @@ def main():
         args.backend = "oauth"
     if args.backend == "vllm":
         if not str(args.vllm_url or "").strip():
+            args.vllm_url = str(os.environ.get("BENCHMARK_VLLM_URL", "") or "").strip()
+        if not str(args.vllm_model or "").strip():
+            args.vllm_model = str(os.environ.get("BENCHMARK_VLLM_MODEL", "") or "").strip()
+        if not str(args.vllm_url or "").strip():
             raise SystemExit("--backend vllm requires --vllm-url")
         if not str(args.vllm_model or "").strip():
             raise SystemExit("--backend vllm requires --vllm-model")
@@ -10163,6 +10503,10 @@ def main():
         if not eval_model_explicitly_set:
             args.eval_model = args.vllm_model
     if args.backend == "llama-cpp":
+        if not str(args.llama_cpp_url or "").strip():
+            args.llama_cpp_url = str(os.environ.get("BENCHMARK_LLAMA_CPP_URL", "") or "").strip()
+        if not str(args.llama_cpp_model or "").strip():
+            args.llama_cpp_model = str(os.environ.get("BENCHMARK_LLAMA_CPP_MODEL", "") or "").strip()
         if not str(args.llama_cpp_url or "").strip():
             raise SystemExit("--backend llama-cpp requires --llama-cpp-url")
         if not str(args.llama_cpp_model or "").strip():
@@ -10274,6 +10618,10 @@ def main():
             "llama_cpp_api_key_env": _OPENAI_COMPAT_API_KEY_ENV if args.backend == "llama-cpp" else "",
         },
     )
+    normalize_model = args.model
+    if args.mode == "eval" and _uses_openai_compatible_backend():
+        normalize_model = args.eval_model
+    _normalize_workspace_runtime_config(workspace, requested_model=normalize_model)
 
     t_global = time.time()
 
@@ -10386,7 +10734,7 @@ def main():
         tier5_results = run_tier5_eval(
             workspace, api_key,
             eval_model=args.eval_model or "claude-sonnet-4-6",
-            judge_model=os.environ.get("TIER5_JUDGE_MODEL"),
+            judge_model=os.environ.get("TIER5_JUDGE_MODEL") or args.judge,
             context_inject=args.context_inject,
         )
         tier5_path = workspace / "tier5_results.json"
@@ -10547,7 +10895,7 @@ def main():
         tier5_results = run_tier5_eval(
             workspace, api_key,
             eval_model=args.eval_model or "claude-sonnet-4-6",
-            judge_model=os.environ.get("TIER5_JUDGE_MODEL"),
+            judge_model=os.environ.get("TIER5_JUDGE_MODEL") or args.judge,
             context_inject=args.context_inject,
         )
         tier5_path = workspace / "tier5_results.json"

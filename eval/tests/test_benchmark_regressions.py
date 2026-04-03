@@ -2455,8 +2455,104 @@ def test_openai_compatible_answer_timeout_env_validation(monkeypatch):
         rpb._openai_compatible_answer_timeout_s()
 
     monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "0")
-    with pytest.raises(RuntimeError, match="must be positive"):
+    assert rpb._openai_compatible_answer_timeout_s() is None
+
+    monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "-1")
+    with pytest.raises(RuntimeError, match="must be >= 0"):
         rpb._openai_compatible_answer_timeout_s()
+
+
+def test_call_openai_compatible_chat_writes_trace_events(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setenv("OPENAI_COMPAT_TRACE", "1")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_URL", "http://example.test")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_MODEL", "gemma-4-31b-q8")
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_get_openai_compatible_api_key", lambda: "")
+
+    def _fake_urlopen(_req, timeout=300):
+        payload = {
+            "model": "gemma-4-31b-q8",
+            "usage": {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18},
+            "choices": [{"message": {"content": "ok"}}],
+        }
+        return io.BytesIO(json.dumps(payload).encode("utf-8"))
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    data, usage = rpb._call_openai_compatible_chat(
+        messages=[{"role": "user", "content": "hello world"}],
+        model="gemma-4-31b-q8",
+        max_tokens=32,
+        timeout=120,
+        workspace=workspace,
+        source="judge",
+        provider="llama-cpp",
+    )
+
+    assert data["choices"][0]["message"]["content"] == "ok"
+    assert usage["output_tokens"] == 7
+    trace_path = workspace / "logs" / "openai-compatible-trace.jsonl"
+    rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    assert [row["event"] for row in rows] == ["start", "success"]
+    assert rows[0]["source"] == "judge"
+    assert rows[0]["message_tokens_est"] >= 1
+    assert rows[1]["duration_ms"] >= 0
+
+
+def test_call_openai_compatible_chat_clears_active_request_on_error(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setenv("OPENAI_COMPAT_TRACE", "1")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_URL", "http://example.test")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_MODEL", "gemma-4-31b-q8")
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_get_openai_compatible_api_key", lambda: "")
+
+    def _fake_urlopen(_req, timeout=300):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    with pytest.raises(RuntimeError, match="OpenAI-compatible timeout"):
+        rpb._call_openai_compatible_chat(
+            messages=[{"role": "user", "content": "hello world"}],
+            model="gemma-4-31b-q8",
+            max_tokens=32,
+            timeout=120,
+            workspace=workspace,
+            source="answer",
+            provider="llama-cpp",
+        )
+
+    assert rpb._OPENAI_COMPAT_ACTIVE_REQUESTS == {}
+    trace_path = workspace / "logs" / "openai-compatible-trace.jsonl"
+    rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    assert rows[0]["event"] == "start"
+    assert rows[1]["event"] == "error"
+    assert "timeout" in rows[1]["error"].lower()
+
+
+def test_judge_openai_compatible_extracts_text_from_response(monkeypatch):
+    def _fake_call(**kwargs):
+        return (
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": [{"type": "text", "text": "CORRECT"}],
+                        }
+                    }
+                ]
+            },
+            {"input_tokens": 5, "output_tokens": 1, "api_calls": 1, "model_usage": {}},
+        )
+
+    monkeypatch.setattr(rpb, "_call_openai_compatible_chat", _fake_call)
+    label, score = rpb._judge_openai_compatible("prompt", model="gemma-4-31b-q8", workspace=None)
+    assert label == "CORRECT"
+    assert score == 1.0
 
 
 class TestGroupSessionsByDate:
@@ -3858,6 +3954,8 @@ def test_main_normalizes_api_backend_alias_to_oauth(tmp_path, monkeypatch):
 
 def test_main_vllm_requires_url_and_model(tmp_path, monkeypatch):
     workspace = tmp_path / "run"
+    monkeypatch.delenv("BENCHMARK_VLLM_URL", raising=False)
+    monkeypatch.delenv("BENCHMARK_VLLM_MODEL", raising=False)
 
     monkeypatch.setattr(sys, "argv", [
         "run_production_benchmark.py",
@@ -3881,6 +3979,8 @@ def test_main_vllm_requires_url_and_model(tmp_path, monkeypatch):
 
 def test_main_llama_cpp_requires_url_and_model(tmp_path, monkeypatch):
     workspace = tmp_path / "run"
+    monkeypatch.delenv("BENCHMARK_LLAMA_CPP_URL", raising=False)
+    monkeypatch.delenv("BENCHMARK_LLAMA_CPP_MODEL", raising=False)
 
     monkeypatch.setattr(sys, "argv", [
         "run_production_benchmark.py",
@@ -3980,6 +4080,192 @@ def test_main_llama_cpp_defaults_eval_model_to_served_model(tmp_path, monkeypatc
 
     assert seen["backend"] == "llama-cpp"
     assert seen["eval_model"] == "gemma-3-31b-it"
+
+
+def test_main_vllm_accepts_env_backed_url_and_model(tmp_path, monkeypatch):
+    workspace = tmp_path / "run"
+    (workspace / "data").mkdir(parents=True)
+    (workspace / "data" / "memory.db").write_text("")
+
+    seen = {"eval_model": None, "backend": None}
+
+    def _fake_run_eval(*_a, **kwargs):
+        seen["eval_model"] = kwargs.get("eval_model")
+        seen["backend"] = rpb._BACKEND
+        return []
+
+    monkeypatch.setattr(rpb, "run_eval", _fake_run_eval)
+    monkeypatch.setattr(rpb, "run_tier5_eval", lambda *_a, **_k: [])
+    monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        rpb,
+        "score_results",
+        lambda _results: {
+            "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+            "per_type": {},
+            "per_difficulty": {},
+        },
+    )
+    monkeypatch.setenv("BENCHMARK_VLLM_URL", "http://spark:8000")
+    monkeypatch.setenv("BENCHMARK_VLLM_MODEL", "gemma-3-31b-it")
+    monkeypatch.setattr(sys, "argv", [
+        "run_production_benchmark.py",
+        "--mode", "eval",
+        "--results-dir", str(workspace),
+        "--backend", "vllm",
+        "--allow-non-haiku-answer-model",
+    ])
+
+    rpb.main()
+
+    assert seen["backend"] == "vllm"
+    assert seen["eval_model"] == "gemma-3-31b-it"
+
+
+def test_main_llama_cpp_accepts_env_backed_url_and_model(tmp_path, monkeypatch):
+    workspace = tmp_path / "run"
+    (workspace / "data").mkdir(parents=True)
+    (workspace / "data" / "memory.db").write_text("")
+
+    seen = {"eval_model": None, "backend": None}
+
+    def _fake_run_eval(*_a, **kwargs):
+        seen["eval_model"] = kwargs.get("eval_model")
+        seen["backend"] = rpb._BACKEND
+        return []
+
+    monkeypatch.setattr(rpb, "run_eval", _fake_run_eval)
+    monkeypatch.setattr(rpb, "run_tier5_eval", lambda *_a, **_k: [])
+    monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        rpb,
+        "score_results",
+        lambda _results: {
+            "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+            "per_type": {},
+            "per_difficulty": {},
+        },
+    )
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_URL", "http://spark:8080")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_MODEL", "gemma-3-31b-it")
+    monkeypatch.setattr(sys, "argv", [
+        "run_production_benchmark.py",
+        "--mode", "eval",
+        "--results-dir", str(workspace),
+        "--backend", "llama-cpp",
+        "--allow-non-haiku-answer-model",
+    ])
+
+    rpb.main()
+
+    assert seen["backend"] == "llama-cpp"
+    assert seen["eval_model"] == "gemma-3-31b-it"
+
+
+def test_run_eval_parallel_progress_heartbeats_without_completed_queries(tmp_path, monkeypatch):
+    workspace = tmp_path / "run"
+    (workspace / "data").mkdir(parents=True)
+    (workspace / "data" / "memory.db").write_text("", encoding="utf-8")
+
+    q1 = {
+        "question": "Q1?",
+        "ground_truth": "A1",
+        "query_type": "temporal",
+        "source_session": 1,
+    }
+    q2 = {
+        "question": "Q2?",
+        "ground_truth": "A2",
+        "query_type": "temporal",
+        "source_session": 2,
+    }
+
+    monkeypatch.setattr(
+        rpb,
+        "_load_reviews_with_dataset_gate",
+        lambda _max_sessions: (tmp_path / "assets", [], [object(), object()], "v-test", 268),
+    )
+    monkeypatch.setattr(rpb, "get_all_eval_queries", lambda _reviews: [q1, q2])
+    monkeypatch.setattr(rpb, "_apply_eval_query_profile", lambda queries: (queries, {"profile": "full", "selected": len(queries), "requested": len(queries)}))
+    monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "_write_eval_query_profile_manifest", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "_resolve_eval_context_profile", lambda: ("full", ["SOUL", "USER", "MEMORY"], True))
+    monkeypatch.setattr(rpb, "_build_eval_context", lambda *_a, **_k: "ctx")
+    monkeypatch.setattr(rpb, "_build_eval_context_sources", lambda *_a, **_k: [])
+    monkeypatch.setattr(rpb, "_resolve_eval_provider", lambda *_a, **_k: "openai-compatible")
+    monkeypatch.setattr(rpb, "_benchmark_env", lambda *_a, **_k: {})
+    monkeypatch.setattr(rpb, "_sync_instance_identity_to_workspace_root", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "_save_eval_resume_checkpoint", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "_summarize_usage_events", lambda *_a, **_k: {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "api_calls": 1})
+    monkeypatch.setattr(rpb, "_resolve_eval_parallel_workers", lambda: 2)
+    monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "0")
+    monkeypatch.setattr(
+        rpb,
+        "_tool_use_loop",
+        lambda **_k: ("prediction", [], [], [], {"input_tokens": 1, "output_tokens": 1, "api_calls": 1, "tool_call_details": []}),
+    )
+    monkeypatch.setattr(rpb, "_judge", lambda *_a, **_k: ("CORRECT", 1.0))
+
+    class _FakeFuture:
+        def __init__(self, fn, args):
+            self._fn = fn
+            self._args = args
+            self._done = False
+            self._value = None
+
+        def result(self):
+            if not self._done:
+                self._value = self._fn(*self._args)
+                self._done = True
+            return self._value
+
+    class _FakeExecutor:
+        def __init__(self, max_workers):
+            self.max_workers = max_workers
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def submit(self, fn, *args, **kwargs):
+            assert not kwargs
+            return _FakeFuture(fn, args)
+
+    heartbeat_snapshot = {}
+    wait_calls = {"n": 0}
+
+    def _fake_wait(pending, timeout=None, return_when=None):
+        wait_calls["n"] += 1
+        progress_path = workspace / "logs" / "eval_progress.json"
+        if wait_calls["n"] == 1:
+            return set(), set(pending)
+        if wait_calls["n"] == 2:
+            payload = json.loads(progress_path.read_text(encoding="utf-8"))
+            heartbeat_snapshot.update(payload)
+            first = next(iter(pending))
+            rest = set(pending)
+            rest.remove(first)
+            return {first}, rest
+        return set(pending), set()
+
+    monkeypatch.setattr(rpb.concurrent.futures, "ThreadPoolExecutor", _FakeExecutor)
+    monkeypatch.setattr(rpb.concurrent.futures, "wait", _fake_wait)
+
+    results = rpb.run_eval(
+        workspace,
+        api_key="",
+        eval_model="gemma-4-31b-q8",
+        judge_model="gemma-4-31b-q8",
+    )
+
+    assert len(results) == 2
+    assert heartbeat_snapshot["total_queries"] == 2
+    assert heartbeat_snapshot["completed"] == 0
+    assert heartbeat_snapshot["active_queries"] == 2
+    assert heartbeat_snapshot["scored"] == 0
+    assert heartbeat_snapshot["accuracy_so_far"] == 0.0
 
 
 def test_main_vllm_defaults_ingest_model_to_served_model(tmp_path, monkeypatch):
@@ -4469,6 +4755,88 @@ class TestSetupWorkspaceConfig:
         assert models["fastReasoning"] == "gemma-3-31b-it"
         assert models["baseUrl"] == "http://spark:8080"
         assert models["apiKeyEnv"] == "BENCHMARK_LLAMA_CPP_API_KEY"
+
+    def test_normalize_workspace_runtime_config_rewrites_existing_eval_workspace_for_llama_cpp(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "config").mkdir(parents=True)
+        (workspace / "config" / "memory.json").write_text(
+            json.dumps(
+                {
+                    "models": {
+                        "llmProvider": "anthropic",
+                        "deepReasoningProvider": "anthropic",
+                        "fastReasoningProvider": "anthropic",
+                        "deepReasoning": "claude-sonnet-4-6",
+                        "fastReasoning": "claude-haiku-4-5-20251001",
+                    },
+                    "retrieval": {
+                        "notifyOnRecall": True,
+                        "notify_on_recall": True,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+        monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://spark:8080")
+        monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "BENCHMARK_LLAMA_CPP_API_KEY")
+
+        rpb._normalize_workspace_runtime_config(workspace, requested_model="gemma-4-31b-it")
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        models = cfg["models"]
+        assert models["llmProvider"] == "openai-compatible"
+        assert models["deepReasoningProvider"] == "openai-compatible"
+        assert models["fastReasoningProvider"] == "openai-compatible"
+        assert models["deepReasoning"] == "gemma-4-31b-it"
+        assert models["fastReasoning"] == "gemma-4-31b-it"
+        assert models["baseUrl"] == "http://spark:8080"
+        assert models["apiKeyEnv"] == "BENCHMARK_LLAMA_CPP_API_KEY"
+        assert cfg["retrieval"] == {}
+        assert (workspace / rpb._BENCHMARK_QUAID_INSTANCE / "config" / "memory.json").exists()
+
+
+def test_resolve_judge_provider_prefers_openai_for_gpt(monkeypatch):
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    assert rpb._resolve_judge_provider("gpt-4o-mini") == "openai"
+
+
+def test_resolve_judge_provider_uses_openai_compatible_for_served_model(monkeypatch):
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "gemma-4-31b-q8")
+    assert rpb._resolve_judge_provider("gemma-4-31b-q8") == "openai-compatible"
+
+
+def test_judge_with_prompt_routes_to_openai_compatible(monkeypatch):
+    seen = {}
+
+    def _fake_openai_compatible(prompt, model="unused", workspace=None):
+        seen["model"] = model
+        return "CORRECT", 1.0
+
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "gemma-4-31b-q8")
+    monkeypatch.setattr(rpb, "_judge_openai_compatible", _fake_openai_compatible)
+
+    label, score = rpb._judge_with_prompt("prompt", "unused", judge_model="gemma-4-31b-q8")
+
+    assert (label, score) == ("CORRECT", 1.0)
+    assert seen["model"] == "gemma-4-31b-q8"
+
+
+def test_judge_non_question_uses_openai_compatible_when_requested(monkeypatch):
+    seen = {}
+
+    def _fake_judge_with_prompt(prompt, api_key, judge_model="unused", workspace=None):
+        seen["model"] = judge_model
+        return "CORRECT", 1.0
+
+    monkeypatch.setattr(rpb, "_judge_with_prompt", _fake_judge_with_prompt)
+
+    label, score = rpb._judge_non_question("q", "gt", "pred", "unused", judge_model="gemma-4-31b-q8")
+
+    assert (label, score) == ("CORRECT", 1.0)
+    assert seen["model"] == "gemma-4-31b-q8"
 
     def test_known_qwen4b_embedding_dim_defaults_when_override_omitted(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
