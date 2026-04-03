@@ -2119,37 +2119,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
 
     # Optional embedding-lane overrides for benchmark A/Bs.
     # Keep these harness-scoped: they only shape generated workspace config.
-    embeddings_provider_override = os.environ.get("BENCHMARK_EMBEDDINGS_PROVIDER", "").strip()
-    if embeddings_provider_override:
-        prod_config["models"]["embeddingsProvider"] = embeddings_provider_override
-    if not isinstance(prod_config.get("ollama"), dict):
-        prod_config["ollama"] = {}
-    ollama_url_override = os.environ.get("BENCHMARK_OLLAMA_URL", "").strip()
-    if ollama_url_override:
-        prod_config["ollama"]["url"] = ollama_url_override
-    embedding_model_override = os.environ.get("BENCHMARK_EMBEDDING_MODEL", "").strip()
-    if embedding_model_override:
-        prod_config["ollama"]["embeddingModel"] = embedding_model_override
-    effective_embedding_model = str(
-        (prod_config.get("ollama") or {}).get("embeddingModel", "") or ""
-    ).strip()
-    known_embedding_dim = _known_embedding_dim(effective_embedding_model)
-    embedding_dim_override = os.environ.get("BENCHMARK_EMBEDDING_DIM", "").strip()
-    if embedding_dim_override:
-        try:
-            parsed_dim = int(embedding_dim_override)
-        except ValueError as exc:
-            raise RuntimeError(f"BENCHMARK_EMBEDDING_DIM must be an integer, got: {embedding_dim_override!r}") from exc
-        if parsed_dim <= 0:
-            raise RuntimeError(f"BENCHMARK_EMBEDDING_DIM must be positive, got: {parsed_dim}")
-        if known_embedding_dim is not None and parsed_dim != known_embedding_dim:
-            raise RuntimeError(
-                "BENCHMARK_EMBEDDING_DIM does not match the canonical dimension for "
-                f"{effective_embedding_model!r}: expected {known_embedding_dim}, got {parsed_dim}"
-            )
-        prod_config["ollama"]["embeddingDim"] = parsed_dim
-    elif known_embedding_dim is not None:
-        prod_config["ollama"]["embeddingDim"] = known_embedding_dim
+    _apply_embedding_config(prod_config)
     if not isinstance(prod_config.get("users"), dict):
         prod_config["users"] = {}
     prod_config["users"]["defaultOwner"] = "maya"
@@ -2719,6 +2689,47 @@ def _apply_backend_reasoning_config(payload: Dict[str, Any], *, requested_model:
         models["fastReasoning"] = fast_reasoning_model
 
 
+def _apply_embedding_config(payload: Dict[str, Any]) -> None:
+    """Stamp embedding config so reused workspaces keep the source DB contract."""
+    if not isinstance(payload.get("models"), dict):
+        payload["models"] = {}
+    if not isinstance(payload.get("ollama"), dict):
+        payload["ollama"] = {}
+
+    embeddings_provider_override = os.environ.get("BENCHMARK_EMBEDDINGS_PROVIDER", "").strip()
+    if embeddings_provider_override:
+        payload["models"]["embeddingsProvider"] = embeddings_provider_override
+
+    ollama_url_override = os.environ.get("BENCHMARK_OLLAMA_URL", "").strip()
+    if ollama_url_override:
+        payload["ollama"]["url"] = ollama_url_override
+
+    embedding_model_override = os.environ.get("BENCHMARK_EMBEDDING_MODEL", "").strip()
+    if embedding_model_override:
+        payload["ollama"]["embeddingModel"] = embedding_model_override
+
+    effective_embedding_model = str(
+        (payload.get("ollama") or {}).get("embeddingModel", "") or ""
+    ).strip()
+    known_embedding_dim = _known_embedding_dim(effective_embedding_model)
+    embedding_dim_override = os.environ.get("BENCHMARK_EMBEDDING_DIM", "").strip()
+    if embedding_dim_override:
+        try:
+            parsed_dim = int(embedding_dim_override)
+        except ValueError as exc:
+            raise RuntimeError(f"BENCHMARK_EMBEDDING_DIM must be an integer, got: {embedding_dim_override!r}") from exc
+        if parsed_dim <= 0:
+            raise RuntimeError(f"BENCHMARK_EMBEDDING_DIM must be positive, got: {parsed_dim}")
+        if known_embedding_dim is not None and parsed_dim != known_embedding_dim:
+            raise RuntimeError(
+                "BENCHMARK_EMBEDDING_DIM does not match the canonical dimension for "
+                f"{effective_embedding_model!r}: expected {known_embedding_dim}, got {parsed_dim}"
+            )
+        payload["ollama"]["embeddingDim"] = parsed_dim
+    elif known_embedding_dim is not None:
+        payload["ollama"]["embeddingDim"] = known_embedding_dim
+
+
 def _normalize_workspace_runtime_config(workspace: Path, *, requested_model: Optional[str] = None) -> None:
     config_path = workspace / "config" / "memory.json"
     if not config_path.exists():
@@ -2727,6 +2738,7 @@ def _normalize_workspace_runtime_config(workspace: Path, *, requested_model: Opt
     if not isinstance(payload, dict):
         raise RuntimeError(f"Workspace config is not a JSON object: {config_path}")
     _apply_backend_reasoning_config(payload, requested_model=requested_model)
+    _apply_embedding_config(payload)
     if not isinstance(payload.get("retrieval"), dict):
         payload["retrieval"] = {}
     payload["retrieval"].pop("notifyOnRecall", None)
@@ -8482,7 +8494,13 @@ def _judge_with_prompt(
     if provider == "openai":
         return _judge_openai(prompt, model=model, workspace=workspace)
     if provider == "openai-compatible":
-        return _judge_openai_compatible(prompt, model=model, workspace=workspace)
+        strict_prompt = (
+            f"{prompt}\n\n"
+            "FINAL INSTRUCTION: Return STRICT JSON ONLY with exactly one key named "
+            "\"label\" and one of these values: CORRECT, PARTIAL, or WRONG. "
+            "Do not include any explanation or any other text."
+        )
+        return _judge_openai_compatible(strict_prompt, model=model, workspace=workspace)
     return _judge_anthropic(prompt, api_key, model=model, workspace=workspace)
 
 
@@ -8549,22 +8567,12 @@ def _judge_openai_compatible(prompt: str, model: str, workspace: Optional[Path] 
         data, usage = _call_openai_compatible_chat(
             messages=[{"role": "user", "content": prompt}],
             model=model,
-            max_tokens=150,
+            max_tokens=24,
             timeout=_openai_compatible_answer_timeout_s(),
             workspace=workspace,
             source="judge",
             provider=_openai_compatible_backend_label(),
         )
-        if workspace is not None and usage:
-            _append_usage_event(
-                workspace,
-                phase="eval",
-                source="judge",
-                model=model,
-                usage=usage,
-                tier=_infer_usage_tier(model),
-                provider=_openai_compatible_backend_label(),
-            )
         text = _extract_openai_response_text(data)
         return _parse_judge_label(text)
     except Exception as e:

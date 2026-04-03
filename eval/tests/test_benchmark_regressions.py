@@ -4795,6 +4795,45 @@ class TestSetupWorkspaceConfig:
         assert cfg["retrieval"] == {}
         assert (workspace / rpb._BENCHMARK_QUAID_INSTANCE / "config" / "memory.json").exists()
 
+    def test_normalize_workspace_runtime_config_preserves_embedding_contract_for_reused_lineage(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "config").mkdir(parents=True)
+        (workspace / "config" / "memory.json").write_text(
+            json.dumps(
+                {
+                    "models": {
+                        "llmProvider": "anthropic",
+                        "deepReasoningProvider": "anthropic",
+                        "fastReasoningProvider": "anthropic",
+                    },
+                    "retrieval": {
+                        "notifyOnRecall": True,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+        monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://spark:8080")
+        monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "BENCHMARK_LLAMA_CPP_API_KEY")
+        monkeypatch.setenv("BENCHMARK_EMBEDDINGS_PROVIDER", "ollama")
+        monkeypatch.setenv("BENCHMARK_OLLAMA_URL", "http://127.0.0.1:11434")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_MODEL", "qwen3-embedding:8b")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_DIM", "4096")
+
+        rpb._normalize_workspace_runtime_config(workspace, requested_model="gemma-4-31b-it")
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        assert cfg["models"]["embeddingsProvider"] == "ollama"
+        assert cfg["ollama"]["url"] == "http://127.0.0.1:11434"
+        assert cfg["ollama"]["embeddingModel"] == "qwen3-embedding:8b"
+        assert cfg["ollama"]["embeddingDim"] == 4096
+        instance_cfg = json.loads(
+            (workspace / rpb._BENCHMARK_QUAID_INSTANCE / "config" / "memory.json").read_text(encoding="utf-8")
+        )
+        assert instance_cfg["ollama"]["embeddingModel"] == "qwen3-embedding:8b"
+        assert instance_cfg["ollama"]["embeddingDim"] == 4096
+
 
 def test_resolve_judge_provider_prefers_openai_for_gpt(monkeypatch):
     monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
@@ -4812,6 +4851,7 @@ def test_judge_with_prompt_routes_to_openai_compatible(monkeypatch):
 
     def _fake_openai_compatible(prompt, model="unused", workspace=None):
         seen["model"] = model
+        seen["prompt"] = prompt
         return "CORRECT", 1.0
 
     monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
@@ -4822,6 +4862,31 @@ def test_judge_with_prompt_routes_to_openai_compatible(monkeypatch):
 
     assert (label, score) == ("CORRECT", 1.0)
     assert seen["model"] == "gemma-4-31b-q8"
+    assert "STRICT JSON ONLY" in seen["prompt"]
+
+
+def test_judge_openai_compatible_uses_compact_strict_cap(monkeypatch):
+    seen = {}
+
+    def _fake_call_openai_compatible_chat(**kwargs):
+        seen.update(kwargs)
+        return {"choices": [{"message": {"content": "{\"label\":\"CORRECT\"}"}}], "model": "gemma"}, {
+            "output_tokens": 5,
+            "input_tokens": 10,
+            "api_calls": 1,
+            "model_usage": {"gemma": {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}},
+        }
+
+    monkeypatch.setattr(rpb, "_call_openai_compatible_chat", _fake_call_openai_compatible_chat)
+    monkeypatch.setattr(rpb, "_extract_openai_response_text", lambda data: data["choices"][0]["message"]["content"])
+    monkeypatch.setattr(rpb, "_openai_compatible_answer_timeout_s", lambda: None)
+    monkeypatch.setattr(rpb, "_openai_compatible_backend_label", lambda: "llama-cpp")
+
+    label, score = rpb._judge_openai_compatible("prompt", model="gemma-4-31b-q8", workspace=None)
+
+    assert (label, score) == ("CORRECT", 1.0)
+    assert seen["max_tokens"] == 24
+    assert seen["source"] == "judge"
 
 
 def test_judge_non_question_uses_openai_compatible_when_requested(monkeypatch):
