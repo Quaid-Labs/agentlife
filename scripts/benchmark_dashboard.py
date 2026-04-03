@@ -91,6 +91,7 @@ function typeFromName(name) {
 function laneFromName(name) {
   const n = (name || '').toLowerCase();
   if (n.includes('oc-native')) return 'local-vm';
+  if (n.includes('llama-cpp')) return 'llama.cpp';
   if (n.includes('vllm')) return 'vLLM';
   if (n.includes('-api') || n.includes('api-')) return 'api';
   return 'mixed';

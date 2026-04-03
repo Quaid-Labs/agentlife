@@ -468,6 +468,15 @@ fi
 if [[ -n "${BENCHMARK_VLLM_API_KEY:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_VLLM_API_KEY=$(printf %q "$BENCHMARK_VLLM_API_KEY")"$'\n'
 fi
+if [[ -n "${BENCHMARK_LLAMA_CPP_URL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_LLAMA_CPP_URL=$(printf %q "$BENCHMARK_LLAMA_CPP_URL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_LLAMA_CPP_MODEL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_LLAMA_CPP_MODEL=$(printf %q "$BENCHMARK_LLAMA_CPP_MODEL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_LLAMA_CPP_API_KEY:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_LLAMA_CPP_API_KEY=$(printf %q "$BENCHMARK_LLAMA_CPP_API_KEY")"$'\n'
+fi
 if [[ -n "$RUN_NOTE" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_RUN_NOTE=$(printf %q "$RUN_NOTE")"$'\n'
 fi
@@ -511,8 +520,8 @@ elif [[ \"\${BENCHMARK_INCLUDE_FILLER:-0}\" == \"1\" ]]; then
 fi
 export AGENTLIFE_ASSETS_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/sessions\"
 BENCHMARK_OAUTH_TOKEN="\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}"
-if [[ $(printf %q "$BACKEND_ARG") == "vllm" ]]; then
-  echo \"Benchmark Anthropic OAuth: not required for backend=vllm\"
+if [[ $(printf %q "$BACKEND_ARG") == "vllm" || $(printf %q "$BACKEND_ARG") == "llama-cpp" ]]; then
+  echo \"Benchmark Anthropic OAuth: not required for backend=$(printf %q "$BACKEND_ARG")\"
 elif [[ -n \"\$BENCHMARK_OAUTH_TOKEN\" ]]; then
   export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=\"\$BENCHMARK_OAUTH_TOKEN\"
   export ANTHROPIC_API_KEY=\"\$BENCHMARK_OAUTH_TOKEN\"
@@ -520,7 +529,7 @@ else
   echo \"ERROR: BENCHMARK_ANTHROPIC_OAUTH_TOKEN missing; set it explicitly or configure auth.anthropic.primaryKeyPath in .agentlife-benchmark.local.json before launch\" >&2
   exit 1
 fi
-if [[ $(printf %q "$BACKEND_ARG") == "vllm" ]]; then
+if [[ $(printf %q "$BACKEND_ARG") == "vllm" || $(printf %q "$BACKEND_ARG") == "llama-cpp" ]]; then
   echo \"Benchmark Anthropic OAuth: skipped\"
 elif [[ -n \"\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}\" ]]; then
   echo \"Benchmark Anthropic OAuth: present\"

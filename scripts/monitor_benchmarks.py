@@ -297,8 +297,12 @@ def build_agentlife_resume_cmd(run_dir: Path) -> Optional[List[str]]:
     eval_model = str(meta.get("eval_model", model))
     judge = str(meta.get("judge", "gpt-4o-mini"))
     backend = str(meta.get("backend", "claude-code"))
-    vllm_url = str(meta.get("vllm_url", "") or "").strip()
-    vllm_model = str(meta.get("vllm_model", "") or "").strip()
+    openai_compat_url = str(meta.get("openai_compat_url", "") or "").strip()
+    openai_compat_model = str(meta.get("openai_compat_model", "") or "").strip()
+    vllm_url = str(meta.get("vllm_url", "") or openai_compat_url).strip()
+    vllm_model = str(meta.get("vllm_model", "") or openai_compat_model).strip()
+    llama_cpp_url = str(meta.get("llama_cpp_url", "") or openai_compat_url).strip()
+    llama_cpp_model = str(meta.get("llama_cpp_model", "") or openai_compat_model).strip()
     try:
         parallel = int(meta.get("parallel", 6) or 6)
     except (TypeError, ValueError):
@@ -355,6 +359,11 @@ def build_agentlife_resume_cmd(run_dir: Path) -> Optional[List[str]]:
             cmd.extend(["--vllm-url", vllm_url])
         if vllm_model:
             cmd.extend(["--vllm-model", vllm_model])
+    if backend == "llama-cpp":
+        if llama_cpp_url:
+            cmd.extend(["--llama-cpp-url", llama_cpp_url])
+        if llama_cpp_model:
+            cmd.extend(["--llama-cpp-model", llama_cpp_model])
     if max_sessions is not None:
         cmd.extend(["--max-sessions", str(max_sessions)])
     if eval_token_budget is not None:

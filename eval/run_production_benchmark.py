@@ -2050,14 +2050,14 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
         # Avoid inheriting stale OpenAI-compatible transport config into Claude lanes.
         prod_config["models"].pop("baseUrl", None)
         prod_config["models"].pop("apiKeyEnv", None)
-    elif _BACKEND == "vllm":
+    elif _uses_openai_compatible_backend():
         prod_config["models"]["llmProvider"] = "openai-compatible"
         prod_config["models"]["deepReasoningProvider"] = "openai-compatible"
         prod_config["models"]["fastReasoningProvider"] = "openai-compatible"
         prod_config["models"]["deepReasoning"] = deep_reasoning_model
         prod_config["models"]["fastReasoning"] = fast_reasoning_model or deep_reasoning_model
-        prod_config["models"]["baseUrl"] = _get_vllm_url()
-        prod_config["models"]["apiKeyEnv"] = _get_vllm_api_key_env()
+        prod_config["models"]["baseUrl"] = _get_openai_compatible_url()
+        prod_config["models"]["apiKeyEnv"] = _get_openai_compatible_api_key_env()
     else:
         prod_config["models"]["llmProvider"] = "anthropic"
         prod_config["models"]["deepReasoningProvider"] = "anthropic"
@@ -6350,7 +6350,7 @@ def _tool_use_loop(
             max_session=max_session, context_inject=context_inject,
             preinject_planner_profile=preinject_planner_profile,
         )
-    if _BACKEND == "vllm":
+    if _uses_openai_compatible_backend():
         return _tool_use_loop_openai_compatible(
             question, eval_context, workspace, env,
             max_turns=max_turns, model=model, date_to=date_to,
@@ -6968,7 +6968,7 @@ def _tool_use_loop_openai_compatible(
             tools=tools,
             workspace=workspace,
             source="answer_model",
-            provider="vllm",
+            provider=_openai_compatible_backend_label(),
         )
         _record_usage(usage)
 
@@ -8935,9 +8935,9 @@ def _make_env(
                     "WARN: CLAUDE_CODE_OAUTH_TOKEN not found in env or ~/.claude credentials; "
                     "quaid subprocess LLM calls may fail-hard."
                 )
-    elif _BACKEND == "vllm":
-        env["OPENAI_COMPATIBLE_BASE_URL"] = _get_vllm_url()
-        env[_get_vllm_api_key_env()] = _get_vllm_api_key()
+    elif _uses_openai_compatible_backend():
+        env["OPENAI_COMPATIBLE_BASE_URL"] = _get_openai_compatible_url()
+        env[_get_openai_compatible_api_key_env()] = _get_openai_compatible_api_key()
         env.pop("ANTHROPIC_API_KEY", None)
         env.pop("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", None)
     else:
@@ -8979,30 +8979,58 @@ def _get_openai_key() -> Optional[str]:
 
 _BACKEND = "oauth"  # Set to "claude-code" in main() to use the CLI wrapper
 _BENCHMARK_QUAID_INSTANCE = "benchrunner"
-_VLLM_URL = ""
-_VLLM_MODEL = ""
-_VLLM_API_KEY_ENV = "BENCHMARK_VLLM_API_KEY"
+_OPENAI_COMPAT_URL = ""
+_OPENAI_COMPAT_MODEL = ""
+_OPENAI_COMPAT_API_KEY_ENV = "BENCHMARK_OPENAI_COMPAT_API_KEY"
 
 
-def _get_vllm_url() -> str:
-    return str(_VLLM_URL or os.environ.get("BENCHMARK_VLLM_URL", "")).strip().rstrip("/")
+def _uses_openai_compatible_backend(backend: Optional[str] = None) -> bool:
+    return str(backend or _BACKEND).strip().lower() in {"vllm", "llama-cpp"}
 
 
-def _get_vllm_model() -> str:
-    return str(_VLLM_MODEL or os.environ.get("BENCHMARK_VLLM_MODEL", "")).strip()
+def _openai_compatible_backend_label(backend: Optional[str] = None) -> str:
+    return str(backend or _BACKEND or "openai-compatible").strip().lower()
 
 
-def _get_vllm_api_key_env() -> str:
-    return str(_VLLM_API_KEY_ENV or os.environ.get("BENCHMARK_VLLM_API_KEY_ENV", "BENCHMARK_VLLM_API_KEY")).strip() or "BENCHMARK_VLLM_API_KEY"
+def _openai_compatible_env_defaults(backend: Optional[str] = None) -> Tuple[str, str, str]:
+    name = _openai_compatible_backend_label(backend)
+    if name == "llama-cpp":
+        return (
+            "BENCHMARK_LLAMA_CPP_URL",
+            "BENCHMARK_LLAMA_CPP_MODEL",
+            "BENCHMARK_LLAMA_CPP_API_KEY",
+        )
+    return (
+        "BENCHMARK_VLLM_URL",
+        "BENCHMARK_VLLM_MODEL",
+        "BENCHMARK_VLLM_API_KEY",
+    )
 
 
-def _get_vllm_api_key() -> str:
-    env_name = _get_vllm_api_key_env()
+def _get_openai_compatible_url() -> str:
+    url_env, _, _ = _openai_compatible_env_defaults()
+    return str(_OPENAI_COMPAT_URL or os.environ.get(url_env, "")).strip().rstrip("/")
+
+
+def _get_openai_compatible_model() -> str:
+    _, model_env, _ = _openai_compatible_env_defaults()
+    return str(_OPENAI_COMPAT_MODEL or os.environ.get(model_env, "")).strip()
+
+
+def _get_openai_compatible_api_key_env() -> str:
+    _, _, api_env = _openai_compatible_env_defaults()
+    return str(
+        _OPENAI_COMPAT_API_KEY_ENV or os.environ.get(f"{api_env}_ENV", api_env)
+    ).strip() or api_env
+
+
+def _get_openai_compatible_api_key() -> str:
+    env_name = _get_openai_compatible_api_key_env()
     key = str(os.environ.get(env_name, "") or "").strip()
     if key:
         return key
     # Avoid silently reusing the OpenAI judge key for openai-compatible runtime traffic.
-    return "benchmark-vllm"
+    return f"benchmark-{_openai_compatible_backend_label()}"
 
 
 def _openai_compatible_headers(api_key: str) -> Dict[str, str]:
@@ -9040,10 +9068,13 @@ def _call_openai_compatible_chat(
     source: Optional[str] = None,
     provider: str = "vllm",
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    url = _get_vllm_url()
+    url = _get_openai_compatible_url()
     if not url:
+        backend = _openai_compatible_backend_label()
+        if backend == "llama-cpp":
+            raise RuntimeError("llama-cpp backend requires --llama-cpp-url or BENCHMARK_LLAMA_CPP_URL")
         raise RuntimeError("vllm backend requires --vllm-url or BENCHMARK_VLLM_URL")
-    api_key = _get_vllm_api_key()
+    api_key = _get_openai_compatible_api_key()
 
     payload: Dict[str, Any] = {
         "model": model,
@@ -9243,7 +9274,7 @@ def _call_anthropic_cached(
     max_tokens: int = 8192,
 ) -> Tuple[str, dict]:
     """Call Anthropic API — routes through Claude Code or direct API based on _BACKEND."""
-    if _BACKEND == "vllm":
+    if _uses_openai_compatible_backend():
         messages: List[Dict[str, Any]] = []
         if system_prompt:
             if isinstance(system_prompt, list):
@@ -9270,7 +9301,7 @@ def _call_anthropic_cached(
             model=model,
             max_tokens=max_tokens,
             timeout=300,
-            provider="vllm",
+            provider=_openai_compatible_backend_label(),
         )
         message = ((data.get("choices") or [{}])[0] or {}).get("message") or {}
         return _openai_message_text(message), usage
@@ -10000,14 +10031,20 @@ def main():
     parser.add_argument("--tier5", action="store_true",
                         help="(Deprecated) Tier-5 auto-runs whenever eval runs")
     parser.add_argument("--backend", type=str, default="oauth",
-                        choices=["claude-code", "oauth", "api", "vllm"],
-                        help="LLM backend: claude-code (CLI wrapper), oauth (direct Anthropic OAuth/API transport), or vllm (OpenAI-compatible chat endpoint); api is retained as a legacy alias for oauth")
+                        choices=["claude-code", "oauth", "api", "vllm", "llama-cpp"],
+                        help="LLM backend: claude-code (CLI wrapper), oauth (direct Anthropic OAuth/API transport), or a self-hosted OpenAI-compatible endpoint via vllm/llama-cpp; api is retained as a legacy alias for oauth")
     parser.add_argument("--vllm-url", type=str, default="",
                         help="Base URL for the vLLM OpenAI-compatible endpoint (required when --backend vllm)")
     parser.add_argument("--vllm-model", type=str, default="",
                         help="Model name served by the vLLM endpoint (required when --backend vllm)")
     parser.add_argument("--vllm-api-key-env", type=str, default="BENCHMARK_VLLM_API_KEY",
                         help="Env var name holding the vLLM bearer token (default: BENCHMARK_VLLM_API_KEY)")
+    parser.add_argument("--llama-cpp-url", type=str, default="",
+                        help="Base URL for the llama.cpp OpenAI-compatible endpoint (required when --backend llama-cpp)")
+    parser.add_argument("--llama-cpp-model", type=str, default="",
+                        help="Model name served by the llama.cpp endpoint (required when --backend llama-cpp)")
+    parser.add_argument("--llama-cpp-api-key-env", type=str, default="BENCHMARK_LLAMA_CPP_API_KEY",
+                        help="Env var name holding the llama.cpp bearer token (default: BENCHMARK_LLAMA_CPP_API_KEY)")
     parser.add_argument("--allow-non-haiku-answer-model", action="store_true",
                         help="Override the default Haiku-only answer-model policy for intentional experiments")
     parser.add_argument("--resume-day-lifecycle", action="store_true",
@@ -10058,6 +10095,15 @@ def main():
             args.model = args.vllm_model
         if not eval_model_explicitly_set:
             args.eval_model = args.vllm_model
+    if args.backend == "llama-cpp":
+        if not str(args.llama_cpp_url or "").strip():
+            raise SystemExit("--backend llama-cpp requires --llama-cpp-url")
+        if not str(args.llama_cpp_model or "").strip():
+            raise SystemExit("--backend llama-cpp requires --llama-cpp-model")
+        if args.mode != "eval" and not model_explicitly_set:
+            args.model = args.llama_cpp_model
+        if not eval_model_explicitly_set:
+            args.eval_model = args.llama_cpp_model
 
     workspace = Path(args.results_dir).resolve()
     if args.mode == "eval" and not model_explicitly_set:
@@ -10080,6 +10126,10 @@ def main():
         print(f"  vLLM URL: {args.vllm_url}")
         print(f"  vLLM Model: {args.vllm_model}")
         print(f"  vLLM API key env: {args.vllm_api_key_env}")
+    if args.backend == "llama-cpp":
+        print(f"  llama.cpp URL: {args.llama_cpp_url}")
+        print(f"  llama.cpp Model: {args.llama_cpp_model}")
+        print(f"  llama.cpp API key env: {args.llama_cpp_api_key_env}")
     print(f"  Workspace: {workspace}")
     print(f"  Model: {args.model}")
     print(f"  Ingest schedule: {args.ingest_schedule}")
@@ -10120,13 +10170,18 @@ def main():
 
     # Set global backend for all LLM calls
     global _BACKEND
-    global _VLLM_URL
-    global _VLLM_MODEL
-    global _VLLM_API_KEY_ENV
+    global _OPENAI_COMPAT_URL
+    global _OPENAI_COMPAT_MODEL
+    global _OPENAI_COMPAT_API_KEY_ENV
     _BACKEND = args.backend
-    _VLLM_URL = str(args.vllm_url or "").strip().rstrip("/")
-    _VLLM_MODEL = str(args.vllm_model or "").strip()
-    _VLLM_API_KEY_ENV = str(args.vllm_api_key_env or "BENCHMARK_VLLM_API_KEY").strip() or "BENCHMARK_VLLM_API_KEY"
+    if args.backend == "llama-cpp":
+        _OPENAI_COMPAT_URL = str(args.llama_cpp_url or "").strip().rstrip("/")
+        _OPENAI_COMPAT_MODEL = str(args.llama_cpp_model or "").strip()
+        _OPENAI_COMPAT_API_KEY_ENV = str(args.llama_cpp_api_key_env or "BENCHMARK_LLAMA_CPP_API_KEY").strip() or "BENCHMARK_LLAMA_CPP_API_KEY"
+    else:
+        _OPENAI_COMPAT_URL = str(args.vllm_url or "").strip().rstrip("/")
+        _OPENAI_COMPAT_MODEL = str(args.vllm_model or "").strip()
+        _OPENAI_COMPAT_API_KEY_ENV = str(args.vllm_api_key_env or "BENCHMARK_VLLM_API_KEY").strip() or "BENCHMARK_VLLM_API_KEY"
     # Ensure helper modules that import dynamically (e.g. project_updater append)
     # resolve the same Quaid root as the harness.
     os.environ["BENCHMARK_PLUGIN_DIR"] = str(_QUAID_DIR.resolve())
@@ -10141,9 +10196,15 @@ def main():
             "judge": args.judge,
             "parallel": _resolve_eval_parallel_workers(),
             "max_sessions": args.max_sessions,
-            "vllm_url": _VLLM_URL,
-            "vllm_model": _VLLM_MODEL,
-            "vllm_api_key_env": _VLLM_API_KEY_ENV,
+            "openai_compat_url": _OPENAI_COMPAT_URL,
+            "openai_compat_model": _OPENAI_COMPAT_MODEL,
+            "openai_compat_api_key_env": _OPENAI_COMPAT_API_KEY_ENV,
+            "vllm_url": _OPENAI_COMPAT_URL if args.backend == "vllm" else "",
+            "vllm_model": _OPENAI_COMPAT_MODEL if args.backend == "vllm" else "",
+            "vllm_api_key_env": _OPENAI_COMPAT_API_KEY_ENV if args.backend == "vllm" else "",
+            "llama_cpp_url": _OPENAI_COMPAT_URL if args.backend == "llama-cpp" else "",
+            "llama_cpp_model": _OPENAI_COMPAT_MODEL if args.backend == "llama-cpp" else "",
+            "llama_cpp_api_key_env": _OPENAI_COMPAT_API_KEY_ENV if args.backend == "llama-cpp" else "",
         },
     )
 
@@ -10237,8 +10298,12 @@ def main():
                 "eval_model": args.eval_model,
                 "judge_model": args.judge,
                 "backend": args.backend,
-                "vllm_url": _VLLM_URL,
-                "vllm_model": _VLLM_MODEL,
+                "openai_compat_url": _OPENAI_COMPAT_URL,
+                "openai_compat_model": _OPENAI_COMPAT_MODEL,
+                "vllm_url": _OPENAI_COMPAT_URL if args.backend == "vllm" else "",
+                "vllm_model": _OPENAI_COMPAT_MODEL if args.backend == "vllm" else "",
+                "llama_cpp_url": _OPENAI_COMPAT_URL if args.backend == "llama-cpp" else "",
+                "llama_cpp_model": _OPENAI_COMPAT_MODEL if args.backend == "llama-cpp" else "",
                 "tool_use": True,
                 "max_sessions": args.max_sessions,
                 "include_statement_grounding": args.include_statement_grounding,
@@ -10394,8 +10459,12 @@ def main():
                 "eval_model": args.eval_model,
                 "judge_model": args.judge,
                 "backend": args.backend,
-                "vllm_url": _VLLM_URL,
-                "vllm_model": _VLLM_MODEL,
+                "openai_compat_url": _OPENAI_COMPAT_URL,
+                "openai_compat_model": _OPENAI_COMPAT_MODEL,
+                "vllm_url": _OPENAI_COMPAT_URL if args.backend == "vllm" else "",
+                "vllm_model": _OPENAI_COMPAT_MODEL if args.backend == "vllm" else "",
+                "llama_cpp_url": _OPENAI_COMPAT_URL if args.backend == "llama-cpp" else "",
+                "llama_cpp_model": _OPENAI_COMPAT_MODEL if args.backend == "llama-cpp" else "",
                 "tool_use": True,
                 "max_sessions": args.max_sessions,
                 "include_statement_grounding": args.include_statement_grounding,
