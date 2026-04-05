@@ -118,6 +118,17 @@ class TestNormalizeDomainList:
         assert out == ["health"]
 
 
+class TestPhaseTimingHelpers:
+    def test_format_elapsed_short(self):
+        assert rpb._format_elapsed(7.2) == "7s"
+
+    def test_format_elapsed_minutes(self):
+        assert rpb._format_elapsed(453.0) == "7m 33s"
+
+    def test_format_elapsed_hours(self):
+        assert rpb._format_elapsed(3723.0) == "1h 2m 3s"
+
+
 class TestNormalizeProjectLogs:
     """Tests for _normalize_project_logs: dict normalization, dedup, edge cases."""
 
@@ -202,6 +213,121 @@ class TestAnswerModelPolicy:
             fc_models=["claude-opus-4-6"],
             allow_non_haiku=True,
         )
+
+
+class TestOpenAICompatibleProviderHealth:
+    def test_skips_health_probe_for_non_local_host(self, monkeypatch):
+        called = False
+
+        def _probe(*_a, **_k):
+            nonlocal called
+            called = True
+            return False, "boom"
+
+        monkeypatch.setattr(rpb, "_probe_openai_compatible_health", _probe)
+
+        rpb._assert_openai_compatible_provider_healthy("https://api.example.com", source="answer_model")
+        assert called is False
+
+    def test_raises_for_dead_local_provider(self, monkeypatch):
+        monkeypatch.setattr(rpb, "_probe_openai_compatible_health", lambda *_a, **_k: (False, "connection refused"))
+        monkeypatch.setattr(rpb.time, "time", lambda: 1000.0)
+        rpb._OPENAI_COMPAT_HEALTH_CACHE.clear()
+
+        with pytest.raises(RuntimeError, match="provider health check failed"):
+            rpb._assert_openai_compatible_provider_healthy("http://127.0.0.1:30002", source="answer_model")
+
+    def test_uses_cached_health_result(self, monkeypatch):
+        calls = {"n": 0}
+
+        def _probe(*_a, **_k):
+            calls["n"] += 1
+            return True, "ok"
+
+        monkeypatch.setattr(rpb, "_probe_openai_compatible_health", _probe)
+        monkeypatch.setattr(rpb.time, "time", lambda: 1000.0)
+        rpb._OPENAI_COMPAT_HEALTH_CACHE.clear()
+
+        rpb._assert_openai_compatible_provider_healthy("http://127.0.0.1:30002", source="answer_model")
+        rpb._assert_openai_compatible_provider_healthy("http://127.0.0.1:30002", source="answer_model")
+        assert calls["n"] == 1
+
+
+class TestEvalEmbeddingPreflight:
+    def test_skips_when_provider_is_not_ollama(self, tmp_path):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True)
+        (ws / "config" / "memory.json").write_text(json.dumps({
+            "models": {"embeddingsProvider": "openai"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
+        }))
+
+        rpb._eval_embedding_provider_preflight(ws)
+
+    def test_fails_when_ollama_embedding_provider_unreachable(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True)
+        (ws / "config" / "memory.json").write_text(json.dumps({
+            "models": {"embeddingsProvider": "ollama"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
+        }))
+
+        def _boom(*_a, **_k):
+            raise urllib.error.URLError("connection refused")
+
+        monkeypatch.setattr(rpb, "_ollama_list_models", _boom)
+
+        with pytest.raises(RuntimeError, match="Ollama embedding provider is unreachable"):
+            rpb._eval_embedding_provider_preflight(ws)
+
+    def test_fails_when_embedding_model_missing(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True)
+        (ws / "config" / "memory.json").write_text(json.dumps({
+            "models": {"embeddingsProvider": "ollama"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
+        }))
+
+        monkeypatch.setattr(rpb, "_ollama_list_models", lambda *_a, **_k: {"qwen3-embedding:4b", "nomic-embed-text:latest"})
+
+        with pytest.raises(RuntimeError, match="configured Ollama embedding model is not available"):
+            rpb._eval_embedding_provider_preflight(ws)
+
+    def test_accepts_latest_alias_for_embedding_model(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True)
+        (ws / "config" / "memory.json").write_text(json.dumps({
+            "models": {"embeddingsProvider": "ollama"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "nomic-embed-text"},
+        }))
+
+        monkeypatch.setattr(rpb, "_ollama_list_models", lambda *_a, **_k: {"nomic-embed-text:latest"})
+
+        rpb._eval_embedding_provider_preflight(ws)
+
+    def test_accepts_reachable_ollama_embedding_provider(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True)
+        (ws / "config" / "memory.json").write_text(json.dumps({
+            "models": {"embeddingsProvider": "ollama"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
+        }))
+
+        monkeypatch.setattr(rpb, "_ollama_list_models", lambda *_a, **_k: {"qwen3-embedding:8b", "nomic-embed-text:latest"})
+
+        rpb._eval_embedding_provider_preflight(ws)
+
+    def test_allows_explicit_skip(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True)
+        (ws / "config" / "memory.json").write_text(json.dumps({
+            "models": {"embeddingsProvider": "ollama"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
+        }))
+        monkeypatch.setenv("BENCHMARK_SKIP_EMBEDDING_PREFLIGHT", "1")
+        monkeypatch.setattr(rpb, "_ollama_list_models", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("should not probe")))
+
+        rpb._eval_embedding_provider_preflight(ws)
 
 
 class TestFcBaselinesFailHard:
@@ -2452,6 +2578,73 @@ def test_tool_use_loop_openai_compatible_uses_timeout_env_override_with_relax_fl
     assert seen["timeout"] == 600
 
 
+def test_tool_use_loop_openai_compatible_replays_gemma_tool_turns_as_plain_messages(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_openai_compatible_backend_label", lambda: "llama-cpp")
+    monkeypatch.setattr(rpb, "_pre_recall", lambda *a, **k: ("", "q", {"stop_reason": "no_memories"}))
+
+    seen_messages = []
+    call_count = {"n": 0}
+
+    def _fake_chat(*, messages, **kwargs):
+        seen_messages.append(messages)
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return (
+                {
+                    "model": "gemma-4-26b-q6k",
+                    "choices": [
+                        {
+                            "message": {
+                                "content": "<|channel>thought\n<channel|><|tool_call>call:recall{query:<|\"|>tech stack<|\"|>}<tool_call|>",
+                                "tool_calls": [
+                                    {
+                                        "id": "call_1",
+                                        "function": {"name": "recall", "arguments": "{\"query\":\"tech stack\"}"},
+                                    }
+                                ],
+                            }
+                        }
+                    ],
+                },
+                {"api_calls": 1, "input_tokens": 10, "output_tokens": 5, "model_usage": {}},
+            )
+        return (
+            {
+                "model": "gemma-4-26b-q6k",
+                "choices": [{"message": {"content": "Final answer."}}],
+            },
+            {"api_calls": 1, "input_tokens": 10, "output_tokens": 5, "model_usage": {}},
+        )
+
+    monkeypatch.setattr(rpb, "_call_openai_compatible_chat", _fake_chat)
+    monkeypatch.setattr(
+        rpb,
+        "_execute_tool",
+        lambda *a, **k: ("tool result text", {"turn_details": [{"planner": {}}], "harness_telemetry": {}}),
+    )
+
+    answer, tool_calls, tool_logs, retrieval_texts, usage = rpb._tool_use_loop_openai_compatible(
+        question="What stack?",
+        eval_context="ctx",
+        workspace=workspace,
+        env={},
+        model="gemma-4-26b-q6k",
+        context_inject=True,
+    )
+
+    assert answer == "Final answer."
+    assert tool_calls == ["recall"]
+    assert retrieval_texts == ["tool result text"]
+    replay_messages = seen_messages[1]
+    assert any(m["role"] == "user" and m["content"].startswith("[Tool recall result]\n") for m in replay_messages)
+    assert not any(m.get("tool_calls") for m in replay_messages)
+    assert not any(m["role"] == "tool" for m in replay_messages)
+
+
 def test_openai_compatible_answer_timeout_ignores_env_without_relax_flag(monkeypatch):
     monkeypatch.setenv("OPENAI_COMPAT_ANSWER_TIMEOUT_S", "600")
     monkeypatch.delenv("BENCHMARK_RELAX_TIMEOUTS", raising=False)
@@ -2538,6 +2731,38 @@ def test_call_openai_compatible_chat_writes_trace_events(tmp_path, monkeypatch):
     assert rows[1]["duration_ms"] >= 0
 
 
+def test_openai_message_text_strips_gemma_control_markers():
+    message = {
+        "content": (
+            "<|channel>thought<tool_call|><|tool_response><|channel>thought\n"
+            "<channel|>The recipe app became a family-care tool."
+        )
+    }
+
+    assert (
+        rpb._openai_message_text(message, model="gemma-4-26b-q6k")
+        == "The recipe app became a family-care tool."
+    )
+
+
+def test_openai_message_text_does_not_strip_non_gemma_content():
+    text = "<|channel>thought\n<channel|>keep literal transport text"
+    message = {"content": text}
+
+    assert rpb._openai_message_text(message, model="gpt-4o-mini") == text
+
+
+def test_openai_message_text_strips_gemma_tool_call_markup():
+    message = {
+        "content": (
+            '<|channel>thought\n<channel|><|tool_call>call:recall{query:<|"|>What is Linda\'s job or profession?<|"|>}'
+            '<tool_call|>'
+        )
+    }
+
+    assert rpb._openai_message_text(message, model="gemma-4-26b-q6k") == ""
+
+
 def test_call_openai_compatible_chat_clears_active_request_on_error(tmp_path, monkeypatch):
     workspace = tmp_path / "ws"
     workspace.mkdir()
@@ -2588,6 +2813,29 @@ def test_judge_openai_compatible_extracts_text_from_response(monkeypatch):
 
     monkeypatch.setattr(rpb, "_call_openai_compatible_chat", _fake_call)
     label, score = rpb._judge_openai_compatible("prompt", model="gemma-4-31b-q8", workspace=None)
+    assert label == "CORRECT"
+    assert score == 1.0
+
+
+def test_judge_openai_compatible_falls_back_to_reasoning_content(monkeypatch):
+    def _fake_call(**kwargs):
+        return (
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "",
+                            "reasoning_content": '{"label":"CORRECT"}',
+                        }
+                    }
+                ],
+                "model": "gemma-4-26b-q6k",
+            },
+            {"input_tokens": 5, "output_tokens": 1, "api_calls": 1, "model_usage": {}},
+        )
+
+    monkeypatch.setattr(rpb, "_call_openai_compatible_chat", _fake_call)
+    label, score = rpb._judge_openai_compatible("prompt", model="gemma-4-26b-q6k", workspace=None)
     assert label == "CORRECT"
     assert score == 1.0
 
@@ -4802,6 +5050,10 @@ class TestSetupWorkspaceConfig:
         monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
         monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
         monkeypatch.delenv("BENCHMARK_REASONING_MODEL", raising=False)
+        monkeypatch.delenv("BENCHMARK_LLAMA_CPP_RUNTIME_URL", raising=False)
+        monkeypatch.delenv("BENCHMARK_LLAMA_CPP_RUNTIME_MODEL", raising=False)
+        monkeypatch.delenv("BENCHMARK_LLAMA_CPP_RUNTIME_API_KEY", raising=False)
+        monkeypatch.delenv("BENCHMARK_LLAMA_CPP_RUNTIME_API_KEY_ENV", raising=False)
         monkeypatch.setenv("BENCHMARK_DEEP_REASONING_MODEL", "gemma-3-31b-it")
         monkeypatch.setenv("BENCHMARK_FAST_REASONING_MODEL", "gemma-3-31b-it")
 
@@ -4816,6 +5068,35 @@ class TestSetupWorkspaceConfig:
         assert models["fastReasoning"] == "gemma-3-31b-it"
         assert models["baseUrl"] == "http://spark:8080"
         assert models["apiKeyEnv"] == "BENCHMARK_LLAMA_CPP_API_KEY"
+
+    def test_llama_cpp_workspace_prefers_runtime_endpoint_for_reasoning(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(json.dumps({}), encoding="utf-8")
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+        monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://answer:30002")
+        monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "BENCHMARK_LLAMA_CPP_API_KEY")
+        monkeypatch.setenv("BENCHMARK_LLAMA_CPP_RUNTIME_URL", "http://runtime:30001")
+        monkeypatch.setenv("BENCHMARK_LLAMA_CPP_RUNTIME_MODEL", "gemma-4-26b-q6k")
+        monkeypatch.setenv("BENCHMARK_LLAMA_CPP_RUNTIME_API_KEY", "runtime-key")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda workspace: [])
+        monkeypatch.delenv("BENCHMARK_REASONING_MODEL", raising=False)
+        monkeypatch.delenv("BENCHMARK_DEEP_REASONING_MODEL", raising=False)
+        monkeypatch.delenv("BENCHMARK_FAST_REASONING_MODEL", raising=False)
+
+        rpb.setup_workspace(workspace)
+
+        cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
+        models = cfg["models"]
+        assert models["deepReasoning"] == "gemma-4-26b-q6k"
+        assert models["fastReasoning"] == "gemma-4-26b-q6k"
+        assert models["baseUrl"] == "http://runtime:30001"
+        assert models["apiKeyEnv"] == "BENCHMARK_LLAMA_CPP_RUNTIME_API_KEY"
 
     def test_normalize_workspace_runtime_config_rewrites_existing_eval_workspace_for_llama_cpp(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
@@ -4959,6 +5240,134 @@ def test_judge_openai_compatible_uses_compact_strict_cap(monkeypatch):
     assert seen["chat_template_kwargs"] == {"enable_thinking": False}
 
 
+def test_tier5_judge_chat_template_kwargs_default_auto(monkeypatch):
+    monkeypatch.delenv("BENCHMARK_TIER5_JUDGE_THINKING", raising=False)
+    monkeypatch.setattr(rpb, "_uses_openai_compatible_backend", lambda: False)
+
+    assert rpb._tier5_judge_chat_template_kwargs() is None
+
+
+def test_tier5_judge_chat_template_kwargs_default_auto_openai_compatible(monkeypatch):
+    monkeypatch.delenv("BENCHMARK_TIER5_JUDGE_THINKING", raising=False)
+    monkeypatch.setattr(rpb, "_uses_openai_compatible_backend", lambda: True)
+
+    assert rpb._tier5_judge_chat_template_kwargs() == {"enable_thinking": False}
+
+
+def test_tier5_judge_chat_template_kwargs_off(monkeypatch):
+    monkeypatch.setenv("BENCHMARK_TIER5_JUDGE_THINKING", "off")
+
+    assert rpb._tier5_judge_chat_template_kwargs() == {"enable_thinking": False}
+
+
+def test_tier5_judge_chat_template_kwargs_on(monkeypatch):
+    monkeypatch.setenv("BENCHMARK_TIER5_JUDGE_THINKING", "on")
+
+    assert rpb._tier5_judge_chat_template_kwargs() == {"enable_thinking": True}
+
+
+def test_judge_tier5_openai_compatible_forwards_thinking_override(monkeypatch):
+    seen = {}
+
+    def _fake_call_openai_compatible_chat(**kwargs):
+        seen.update(kwargs)
+        return {"choices": [{"message": {"content": "{\"score\":2}"}}], "model": "gemma"}, {}
+
+    monkeypatch.setenv("BENCHMARK_TIER5_JUDGE_THINKING", "off")
+    monkeypatch.setattr(rpb, "_resolve_judge_provider", lambda _model: "openai-compatible")
+    monkeypatch.setattr(rpb, "_call_openai_compatible_chat", _fake_call_openai_compatible_chat)
+    monkeypatch.setattr(rpb, "_extract_openai_judge_text", lambda data: data["choices"][0]["message"]["content"])
+    monkeypatch.setattr(rpb, "_openai_compatible_answer_timeout_s", lambda: None)
+    monkeypatch.setattr(rpb, "_openai_compatible_backend_label", lambda: "llama-cpp")
+
+    score, reasoning = rpb._judge_tier5(
+        query={
+            "question": "q",
+            "sensitivity_context": "ctx",
+            "rubric": {"score_2": "a", "score_1": "b", "score_0": "c"},
+        },
+        prediction="pred",
+        api_key="unused",
+        judge_model="gemma-4-26b-q6k",
+        workspace=None,
+    )
+
+    assert score == 2
+    assert seen["source"] == "tier5_judge"
+    assert seen["chat_template_kwargs"] == {"enable_thinking": False}
+
+
+def test_judge_tier5_openai_compatible_falls_back_to_reasoning_content(monkeypatch):
+    def _fake_call_openai_compatible_chat(**kwargs):
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "",
+                        "reasoning_content": '{"score":2,"reasoning":"aware"}',
+                    }
+                }
+            ],
+            "model": "gemma-4-26b-q6k",
+        }, {}
+
+    monkeypatch.delenv("BENCHMARK_TIER5_JUDGE_THINKING", raising=False)
+    monkeypatch.setattr(rpb, "_resolve_judge_provider", lambda _model: "openai-compatible")
+    monkeypatch.setattr(rpb, "_uses_openai_compatible_backend", lambda: True)
+    monkeypatch.setattr(rpb, "_call_openai_compatible_chat", _fake_call_openai_compatible_chat)
+    monkeypatch.setattr(rpb, "_openai_compatible_answer_timeout_s", lambda: None)
+    monkeypatch.setattr(rpb, "_openai_compatible_backend_label", lambda: "llama-cpp")
+
+    score, reasoning = rpb._judge_tier5(
+        query={
+            "question": "q",
+            "sensitivity_context": "ctx",
+            "rubric": {"score_2": "a", "score_1": "b", "score_0": "c"},
+        },
+        prediction="pred",
+        api_key="unused",
+        judge_model="gemma-4-26b-q6k",
+        workspace=None,
+    )
+
+    assert score == 2
+    assert reasoning == ""
+
+
+def test_judge_tier5_openai_routes_gpt_model_to_openai(monkeypatch):
+    seen = {}
+
+    def _fake_judge_tier5_openai(query, prediction, workspace=None, model=None):
+        seen["query"] = query
+        seen["prediction"] = prediction
+        seen["workspace"] = workspace
+        seen["model"] = model
+        return 2, "ok"
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("anthropic path should not be used for GPT Tier 5 judge")
+
+    monkeypatch.setattr(rpb, "_resolve_judge_provider", lambda _model: "openai")
+    monkeypatch.setattr(rpb, "_judge_tier5_openai", _fake_judge_tier5_openai)
+    monkeypatch.setattr(rpb, "_call_anthropic_cached", _boom)
+
+    score, reasoning = rpb._judge_tier5(
+        query={
+            "question": "q",
+            "sensitivity_context": "ctx",
+            "rubric": {"score_2": "a", "score_1": "b", "score_0": "c"},
+        },
+        prediction="pred",
+        api_key="unused",
+        judge_model="gpt-4o-mini",
+        workspace=None,
+    )
+
+    assert score == 2
+    assert reasoning == "ok"
+    assert seen["model"] == "gpt-4o-mini"
+
+
 def test_openai_compatible_helpers_route_judge_to_separate_endpoint(monkeypatch):
     monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
     monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://answer.local:30001")
@@ -4976,6 +5385,27 @@ def test_openai_compatible_helpers_route_judge_to_separate_endpoint(monkeypatch)
     assert rpb._get_openai_compatible_model(source="judge") == "gemma-4-26b-q6k"
     assert rpb._get_openai_compatible_api_key() == "answer-key"
     assert rpb._get_openai_compatible_api_key(source="judge") == "judge-key"
+
+
+def test_openai_compatible_helpers_route_runtime_to_separate_endpoint(monkeypatch):
+    monkeypatch.setattr(rpb, "_BACKEND", "llama-cpp")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "http://answer.local:30002")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "gemma-4-31b-q8")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "BENCHMARK_LLAMA_CPP_API_KEY")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_RUNTIME_URL", "http://runtime.local:30001")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_RUNTIME_MODEL", "gemma-4-26b-q6k")
+    monkeypatch.setenv("BENCHMARK_LLAMA_CPP_RUNTIME_API_KEY", "runtime-key")
+
+    assert rpb._get_openai_compatible_url() == "http://answer.local:30002"
+    assert rpb._get_openai_compatible_url(source="runtime") == "http://runtime.local:30001"
+    assert rpb._get_openai_compatible_model() == "gemma-4-31b-q8"
+    assert rpb._get_openai_compatible_model(source="runtime") == "gemma-4-26b-q6k"
+    assert rpb._get_openai_compatible_api_key_env() == "BENCHMARK_LLAMA_CPP_API_KEY"
+    assert (
+        rpb._get_openai_compatible_api_key_env(source="runtime")
+        == "BENCHMARK_LLAMA_CPP_RUNTIME_API_KEY"
+    )
+    assert rpb._get_openai_compatible_api_key(source="runtime") == "runtime-key"
 
 
 def test_resolve_assets_dir_prefers_benchmark_assets_env(monkeypatch, tmp_path):
@@ -5194,6 +5624,38 @@ class TestMainTier5Auto:
         rpb.main()
         assert called["eval"] == 1
         assert called["tier5"] == 0
+
+    def test_eval_sets_tier5_judge_thinking_env(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "run"
+        (workspace / "data").mkdir(parents=True)
+        (workspace / "data" / "memory.db").write_text("")
+
+        monkeypatch.setattr(rpb, "run_eval", lambda *_a, **_k: [])
+        monkeypatch.setattr(rpb, "run_tier5_eval", lambda *_a, **_k: [])
+        monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            rpb,
+            "score_results",
+            lambda _results: {
+                "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+                "per_type": {},
+                "per_difficulty": {},
+            },
+        )
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "run_production_benchmark.py",
+                "--mode", "eval",
+                "--results-dir", str(workspace),
+                "--backend", "claude-code",
+                "--tier5-judge-thinking", "off",
+            ],
+        )
+
+        rpb.main()
+        assert os.environ["BENCHMARK_TIER5_JUDGE_THINKING"] == "off"
 
 
 class TestMainContextInjectDefault:

@@ -19,9 +19,7 @@ The tracks are interleaved in a single continuous simulation, because real users
 
 ### Why Existing Benchmarks Fail
 
-LoCoMo (ACL 2024): 10 short synthetic conversations. Each conversation fits in a single markdown file, so distillation alone matches full retrieval. Doesn't test temporal evolution, project tracking, or cross-session inference.
-
-LongMemEval (ICLR 2025): Longer data but still short conversations. No project context, no fact evolution, no contradiction resolution testing.
+Prior short-horizon memory evaluations do not test temporal evolution, project tracking, or cross-session inference deeply enough for AgentLife's target use case.
 
 Both benchmarks test "can you recall a fact from a conversation." AgentLife tests "after 6 weeks of real usage, does the agent still know who you are and what you're working on — and can it connect the two?"
 
@@ -410,7 +408,7 @@ For every eval query, measure not just correctness but retrieval efficiency:
 
 ### Statistical Rigor
 
-- Wilson Score 95% confidence intervals (matching LoCoMo methodology)
+- Wilson Score 95% confidence intervals
 - Minimum 3 eval runs for published numbers
 - Per-category breakdowns, not just overall
 - Raw per-query results in published dataset for reproducibility
@@ -617,7 +615,7 @@ Non-negotiable. Run before committing to full build.
 
 ### Phase 1: Track 1 Complete (5 days, ~$100)
 
-Track 1 alone is publishable and more novel than LoCoMo or LongMemEval.
+Track 1 alone is publishable and novel as a standalone benchmark slice.
 
 - [ ] Full persona doc (3K words)
 - [ ] All Track 1 session briefs (~10 sessions)

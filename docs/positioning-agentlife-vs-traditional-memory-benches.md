@@ -18,13 +18,12 @@ AgentLife measures that real operating surface.
 
 ## Why This Is Different
 
-LoCoMo/LongMemEval are useful signals, but they are not sufficient:
+AgentLife is designed to measure memory as it is used by real agents over time:
 
-- They overweight short-form QA behavior.
-- They under-measure project-state continuity and operational constraints.
-- They can reward benchmark-specific style tuning that does not improve product quality.
-
-AgentLife is designed to measure memory as it is used by real agents over time.
+- longitudinal work across many sessions
+- project-state continuity and tool-grounded answers
+- operational behavior under realistic token and maintenance constraints
+- product-general performance instead of narrow benchmark-specific tuning
 
 ## External Reporting Strategy
 

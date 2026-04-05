@@ -19,9 +19,7 @@ The tracks are interleaved in a single continuous simulation, because real users
 
 ### Why Existing Benchmarks Fail
 
-LoCoMo (ACL 2024): 10 short synthetic conversations. Each conversation fits in a single markdown file, so distillation alone matches full retrieval. Doesn't test temporal evolution, project tracking, or cross-session inference.
-
-LongMemEval (ICLR 2025): Longer data but still short conversations. No project context, no fact evolution, no contradiction resolution testing.
+Prior short-horizon memory evaluations do not test temporal evolution, project tracking, or cross-session inference deeply enough for AgentLife's target use case.
 
 Both benchmarks test "can you recall a fact from a conversation." AgentLife tests "after 6 weeks of real usage, does the agent still know who you are and what you're working on -- and can it connect the two?"
 
