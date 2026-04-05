@@ -137,7 +137,7 @@ Benchmark note:
 
 Canonical docs for full tables and methodology:
 
-- Technical report: [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT.md)
+- Technical report: [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md)
 
 ## Quick Start
 
