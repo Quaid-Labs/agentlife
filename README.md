@@ -112,12 +112,12 @@ Headline launch summary:
 
 | Metric | Quaid | FC Sonnet | OpenClaw Native |
 | --- | ---: | ---: | ---: |
-| AL-S | 87.69% | 92.90% | 69.40% |
-| Tokens | 5.75M | 29.83M | unknown |
-| AL-L | 87.10% | 87.70% | 63.06% |
-| Tokens | 6.46M | 34.60M | unknown |
-| AL-L OBD | 86.04% | 87.70% | unknown |
-| Tokens | 6.08M | 34.60M | unknown |
+| AL-S | 92.23% | 92.90% | 69.40% |
+| Tokens | 9.52M | 29.83M | unknown |
+| AL-L | 87.81% | 87.70% | 63.06% |
+| Tokens | 9.97M | 34.60M | unknown |
+| AL-L OBD | 89.58% | 87.70% | unknown |
+| Tokens | 7.94M | 34.60M | unknown |
 
 Quaid was measured with Haiku fast, Sonnet deep, and a Sonnet agent running
 eval. `AL-L` and `AL-L OBD` are chosen here as the best representation of real
@@ -130,6 +130,14 @@ larger corpus. OpenClaw Native tokens remain unknown due to telemetry
 restrictions. Token counts here are the minimum tokens used to answer the full
 set of 283 eval questions.
 
+Historical token-cost reference from the March 29 technical report / Sonnet study:
+- `AL-S`: Quaid Sonnet/Haiku (`r880`, `r847`) reached `87.69%` at `5,753,673` eval tokens, versus FC Sonnet (`r606`) at `92.90%` and `29,828,646` eval tokens.
+- `AL-L`: Quaid Sonnet/Haiku (`r895`, `r863`) reached `85.82%` at `5,917,209` eval tokens, versus FC Sonnet (`r857`) at `87.70%` and `34,596,206` eval tokens.
+- Sonnet eval study: `AL-L` Haiku-ingest + Sonnet-eval (`r944`) reached `88.69%` at `8,382,952` eval tokens, versus the same FC Sonnet row at `34,596,206`.
+
+Those rows are the citation basis for the claim that Quaid can stay near
+full-context quality at roughly one-fifth FC token cost on long-form lanes.
+
 Benchmark note:
 
 - Results are measured on synthetic high-density conversations designed to stress memory systems.
@@ -137,7 +145,9 @@ Benchmark note:
 
 Canonical docs for full tables and methodology:
 
-- Technical report: [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md)
+- Technical reports:
+  - [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md)
+  - [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260405.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260405.md)
 
 ## Quick Start
 
