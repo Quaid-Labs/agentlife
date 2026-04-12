@@ -1384,9 +1384,6 @@ def _probe_openai_compatible_health(url: str, *, timeout: float = 2.0) -> Tuple[
 
 
 def _assert_openai_compatible_provider_healthy(url: str, *, source: Optional[str] = None) -> None:
-    if _is_codex_backend():
-        _load_codex_provider_class()
-        return
     host = str(urllib.parse.urlsplit(url).hostname or "").strip().lower()
     if not _is_local_host(host):
         return
@@ -9675,8 +9672,6 @@ _CODEX_DEEP_MODEL = "gpt-5.4"
 _CODEX_FAST_MODEL = "gpt-5.3-codex-spark"
 _CODEX_DEEP_EFFORT = "high"
 _CODEX_FAST_EFFORT = "none"
-_CODEX_PROVIDER_CLASS_CACHE: Optional[Any] = None
-_CODEX_PROVIDER_MODULE_PATH: str = ""
 
 
 def _uses_openai_compatible_backend(backend: Optional[str] = None) -> bool:
@@ -9970,144 +9965,6 @@ def _openai_compatible_headers(api_key: str) -> Dict[str, str]:
 
 def _is_codex_backend(backend: Optional[str] = None) -> bool:
     return _openai_compatible_backend_label(backend) == "codex"
-
-
-def _load_codex_provider_class():
-    """Load CodexLLMProvider from checkpoint adapter code via path import."""
-    global _CODEX_PROVIDER_CLASS_CACHE
-    global _CODEX_PROVIDER_MODULE_PATH
-    providers_path = _resolve_quaid_script("adaptors/codex/providers.py")
-    if not providers_path.exists():
-        raise RuntimeError(f"Codex backend requested but providers file is missing: {providers_path}")
-    providers_path_str = str(providers_path.resolve())
-    if _CODEX_PROVIDER_CLASS_CACHE is not None and _CODEX_PROVIDER_MODULE_PATH == providers_path_str:
-        return _CODEX_PROVIDER_CLASS_CACHE
-
-    module_dir = str(_QUAID_DIR.resolve())
-    if module_dir not in sys.path:
-        sys.path.insert(0, module_dir)
-
-    module_name = "_bench_codex_providers_cached"
-    spec = importlib.util.spec_from_file_location(module_name, providers_path_str)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Failed to load Codex providers module from {providers_path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)  # type: ignore[union-attr]
-    klass = getattr(module, "CodexLLMProvider", None)
-    if klass is None:
-        raise RuntimeError("Codex providers module did not expose CodexLLMProvider")
-    _CODEX_PROVIDER_CLASS_CACHE = klass
-    _CODEX_PROVIDER_MODULE_PATH = providers_path_str
-    return klass
-
-
-def _codex_model_tier_for_source(source: Optional[str]) -> str:
-    src = str(source or "").strip().lower()
-    if src in {"judge", "tier5_judge", "fast_reasoning"}:
-        return "fast"
-    return "deep"
-
-
-def _call_codex_app_server_chat(
-    *,
-    messages: List[Dict[str, Any]],
-    model: str,
-    max_tokens: int,
-    timeout: Optional[int],
-    workspace: Optional[Path],
-    source: Optional[str],
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    """Route a chat-completion style request through Codex app-server broker.
-
-    Codex app-server does not expose OpenAI function-calling payloads in this path.
-    We return a single assistant message with text content and token usage.
-    """
-    provider_class = _load_codex_provider_class()
-    tier = _codex_model_tier_for_source(source)
-    try:
-        codex_deep_floor = float(os.environ.get("CODEX_APP_SERVER_DEEP_TIMEOUT_S", "600") or "600")
-    except ValueError:
-        codex_deep_floor = 600.0
-    try:
-        codex_fast_floor = float(os.environ.get("CODEX_APP_SERVER_FAST_TIMEOUT_S", "120") or "120")
-    except ValueError:
-        codex_fast_floor = 120.0
-    if codex_deep_floor <= 0:
-        codex_deep_floor = 600.0
-    if codex_fast_floor <= 0:
-        codex_fast_floor = 120.0
-    if timeout is None:
-        resolved_timeout = codex_fast_floor if tier == "fast" else codex_deep_floor
-    else:
-        resolved_timeout = float(timeout)
-        # Keep deep Codex turns from inheriting the tighter OpenAI-compatible
-        # answer timeout budget, which causes premature notification wait expiry.
-        if tier != "fast":
-            resolved_timeout = max(resolved_timeout, codex_deep_floor)
-    provider = provider_class(
-        deep_model=str(model or _CODEX_DEEP_MODEL).strip(),
-        fast_model=str(model or _CODEX_FAST_MODEL).strip(),
-        deep_reasoning_effort=str(_CODEX_DEEP_EFFORT or "high"),
-        fast_reasoning_effort=str(_CODEX_FAST_EFFORT or "none"),
-    )
-    started = time.time()
-    result = provider.llm_call(
-        messages=messages,
-        model_tier=tier,
-        max_tokens=max_tokens,
-        timeout=resolved_timeout,
-    )
-    duration_ms = int((time.time() - started) * 1000)
-    resolved_model = str(getattr(result, "model", "") or model or _CODEX_DEEP_MODEL).strip()
-    in_tok = int(getattr(result, "input_tokens", 0) or 0)
-    out_tok = int(getattr(result, "output_tokens", 0) or 0)
-    cache_read = int(getattr(result, "cache_read_tokens", 0) or 0)
-    usage = {
-        "api_calls": 1,
-        "input_tokens": in_tok + cache_read,
-        "output_tokens": out_tok,
-        "total_tokens": in_tok + cache_read + out_tok,
-        "model_usage": {
-            resolved_model: {
-                "input_tokens": in_tok + cache_read,
-                "output_tokens": out_tok,
-                "total_tokens": in_tok + cache_read + out_tok,
-            }
-        },
-    }
-    data = {
-        "id": f"codex-{uuid.uuid4().hex[:12]}",
-        "object": "chat.completion",
-        "created": int(time.time()),
-        "model": resolved_model,
-        "choices": [
-            {
-                "index": 0,
-                "finish_reason": "stop",
-                "message": {
-                    "role": "assistant",
-                    "content": str(getattr(result, "text", "") or "").strip(),
-                },
-            }
-        ],
-        "usage": {
-            "prompt_tokens": in_tok + cache_read,
-            "completion_tokens": out_tok,
-            "total_tokens": in_tok + cache_read + out_tok,
-        },
-        "_codex_duration_ms": duration_ms,
-    }
-    if workspace is not None:
-        _append_usage_event(
-            workspace,
-            phase="eval",
-            source=source or "answer_model",
-            model=resolved_model,
-            usage=usage,
-            tier=_infer_usage_tier(resolved_model),
-            provider="codex",
-        )
-    return data, usage
 
 
 def _openai_message_text(message: Dict[str, Any], *, model: str = "") -> str:

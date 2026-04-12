@@ -14,6 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOCAL_BENCH_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCAL_CHECKPOINT_ROOT="${LOCAL_CHECKPOINT_ROOT:-$HOME/quaidcode/benchmark-checkpoint}"
 LOCAL_BENCH_CONFIG="${AGENTLIFE_BENCH_LOCAL_CONFIG:-$LOCAL_BENCH_ROOT/.agentlife-benchmark.local.json}"
+LOCAL_SHARED_DEV_CONFIG="${HOME}/quaidcode/dev/.quaid-dev.local.json"
 
 REMOTE=""
 REMOTE_BENCH_ROOT=""
@@ -24,6 +25,7 @@ SKIP_LOCAL_CHECKS=false
 PARALLEL="${BENCHMARK_PARALLEL:-6}"
 SCALE="${BENCHMARK_SCALE:-s}"
 RUN_NOTE=""
+LOOSE_TIMEOUTS=false
 
 usage() {
   cat <<'USAGE'
@@ -46,6 +48,7 @@ Options:
   --skip-local-checks              Skip local compile/test gate before sync+launch
   --parallel N                     Parallel workers hint (default: 6)
   --scale s|l                      AgentLife scale for naming/env (default: s)
+  --loose-timeouts                 Apply benchmark loose-timeout profile for local/provider-variance runs
   --note TEXT                      Short dashboard note for this run (optional)
   -h, --help                       Show help
 
@@ -67,6 +70,7 @@ while [[ $# -gt 0 ]]; do
     --skip-local-checks) SKIP_LOCAL_CHECKS=true; shift ;;
     --parallel) PARALLEL="$2"; shift 2 ;;
     --scale) SCALE="$2"; shift 2 ;;
+    --loose-timeouts) LOOSE_TIMEOUTS=true; shift ;;
     --note) RUN_NOTE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     --) shift; break ;;
@@ -87,6 +91,15 @@ fi
 if [[ "$SCALE" != "s" && "$SCALE" != "l" ]]; then
   echo "ERROR: --scale must be one of: s, l" >&2
   exit 1
+fi
+
+if $LOOSE_TIMEOUTS; then
+  # Local/self-hosted lanes can exceed prod-style request budgets.
+  # Disable per-request timeout by default (0 => no timeout) and guard the
+  # run with a large stall watchdog instead of premature request aborts.
+  : "${OPENAI_COMPAT_ANSWER_TIMEOUT_S:=0}"
+  : "${OPENAI_COMPAT_RETRY_ATTEMPTS:=3}"
+  : "${BENCHMARK_EVAL_STALL_FAIL_S:=2400}"
 fi
 
 if [[ -z "$REMOTE_BENCH_ROOT" ]]; then
@@ -149,7 +162,7 @@ run_cmd_redacted() {
 resolve_local_config_secret_path() {
   local section="$1"
   local key_name="$2"
-  python3 - "$section" "$key_name" "$LOCAL_BENCH_CONFIG" <<'PY'
+  python3 - "$section" "$key_name" "$LOCAL_BENCH_CONFIG" "$LOCAL_SHARED_DEV_CONFIG" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -161,6 +174,8 @@ alias_map = {
     "firstKeyPath": ("firstKeyPath", "primaryKeyPath"),
     "secondKeyPath": ("secondKeyPath", "secondaryKeyPath"),
     "thirdKeyPath": ("thirdKeyPath",),
+    "solKeyPath": ("solKeyPath",),
+    "yuniKeyPath": ("yuniKeyPath",),
 }
 
 for cfg_path in candidate_paths:
@@ -198,6 +213,31 @@ for cfg_path in candidate_paths:
 
     print(secret_path)
     raise SystemExit(0)
+PY
+}
+
+read_codex_token_file() {
+  local token_path="$1"
+  python3 - "$token_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1]).expanduser()
+raw = path.read_text(encoding="utf-8").strip()
+if not raw:
+    raise SystemExit(1)
+if raw.startswith("{"):
+    try:
+        data = json.loads(raw)
+    except Exception:
+        print(raw)
+        raise SystemExit(0)
+    access = str(data.get("access") or data.get("token") or "").strip()
+    if access:
+        print(access)
+        raise SystemExit(0)
+print(raw)
 PY
 }
 
@@ -240,6 +280,7 @@ echo "Remote benchmark root:      $REMOTE_BENCH_ROOT"
 echo "Remote checkpoint root:     $REMOTE_CHECKPOINT_ROOT"
 echo "Remote plugin root:         $REMOTE_CHECKPOINT_PLUGIN_ROOT"
 echo "Parallel workers:           $PARALLEL"
+echo "Loose timeouts:             $LOOSE_TIMEOUTS"
 echo "Run note:                   ${RUN_NOTE:-<empty>}"
 echo "Benchmark args:             $*"
 echo ""
@@ -315,6 +356,8 @@ if [[ -f "$LOCAL_CLAUDE_CREDS" ]]; then
   echo "  synced ~/.claude/.credentials.json to $REMOTE"
   if [[ "$BACKEND_ARG" == "claude-code" ]]; then
     echo "  backend=claude-code will use synced Claude OAuth credentials"
+  elif [[ "$BACKEND_ARG" == "vllm" || "$BACKEND_ARG" == "llama-cpp" || "$BACKEND_ARG" == "codex" || "$BACKEND_ARG" == "openai" ]]; then
+    echo "  backend=${BACKEND_ARG} does not require synced Claude OAuth credentials"
   else
     echo "  backend=${BACKEND_ARG:-api} can use synced Claude OAuth credentials for direct API runs"
   fi
@@ -396,6 +439,9 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export OPENAI_API_KEY=$(printf %q "$OPENAI_API_KEY")"$'\n'
 else
   LOCAL_OPENAI_KEY_PATH="$(resolve_local_config_secret_path openai judgeKeyPath || true)"
+  if [[ -z "$LOCAL_OPENAI_KEY_PATH" ]]; then
+    LOCAL_OPENAI_KEY_PATH="$(resolve_local_config_secret_path openai keyPath || true)"
+  fi
   if [[ -n "$LOCAL_OPENAI_KEY_PATH" && -f "$LOCAL_OPENAI_KEY_PATH" ]]; then
     LOCAL_OPENAI_KEY="$(tr -d '\r\n' < "$LOCAL_OPENAI_KEY_PATH")"
   else
@@ -403,6 +449,32 @@ else
   fi
   if [[ -n "$LOCAL_OPENAI_KEY" ]]; then
     OPTIONAL_BENCH_ENV+="export OPENAI_API_KEY=$(printf %q "$LOCAL_OPENAI_KEY")"$'\n'
+  fi
+fi
+LOCAL_CODEX_TOKEN_PATH=""
+LOCAL_CODEX_TOKEN=""
+if [[ -n "${BENCHMARK_CODEX_TOKEN_PATH:-}" ]]; then
+  LOCAL_CODEX_TOKEN_PATH="$(python3 - <<'PY'
+from pathlib import Path
+import os
+print(Path(os.environ["BENCHMARK_CODEX_TOKEN_PATH"]).expanduser().resolve())
+PY
+)"
+elif [[ -n "${BENCHMARK_CODEX_API_KEY:-}" ]]; then
+  LOCAL_CODEX_TOKEN="$BENCHMARK_CODEX_API_KEY"
+else
+  LOCAL_CODEX_TOKEN_PATH="$(resolve_local_config_secret_path codex solKeyPath || true)"
+  if [[ -z "$LOCAL_CODEX_TOKEN_PATH" || ! -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
+    LOCAL_CODEX_TOKEN_PATH="$(resolve_local_config_secret_path codex yuniKeyPath || true)"
+  fi
+fi
+if [[ -z "$LOCAL_CODEX_TOKEN" && -n "$LOCAL_CODEX_TOKEN_PATH" && -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
+  LOCAL_CODEX_TOKEN="$(read_codex_token_file "$LOCAL_CODEX_TOKEN_PATH" | tr -d '\r\n')"
+fi
+if [[ "$BACKEND_ARG" == "codex" ]]; then
+  if [[ -z "$LOCAL_CODEX_TOKEN" ]]; then
+    echo "ERROR: Codex backend requires a token. Set BENCHMARK_CODEX_API_KEY, BENCHMARK_CODEX_TOKEN_PATH, or auth.codex.solKeyPath/yuniKeyPath in $LOCAL_BENCH_CONFIG." >&2
+    exit 1
   fi
 fi
 if [[ -n "${BENCHMARK_REQUIRE_QUERY_COUNT:-}" ]]; then
@@ -420,11 +492,35 @@ fi
 if [[ -n "${OPENAI_COMPAT_RETRY_ATTEMPTS:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export OPENAI_COMPAT_RETRY_ATTEMPTS=$(printf %q "$OPENAI_COMPAT_RETRY_ATTEMPTS")"$'\n'
 fi
+if [[ -n "${BENCHMARK_EVAL_STALL_FAIL_S:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_EVAL_STALL_FAIL_S=$(printf %q "$BENCHMARK_EVAL_STALL_FAIL_S")"$'\n'
+fi
 if [[ -n "${OPENAI_COMPAT_TRACE:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export OPENAI_COMPAT_TRACE=$(printf %q "$OPENAI_COMPAT_TRACE")"$'\n'
 fi
 if [[ -n "${OPENAI_COMPAT_TRACE_INTERVAL_S:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export OPENAI_COMPAT_TRACE_INTERVAL_S=$(printf %q "$OPENAI_COMPAT_TRACE_INTERVAL_S")"$'\n'
+fi
+if [[ -n "${BENCHMARK_OPENAI_URL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_OPENAI_URL=$(printf %q "$BENCHMARK_OPENAI_URL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_OPENAI_MODEL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_OPENAI_MODEL=$(printf %q "$BENCHMARK_OPENAI_MODEL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_OPENAI_RUNTIME_URL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_OPENAI_RUNTIME_URL=$(printf %q "$BENCHMARK_OPENAI_RUNTIME_URL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_OPENAI_RUNTIME_MODEL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_OPENAI_RUNTIME_MODEL=$(printf %q "$BENCHMARK_OPENAI_RUNTIME_MODEL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_OPENAI_JUDGE_URL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_OPENAI_JUDGE_URL=$(printf %q "$BENCHMARK_OPENAI_JUDGE_URL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_OPENAI_JUDGE_MODEL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_OPENAI_JUDGE_MODEL=$(printf %q "$BENCHMARK_OPENAI_JUDGE_MODEL")"$'\n'
+fi
+if [[ -n "${BENCHMARK_TIER5_JUDGE_THINKING:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_TIER5_JUDGE_THINKING=$(printf %q "$BENCHMARK_TIER5_JUDGE_THINKING")"$'\n'
 fi
 if [[ -n "${BENCHMARK_FAST_REASONING_MODEL:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_FAST_REASONING_MODEL=$(printf %q "$BENCHMARK_FAST_REASONING_MODEL")"$'\n'
@@ -558,6 +654,12 @@ fi
 if [[ -n "${BENCHMARK_LLAMA_CPP_JUDGE_API_KEY:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_LLAMA_CPP_JUDGE_API_KEY=$(printf %q "$BENCHMARK_LLAMA_CPP_JUDGE_API_KEY")"$'\n'
 fi
+if [[ -n "${OPENAI_COMPATIBLE_DEEP_BASE_URL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export OPENAI_COMPATIBLE_DEEP_BASE_URL=$(printf %q "$OPENAI_COMPATIBLE_DEEP_BASE_URL")"$'\n'
+fi
+if [[ -n "${OPENAI_COMPATIBLE_FAST_BASE_URL:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export OPENAI_COMPATIBLE_FAST_BASE_URL=$(printf %q "$OPENAI_COMPATIBLE_FAST_BASE_URL")"$'\n'
+fi
 if [[ -n "$RUN_NOTE" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_RUN_NOTE=$(printf %q "$RUN_NOTE")"$'\n'
 fi
@@ -601,7 +703,7 @@ elif [[ \"\${BENCHMARK_INCLUDE_FILLER:-0}\" == \"1\" ]]; then
 fi
 export AGENTLIFE_ASSETS_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/sessions\"
 BENCHMARK_OAUTH_TOKEN="\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}"
-if [[ $(printf %q "$BACKEND_ARG") == "vllm" || $(printf %q "$BACKEND_ARG") == "llama-cpp" ]]; then
+if [[ $(printf %q "$BACKEND_ARG") == "vllm" || $(printf %q "$BACKEND_ARG") == "llama-cpp" || $(printf %q "$BACKEND_ARG") == "codex" || $(printf %q "$BACKEND_ARG") == "openai" ]]; then
   echo \"Benchmark Anthropic OAuth: not required for backend=$(printf %q "$BACKEND_ARG")\"
 elif [[ -n \"\$BENCHMARK_OAUTH_TOKEN\" ]]; then
   export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=\"\$BENCHMARK_OAUTH_TOKEN\"
@@ -610,7 +712,7 @@ else
   echo \"ERROR: BENCHMARK_ANTHROPIC_OAUTH_TOKEN missing; set it explicitly or configure auth.anthropic.firstKeyPath in .agentlife-benchmark.local.json before launch\" >&2
   exit 1
 fi
-if [[ $(printf %q "$BACKEND_ARG") == "vllm" || $(printf %q "$BACKEND_ARG") == "llama-cpp" ]]; then
+if [[ $(printf %q "$BACKEND_ARG") == "vllm" || $(printf %q "$BACKEND_ARG") == "llama-cpp" || $(printf %q "$BACKEND_ARG") == "codex" || $(printf %q "$BACKEND_ARG") == "openai" ]]; then
   echo \"Benchmark Anthropic OAuth: skipped\"
 elif [[ -n \"\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}\" ]]; then
   echo \"Benchmark Anthropic OAuth: present\"
@@ -648,9 +750,18 @@ else
   exit 1
 fi
 echo \"Using runner: \$RUNNER\"
+
 mkdir -p $(printf %q "$RESULTS_DIR")
 if [[ -n \"\${BENCHMARK_RUN_NOTE:-}\" ]]; then
   printf '%s\n' \"\$BENCHMARK_RUN_NOTE\" > $(printf %q "$RESULTS_DIR")/run_note.txt
+fi
+if [[ $(printf %q "$BACKEND_ARG") == "codex" ]]; then
+  mkdir -p $(printf %q "$RESULTS_DIR")/adaptors/codex
+  cat > $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token <<'EOF_CODEX_TOKEN'
+$(printf '%s\n' "$LOCAL_CODEX_TOKEN")
+EOF_CODEX_TOKEN
+  chmod 600 $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token
+  echo \"Codex auth token: wrote $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token\"
 fi
 LAUNCH_LOG=${RESULTS_DIR}.launch.log
 nohup env PYTHONUNBUFFERED=1 python3 \"\$RUNNER\" $LAUNCH_ARGS_ESCAPED > \"\$LAUNCH_LOG\" 2>&1 &
@@ -663,6 +774,143 @@ else
   exit 1
 fi
 "
+
+if [[ "$BACKEND_ARG" == "llama-cpp" ]]; then
+  LLAMA_PREFLIGHT_URL="${BENCHMARK_LLAMA_CPP_URL:-http://127.0.0.1:30001}"
+  OLLAMA_PREFLIGHT_URL="${BENCHMARK_OLLAMA_URL:-http://127.0.0.1:11434}"
+  EMBED_PREFLIGHT_MODEL="${BENCHMARK_EMBEDDING_MODEL:-nomic-embed-text}"
+  ENFORCE_PARALLEL_MATCH="${BENCHMARK_ENFORCE_LLAMA_PARALLEL_MATCH:-1}"
+  ENFORCE_THREADS_MATCH="${BENCHMARK_ENFORCE_LLAMA_THREADS_MATCH:-1}"
+  MIN_CTX_PER_SLOT="${BENCHMARK_MIN_CTX_PER_SLOT:-35000}"
+  REMOTE_LLAMA_PREFLIGHT_CMD="
+set -euo pipefail
+export BENCHMARK_PARALLEL=$(printf %q "$PARALLEL")
+$OPTIONAL_BENCH_ENV
+LLAMA_URL=$(printf %q "$LLAMA_PREFLIGHT_URL")
+OLLAMA_URL=$(printf %q "$OLLAMA_PREFLIGHT_URL")
+EMBED_MODEL=$(printf %q "$EMBED_PREFLIGHT_MODEL")
+ENFORCE_MATCH=$(printf %q "$ENFORCE_PARALLEL_MATCH")
+ENFORCE_THREADS=$(printf %q "$ENFORCE_THREADS_MATCH")
+MIN_CTX_SLOT=$(printf %q "$MIN_CTX_PER_SLOT")
+
+echo \"Preflight: llama.cpp readiness at \$LLAMA_URL/health\"
+READY=0
+for _ in \$(seq 1 90); do
+  BODY=\$(curl -sS \"\$LLAMA_URL/health\" || true)
+  if [[ -n \"\$BODY\" ]]; then
+    if python3 - \"\$BODY\" <<'PY'
+import json, sys
+try:
+    payload = json.loads(sys.argv[1])
+except Exception:
+    raise SystemExit(1)
+msg = str(payload.get('error', {}).get('message', '')).lower()
+code = str(payload.get('error', {}).get('code', '')).lower()
+if 'loading model' in msg or 'unavailable' in code:
+    raise SystemExit(2)
+raise SystemExit(0)
+PY
+    then
+      READY=1
+      break
+    fi
+  fi
+  sleep 2
+done
+if [[ \"\$READY\" != \"1\" ]]; then
+  echo \"ERROR: llama.cpp did not become ready at \$LLAMA_URL\" >&2
+  exit 1
+fi
+
+if [[ \"\$ENFORCE_MATCH\" == \"1\" ]]; then
+  LLAMA_PORT=\$(python3 - \"\$LLAMA_URL\" <<'PY'
+import sys
+from urllib.parse import urlparse
+u = urlparse(sys.argv[1].strip())
+print(u.port or (443 if u.scheme == 'https' else 80))
+PY
+)
+  read -r SERVER_PARALLEL SERVER_CTX_SIZE SERVER_THREADS SERVER_CTX_SLOT <<EOF
+\$(python3 - \"\$LLAMA_PORT\" <<'PY'
+import subprocess, sys
+port = str(sys.argv[1])
+out = subprocess.check_output(['bash', '-lc', f\"pgrep -af 'llama-server.*--port {port}' || true\"], text=True)
+def _int_token(parts, flag):
+    for i, token in enumerate(parts):
+        if token == flag and i + 1 < len(parts):
+            try:
+                return int(parts[i + 1])
+            except Exception:
+                return None
+    return None
+for row in out.splitlines():
+    if '--port' in row and 'llama-server' in row:
+        parts = row.split()
+        parallel = _int_token(parts, '--parallel')
+        ctx_size = _int_token(parts, '--ctx-size')
+        threads = _int_token(parts, '--threads')
+        ctx_slot = int(ctx_size / parallel) if parallel and ctx_size else 0
+        print(f\"{parallel or 0} {ctx_size or 0} {threads or 0} {ctx_slot}\")
+        raise SystemExit(0)
+print('0 0 0 0')
+PY
+)
+EOF
+  if [[ -z \"\$SERVER_PARALLEL\" ]]; then
+    echo \"ERROR: could not determine llama-server --parallel\" >&2
+    exit 1
+  fi
+  if [[ \"\$SERVER_PARALLEL\" != \"$(printf %q "$PARALLEL")\" ]]; then
+    echo \"ERROR: llama-server/harness parallel mismatch: server=\$SERVER_PARALLEL harness=$(printf %q "$PARALLEL")\" >&2
+    exit 1
+  fi
+  if [[ \"\$ENFORCE_THREADS\" == \"1\" && \"\$SERVER_THREADS\" != \"$(printf %q "$PARALLEL")\" ]]; then
+    echo \"ERROR: llama-server --threads must equal harness parallel: threads=\$SERVER_THREADS harness=$(printf %q "$PARALLEL")\" >&2
+    exit 1
+  fi
+  if [[ \"\$SERVER_CTX_SLOT\" -lt \"\$MIN_CTX_SLOT\" ]]; then
+    echo \"ERROR: llama-server per-slot context too small: ctx_size=\$SERVER_CTX_SIZE parallel=\$SERVER_PARALLEL per_slot=\$SERVER_CTX_SLOT required_min=\$MIN_CTX_SLOT\" >&2
+    exit 1
+  fi
+fi
+
+echo \"Preflight: ollama embeddings at \$OLLAMA_URL (model=\$EMBED_MODEL)\"
+TAGS=\$(curl -sS \"\$OLLAMA_URL/api/tags\" || true)
+if [[ -z \"\$TAGS\" ]]; then
+  echo \"ERROR: Ollama tags endpoint unavailable at \$OLLAMA_URL/api/tags\" >&2
+  exit 1
+fi
+python3 - \"\$TAGS\" \"\$EMBED_MODEL\" <<'PY'
+import json, sys
+payload = json.loads(sys.argv[1])
+target = sys.argv[2]
+names = set()
+for row in payload.get('models', []):
+    if isinstance(row, dict):
+        for key in ('name', 'model'):
+            val = str(row.get(key) or '').strip()
+            if val:
+                names.add(val)
+                if val.endswith(':latest'):
+                    names.add(val[:-7])
+if target not in names:
+    preview = ', '.join(sorted(names)[:12]) or '<none>'
+    raise SystemExit(f'Missing embedding model {target!r} in ollama tags: {preview}')
+PY
+EMBED=\$(curl -sS -X POST \"\$OLLAMA_URL/api/embed\" -H 'Content-Type: application/json' -d \"{\\\"model\\\":\\\"\$EMBED_MODEL\\\",\\\"input\\\":\\\"preflight cache check\\\"}\" || true)
+python3 - \"\$EMBED\" <<'PY'
+import json, sys
+payload = json.loads(sys.argv[1])
+emb = payload.get('embeddings') or []
+if not emb or not isinstance(emb[0], list) or not emb[0]:
+    raise SystemExit('Ollama /api/embed did not return embeddings')
+PY
+echo \"Preflight OK: llama.cpp + ollama embeddings\"
+"
+  run_cmd_redacted "ssh ${SSH_OPTS[*]} $REMOTE [remote llama-cpp preflight]" \
+    ssh "${SSH_OPTS[@]}" "$REMOTE" "$REMOTE_LLAMA_PREFLIGHT_CMD"
+fi
+
 run_cmd_redacted "ssh ${SSH_OPTS[*]} $REMOTE [remote benchmark launch redacted]" \
   ssh "${SSH_OPTS[@]}" "$REMOTE" "$REMOTE_PY_CMD"
 
