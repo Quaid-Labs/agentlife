@@ -759,9 +759,7 @@ if [[ $(printf %q "$BACKEND_ARG") == "codex" ]]; then
     exit 1
   fi
   mkdir -p $(printf %q "$RESULTS_DIR")/adaptors/codex
-  cat > $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token <<'EOF_CODEX_TOKEN'
-\$CODEX_TOKEN
-EOF_CODEX_TOKEN
+  printf '%s\n' "\$CODEX_TOKEN" > $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token
   chmod 600 $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token
   echo \"Codex auth token: wrote $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token\"
 fi
