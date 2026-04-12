@@ -1384,6 +1384,9 @@ def _probe_openai_compatible_health(url: str, *, timeout: float = 2.0) -> Tuple[
 
 
 def _assert_openai_compatible_provider_healthy(url: str, *, source: Optional[str] = None) -> None:
+    if _is_codex_backend():
+        _load_codex_provider_class()
+        return
     host = str(urllib.parse.urlsplit(url).hostname or "").strip().lower()
     if not _is_local_host(host):
         return
@@ -2711,6 +2714,8 @@ def _set_workspace_capture_limits(
 def _apply_backend_reasoning_config(payload: Dict[str, Any], *, requested_model: Optional[str] = None) -> None:
     if not isinstance(payload.get("models"), dict):
         payload["models"] = {}
+    if not isinstance(payload.get("adapter"), dict):
+        payload["adapter"] = {}
     models = payload["models"]
 
     requested_reasoning_model = str(requested_model or "").strip()
@@ -2735,7 +2740,17 @@ def _apply_backend_reasoning_config(payload: Dict[str, Any], *, requested_model:
         if not fast_reasoning_model:
             fast_reasoning_model = "claude-haiku-4-5-20251001"
 
-    if _BACKEND == "claude-code":
+    if _BACKEND == "codex":
+        payload["adapter"]["type"] = "codex"
+        models["llmProvider"] = "openai-compatible"
+        models["deepReasoningProvider"] = "openai-compatible"
+        models["fastReasoningProvider"] = "openai-compatible"
+        models["deepReasoning"] = deep_reasoning_model
+        models["fastReasoning"] = fast_reasoning_model or deep_reasoning_model
+        models["baseUrl"] = _get_openai_compatible_url(source="runtime")
+        models["apiKeyEnv"] = _get_openai_compatible_api_key_env(source="runtime")
+    elif _BACKEND == "claude-code":
+        payload["adapter"]["type"] = "claude-code"
         models["llmProvider"] = "claude-code"
         models["deepReasoningProvider"] = "claude-code"
         models["fastReasoningProvider"] = "anthropic" if _find_anthropic_api_key().strip() else "claude-code"
@@ -2744,6 +2759,7 @@ def _apply_backend_reasoning_config(payload: Dict[str, Any], *, requested_model:
         models.pop("baseUrl", None)
         models.pop("apiKeyEnv", None)
     elif _uses_openai_compatible_backend():
+        payload["adapter"]["type"] = "standalone"
         models["llmProvider"] = "openai-compatible"
         models["deepReasoningProvider"] = "openai-compatible"
         models["fastReasoningProvider"] = "openai-compatible"
@@ -2752,6 +2768,7 @@ def _apply_backend_reasoning_config(payload: Dict[str, Any], *, requested_model:
         models["baseUrl"] = _get_openai_compatible_url(source="runtime")
         models["apiKeyEnv"] = _get_openai_compatible_api_key_env(source="runtime")
     else:
+        payload["adapter"]["type"] = "standalone"
         models["llmProvider"] = "anthropic"
         models["deepReasoningProvider"] = "anthropic"
         models["fastReasoningProvider"] = "anthropic"
@@ -3800,7 +3817,27 @@ def _write_session_jsonl(messages: List[Dict[str, str]], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
         for msg in messages:
-            f.write(json.dumps({"role": msg["role"], "content": msg["content"]}, ensure_ascii=True) + "\n")
+            role = str(msg.get("role") or "").strip().lower()
+            content = str(msg.get("content") or "")
+            if _BACKEND == "codex":
+                payload_role = "assistant" if role == "assistant" else "user"
+                text_key = "output_text" if payload_role == "assistant" else "input_text"
+                f.write(
+                    json.dumps(
+                        {
+                            "type": "response_item",
+                            "payload": {
+                                "type": "message",
+                                "role": payload_role,
+                                "content": [{text_key: content}],
+                            },
+                        },
+                        ensure_ascii=True,
+                    )
+                    + "\n"
+                )
+                continue
+            f.write(json.dumps({"role": role, "content": content}, ensure_ascii=True) + "\n")
 
 
 def _sync_project_snapshot(
@@ -4014,17 +4051,54 @@ def _run_runtime_extract_jsonl(
 
 
 def _rolling_metrics_log_path(workspace: Path) -> Path:
-    return workspace / _BENCHMARK_QUAID_INSTANCE / "logs" / "daemon" / "rolling-extraction.jsonl"
+    workspace = workspace.resolve()
+    relative = Path("daemon") / "rolling-extraction.jsonl"
+    for root in _runtime_log_roots(workspace):
+        candidate = root / relative
+        if candidate.exists():
+            return candidate
+    # Runtime telemetry is written under the installed instance logs path.
+    return workspace / "instances" / _BENCHMARK_QUAID_INSTANCE / "logs" / relative
 
 
 def _rolling_state_file(workspace: Path, session_id: str) -> Path:
     safe_session_id = re.sub(r"[^A-Za-z0-9._-]+", "_", str(session_id or "session")).strip("._") or "session"
-    return workspace / _BENCHMARK_QUAID_INSTANCE / "data" / "rolling-extraction" / f"{safe_session_id}.json"
+    return _runtime_data_root(workspace) / "rolling-extraction" / f"{safe_session_id}.json"
 
 
 def _rolling_cursor_file(workspace: Path, session_id: str) -> Path:
     safe_session_id = re.sub(r"[^A-Za-z0-9._-]+", "_", str(session_id or "session")).strip("._") or "session"
-    return workspace / _BENCHMARK_QUAID_INSTANCE / "data" / "session-cursors" / f"{safe_session_id}.json"
+    return _runtime_data_root(workspace) / "session-cursors" / f"{safe_session_id}.json"
+
+
+def _runtime_data_root(workspace: Path) -> Path:
+    workspace = workspace.resolve()
+    candidates = (
+        workspace / "data",
+        workspace / _BENCHMARK_QUAID_INSTANCE / "data",
+        workspace / "instances" / _BENCHMARK_QUAID_INSTANCE / "data",
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+def _runtime_log_roots(workspace: Path) -> tuple[Path, ...]:
+    workspace = workspace.resolve()
+    return (
+        workspace / "instances" / _BENCHMARK_QUAID_INSTANCE / "logs",
+        workspace / _BENCHMARK_QUAID_INSTANCE / "logs",
+        workspace / "logs",
+    )
+
+
+def _runtime_logs_root(workspace: Path) -> Path:
+    candidates = _runtime_log_roots(workspace)
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
 
 
 def _load_pending_signal_rows(
@@ -4033,7 +4107,7 @@ def _load_pending_signal_rows(
     session_id: Optional[str] = None,
     signal_type: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    signal_dir = workspace / _BENCHMARK_QUAID_INSTANCE / "data" / "extraction-signals"
+    signal_dir = _runtime_data_root(workspace) / "extraction-signals"
     if not signal_dir.is_dir():
         return []
     rows: List[Dict[str, Any]] = []
@@ -4181,9 +4255,15 @@ def _run_runtime_rolling_driver(
         "        d.process_signal(sig)\n"
         "        processed += 1\n"
         "cursor = d.read_cursor(session_id)\n"
-        "instance_root = Path(os.environ['CLAWDBOT_WORKSPACE']) / os.environ.get('QUAID_INSTANCE', 'benchrunner')\n"
-        "state_path = instance_root / 'data' / 'rolling-extraction' / f'{session_id}.json'\n"
-        "metrics_path = instance_root / 'logs' / 'daemon' / 'rolling-extraction.jsonl'\n"
+        "workspace = Path(os.environ['CLAWDBOT_WORKSPACE'])\n"
+        "data_root = workspace / 'data'\n"
+        "if not data_root.exists():\n"
+        "    data_root = workspace / os.environ.get('QUAID_INSTANCE', 'benchrunner') / 'data'\n"
+        "logs_root = workspace / 'logs'\n"
+        "if not logs_root.exists():\n"
+        "    logs_root = workspace / os.environ.get('QUAID_INSTANCE', 'benchrunner') / 'logs'\n"
+        "state_path = data_root / 'rolling-extraction' / f'{session_id}.json'\n"
+        "metrics_path = logs_root / 'daemon' / 'rolling-extraction.jsonl'\n"
         "remaining_tokens = None\n"
         "if chunk_raw:\n"
         "    remaining_tokens = d.estimate_unextracted_tokens(transcript_path, int(cursor.get('line_offset', 0) or 0), int(chunk_raw))\n"
@@ -5126,7 +5206,7 @@ def run_per_day_extraction(
                 workspace=workspace,
                 env=day_env,
                 session_file=session_file,
-                session_id=f"day-compaction-{date}",
+                session_id=f"day-runtime-{date}",
                 chunk_tokens=day_chunk_tokens,
                 chunk_max_lines=day_chunk_max_lines if day_chunk_max_lines > 0 else None,
                 timeout_seconds=day_extract_timeout,
@@ -5646,6 +5726,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         completed_idx: int,
         *,
         active_count: int = 0,
+        active_query_ids: Optional[List[int]] = None,
+        oldest_active_age_s: float = 0.0,
         correct_count: int = 0,
         partials_count: int = 0,
         wrong_count: int = 0,
@@ -5662,6 +5744,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "completed": max(0, completed_count),
             "last_completed_query": completed_idx,
             "active_queries": max(0, active_count),
+            "active_query_ids": list(active_query_ids or []),
+            "oldest_active_age_s": round(max(0.0, float(oldest_active_age_s)), 2),
             "correct": max(0, correct_count),
             "partial": max(0, partials_count),
             "wrong": max(0, wrong_count),
@@ -5820,6 +5904,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 completed_count=len(results_by_idx),
                 completed_idx=max(results_by_idx.keys(), default=-1),
                 active_count=1,
+                active_query_ids=[i + 1],
                 correct_count=correct,
                 partials_count=partial_count,
                 wrong_count=wrong,
@@ -5853,31 +5938,75 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                 completed_count=completed,
                 completed_idx=max(results_by_idx.keys(), default=-1),
                 active_count=0,
+                active_query_ids=[],
                 correct_count=correct,
                 partials_count=partial_count,
                 wrong_count=wrong,
             )
     else:
+        # Keep at most `parallel_workers` tasks in flight at once.
+        # This avoids progress distortion where queued (not yet running) futures
+        # are reported as active for long periods.
+        stall_fail_s = max(0.0, float(os.environ.get("BENCHMARK_EVAL_STALL_FAIL_S", "900")))
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_workers) as ex:
-            fut_map = {ex.submit(_eval_one, i, q): i for i, q in pending_queries}
-            pending = set(fut_map.keys())
-            while pending:
-                done, pending = concurrent.futures.wait(
-                    pending,
+            pending_iter = iter(pending_queries)
+            fut_map = {}
+            started_at = {}
+            for _ in range(parallel_workers):
+                try:
+                    i, q = next(pending_iter)
+                except StopIteration:
+                    break
+                fut = ex.submit(_eval_one, i, q)
+                fut_map[fut] = i
+                started_at[fut] = time.time()
+
+            last_completion_ts = time.time()
+            while fut_map:
+                pending_futs = set(fut_map.keys())
+                done, _ = concurrent.futures.wait(
+                    pending_futs,
                     timeout=5.0,
                     return_when=concurrent.futures.FIRST_COMPLETED,
                 )
+                now = time.time()
+                active_ids = sorted((fut_map[fut] + 1) for fut in pending_futs)
+                oldest_active_age_s = 0.0
+                if pending_futs:
+                    oldest_active_age_s = max(
+                        0.0,
+                        now - min(started_at.get(fut, now) for fut in pending_futs),
+                    )
+
                 _write_eval_progress(
                     current_idx=len(results_by_idx),
                     completed_count=len(results_by_idx),
                     completed_idx=max(results_by_idx.keys(), default=-1),
-                    active_count=min(parallel_workers, len(pending)),
+                    active_count=min(parallel_workers, len(pending_futs)),
+                    active_query_ids=active_ids,
+                    oldest_active_age_s=oldest_active_age_s,
                     correct_count=correct,
                     partials_count=partial_count,
                     wrong_count=wrong,
                 )
+                if pending_futs and oldest_active_age_s >= 300 and int(oldest_active_age_s) % 60 < 5:
+                    print(
+                        "  [eval-watchdog] long-running queries "
+                        f"active={active_ids[:12]} oldest_age_s={int(oldest_active_age_s)}"
+                    )
+                if stall_fail_s > 0 and pending_futs and (now - last_completion_ts) >= stall_fail_s:
+                    raise RuntimeError(
+                        "Eval stalled with no completed queries within "
+                        f"{int(stall_fail_s)}s; active={active_ids[:16]} "
+                        f"oldest_active_age_s={int(oldest_active_age_s)}"
+                    )
+
                 for fut in done:
                     i2, result, marker, query_type, tool_calls = fut.result()
+                    fut_map.pop(fut, None)
+                    started_at.pop(fut, None)
+                    last_completion_ts = time.time()
+
                     q_usage = result.get("eval_tokens", {})
                     eval_usage["input_tokens"] += q_usage.get("input_tokens", 0)
                     eval_usage["output_tokens"] += q_usage.get("output_tokens", 0)
@@ -5896,11 +6025,30 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
                         results_by_idx=results_by_idx,
                     )
                     completed = len(results_by_idx)
+
+                    # Refill one worker slot.
+                    try:
+                        ni, nq = next(pending_iter)
+                    except StopIteration:
+                        pass
+                    else:
+                        nfut = ex.submit(_eval_one, ni, nq)
+                        fut_map[nfut] = ni
+                        started_at[nfut] = time.time()
+
+                    running_futs = set(fut_map.keys())
                     _write_eval_progress(
                         current_idx=completed,
                         completed_count=completed,
                         completed_idx=max(results_by_idx.keys(), default=-1),
-                        active_count=min(parallel_workers, len(pending)),
+                        active_count=min(parallel_workers, len(running_futs)),
+                        active_query_ids=sorted((fut_map[p] + 1) for p in running_futs),
+                        oldest_active_age_s=(
+                            max(
+                                0.0,
+                                time.time() - min(started_at.get(p, time.time()) for p in running_futs),
+                            ) if running_futs else 0.0
+                        ),
                         correct_count=correct,
                         partials_count=partial_count,
                         wrong_count=wrong,
@@ -8731,6 +8879,8 @@ def _resolve_judge_provider(judge_model: str) -> str:
     override = str(os.environ.get("BENCHMARK_JUDGE_PROVIDER", "") or "").strip().lower()
     if override in {"openai", "anthropic", "openai-compatible"}:
         return override
+    if _is_codex_backend():
+        return "openai-compatible"
     model = str(judge_model or "").strip()
     if model.startswith("gpt-"):
         return "openai"
@@ -9489,6 +9639,30 @@ def _get_openai_key() -> Optional[str]:
     return None
 
 
+def _read_codex_auth_token(workspace: Optional[Path] = None) -> Optional[str]:
+    """Read Codex's long-lived token file used by the direct OpenAI path."""
+    candidates: List[Path] = []
+    if workspace is not None:
+        candidates.append(Path(workspace) / "adaptors" / "codex" / ".auth-token")
+    quaid_home = str(os.environ.get("QUAID_HOME", "") or "").strip()
+    if quaid_home:
+        candidates.append(Path(quaid_home) / "adaptors" / "codex" / ".auth-token")
+    candidates.append(_QUAID_DIR / "adaptors" / "codex" / ".auth-token")
+    seen: set[str] = set()
+    for path in candidates:
+        resolved = str(path)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        try:
+            token = path.read_text(encoding="utf-8").strip()
+        except Exception:
+            continue
+        if token:
+            return token
+    return None
+
+
 _BACKEND = "oauth"  # Set to "claude-code" in main() to use the CLI wrapper
 _BENCHMARK_QUAID_INSTANCE = "benchrunner"
 _OPENAI_COMPAT_URL = ""
@@ -9497,10 +9671,16 @@ _OPENAI_COMPAT_API_KEY_ENV = "BENCHMARK_OPENAI_COMPAT_API_KEY"
 _OPENAI_COMPAT_JUDGE_URL = ""
 _OPENAI_COMPAT_JUDGE_MODEL = ""
 _OPENAI_COMPAT_JUDGE_API_KEY_ENV = ""
+_CODEX_DEEP_MODEL = "gpt-5.4"
+_CODEX_FAST_MODEL = "gpt-5.3-codex-spark"
+_CODEX_DEEP_EFFORT = "high"
+_CODEX_FAST_EFFORT = "none"
+_CODEX_PROVIDER_CLASS_CACHE: Optional[Any] = None
+_CODEX_PROVIDER_MODULE_PATH: str = ""
 
 
 def _uses_openai_compatible_backend(backend: Optional[str] = None) -> bool:
-    return str(backend or _BACKEND).strip().lower() in {"vllm", "llama-cpp"}
+    return str(backend or _BACKEND).strip().lower() in {"vllm", "llama-cpp", "codex", "openai"}
 
 
 def _env_truthy(name: str) -> bool:
@@ -9551,6 +9731,18 @@ def _openai_compatible_backend_label(backend: Optional[str] = None) -> str:
 
 def _openai_compatible_env_defaults(backend: Optional[str] = None) -> Tuple[str, str, str]:
     name = _openai_compatible_backend_label(backend)
+    if name == "openai":
+        return (
+            "BENCHMARK_OPENAI_URL",
+            "BENCHMARK_OPENAI_MODEL",
+            "OPENAI_API_KEY",
+        )
+    if name == "codex":
+        return (
+            "BENCHMARK_CODEX_BASE_URL",
+            "BENCHMARK_CODEX_MODEL",
+            "BENCHMARK_CODEX_API_KEY",
+        )
     if name == "llama-cpp":
         return (
             "BENCHMARK_LLAMA_CPP_URL",
@@ -9565,6 +9757,18 @@ def _openai_compatible_env_defaults(backend: Optional[str] = None) -> Tuple[str,
 
 def _openai_compatible_judge_env_defaults(backend: Optional[str] = None) -> Tuple[str, str, str]:
     name = _openai_compatible_backend_label(backend)
+    if name == "openai":
+        return (
+            "BENCHMARK_OPENAI_JUDGE_URL",
+            "BENCHMARK_OPENAI_JUDGE_MODEL",
+            "OPENAI_API_KEY",
+        )
+    if name == "codex":
+        return (
+            "BENCHMARK_CODEX_JUDGE_URL",
+            "BENCHMARK_CODEX_JUDGE_MODEL",
+            "BENCHMARK_CODEX_JUDGE_API_KEY",
+        )
     if name == "llama-cpp":
         return (
             "BENCHMARK_LLAMA_CPP_JUDGE_URL",
@@ -9578,8 +9782,66 @@ def _openai_compatible_judge_env_defaults(backend: Optional[str] = None) -> Tupl
     )
 
 
+def _require_openai_compatible_role_contract(args: argparse.Namespace) -> None:
+    """Fail-hard contract for local provider role wiring by mode."""
+    backend = str(getattr(args, "backend", "") or "").strip().lower()
+    if backend not in {"llama-cpp", "vllm"}:
+        return
+
+    mode = str(getattr(args, "mode", "") or "").strip().lower()
+    if mode == "ingest":
+        required = ("deep", "fast")
+    elif mode == "eval":
+        required = ("deep", "fast", "answer", "judge")
+    elif mode in {"full", "per-day", "fc"}:
+        required = ("deep", "fast", "answer", "judge")
+    else:
+        return
+
+    deep_url = str(os.environ.get("OPENAI_COMPATIBLE_DEEP_BASE_URL", "") or "").strip()
+    fast_url = str(os.environ.get("OPENAI_COMPATIBLE_FAST_BASE_URL", "") or "").strip()
+    if backend == "llama-cpp":
+        answer_model = str(getattr(args, "llama_cpp_model", "") or "").strip()
+        judge_url = str(getattr(args, "llama_cpp_judge_url", "") or "").strip()
+        judge_model = str(getattr(args, "llama_cpp_judge_model", "") or "").strip()
+    else:
+        answer_model = str(getattr(args, "vllm_model", "") or "").strip()
+        judge_url = str(getattr(args, "vllm_judge_url", "") or "").strip()
+        judge_model = str(getattr(args, "vllm_judge_model", "") or "").strip()
+
+    missing: List[str] = []
+    if "deep" in required and not deep_url:
+        missing.append("OPENAI_COMPATIBLE_DEEP_BASE_URL")
+    if "fast" in required and not fast_url:
+        missing.append("OPENAI_COMPATIBLE_FAST_BASE_URL")
+    if "answer" in required and not answer_model:
+        missing.append(f"{backend} answer model")
+    if "judge" in required:
+        if not judge_url:
+            missing.append(f"{backend} judge url")
+        if not judge_model:
+            missing.append(f"{backend} judge model")
+
+    if missing:
+        raise SystemExit(
+            f"{backend} {mode} role contract failed; missing required settings: {', '.join(missing)}"
+        )
+
+
 def _openai_compatible_runtime_env_defaults(backend: Optional[str] = None) -> Tuple[str, str, str]:
     name = _openai_compatible_backend_label(backend)
+    if name == "openai":
+        return (
+            "BENCHMARK_OPENAI_RUNTIME_URL",
+            "BENCHMARK_OPENAI_RUNTIME_MODEL",
+            "OPENAI_API_KEY",
+        )
+    if name == "codex":
+        return (
+            "BENCHMARK_CODEX_RUNTIME_URL",
+            "BENCHMARK_CODEX_RUNTIME_MODEL",
+            "BENCHMARK_CODEX_RUNTIME_API_KEY",
+        )
     if name == "llama-cpp":
         return (
             "BENCHMARK_LLAMA_CPP_RUNTIME_URL",
@@ -9607,6 +9869,8 @@ def _is_openai_compatible_runtime_source(source: Optional[str]) -> bool:
 
 
 def _get_openai_compatible_url(source: Optional[str] = None) -> str:
+    is_direct_openai = _openai_compatible_backend_label() == "openai"
+    is_direct_codex = _is_codex_backend()
     url_env, _, _ = _openai_compatible_env_defaults()
     judge_url_env, _, _ = _openai_compatible_judge_env_defaults()
     runtime_url_env, _, _ = _openai_compatible_runtime_env_defaults()
@@ -9614,14 +9878,27 @@ def _get_openai_compatible_url(source: Optional[str] = None) -> str:
         judge_url = str(_OPENAI_COMPAT_JUDGE_URL or os.environ.get(judge_url_env, "")).strip().rstrip("/")
         if judge_url:
             return judge_url
+        if is_direct_openai or is_direct_codex:
+            return "https://api.openai.com"
+        raise RuntimeError(
+            "openai-compatible judge url is not configured for judge source "
+            "(set backend-specific judge URL explicitly)"
+        )
     if _is_openai_compatible_runtime_source(source):
         runtime_url = str(os.environ.get(runtime_url_env, "")).strip().rstrip("/")
         if runtime_url:
             return runtime_url
-    return str(_OPENAI_COMPAT_URL or os.environ.get(url_env, "")).strip().rstrip("/")
+    url = str(_OPENAI_COMPAT_URL or os.environ.get(url_env, "")).strip().rstrip("/")
+    if url:
+        return url
+    if is_direct_openai or is_direct_codex:
+        return "https://api.openai.com"
+    return ""
 
 
 def _get_openai_compatible_model(source: Optional[str] = None) -> str:
+    is_direct_openai = _openai_compatible_backend_label() == "openai"
+    is_direct_codex = _is_codex_backend()
     _, model_env, _ = _openai_compatible_env_defaults()
     _, judge_model_env, _ = _openai_compatible_judge_env_defaults()
     _, runtime_model_env, _ = _openai_compatible_runtime_env_defaults()
@@ -9629,11 +9906,22 @@ def _get_openai_compatible_model(source: Optional[str] = None) -> str:
         judge_model = str(_OPENAI_COMPAT_JUDGE_MODEL or os.environ.get(judge_model_env, "")).strip()
         if judge_model:
             return judge_model
+        if is_direct_openai or is_direct_codex:
+            return "gpt-5.4-mini"
+        raise RuntimeError(
+            "openai-compatible judge model is not configured for judge source "
+            "(set backend-specific judge model explicitly)"
+        )
     if _is_openai_compatible_runtime_source(source):
         runtime_model = str(os.environ.get(runtime_model_env, "")).strip()
         if runtime_model:
             return runtime_model
-    return str(_OPENAI_COMPAT_MODEL or os.environ.get(model_env, "")).strip()
+    model = str(_OPENAI_COMPAT_MODEL or os.environ.get(model_env, "")).strip()
+    if model:
+        return model
+    if is_direct_openai or is_direct_codex:
+        return "gpt-5.4"
+    return ""
 
 
 def _get_openai_compatible_api_key_env(source: Optional[str] = None) -> str:
@@ -9665,6 +9953,10 @@ def _get_openai_compatible_api_key(source: Optional[str] = None) -> str:
     key = str(os.environ.get(env_name, "") or "").strip()
     if key:
         return key
+    if _is_codex_backend():
+        token = _read_codex_auth_token()
+        if token:
+            return token
     # Avoid silently reusing the OpenAI judge key for openai-compatible runtime traffic.
     return f"benchmark-{_openai_compatible_backend_label()}"
 
@@ -9674,6 +9966,148 @@ def _openai_compatible_headers(api_key: str) -> Dict[str, str]:
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     return headers
+
+
+def _is_codex_backend(backend: Optional[str] = None) -> bool:
+    return _openai_compatible_backend_label(backend) == "codex"
+
+
+def _load_codex_provider_class():
+    """Load CodexLLMProvider from checkpoint adapter code via path import."""
+    global _CODEX_PROVIDER_CLASS_CACHE
+    global _CODEX_PROVIDER_MODULE_PATH
+    providers_path = _resolve_quaid_script("adaptors/codex/providers.py")
+    if not providers_path.exists():
+        raise RuntimeError(f"Codex backend requested but providers file is missing: {providers_path}")
+    providers_path_str = str(providers_path.resolve())
+    if _CODEX_PROVIDER_CLASS_CACHE is not None and _CODEX_PROVIDER_MODULE_PATH == providers_path_str:
+        return _CODEX_PROVIDER_CLASS_CACHE
+
+    module_dir = str(_QUAID_DIR.resolve())
+    if module_dir not in sys.path:
+        sys.path.insert(0, module_dir)
+
+    module_name = "_bench_codex_providers_cached"
+    spec = importlib.util.spec_from_file_location(module_name, providers_path_str)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Failed to load Codex providers module from {providers_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    klass = getattr(module, "CodexLLMProvider", None)
+    if klass is None:
+        raise RuntimeError("Codex providers module did not expose CodexLLMProvider")
+    _CODEX_PROVIDER_CLASS_CACHE = klass
+    _CODEX_PROVIDER_MODULE_PATH = providers_path_str
+    return klass
+
+
+def _codex_model_tier_for_source(source: Optional[str]) -> str:
+    src = str(source or "").strip().lower()
+    if src in {"judge", "tier5_judge", "fast_reasoning"}:
+        return "fast"
+    return "deep"
+
+
+def _call_codex_app_server_chat(
+    *,
+    messages: List[Dict[str, Any]],
+    model: str,
+    max_tokens: int,
+    timeout: Optional[int],
+    workspace: Optional[Path],
+    source: Optional[str],
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Route a chat-completion style request through Codex app-server broker.
+
+    Codex app-server does not expose OpenAI function-calling payloads in this path.
+    We return a single assistant message with text content and token usage.
+    """
+    provider_class = _load_codex_provider_class()
+    tier = _codex_model_tier_for_source(source)
+    try:
+        codex_deep_floor = float(os.environ.get("CODEX_APP_SERVER_DEEP_TIMEOUT_S", "600") or "600")
+    except ValueError:
+        codex_deep_floor = 600.0
+    try:
+        codex_fast_floor = float(os.environ.get("CODEX_APP_SERVER_FAST_TIMEOUT_S", "120") or "120")
+    except ValueError:
+        codex_fast_floor = 120.0
+    if codex_deep_floor <= 0:
+        codex_deep_floor = 600.0
+    if codex_fast_floor <= 0:
+        codex_fast_floor = 120.0
+    if timeout is None:
+        resolved_timeout = codex_fast_floor if tier == "fast" else codex_deep_floor
+    else:
+        resolved_timeout = float(timeout)
+        # Keep deep Codex turns from inheriting the tighter OpenAI-compatible
+        # answer timeout budget, which causes premature notification wait expiry.
+        if tier != "fast":
+            resolved_timeout = max(resolved_timeout, codex_deep_floor)
+    provider = provider_class(
+        deep_model=str(model or _CODEX_DEEP_MODEL).strip(),
+        fast_model=str(model or _CODEX_FAST_MODEL).strip(),
+        deep_reasoning_effort=str(_CODEX_DEEP_EFFORT or "high"),
+        fast_reasoning_effort=str(_CODEX_FAST_EFFORT or "none"),
+    )
+    started = time.time()
+    result = provider.llm_call(
+        messages=messages,
+        model_tier=tier,
+        max_tokens=max_tokens,
+        timeout=resolved_timeout,
+    )
+    duration_ms = int((time.time() - started) * 1000)
+    resolved_model = str(getattr(result, "model", "") or model or _CODEX_DEEP_MODEL).strip()
+    in_tok = int(getattr(result, "input_tokens", 0) or 0)
+    out_tok = int(getattr(result, "output_tokens", 0) or 0)
+    cache_read = int(getattr(result, "cache_read_tokens", 0) or 0)
+    usage = {
+        "api_calls": 1,
+        "input_tokens": in_tok + cache_read,
+        "output_tokens": out_tok,
+        "total_tokens": in_tok + cache_read + out_tok,
+        "model_usage": {
+            resolved_model: {
+                "input_tokens": in_tok + cache_read,
+                "output_tokens": out_tok,
+                "total_tokens": in_tok + cache_read + out_tok,
+            }
+        },
+    }
+    data = {
+        "id": f"codex-{uuid.uuid4().hex[:12]}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": resolved_model,
+        "choices": [
+            {
+                "index": 0,
+                "finish_reason": "stop",
+                "message": {
+                    "role": "assistant",
+                    "content": str(getattr(result, "text", "") or "").strip(),
+                },
+            }
+        ],
+        "usage": {
+            "prompt_tokens": in_tok + cache_read,
+            "completion_tokens": out_tok,
+            "total_tokens": in_tok + cache_read + out_tok,
+        },
+        "_codex_duration_ms": duration_ms,
+    }
+    if workspace is not None:
+        _append_usage_event(
+            workspace,
+            phase="eval",
+            source=source or "answer_model",
+            model=resolved_model,
+            usage=usage,
+            tier=_infer_usage_tier(resolved_model),
+            provider="codex",
+        )
+    return data, usage
 
 
 def _openai_message_text(message: Dict[str, Any], *, model: str = "") -> str:
@@ -9783,6 +10217,8 @@ def _call_openai_compatible_chat(
         backend = _openai_compatible_backend_label()
         if backend == "llama-cpp":
             raise RuntimeError("llama-cpp backend requires --llama-cpp-url or BENCHMARK_LLAMA_CPP_URL")
+        if backend == "openai":
+            raise RuntimeError("openai backend requires BENCHMARK_OPENAI_URL or the default https://api.openai.com")
         raise RuntimeError("vllm backend requires --vllm-url or BENCHMARK_VLLM_URL")
     api_key = _get_openai_compatible_api_key(source=source)
     _assert_openai_compatible_provider_healthy(url, source=source)
@@ -9958,53 +10394,78 @@ def _call_openai_compatible_chat(
 
 
 def _ensure_quaid_instance_layout(workspace: Path, instance_id: str = _BENCHMARK_QUAID_INSTANCE) -> Path:
-    """Materialize a minimal per-instance layout for checkpoint subprocesses."""
+    """Materialize per-instance layouts for checkpoint subprocesses.
+
+    Older benchmark helpers use ``<workspace>/<instance>`` directly. Current
+    Quaid runtime config lookup uses ``QUAID_HOME/instances/<instance>``.
+    Keep both in sync until the benchmark harness finishes its layout cutover.
+    """
     workspace = workspace.resolve()
-    instance_root = workspace / instance_id
-    for rel in ["config", "identity", "journal", "logs"]:
-        (instance_root / rel).mkdir(parents=True, exist_ok=True)
+    legacy_instance_root = workspace / instance_id
+    runtime_instance_root = workspace / "instances" / instance_id
+    instance_roots = (legacy_instance_root, runtime_instance_root)
+
+    for instance_root in instance_roots:
+        for rel in ["config", "identity", "journal", "logs"]:
+            (instance_root / rel).mkdir(parents=True, exist_ok=True)
 
     flat_data = workspace / "data"
-    instance_data = instance_root / "data"
     flat_data.mkdir(parents=True, exist_ok=True)
-    if instance_data.is_symlink():
-        current_target = instance_data.resolve(strict=False)
-        if current_target != flat_data:
-            instance_data.unlink()
-    elif instance_data.exists():
-        if instance_data.is_dir():
-            shutil.rmtree(instance_data)
-        else:
-            instance_data.unlink()
-    if not instance_data.exists() and not instance_data.is_symlink():
-        instance_data.symlink_to(flat_data, target_is_directory=True)
+    for instance_root in instance_roots:
+        instance_data = instance_root / "data"
+        if instance_data.is_symlink():
+            current_target = instance_data.resolve(strict=False)
+            if current_target != flat_data:
+                instance_data.unlink()
+        elif instance_data.exists():
+            if instance_data.is_dir():
+                shutil.rmtree(instance_data)
+            else:
+                instance_data.unlink()
+        if not instance_data.exists() and not instance_data.is_symlink():
+            instance_data.symlink_to(flat_data, target_is_directory=True)
 
     flat_cfg = workspace / "config" / "memory.json"
-    instance_cfg = instance_root / "config" / "memory.json"
     if flat_cfg.exists():
-        if (not instance_cfg.exists()) or flat_cfg.read_text() != instance_cfg.read_text():
-            shutil.copy2(flat_cfg, instance_cfg)
-    elif not instance_cfg.exists():
-        instance_cfg.write_text(json.dumps({"adapter": {"type": "standalone"}}), encoding="utf-8")
+        cfg_text = flat_cfg.read_text()
+        instance_cfgs = (
+            legacy_instance_root / "config" / "memory.json",
+            runtime_instance_root / "config.json",
+        )
+        for instance_cfg in instance_cfgs:
+            if (not instance_cfg.exists()) or instance_cfg.read_text() != cfg_text:
+                instance_cfg.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(flat_cfg, instance_cfg)
+    else:
+        fallback = json.dumps({"adapter": {"type": "standalone"}}, indent=2)
+        instance_cfgs = (
+            legacy_instance_root / "config" / "memory.json",
+            runtime_instance_root / "config.json",
+        )
+        for instance_cfg in instance_cfgs:
+            if not instance_cfg.exists():
+                instance_cfg.parent.mkdir(parents=True, exist_ok=True)
+                instance_cfg.write_text(fallback, encoding="utf-8")
 
     # Runtime project tooling resolves PROJECT.md under the instance root. Mirror
     # the shared benchmark project tree there so project updates and log appends
     # operate on the seeded workspace files rather than a disconnected empty tree.
     flat_projects = workspace / "projects"
-    instance_projects = instance_root / "projects"
-    if instance_projects.is_symlink():
-        current_target = instance_projects.resolve(strict=False)
-        if current_target != flat_projects:
-            instance_projects.unlink()
-    elif instance_projects.exists():
-        if instance_projects.is_dir():
-            shutil.rmtree(instance_projects)
-        else:
-            instance_projects.unlink()
-    if not instance_projects.exists() and not instance_projects.is_symlink():
-        instance_projects.symlink_to(flat_projects, target_is_directory=True)
+    for instance_root in instance_roots:
+        instance_projects = instance_root / "projects"
+        if instance_projects.is_symlink():
+            current_target = instance_projects.resolve(strict=False)
+            if current_target != flat_projects:
+                instance_projects.unlink()
+        elif instance_projects.exists():
+            if instance_projects.is_dir():
+                shutil.rmtree(instance_projects)
+            else:
+                instance_projects.unlink()
+        if not instance_projects.exists() and not instance_projects.is_symlink():
+            instance_projects.symlink_to(flat_projects, target_is_directory=True)
 
-    return instance_root
+    return legacy_instance_root
 
 
 def _write_cached_core_artifacts(
@@ -10864,8 +11325,8 @@ def main():
         help="Control local openai-compatible Tier-5 judge reasoning mode (default: auto)",
     )
     parser.add_argument("--backend", type=str, default="oauth",
-                        choices=["claude-code", "oauth", "api", "vllm", "llama-cpp"],
-                        help="LLM backend: claude-code (CLI wrapper), oauth (direct Anthropic OAuth/API transport), or a self-hosted OpenAI-compatible endpoint via vllm/llama-cpp; api is retained as a legacy alias for oauth")
+                        choices=["claude-code", "oauth", "api", "vllm", "llama-cpp", "codex", "openai"],
+                        help="LLM backend: claude-code (CLI wrapper), oauth (direct Anthropic OAuth/API transport), self-hosted OpenAI-compatible (vllm/llama-cpp), codex direct OpenAI-token path, or direct OpenAI API; api is a legacy alias for oauth")
     parser.add_argument("--vllm-url", type=str, default="",
                         help="Base URL for the vLLM OpenAI-compatible endpoint (required when --backend vllm)")
     parser.add_argument("--vllm-model", type=str, default="",
@@ -10890,6 +11351,14 @@ def main():
                         help="Optional model name served by the separate llama.cpp judge endpoint")
     parser.add_argument("--llama-cpp-judge-api-key-env", type=str, default="BENCHMARK_LLAMA_CPP_JUDGE_API_KEY",
                         help="Env var name holding the separate llama.cpp judge bearer token")
+    parser.add_argument("--codex-deep-model", type=str, default="gpt-5.4",
+                        help="Codex deep model id (default: gpt-5.4)")
+    parser.add_argument("--codex-fast-model", type=str, default="gpt-5.3-codex-spark",
+                        help="Codex fast model id (default: gpt-5.3-codex-spark)")
+    parser.add_argument("--codex-deep-effort", choices=["none", "low", "medium", "high"], default="high",
+                        help="Codex deep reasoning effort (default: high)")
+    parser.add_argument("--codex-fast-effort", choices=["none", "low", "medium", "high"], default="none",
+                        help="Codex fast reasoning effort (default: none)")
     parser.add_argument("--relax-timeouts", action="store_true",
                         help="Explicitly allow wider timeout budgets for true local providers only")
     parser.add_argument("--allow-non-haiku-answer-model", action="store_true",
@@ -10971,6 +11440,41 @@ def main():
             args.model = args.llama_cpp_model
         if not eval_model_explicitly_set:
             args.eval_model = args.llama_cpp_model
+    if args.backend == "codex":
+        if args.mode != "eval" and not model_explicitly_set:
+            args.model = args.codex_deep_model
+        if not eval_model_explicitly_set:
+            args.eval_model = args.codex_deep_model
+    if args.backend == "openai":
+        if not model_explicitly_set:
+            args.model = str(os.environ.get("BENCHMARK_OPENAI_MODEL", "") or "gpt-5.4").strip()
+        if not eval_model_explicitly_set:
+            args.eval_model = str(os.environ.get("BENCHMARK_OPENAI_MODEL", "") or args.model or "gpt-5.4").strip()
+        if not str(os.environ.get("OPENAI_API_KEY", "") or "").strip():
+            raise SystemExit("--backend openai requires OPENAI_API_KEY")
+    _require_openai_compatible_role_contract(args)
+    judge_label = str(args.judge or "").strip().lower()
+    wants_local_style_judge = any(tok in judge_label for tok in ("gemma", "qwen", "llama", "mistral"))
+    if args.backend == "vllm" and args.mode in {"eval", "full", "per-day", "fc"}:
+        if wants_local_style_judge:
+            if not str(args.vllm_judge_url or "").strip():
+                raise SystemExit(
+                    "--backend vllm with local judge model requires --vllm-judge-url (no implicit judge fallback)"
+                )
+            if not str(args.vllm_judge_model or "").strip():
+                raise SystemExit(
+                    "--backend vllm with local judge model requires --vllm-judge-model (no implicit judge fallback)"
+                )
+    if args.backend == "llama-cpp" and args.mode in {"eval", "full", "per-day", "fc"}:
+        if wants_local_style_judge:
+            if not str(args.llama_cpp_judge_url or "").strip():
+                raise SystemExit(
+                    "--backend llama-cpp with local judge model requires --llama-cpp-judge-url (no implicit judge fallback)"
+                )
+            if not str(args.llama_cpp_judge_model or "").strip():
+                raise SystemExit(
+                    "--backend llama-cpp with local judge model requires --llama-cpp-judge-model (no implicit judge fallback)"
+                )
     if args.relax_timeouts:
         os.environ["BENCHMARK_RELAX_TIMEOUTS"] = "1"
     else:
@@ -11009,6 +11513,16 @@ def main():
         print(f"  llama.cpp URL: {args.llama_cpp_url}")
         print(f"  llama.cpp Model: {args.llama_cpp_model}")
         print(f"  llama.cpp API key env: {args.llama_cpp_api_key_env}")
+    if args.backend == "codex":
+        print(f"  Codex deep model: {args.codex_deep_model}")
+        print(f"  Codex fast model: {args.codex_fast_model}")
+        print(f"  Codex deep effort: {args.codex_deep_effort}")
+        print(f"  Codex fast effort: {args.codex_fast_effort}")
+        print(f"  Codex base URL: {os.environ.get('BENCHMARK_CODEX_BASE_URL', 'https://api.openai.com')}")
+        print("  Codex auth: QUAID_HOME/adaptors/codex/.auth-token or BENCHMARK_CODEX_API_KEY")
+    if args.backend == "openai":
+        print(f"  OpenAI URL: {os.environ.get('BENCHMARK_OPENAI_URL', 'https://api.openai.com')}")
+        print(f"  OpenAI API key env: OPENAI_API_KEY")
     print(f"  Workspace: {workspace}")
     print(f"  Model: {args.model}")
     print(f"  Ingest schedule: {args.ingest_schedule}")
@@ -11049,6 +11563,10 @@ def main():
     if args.mode in {"full", "eval", "per-day"} and not args.resume_eval:
         _reset_eval_artifacts(workspace)
 
+    # The benchmark workspace is the active Quaid home for both subprocesses
+    # and in-process provider helpers (for example Codex .auth-token lookup).
+    os.environ["QUAID_HOME"] = str(workspace)
+
     # Set global backend for all LLM calls
     global _BACKEND
     global _OPENAI_COMPAT_URL
@@ -11057,7 +11575,15 @@ def main():
     global _OPENAI_COMPAT_JUDGE_URL
     global _OPENAI_COMPAT_JUDGE_MODEL
     global _OPENAI_COMPAT_JUDGE_API_KEY_ENV
+    global _CODEX_DEEP_MODEL
+    global _CODEX_FAST_MODEL
+    global _CODEX_DEEP_EFFORT
+    global _CODEX_FAST_EFFORT
     _BACKEND = args.backend
+    _CODEX_DEEP_MODEL = str(args.codex_deep_model or "gpt-5.4").strip()
+    _CODEX_FAST_MODEL = str(args.codex_fast_model or "gpt-5.3-codex-spark").strip()
+    _CODEX_DEEP_EFFORT = str(args.codex_deep_effort or "high").strip()
+    _CODEX_FAST_EFFORT = str(args.codex_fast_effort or "none").strip()
     if args.backend == "llama-cpp":
         _OPENAI_COMPAT_URL = str(args.llama_cpp_url or "").strip().rstrip("/")
         _OPENAI_COMPAT_MODEL = str(args.llama_cpp_model or "").strip()
@@ -11067,6 +11593,20 @@ def main():
         _OPENAI_COMPAT_JUDGE_API_KEY_ENV = str(
             args.llama_cpp_judge_api_key_env or "BENCHMARK_LLAMA_CPP_JUDGE_API_KEY"
         ).strip() or "BENCHMARK_LLAMA_CPP_JUDGE_API_KEY"
+    elif args.backend == "codex":
+        _OPENAI_COMPAT_URL = str(os.environ.get("BENCHMARK_CODEX_BASE_URL", "") or "https://api.openai.com").strip().rstrip("/")
+        _OPENAI_COMPAT_MODEL = _CODEX_DEEP_MODEL
+        _OPENAI_COMPAT_API_KEY_ENV = "BENCHMARK_CODEX_API_KEY"
+        _OPENAI_COMPAT_JUDGE_URL = str(os.environ.get("BENCHMARK_CODEX_JUDGE_URL", "") or _OPENAI_COMPAT_URL).strip().rstrip("/")
+        _OPENAI_COMPAT_JUDGE_MODEL = _CODEX_FAST_MODEL
+        _OPENAI_COMPAT_JUDGE_API_KEY_ENV = "BENCHMARK_CODEX_JUDGE_API_KEY"
+    elif args.backend == "openai":
+        _OPENAI_COMPAT_URL = str(os.environ.get("BENCHMARK_OPENAI_URL", "") or "https://api.openai.com").strip().rstrip("/")
+        _OPENAI_COMPAT_MODEL = str(args.eval_model or args.model or os.environ.get("BENCHMARK_OPENAI_MODEL", "") or "gpt-5.4").strip()
+        _OPENAI_COMPAT_API_KEY_ENV = "OPENAI_API_KEY"
+        _OPENAI_COMPAT_JUDGE_URL = str(os.environ.get("BENCHMARK_OPENAI_JUDGE_URL", "") or "https://api.openai.com").strip().rstrip("/")
+        _OPENAI_COMPAT_JUDGE_MODEL = str(args.judge or os.environ.get("BENCHMARK_OPENAI_JUDGE_MODEL", "") or "gpt-5.4-mini").strip()
+        _OPENAI_COMPAT_JUDGE_API_KEY_ENV = "OPENAI_API_KEY"
     else:
         _OPENAI_COMPAT_URL = str(args.vllm_url or "").strip().rstrip("/")
         _OPENAI_COMPAT_MODEL = str(args.vllm_model or "").strip()
@@ -11110,6 +11650,10 @@ def main():
             "llama_cpp_judge_url": _OPENAI_COMPAT_JUDGE_URL if args.backend == "llama-cpp" else "",
             "llama_cpp_judge_model": _OPENAI_COMPAT_JUDGE_MODEL if args.backend == "llama-cpp" else "",
             "llama_cpp_judge_api_key_env": _OPENAI_COMPAT_JUDGE_API_KEY_ENV if args.backend == "llama-cpp" else "",
+            "codex_deep_model": _CODEX_DEEP_MODEL if args.backend == "codex" else "",
+            "codex_fast_model": _CODEX_FAST_MODEL if args.backend == "codex" else "",
+            "codex_deep_effort": _CODEX_DEEP_EFFORT if args.backend == "codex" else "",
+            "codex_fast_effort": _CODEX_FAST_EFFORT if args.backend == "codex" else "",
         },
     )
     normalize_model = args.model
