@@ -471,11 +471,8 @@ fi
 if [[ -z "$LOCAL_CODEX_TOKEN" && -n "$LOCAL_CODEX_TOKEN_PATH" && -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
   LOCAL_CODEX_TOKEN="$(read_codex_token_file "$LOCAL_CODEX_TOKEN_PATH" | tr -d '\r\n')"
 fi
-if [[ "$BACKEND_ARG" == "codex" ]]; then
-  if [[ -z "$LOCAL_CODEX_TOKEN" ]]; then
-    echo "ERROR: Codex backend requires a token. Set BENCHMARK_CODEX_API_KEY, BENCHMARK_CODEX_TOKEN_PATH, or auth.codex.solKeyPath/yuniKeyPath in $LOCAL_BENCH_CONFIG." >&2
-    exit 1
-  fi
+if [[ "$BACKEND_ARG" == "codex" && -n "$LOCAL_CODEX_TOKEN" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_CODEX_API_KEY=$(printf %q "$LOCAL_CODEX_TOKEN")"$'\n'
 fi
 if [[ -n "${BENCHMARK_REQUIRE_QUERY_COUNT:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_REQUIRE_QUERY_COUNT=$(printf %q "$BENCHMARK_REQUIRE_QUERY_COUNT")"$'\n'
@@ -756,9 +753,14 @@ if [[ -n \"\${BENCHMARK_RUN_NOTE:-}\" ]]; then
   printf '%s\n' \"\$BENCHMARK_RUN_NOTE\" > $(printf %q "$RESULTS_DIR")/run_note.txt
 fi
 if [[ $(printf %q "$BACKEND_ARG") == "codex" ]]; then
+  CODEX_TOKEN="\${BENCHMARK_CODEX_API_KEY:-\${OPENAI_API_KEY:-}}"
+  if [[ -z "\$CODEX_TOKEN" ]]; then
+    echo \"ERROR: Codex backend requires a direct OpenAI token. Set BENCHMARK_CODEX_API_KEY, BENCHMARK_CODEX_TOKEN_PATH, auth.codex.solKeyPath/yuniKeyPath, or make OPENAI_API_KEY available on the remote host.\" >&2
+    exit 1
+  fi
   mkdir -p $(printf %q "$RESULTS_DIR")/adaptors/codex
   cat > $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token <<'EOF_CODEX_TOKEN'
-$(printf '%s\n' "$LOCAL_CODEX_TOKEN")
+\$CODEX_TOKEN
 EOF_CODEX_TOKEN
   chmod 600 $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token
   echo \"Codex auth token: wrote $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token\"
