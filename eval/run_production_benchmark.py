@@ -27,11 +27,13 @@ Usage:
 """
 
 import argparse
+import base64
 import concurrent.futures
 import hashlib
 import importlib.util
 import json
 import os
+import platform
 import random
 import re
 import shlex
@@ -9637,7 +9639,7 @@ def _get_openai_key() -> Optional[str]:
 
 
 def _read_codex_auth_token(workspace: Optional[Path] = None) -> Optional[str]:
-    """Read Codex's long-lived token file used by the direct OpenAI path."""
+    """Read Codex's long-lived token file."""
     candidates: List[Path] = []
     if workspace is not None:
         candidates.append(Path(workspace) / "adaptors" / "codex" / ".auth-token")
@@ -9656,8 +9658,42 @@ def _read_codex_auth_token(workspace: Optional[Path] = None) -> Optional[str]:
         except Exception:
             continue
         if token:
+            if token.startswith("{"):
+                try:
+                    data = json.loads(token)
+                except Exception:
+                    pass
+                else:
+                    access = str(data.get("access") or data.get("token") or "").strip()
+                    if access:
+                        return access
             return token
     return None
+
+
+def _decode_jwt_payload(token: str) -> Dict[str, Any]:
+    try:
+        parts = str(token or "").split(".")
+        if len(parts) != 3:
+            return {}
+        padded = parts[1] + "=" * (-len(parts[1]) % 4)
+        decoded = base64.urlsafe_b64decode(padded.encode("utf-8"))
+        data = json.loads(decoded.decode("utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _codex_account_id_from_token(token: str) -> str:
+    payload = _decode_jwt_payload(token)
+    auth_claim = payload.get("https://api.openai.com/auth")
+    if isinstance(auth_claim, dict):
+        return str(auth_claim.get("chatgpt_account_id") or "").strip()
+    return str(payload.get("https://api.openai.com/auth.chatgpt_account_id") or "").strip()
+
+
+def _codex_user_agent() -> str:
+    return f"pi ({platform.system().lower()} {platform.release()}; {platform.machine().lower()})"
 
 
 _BACKEND = "oauth"  # Set to "claude-code" in main() to use the CLI wrapper
@@ -9874,7 +9910,7 @@ def _get_openai_compatible_url(source: Optional[str] = None) -> str:
         if judge_url:
             return judge_url
         if is_direct_openai or is_direct_codex:
-            return "https://api.openai.com"
+            return "https://chatgpt.com/backend-api" if is_direct_codex else "https://api.openai.com"
         raise RuntimeError(
             "openai-compatible judge url is not configured for judge source "
             "(set backend-specific judge URL explicitly)"
@@ -9887,7 +9923,7 @@ def _get_openai_compatible_url(source: Optional[str] = None) -> str:
     if url:
         return url
     if is_direct_openai or is_direct_codex:
-        return "https://api.openai.com"
+        return "https://chatgpt.com/backend-api" if is_direct_codex else "https://api.openai.com"
     return ""
 
 
@@ -9965,6 +10001,317 @@ def _openai_compatible_headers(api_key: str) -> Dict[str, str]:
 
 def _is_codex_backend(backend: Optional[str] = None) -> bool:
     return _openai_compatible_backend_label(backend) == "codex"
+
+
+def _codex_prompt_cache_key(
+    *,
+    messages: List[Dict[str, Any]],
+    tools: Optional[List[Dict[str, Any]]],
+    model: str,
+    source: Optional[str],
+) -> str:
+    system_parts = [
+        str(m.get("content") or "")
+        for m in messages
+        if str(m.get("role") or "").strip().lower() in {"system", "developer"}
+    ]
+    tool_names = []
+    for tool in tools or []:
+        function = tool.get("function") or {}
+        name = str(function.get("name") or "")
+        if name:
+            tool_names.append(name)
+    fingerprint = json.dumps(
+        {
+            "model": model,
+            "source": str(source or ""),
+            "system": "\n\n".join(system_parts),
+            "tools": tool_names,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    return hashlib.sha1(fingerprint.encode("utf-8")).hexdigest()
+
+
+def _codex_convert_messages(
+    messages: List[Dict[str, Any]],
+) -> Tuple[str, List[Dict[str, Any]]]:
+    instructions = []
+    input_items: List[Dict[str, Any]] = []
+    synthetic_counter = 0
+    for message in messages:
+        role = str(message.get("role") or "user").strip().lower()
+        content = str(message.get("content") or "")
+        if role in {"system", "developer"}:
+            if content.strip():
+                instructions.append(content)
+            continue
+        if role == "assistant":
+            if content.strip():
+                synthetic_counter += 1
+                input_items.append(
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "status": "completed",
+                        "id": f"msg_bench_{synthetic_counter}",
+                        "content": [{"type": "output_text", "text": content}],
+                    }
+                )
+            for tool_call in list(message.get("tool_calls") or []):
+                function = tool_call.get("function") or {}
+                name = str(function.get("name") or "").strip()
+                if not name:
+                    continue
+                call_id = str(tool_call.get("id") or f"call_bench_{synthetic_counter}")
+                item_id = f"fc_{hashlib.sha1(call_id.encode('utf-8')).hexdigest()[:24]}"
+                input_items.append(
+                    {
+                        "type": "function_call",
+                        "call_id": call_id,
+                        "id": item_id,
+                        "name": name,
+                        "arguments": str(function.get("arguments") or "{}"),
+                    }
+                )
+            continue
+        if role == "tool":
+            input_items.append(
+                {
+                    "type": "function_call_output",
+                    "call_id": str(message.get("tool_call_id") or ""),
+                    "output": content,
+                }
+            )
+            continue
+        input_items.append(
+            {
+                "role": "user",
+                "content": [{"type": "input_text", "text": content}],
+            }
+        )
+    return "\n\n".join(instructions).strip(), input_items
+
+
+def _codex_convert_tools(tools: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    converted = []
+    for tool in tools or []:
+        function = tool.get("function") or {}
+        name = str(function.get("name") or "").strip()
+        if not name:
+            continue
+        converted.append(
+            {
+                "type": "function",
+                "name": name,
+                "description": str(function.get("description") or ""),
+                "parameters": function.get("parameters") or {"type": "object", "properties": {}},
+            }
+        )
+    return converted
+
+
+def _call_codex_oauth_chat(
+    *,
+    url: str,
+    api_key: str,
+    messages: List[Dict[str, Any]],
+    model: str,
+    workspace: Optional[Path],
+    source: Optional[str],
+    tools: Optional[List[Dict[str, Any]]],
+    provider: str,
+    timeout: Optional[int],
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    account_id = _codex_account_id_from_token(api_key)
+    if not account_id:
+        raise RuntimeError("Codex OAuth token is missing chatgpt_account_id claim")
+    instructions, input_items = _codex_convert_messages(messages)
+    if not input_items:
+        raise RuntimeError("Codex OAuth request has empty input")
+    request_id = uuid.uuid4().hex[:10]
+    request_url = f"{url.rstrip('/')}/codex/responses"
+    payload: Dict[str, Any] = {
+        "model": model,
+        "store": False,
+        "stream": True,
+        "instructions": instructions or "You are a concise, accurate assistant.",
+        "input": input_items,
+        "text": {"verbosity": "low" if str(source or "").strip().lower() in {"judge", "tier5_judge"} else "medium"},
+        "include": ["reasoning.encrypted_content"],
+        "tool_choice": "auto",
+        "parallel_tool_calls": True,
+        "reasoning": {
+            "effort": "none" if str(source or "").strip().lower() in {"judge", "tier5_judge", "fast_reasoning"} else "high",
+            "summary": "auto",
+        },
+        "prompt_cache_key": _codex_prompt_cache_key(messages=messages, tools=tools, model=model, source=source),
+    }
+    converted_tools = _codex_convert_tools(tools)
+    if converted_tools:
+        payload["tools"] = converted_tools
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "chatgpt-account-id": account_id,
+        "originator": "pi",
+        "OpenAI-Beta": "responses=experimental",
+        "accept": "text/event-stream",
+        "content-type": "application/json",
+        "User-Agent": _codex_user_agent(),
+    }
+    message_chars = sum(len(json.dumps(m, ensure_ascii=False, sort_keys=True)) for m in messages)
+    message_tokens_est = _estimate_message_tokens(messages)
+    _ensure_openai_compatible_watchdog(workspace)
+    started_monotonic = time.time()
+    _append_openai_compatible_trace(
+        workspace,
+        {
+            "event": "start",
+            "request_id": request_id,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "source": source or "",
+            "model": model,
+            "attempt": 1,
+            "provider": provider,
+            "started_monotonic": started_monotonic,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "timeout_s": timeout,
+            "message_count": len(messages),
+            "message_chars": message_chars,
+            "message_tokens_est": message_tokens_est,
+            "tools": bool(converted_tools),
+        },
+    )
+    req = urllib.request.Request(
+        request_url,
+        data=json.dumps(payload).encode(),
+        headers=headers,
+        method="POST",
+    )
+    text_chunks: List[str] = []
+    tool_calls: List[Dict[str, Any]] = []
+    tool_buffers: Dict[str, Dict[str, Any]] = {}
+    completed = {}
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            while True:
+                raw_line = resp.readline()
+                if not raw_line:
+                    break
+                line = raw_line.decode("utf-8", errors="replace").strip()
+                if not line or not line.startswith("data: "):
+                    continue
+                event = json.loads(line[6:])
+                event_type = str(event.get("type") or "")
+                if event_type == "response.output_item.added":
+                    item = event.get("item") or {}
+                    if str(item.get("type") or "") == "function_call":
+                        item_id = str(item.get("id") or "")
+                        tool_buffers[item_id] = {
+                            "id": str(item.get("call_id") or item_id),
+                            "function": {
+                                "name": str(item.get("name") or ""),
+                                "arguments": str(item.get("arguments") or ""),
+                            },
+                        }
+                elif event_type == "response.function_call_arguments.delta":
+                    item_id = str(event.get("item_id") or "")
+                    if item_id in tool_buffers:
+                        tool_buffers[item_id]["function"]["arguments"] += str(event.get("delta") or "")
+                elif event_type == "response.function_call_arguments.done":
+                    item_id = str(event.get("item_id") or "")
+                    if item_id in tool_buffers:
+                        tool_buffers[item_id]["function"]["arguments"] = str(event.get("arguments") or "")
+                elif event_type == "response.output_item.done":
+                    item = event.get("item") or {}
+                    if str(item.get("type") or "") == "function_call":
+                        item_id = str(item.get("id") or "")
+                        call = tool_buffers.pop(item_id, None)
+                        if call is None:
+                            call = {
+                                "id": str(item.get("call_id") or item_id),
+                                "function": {
+                                    "name": str(item.get("name") or ""),
+                                    "arguments": str(item.get("arguments") or "{}"),
+                                },
+                            }
+                        tool_calls.append(call)
+                elif event_type == "response.output_text.delta":
+                    text_chunks.append(str(event.get("delta") or ""))
+                elif event_type == "response.completed":
+                    completed = event.get("response") or {}
+    except urllib.error.HTTPError as exc:
+        body = ""
+        try:
+            body = (exc.read() or b"").decode("utf-8", errors="ignore")
+        except Exception:
+            body = ""
+        raise RuntimeError(f"Codex OAuth HTTP {exc.code}: {body[:300]}")
+    duration_ms = int((time.time() - started_monotonic) * 1000)
+    raw_usage = completed.get("usage") or {}
+    input_details = raw_usage.get("input_tokens_details", {}) if isinstance(raw_usage, dict) else {}
+    output_details = raw_usage.get("output_tokens_details", {}) if isinstance(raw_usage, dict) else {}
+    usage = {
+        "input_tokens": int(raw_usage.get("input_tokens", 0) or 0),
+        "output_tokens": int(raw_usage.get("output_tokens", 0) or 0),
+        "total_tokens": int(raw_usage.get("total_tokens", 0) or 0),
+        "api_calls": 1,
+        "cache_read_tokens": int((input_details or {}).get("cached_tokens", 0) or 0),
+        "cache_creation_tokens": int((input_details or {}).get("cache_creation_tokens", 0) or 0),
+        "reasoning_tokens": int((output_details or {}).get("reasoning_tokens", 0) or 0),
+        "model_usage": {
+            str(completed.get("model") or model): {
+                "input_tokens": int(raw_usage.get("input_tokens", 0) or 0),
+                "output_tokens": int(raw_usage.get("output_tokens", 0) or 0),
+                "total_tokens": int(raw_usage.get("total_tokens", 0) or 0),
+            }
+        },
+    }
+    _append_openai_compatible_trace(
+        workspace,
+        {
+            "event": "success",
+            "request_id": request_id,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "source": source or "",
+            "model": model,
+            "resolved_model": str(completed.get("model") or model),
+            "attempt": 1,
+            "duration_ms": duration_ms,
+            "message_count": len(messages),
+            "message_chars": message_chars,
+            "message_tokens_est": message_tokens_est,
+            "tools": bool(converted_tools),
+            "output_tokens": int(usage.get("output_tokens", 0) or 0),
+            "content_excerpt": "".join(text_chunks)[:200],
+            "reasoning_excerpt": "",
+        },
+    )
+    data = {
+        "model": str(completed.get("model") or model),
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "".join(text_chunks).strip(),
+                    **({"tool_calls": tool_calls} if tool_calls else {}),
+                }
+            }
+        ],
+        "usage": completed.get("usage") or {},
+    }
+    if workspace is not None and usage and source:
+        _append_usage_event(
+            workspace,
+            phase="eval",
+            source=source,
+            model=str(data.get("model") or model),
+            usage=usage,
+            tier=_infer_usage_tier(str(data.get("model") or model)),
+            provider=provider,
+        )
+    return data, usage
 
 
 def _openai_message_text(message: Dict[str, Any], *, model: str = "") -> str:
@@ -10078,6 +10425,18 @@ def _call_openai_compatible_chat(
             raise RuntimeError("openai backend requires BENCHMARK_OPENAI_URL or the default https://api.openai.com")
         raise RuntimeError("vllm backend requires --vllm-url or BENCHMARK_VLLM_URL")
     api_key = _get_openai_compatible_api_key(source=source)
+    if _is_codex_backend():
+        return _call_codex_oauth_chat(
+            url=url,
+            api_key=api_key,
+            messages=messages,
+            model=model,
+            workspace=workspace,
+            source=source,
+            tools=tools,
+            provider=provider,
+            timeout=timeout,
+        )
     _assert_openai_compatible_provider_healthy(url, source=source)
 
     payload: Dict[str, Any] = {
@@ -11375,7 +11734,7 @@ def main():
         print(f"  Codex fast model: {args.codex_fast_model}")
         print(f"  Codex deep effort: {args.codex_deep_effort}")
         print(f"  Codex fast effort: {args.codex_fast_effort}")
-        print(f"  Codex base URL: {os.environ.get('BENCHMARK_CODEX_BASE_URL', 'https://api.openai.com')}")
+        print(f"  Codex base URL: {os.environ.get('BENCHMARK_CODEX_BASE_URL', 'https://chatgpt.com/backend-api')}")
         print("  Codex auth: QUAID_HOME/adaptors/codex/.auth-token or BENCHMARK_CODEX_API_KEY")
     if args.backend == "openai":
         print(f"  OpenAI URL: {os.environ.get('BENCHMARK_OPENAI_URL', 'https://api.openai.com')}")
@@ -11451,7 +11810,7 @@ def main():
             args.llama_cpp_judge_api_key_env or "BENCHMARK_LLAMA_CPP_JUDGE_API_KEY"
         ).strip() or "BENCHMARK_LLAMA_CPP_JUDGE_API_KEY"
     elif args.backend == "codex":
-        _OPENAI_COMPAT_URL = str(os.environ.get("BENCHMARK_CODEX_BASE_URL", "") or "https://api.openai.com").strip().rstrip("/")
+        _OPENAI_COMPAT_URL = str(os.environ.get("BENCHMARK_CODEX_BASE_URL", "") or "https://chatgpt.com/backend-api").strip().rstrip("/")
         _OPENAI_COMPAT_MODEL = _CODEX_DEEP_MODEL
         _OPENAI_COMPAT_API_KEY_ENV = "BENCHMARK_CODEX_API_KEY"
         _OPENAI_COMPAT_JUDGE_URL = str(os.environ.get("BENCHMARK_CODEX_JUDGE_URL", "") or _OPENAI_COMPAT_URL).strip().rstrip("/")

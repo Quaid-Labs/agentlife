@@ -2846,14 +2846,14 @@ def test_uses_openai_compatible_backend_includes_direct_openai(monkeypatch):
     assert rpb._get_openai_compatible_api_key_env() == "OPENAI_API_KEY"
 
 
-def test_codex_backend_defaults_to_direct_openai_base_url(monkeypatch):
+def test_codex_backend_defaults_to_chatgpt_backend_api(monkeypatch):
     monkeypatch.setattr(rpb, "_BACKEND", "codex")
     monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "")
     monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "")
     monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "")
     monkeypatch.delenv("BENCHMARK_CODEX_BASE_URL", raising=False)
 
-    assert rpb._get_openai_compatible_url() == "https://api.openai.com"
+    assert rpb._get_openai_compatible_url() == "https://chatgpt.com/backend-api"
     assert rpb._get_openai_compatible_model() == "gpt-5.4"
     assert rpb._get_openai_compatible_api_key_env() == "BENCHMARK_CODEX_API_KEY"
 
@@ -2871,35 +2871,53 @@ def test_codex_backend_reads_auth_token_file(monkeypatch, tmp_path):
     assert rpb._get_openai_compatible_api_key() == "tok-codex"
 
 
-def test_call_openai_compatible_chat_uses_http_path_for_codex(monkeypatch, tmp_path):
+def test_call_openai_compatible_chat_uses_codex_oauth_sse_contract(monkeypatch, tmp_path):
     workspace = tmp_path / "ws"
     workspace.mkdir()
     monkeypatch.setattr(rpb, "_BACKEND", "codex")
-    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "https://api.openai.com")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "https://chatgpt.com/backend-api")
     monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "gpt-5.4")
     monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "BENCHMARK_CODEX_API_KEY")
-    monkeypatch.setattr(rpb, "_assert_openai_compatible_provider_healthy", lambda *a, **k: None)
-    monkeypatch.setenv("BENCHMARK_CODEX_API_KEY", "tok-codex")
+    monkeypatch.setenv(
+        "BENCHMARK_CODEX_API_KEY",
+        "aaa.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoiYWNjdC0xMjMifX0.bbb",
+    )
 
     captured = {}
 
     class _Resp:
+        def __init__(self):
+            self._lines = iter(
+                [
+                    b"event: response.output_item.added\n",
+                    b"data: {\"type\":\"response.output_item.added\",\"item\":{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"in_progress\",\"arguments\":\"\",\"call_id\":\"call_1\",\"name\":\"recall\"}}\n",
+                    b"\n",
+                    b"event: response.function_call_arguments.delta\n",
+                    b"data: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"fc_1\",\"delta\":\"{\\\"query\\\":\\\"Baxter\\\"}\"}\n",
+                    b"\n",
+                    b"event: response.output_item.done\n",
+                    b"data: {\"type\":\"response.output_item.done\",\"item\":{\"id\":\"fc_1\",\"type\":\"function_call\",\"status\":\"completed\",\"arguments\":\"{\\\"query\\\":\\\"Baxter\\\"}\",\"call_id\":\"call_1\",\"name\":\"recall\"}}\n",
+                    b"\n",
+                    b"event: response.completed\n",
+                    b"data: {\"type\":\"response.completed\",\"response\":{\"model\":\"gpt-5.4-mini-2026-03-17\",\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":3,\"total_tokens\":13,\"input_tokens_details\":{\"cached_tokens\":2}}}}\n",
+                    b"\n",
+                    b"",
+                ]
+            )
+
         def __enter__(self):
             return self
 
         def __exit__(self, exc_type, exc, tb):
             return False
 
-        def read(self):
-            return json.dumps({
-                "model": "gpt-5.4",
-                "choices": [{"message": {"content": "codex ok"}}],
-                "usage": {"prompt_tokens": 10, "completion_tokens": 3, "total_tokens": 13},
-            }).encode("utf-8")
+        def readline(self):
+            return next(self._lines)
 
     def _fake_urlopen(req, timeout=None):
         captured["url"] = req.full_url
         captured["auth"] = req.headers.get("Authorization")
+        captured["account"] = req.headers.get("Chatgpt-account-id")
         captured["body"] = json.loads(req.data.decode("utf-8"))
         captured["timeout"] = timeout
         return _Resp()
@@ -2916,11 +2934,18 @@ def test_call_openai_compatible_chat_uses_http_path_for_codex(monkeypatch, tmp_p
         provider="codex",
     )
 
-    assert data["choices"][0]["message"]["content"] == "codex ok"
+    assert data["choices"][0]["message"]["content"] == ""
+    assert data["choices"][0]["message"]["tool_calls"][0]["function"]["name"] == "recall"
     assert usage["output_tokens"] == 3
-    assert captured["url"] == "https://api.openai.com/v1/chat/completions"
-    assert captured["auth"] == "Bearer tok-codex"
+    assert usage["cache_read_tokens"] == 2
+    assert captured["url"] == "https://chatgpt.com/backend-api/codex/responses"
+    assert captured["auth"].startswith("Bearer aaa.")
+    assert captured["account"] == "acct-123"
     assert captured["body"]["model"] == "gpt-5.4"
+    assert captured["body"]["store"] is False
+    assert captured["body"]["stream"] is True
+    assert captured["body"]["input"][0]["role"] == "user"
+    assert captured["body"]["prompt_cache_key"]
 
 
 def test_resolve_judge_provider_uses_openai_compatible_for_codex_backend(monkeypatch):

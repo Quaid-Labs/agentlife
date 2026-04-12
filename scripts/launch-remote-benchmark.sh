@@ -755,7 +755,7 @@ fi
 if [[ $(printf %q "$BACKEND_ARG") == "codex" ]]; then
   CODEX_TOKEN="\${BENCHMARK_CODEX_API_KEY:-\${OPENAI_API_KEY:-}}"
   if [[ -z "\$CODEX_TOKEN" ]]; then
-    echo \"ERROR: Codex backend requires a direct OpenAI token. Set BENCHMARK_CODEX_API_KEY, BENCHMARK_CODEX_TOKEN_PATH, auth.codex.solKeyPath/yuniKeyPath, or make OPENAI_API_KEY available on the remote host.\" >&2
+    echo \"ERROR: Codex backend requires a Codex OAuth access token. Set BENCHMARK_CODEX_API_KEY, BENCHMARK_CODEX_TOKEN_PATH, auth.codex.solKeyPath/yuniKeyPath, or make OPENAI_API_KEY available on the remote host.\" >&2
     exit 1
   fi
   mkdir -p $(printf %q "$RESULTS_DIR")/adaptors/codex
