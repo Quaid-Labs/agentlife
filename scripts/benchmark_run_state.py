@@ -525,6 +525,7 @@ def _safe_count_lines(path: Path) -> Optional[int]:
 
 def rolling_status(run: Path) -> Optional[Dict[str, Any]]:
     candidates = [
+        run / "instances" / "benchrunner" / "logs" / "daemon" / "rolling-extraction.jsonl",
         run / "benchrunner" / "logs" / "daemon" / "rolling-extraction.jsonl",
         run / "logs" / "daemon" / "rolling-extraction.jsonl",
     ]
@@ -553,6 +554,7 @@ def rolling_status(run: Path) -> Optional[Dict[str, Any]]:
     session_id = str(last.get("session_id") or "").strip()
     if session_id:
         cursor_candidates = [
+            run / "instances" / "benchrunner" / "data" / "session-cursors" / f"{session_id}.json",
             run / "benchrunner" / "data" / "session-cursors" / f"{session_id}.json",
             run / "data" / "session-cursors" / f"{session_id}.json",
         ]

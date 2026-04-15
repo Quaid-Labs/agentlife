@@ -64,6 +64,58 @@ def test_build_run_detail_matches_status_report_for_active_rolling_run(tmp_path,
     assert detail["active_pid"] == 12345
 
 
+def test_build_run_detail_matches_status_report_for_active_rolling_run_instances_layout(tmp_path, monkeypatch):
+    root = tmp_path
+    run_name = "quaid-l-r998-20260325-000000"
+    run_dir = root / "runs" / run_name
+    (run_dir / "instances" / "benchrunner" / "logs" / "daemon").mkdir(parents=True)
+    (run_dir / "instances" / "benchrunner" / "data" / "session-cursors").mkdir(parents=True)
+
+    transcript = run_dir / "synthetic.jsonl"
+    _write_lines(transcript, 120)
+
+    cursor_meta = {
+        "line_offset": 55,
+        "transcript_path": str(transcript),
+    }
+    (run_dir / "instances" / "benchrunner" / "data" / "session-cursors" / "obd-session.json").write_text(
+        json.dumps(cursor_meta),
+        encoding="utf-8",
+    )
+
+    rolling_rows = [
+        {
+            "event": "rolling_stage",
+            "session_id": "obd-session",
+            "rolling_batches": 4,
+            "new_cursor_offset": 55,
+            "staged_fact_count": 19,
+            "wall_seconds": 14.6,
+        }
+    ]
+    (run_dir / "instances" / "benchrunner" / "logs" / "daemon" / "rolling-extraction.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rolling_rows),
+        encoding="utf-8",
+    )
+    (root / "runs" / f"{run_name}.launch.log").write_text("ingest schedule=rolling-obd\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        brs,
+        "detect_active_processes",
+        lambda _root, _dirs: {run_name: {"pid": 54321, "cmd": f"python --results-dir runs/{run_name}"}},
+    )
+
+    report = brs.build_status_report(root)
+    detail = brs.build_run_detail(root, run_name)
+
+    expected = "chunk 4 | 55/120 | facts 19"
+    assert report["runs"][0]["current_active_item"] == expected
+    assert detail["state"] == "active"
+    assert detail["current_active_item"] == expected
+    assert detail["phase"] == expected
+    assert detail["active_pid"] == 54321
+
+
 def test_run_progress_ignores_rolling_flush_for_per_day_runs(tmp_path):
     root = tmp_path
     run_name = "quaid-s-r997-20260325-000000"
