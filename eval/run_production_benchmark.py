@@ -98,6 +98,49 @@ def _phase_banner(title: str, *, now_ts: Optional[float] = None) -> None:
     _BENCHMARK_LAST_PHASE_AT = now_ts
 
 
+def _seed_benchmark_runtime_notice_state(workspace: Path) -> None:
+    """Seed clean janitor/deferred-notice state before benchmark turns.
+
+    The benchmark harness is non-interactive. If startup context reports a stale
+    janitor or pending deferred notices, models can waste answer turns trying
+    maintenance/tool calls instead of solving benchmark queries.
+
+    We seed a fresh janitor checkpoint timestamp and clear deferred notice queue
+    files at run start so benchmark prompts begin in a clean operational state.
+    """
+    now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    instance_roots = [
+        workspace / _BENCHMARK_QUAID_INSTANCE,
+        workspace / "instances" / _BENCHMARK_QUAID_INSTANCE,
+    ]
+
+    for instance_root in instance_roots:
+        janitor_checkpoint = instance_root / "logs" / "janitor" / "checkpoint-all.json"
+        janitor_checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        state: Dict[str, Any] = {}
+        if janitor_checkpoint.exists():
+            try:
+                loaded = json.loads(janitor_checkpoint.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    state = loaded
+            except Exception:
+                state = {}
+        state["task"] = str(state.get("task") or "all")
+        state["started_at"] = str(state.get("started_at") or now_iso)
+        state["heartbeat_at"] = now_iso
+        state["last_completed_at"] = now_iso
+        state["status"] = "completed"
+        state["benchmark_seeded_at"] = now_iso
+        janitor_checkpoint.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
+        deferred_path = instance_root / ".runtime" / "notes" / "delayed-llm-requests.json"
+        deferred_path.parent.mkdir(parents=True, exist_ok=True)
+        deferred_path.write_text(
+            json.dumps({"version": 1, "requests": []}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+
 def _resolve_quaid_dir() -> Path:
     """Resolve Quaid root across dev/checkpoint/plugin layouts."""
     explicit = os.environ.get("BENCHMARK_PLUGIN_DIR", "").strip()
@@ -186,6 +229,45 @@ def _python_cmd_for_quaid_script(script_path: Path) -> List[str]:
     except Exception:
         pass
     return [sys.executable, str(script_path)]
+
+
+def _apply_backend_specific_model_defaults(
+    args: Any,
+    *,
+    model_explicitly_set: bool,
+    eval_model_explicitly_set: bool,
+    judge_explicitly_set: bool,
+) -> None:
+    """Normalize backend-specific model defaults in one place for testability."""
+    if args.backend == "vllm":
+        if args.mode != "eval" and not model_explicitly_set:
+            args.model = args.vllm_model
+        if not eval_model_explicitly_set:
+            args.eval_model = args.vllm_model
+        return
+
+    if args.backend == "llama-cpp":
+        if args.mode != "eval" and not model_explicitly_set:
+            args.model = args.llama_cpp_model
+        if not eval_model_explicitly_set:
+            args.eval_model = args.llama_cpp_model
+        return
+
+    if args.backend == "codex":
+        if args.mode != "eval" and not model_explicitly_set:
+            args.model = args.codex_deep_model
+        if not eval_model_explicitly_set:
+            args.eval_model = args.codex_deep_model
+        if not judge_explicitly_set and str(args.judge or "").strip() == "gpt-4o-mini":
+            args.judge = str(args.codex_fast_model or "gpt-5.4-mini").strip() or "gpt-5.4-mini"
+        return
+
+    if args.backend == "openai":
+        if not model_explicitly_set:
+            args.model = str(os.environ.get("BENCHMARK_OPENAI_MODEL", "") or "gpt-5.4").strip()
+        if not eval_model_explicitly_set:
+            args.eval_model = str(os.environ.get("BENCHMARK_OPENAI_MODEL", "") or args.model or "gpt-5.4").strip()
+        return
 
 
 def _extraction_prompt_telemetry() -> Dict[str, Any]:
@@ -711,6 +793,8 @@ PROJECT_SESSIONS = sorted(
 _DOMAIN_ALIASES = {
     "projects": "project",
     "financial": "finance",
+    "family": "personal",
+    "relationship": "personal",
 }
 
 def _normalize_domain_list(raw_domains: list) -> List[str]:
@@ -860,8 +944,10 @@ def _build_session_blocks(reviews: list) -> list:
 def _default_domain_descriptions() -> dict:
     """Load canonical domain defaults from plugin code, with safe fallback."""
     fallback = {
+        "education": "school, learning, coursework, academic milestones",
         "finance": "budgeting, purchases, salary, bills",
         "health": "training, injuries, routines, wellness",
+        "hobby": "personal interests, crafts, games, and recreational pursuits",
         "household": "home, chores, food planning, shared logistics",
         "legal": "contracts, policy, and regulatory constraints",
         "personal": "identity, preferences, relationships, life events",
@@ -886,7 +972,9 @@ def _default_domain_descriptions() -> dict:
         if callable(fn):
             loaded = fn()
             if isinstance(loaded, dict) and loaded:
-                return {str(k): str(v) for k, v in loaded.items()}
+                merged = dict(fallback)
+                merged.update({str(k): str(v) for k, v in loaded.items()})
+                return merged
     except Exception:
         pass
     return fallback
@@ -894,10 +982,6 @@ def _default_domain_descriptions() -> dict:
 
 def _bootstrap_domain_registry(conn: sqlite3.Connection) -> None:
     """Ensure active domain_registry rows exist (installer-equivalent bootstrap)."""
-    rows = conn.execute("SELECT count(*) FROM domain_registry WHERE active = 1").fetchone()
-    active_count = int(rows[0]) if rows else 0
-    if active_count > 0:
-        return
     defaults = _default_domain_descriptions()
     for domain_id, description in defaults.items():
         conn.execute(
@@ -982,10 +1066,43 @@ _KNOWN_EMBEDDING_MODEL_DIMS = {
     "qwen3-embedding:8b": 4096,
 }
 
+_BENCHMARK_REQUIRED_EMBEDDINGS_PROVIDER = "ollama"
+_BENCHMARK_REQUIRED_EMBEDDING_MODEL = "nomic-embed-text"
+_BENCHMARK_REQUIRED_EMBEDDING_DIM = 768
+
 
 def _known_embedding_dim(model_name: str) -> Optional[int]:
     """Return the canonical vector dimension for known local embedding models."""
     return _KNOWN_EMBEDDING_MODEL_DIMS.get(str(model_name or "").strip())
+
+
+def _normalize_embedding_provider_name(provider_name: Optional[str]) -> str:
+    return str(provider_name or "").strip().lower()
+
+
+def _enforce_benchmark_embedding_policy(*, provider: str, model: str, dimension: Optional[int]) -> None:
+    normalized_provider = _normalize_embedding_provider_name(provider)
+    normalized_model = str(model or "").strip()
+    if normalized_provider != _BENCHMARK_REQUIRED_EMBEDDINGS_PROVIDER:
+        raise RuntimeError(
+            "Benchmark embedding policy violation: embeddings provider must be "
+            f"{_BENCHMARK_REQUIRED_EMBEDDINGS_PROVIDER!r}, got {provider!r}"
+        )
+    if normalized_model != _BENCHMARK_REQUIRED_EMBEDDING_MODEL:
+        raise RuntimeError(
+            "Benchmark embedding policy violation: embedding model must be "
+            f"{_BENCHMARK_REQUIRED_EMBEDDING_MODEL!r}, got {model!r}"
+        )
+    if dimension is None:
+        raise RuntimeError(
+            "Benchmark embedding policy violation: embedding dimension must be "
+            f"{_BENCHMARK_REQUIRED_EMBEDDING_DIM}, got <missing>"
+        )
+    if int(dimension) != _BENCHMARK_REQUIRED_EMBEDDING_DIM:
+        raise RuntimeError(
+            "Benchmark embedding policy violation: embedding dimension must be "
+            f"{_BENCHMARK_REQUIRED_EMBEDDING_DIM}, got {dimension}"
+        )
 
 
 def _parse_fc_models(raw: Optional[str]) -> List[str]:
@@ -1324,6 +1441,38 @@ def _write_prompt_trace(
             "ts": datetime.utcnow().isoformat() + "Z",
         }
         with (logs_dir / "extraction-prompt-trace.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row) + "\n")
+    except Exception:
+        # Never fail the run due to trace write issues.
+        pass
+
+
+def _write_extraction_output_trace(
+    workspace: Path,
+    scope: str,
+    model: str,
+    raw_output: str,
+) -> None:
+    """Best-effort raw extraction output trace for provider forensics."""
+    if os.environ.get("BENCHMARK_EXTRACT_OUTPUT_TRACE", "1") != "1":
+        return
+    try:
+        logs_dir = workspace / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        output_hash = hashlib.sha256(str(raw_output or "").encode("utf-8")).hexdigest()[:12]
+        safe_scope = re.sub(r"[^a-zA-Z0-9._-]+", "-", scope).strip("-") or "extraction"
+        output_file = logs_dir / f"extraction-output-{safe_scope}-{output_hash}.txt"
+        output_file.write_text(str(raw_output or ""), encoding="utf-8")
+        row = {
+            "event": "extraction_output",
+            "scope": scope,
+            "model": model,
+            "output_hash": output_hash,
+            "output_file": str(output_file),
+            "chars": len(str(raw_output or "")),
+            "ts": datetime.utcnow().isoformat() + "Z",
+        }
+        with (logs_dir / "extraction-output-trace.jsonl").open("a", encoding="utf-8") as f:
             f.write(json.dumps(row) + "\n")
     except Exception:
         # Never fail the run due to trace write issues.
@@ -2315,6 +2464,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     config_path = workspace / "config" / "memory.json"
     config_path.write_text(json.dumps(prod_config, indent=2))
     _ensure_quaid_instance_layout(workspace)
+    _seed_benchmark_runtime_notice_state(workspace)
     print(f"  Config written: {config_path}")
 
     # 3. Seed core markdowns (v12 — knowledge activation approach)
@@ -2788,7 +2938,10 @@ def _apply_embedding_config(payload: Dict[str, Any]) -> None:
     if not isinstance(payload.get("ollama"), dict):
         payload["ollama"] = {}
 
-    embeddings_provider_override = os.environ.get("BENCHMARK_EMBEDDINGS_PROVIDER", "").strip()
+    embeddings_provider_override = (
+        os.environ.get("BENCHMARK_EMBEDDINGS_PROVIDER", "").strip()
+        or _BENCHMARK_REQUIRED_EMBEDDINGS_PROVIDER
+    )
     if embeddings_provider_override:
         payload["models"]["embeddingsProvider"] = embeddings_provider_override
 
@@ -2796,7 +2949,10 @@ def _apply_embedding_config(payload: Dict[str, Any]) -> None:
     if ollama_url_override:
         payload["ollama"]["url"] = ollama_url_override
 
-    embedding_model_override = os.environ.get("BENCHMARK_EMBEDDING_MODEL", "").strip()
+    embedding_model_override = (
+        os.environ.get("BENCHMARK_EMBEDDING_MODEL", "").strip()
+        or _BENCHMARK_REQUIRED_EMBEDDING_MODEL
+    )
     if embedding_model_override:
         payload["ollama"]["embeddingModel"] = embedding_model_override
 
@@ -2804,7 +2960,10 @@ def _apply_embedding_config(payload: Dict[str, Any]) -> None:
         (payload.get("ollama") or {}).get("embeddingModel", "") or ""
     ).strip()
     known_embedding_dim = _known_embedding_dim(effective_embedding_model)
-    embedding_dim_override = os.environ.get("BENCHMARK_EMBEDDING_DIM", "").strip()
+    embedding_dim_override = (
+        os.environ.get("BENCHMARK_EMBEDDING_DIM", "").strip()
+        or str(_BENCHMARK_REQUIRED_EMBEDDING_DIM)
+    )
     if embedding_dim_override:
         try:
             parsed_dim = int(embedding_dim_override)
@@ -2820,6 +2979,12 @@ def _apply_embedding_config(payload: Dict[str, Any]) -> None:
         payload["ollama"]["embeddingDim"] = parsed_dim
     elif known_embedding_dim is not None:
         payload["ollama"]["embeddingDim"] = known_embedding_dim
+
+    _enforce_benchmark_embedding_policy(
+        provider=str((payload.get("models") or {}).get("embeddingsProvider") or ""),
+        model=str((payload.get("ollama") or {}).get("embeddingModel") or ""),
+        dimension=(payload.get("ollama") or {}).get("embeddingDim"),
+    )
 
 
 def _normalize_workspace_runtime_config(workspace: Path, *, requested_model: Optional[str] = None) -> None:
@@ -2913,14 +3078,19 @@ def _load_workspace_memory_config(workspace: Path) -> Dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _resolve_workspace_embedding_contract(workspace: Path) -> Tuple[str, str, str]:
+def _resolve_workspace_embedding_contract(workspace: Path) -> Tuple[str, str, str, Optional[int]]:
     payload = _load_workspace_memory_config(workspace)
     models = payload.get("models") if isinstance(payload.get("models"), dict) else {}
     ollama = payload.get("ollama") if isinstance(payload.get("ollama"), dict) else {}
     provider = str(models.get("embeddingsProvider") or "").strip().lower()
     url = str(ollama.get("url") or "").strip()
     model = str(ollama.get("embeddingModel") or "").strip()
-    return provider, url, model
+    raw_dim = ollama.get("embeddingDim")
+    try:
+        dimension = int(raw_dim) if raw_dim is not None else None
+    except (TypeError, ValueError):
+        raise RuntimeError(f"Eval embedding preflight failed: invalid embeddingDim value {raw_dim!r}")
+    return provider, url, model, dimension
 
 
 def _ollama_list_models(url: str, *, timeout: float = 5.0) -> set[str]:
@@ -2951,9 +3121,8 @@ def _normalize_ollama_model_aliases(names: set[str]) -> set[str]:
 def _eval_embedding_provider_preflight(workspace: Path) -> None:
     if os.environ.get("BENCHMARK_SKIP_EMBEDDING_PREFLIGHT", "").strip().lower() in {"1", "true", "yes"}:
         return
-    provider, url, model = _resolve_workspace_embedding_contract(workspace)
-    if provider != "ollama":
-        return
+    provider, url, model, dimension = _resolve_workspace_embedding_contract(workspace)
+    _enforce_benchmark_embedding_policy(provider=provider, model=model, dimension=dimension)
     if not url or not model:
         raise RuntimeError(
             "Eval embedding preflight failed: workspace ollama embedding contract is incomplete "
@@ -3224,21 +3393,22 @@ def run_extraction(
             except Exception:
                 pass
 
-            def _extract_chunk(chunk_idx: int, chunk_blocks: list) -> dict:
-                combined = "\n\n".join(item["block"] for item in chunk_blocks)
-                user_msg = (
-                    "Extract memorable facts from these conversation sessions "
-                    f"with Maya.\n\n{combined}"
-                )
-                t0 = time.time()
-                raw, usage = _call_anthropic_cached(
-                    system_prompt, user_msg, model, api_key, max_tokens=32768,
-                )
-                _append_usage_event(
-                    workspace,
-                    phase="ingest",
-                    source="extraction",
-                    model=model,
+                def _extract_chunk(chunk_idx: int, chunk_blocks: list) -> dict:
+                    combined = "\n\n".join(item["block"] for item in chunk_blocks)
+                    user_msg = (
+                        "Extract memorable facts from these conversation sessions "
+                        f"with Maya.\n\n{combined}"
+                    )
+                    t0 = time.time()
+                    raw, usage = _call_anthropic_cached(
+                        system_prompt, user_msg, model, api_key, max_tokens=32768,
+                    )
+                    _write_extraction_output_trace(workspace, f"timeout-chunk-{chunk_idx:03d}", model, raw)
+                    _append_usage_event(
+                        workspace,
+                        phase="ingest",
+                        source="extraction",
+                        model=model,
                     usage=usage,
                     provider=_BACKEND,
                 )
@@ -3393,10 +3563,11 @@ def run_extraction(
                 system_prompt, user_message, model, api_key,
                 max_tokens=32768,
             )
+            _write_extraction_output_trace(workspace, "single-call", model, raw_response)
             _append_usage_event(
-                workspace,
-                phase="ingest",
-                source="extraction",
+                  workspace,
+                  phase="ingest",
+                  source="extraction",
                 model=model,
                 usage=usage,
                 provider=_BACKEND,
@@ -3529,11 +3700,11 @@ def _store_facts(
         if not text or len(text.split()) < 3:
             continue
 
-        conf_str = fact.get("extraction_confidence", "medium")
+        conf_str = str(fact.get("extraction_confidence") or "medium").strip().lower()
         conf_num = {"high": 0.9, "medium": 0.6, "low": 0.3}.get(conf_str, 0.6)
-        category = fact.get("category", "fact")
-        privacy = fact.get("privacy", "shared")
-        keywords = fact.get("keywords", "")
+        category = str(fact.get("category") or "fact").strip() or "fact"
+        privacy = str(fact.get("privacy") or "shared").strip() or "shared"
+        keywords = str(fact.get("keywords") or "").strip()
         knowledge_type = "preference" if category == "preference" else "fact"
 
         cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT) + [
@@ -4222,6 +4393,8 @@ def _run_runtime_rolling_driver(
         "    d.write_cursor(session_id, int(cursor.get('line_offset', 0) or 0), transcript_path)\n"
         "chunk_raw = os.environ.get('BENCHMARK_ROLLING_CHUNK_TOKENS', '').strip()\n"
         "chunk_lines_raw = os.environ.get('BENCHMARK_ROLLING_CHUNK_MAX_LINES', '').strip()\n"
+        "if chunk_raw:\n"
+        "    os.environ['QUAID_CAPTURE_CHUNK_TOKENS'] = chunk_raw\n"
         "if chunk_lines_raw:\n"
         "    os.environ['QUAID_CAPTURE_CHUNK_MAX_LINES'] = chunk_lines_raw\n"
         "if chunk_raw:\n"
@@ -5050,6 +5223,7 @@ def run_per_day_extraction(
             raw_response, usage = _call_anthropic_cached(
                 job["prompt"], job["user_message"], model, api_key, max_tokens=16384
             )
+            _write_extraction_output_trace(workspace, f"per-day-chunk-{job['chunk_idx']:03d}", model, raw_response)
             _append_usage_event(
                 workspace,
                 phase="ingest",
@@ -7974,6 +8148,8 @@ def _tool_memory_recall(
             turn_details = recall_meta.get("turn_details") or []
             if turn_details and isinstance(turn_details[0], dict):
                 planner = turn_details[0].get("planner") or {}
+            lexical_anchor = recall_meta.get("lexical_anchor") if isinstance(recall_meta.get("lexical_anchor"), dict) else {}
+            lexical_anchor_terms = lexical_anchor.get("anchors") if isinstance(lexical_anchor.get("anchors"), list) else []
             planned_stores = (
                 recall_meta.get("planned_stores")
                 or (planner.get("planned_stores") if isinstance(planner, dict) else None)
@@ -7987,6 +8163,14 @@ def _tool_memory_recall(
                 "planner_used_llm": bool((planner or {}).get("used_llm")) if isinstance(planner, dict) else False,
                 "planner_bailout_reason": (planner or {}).get("bailout_reason") if isinstance(planner, dict) else None,
                 "planner_query_shape": (planner or {}).get("query_shape") if isinstance(planner, dict) else None,
+                "lexical_anchor_used_llm": bool(lexical_anchor.get("used_llm")) if isinstance(lexical_anchor, dict) else False,
+                "lexical_anchor_elapsed_ms": int(lexical_anchor.get("elapsed_ms") or 0) if isinstance(lexical_anchor, dict) else 0,
+                "lexical_anchor_timeout_ms": int(lexical_anchor.get("timeout_ms") or 0) if isinstance(lexical_anchor, dict) else 0,
+                "lexical_anchor_limit": int(lexical_anchor.get("limit") or 0) if isinstance(lexical_anchor, dict) else 0,
+                "lexical_anchor_count": int(lexical_anchor.get("anchor_count") or 0) if isinstance(lexical_anchor, dict) else 0,
+                "lexical_anchor_source": lexical_anchor.get("source") if isinstance(lexical_anchor, dict) else None,
+                "lexical_anchor_bailout_reason": lexical_anchor.get("bailout_reason") if isinstance(lexical_anchor, dict) else None,
+                "lexical_anchor_terms": [str(x) for x in lexical_anchor_terms[:16]],
             }
             recall_meta.setdefault("harness_telemetry", {})
             recall_meta["harness_telemetry"].update({
@@ -9706,8 +9890,8 @@ _OPENAI_COMPAT_JUDGE_MODEL = ""
 _OPENAI_COMPAT_JUDGE_API_KEY_ENV = ""
 _CODEX_DEEP_MODEL = "gpt-5.4"
 _CODEX_FAST_MODEL = "gpt-5.3-codex-spark"
-_CODEX_DEEP_EFFORT = "high"
-_CODEX_FAST_EFFORT = "none"
+_CODEX_DEEP_EFFORT = ""
+_CODEX_FAST_EFFORT = ""
 
 
 def _uses_openai_compatible_backend(backend: Optional[str] = None) -> bool:
@@ -10132,25 +10316,27 @@ def _call_codex_oauth_chat(
         raise RuntimeError("Codex OAuth request has empty input")
     request_id = uuid.uuid4().hex[:10]
     request_url = f"{url.rstrip('/')}/codex/responses"
+    source_name = str(source or "").strip().lower()
+    reasoning_effort = _CODEX_FAST_EFFORT if source_name in {"judge", "tier5_judge", "fast_reasoning"} else _CODEX_DEEP_EFFORT
     payload: Dict[str, Any] = {
         "model": model,
         "store": False,
         "stream": True,
         "instructions": instructions or "You are a concise, accurate assistant.",
         "input": input_items,
-        "text": {"verbosity": "low" if str(source or "").strip().lower() in {"judge", "tier5_judge"} else "medium"},
-        "include": ["reasoning.encrypted_content"],
-        "tool_choice": "auto",
-        "parallel_tool_calls": True,
-        "reasoning": {
-            "effort": "none" if str(source or "").strip().lower() in {"judge", "tier5_judge", "fast_reasoning"} else "high",
-            "summary": "auto",
-        },
+        "text": {"verbosity": "low"},
         "prompt_cache_key": _codex_prompt_cache_key(messages=messages, tools=tools, model=model, source=source),
     }
+    if reasoning_effort:
+        payload["reasoning"] = {
+            "effort": reasoning_effort,
+            "summary": "auto",
+        }
     converted_tools = _codex_convert_tools(tools)
     if converted_tools:
         payload["tools"] = converted_tools
+        payload["tool_choice"] = "auto"
+        payload["parallel_tool_calls"] = True
     headers = {
         "Authorization": f"Bearer {api_key}",
         "chatgpt-account-id": account_id,
@@ -10681,7 +10867,7 @@ def _ensure_quaid_instance_layout(workspace: Path, instance_id: str = _BENCHMARK
         if not instance_projects.exists() and not instance_projects.is_symlink():
             instance_projects.symlink_to(flat_projects, target_is_directory=True)
 
-    return legacy_instance_root
+    return runtime_instance_root
 
 
 def _write_cached_core_artifacts(
@@ -10692,30 +10878,39 @@ def _write_cached_core_artifacts(
     trigger: str,
     date_str: str,
 ) -> Tuple[int, int]:
-    """Write extracted snippets/journals to both workspace and instance roots."""
-    root_ws = str(workspace)
+    """Write extracted snippets/journals to the runtime-visible instance root."""
     instance_ws = str(_ensure_quaid_instance_layout(workspace))
     total_snippets = 0
     total_journals = 0
 
     for filename, bullets in (soul_snippets or {}).items():
+        if not str(filename or "").endswith(".md"):
+            continue
         if isinstance(bullets, str):
             bullets = [bullets] if bullets.strip() else []
         if not bullets:
             continue
-        wrote_root = write_snippet_entry(root_ws, filename, bullets, trigger, date_str)
         wrote_instance = write_snippet_entry(instance_ws, filename, bullets, trigger, date_str)
-        if wrote_root or wrote_instance:
+        if wrote_instance:
             total_snippets += len(bullets)
 
     for filename, content in (journal_entries or {}).items():
+        if not str(filename or "").endswith(".md"):
+            continue
         if isinstance(content, list):
             content = "\n\n".join(str(c) for c in content if c)
+        elif isinstance(content, dict):
+            text_like = (
+                content.get("content")
+                or content.get("text")
+                or content.get("entry")
+                or ""
+            )
+            content = str(text_like) if text_like else ""
         if not content:
             continue
-        wrote_root = write_journal_entry(root_ws, filename, content, trigger, date_str)
         wrote_instance = write_journal_entry(instance_ws, filename, content, trigger, date_str)
-        if wrote_root or wrote_instance:
+        if wrote_instance:
             total_journals += 1
 
     return total_snippets, total_journals
@@ -10727,7 +10922,7 @@ def _sync_instance_identity_to_workspace_root(
     instance_id: str = _BENCHMARK_QUAID_INSTANCE,
 ) -> None:
     """Mirror evolved instance identity back to workspace root markdowns."""
-    identity_dir = _ensure_quaid_instance_layout(workspace, instance_id) / "identity"
+    identity_dir = _ensure_quaid_instance_layout(workspace, instance_id)
     for fname in _EVAL_CORE_MARKDOWN_FILES:
         src = identity_dir / fname
         if src.exists():
@@ -10740,18 +10935,17 @@ def _seed_instance_identity_from_sources(
     instance_id: str = _BENCHMARK_QUAID_INSTANCE,
     prefer_project_templates: bool = False,
 ) -> Path:
-    """Seed per-instance identity files from workspace or Quaid project bases.
+    """Seed runtime-visible instance identity files from workspace or project bases.
 
     Benchmark harnesses bypass the real installer, so they must materialize the
     same identity files that a fresh instance would have under
-    `<instance>/identity/`. For imported Claude replays, the canonical seed
+    `instances/<instance>/`. For imported Claude replays, the canonical seed
     source is `projects/quaid/{SOUL,USER,ENVIRONMENT}.md`. For standard
     benchmark workspaces, keep the benchmark-specific root seed content and
     mirror it into the instance identity silo.
     """
     instance_root = _ensure_quaid_instance_layout(workspace, instance_id)
-    identity_dir = instance_root / "identity"
-    identity_dir.mkdir(parents=True, exist_ok=True)
+    instance_root.mkdir(parents=True, exist_ok=True)
 
     for fname in _EVAL_CORE_MARKDOWN_FILES:
         candidates: List[Path] = []
@@ -10764,7 +10958,7 @@ def _seed_instance_identity_from_sources(
         source = next((path for path in candidates if path.exists()), None)
         if source is None:
             continue
-        shutil.copy2(source, identity_dir / fname)
+        shutil.copy2(source, instance_root / fname)
 
     return instance_root
 
@@ -11571,10 +11765,10 @@ def main():
                         help="Codex deep model id (default: gpt-5.4)")
     parser.add_argument("--codex-fast-model", type=str, default="gpt-5.3-codex-spark",
                         help="Codex fast model id (default: gpt-5.3-codex-spark)")
-    parser.add_argument("--codex-deep-effort", choices=["none", "low", "medium", "high"], default="high",
-                        help="Codex deep reasoning effort (default: high)")
-    parser.add_argument("--codex-fast-effort", choices=["none", "low", "medium", "high"], default="none",
-                        help="Codex fast reasoning effort (default: none)")
+    parser.add_argument("--codex-deep-effort", choices=["none", "low", "medium", "high"], default=None,
+                        help="Codex deep reasoning effort (default: provider/model default)")
+    parser.add_argument("--codex-fast-effort", choices=["none", "low", "medium", "high"], default=None,
+                        help="Codex fast reasoning effort (default: provider/model default)")
     parser.add_argument("--relax-timeouts", action="store_true",
                         help="Explicitly allow wider timeout budgets for true local providers only")
     parser.add_argument("--allow-non-haiku-answer-model", action="store_true",
@@ -11598,6 +11792,10 @@ def main():
     )
     eval_model_explicitly_set = any(
         arg == "--eval-model" or arg.startswith("--eval-model=")
+        for arg in sys.argv[1:]
+    )
+    judge_explicitly_set = any(
+        arg == "--judge" or arg.startswith("--judge=")
         for arg in sys.argv[1:]
     )
     if args.ingest_schedule == "obd":
@@ -11633,10 +11831,6 @@ def main():
             raise SystemExit("--backend vllm requires --vllm-model")
         if str(args.vllm_judge_url or "").strip() and not str(args.vllm_judge_model or "").strip():
             raise SystemExit("Separate vllm judge endpoint requires --vllm-judge-model")
-        if args.mode != "eval" and not model_explicitly_set:
-            args.model = args.vllm_model
-        if not eval_model_explicitly_set:
-            args.eval_model = args.vllm_model
     if args.backend == "llama-cpp":
         if not str(args.llama_cpp_url or "").strip():
             args.llama_cpp_url = str(os.environ.get("BENCHMARK_LLAMA_CPP_URL", "") or "").strip()
@@ -11652,22 +11846,14 @@ def main():
             raise SystemExit("--backend llama-cpp requires --llama-cpp-model")
         if str(args.llama_cpp_judge_url or "").strip() and not str(args.llama_cpp_judge_model or "").strip():
             raise SystemExit("Separate llama-cpp judge endpoint requires --llama-cpp-judge-model")
-        if args.mode != "eval" and not model_explicitly_set:
-            args.model = args.llama_cpp_model
-        if not eval_model_explicitly_set:
-            args.eval_model = args.llama_cpp_model
-    if args.backend == "codex":
-        if args.mode != "eval" and not model_explicitly_set:
-            args.model = args.codex_deep_model
-        if not eval_model_explicitly_set:
-            args.eval_model = args.codex_deep_model
-    if args.backend == "openai":
-        if not model_explicitly_set:
-            args.model = str(os.environ.get("BENCHMARK_OPENAI_MODEL", "") or "gpt-5.4").strip()
-        if not eval_model_explicitly_set:
-            args.eval_model = str(os.environ.get("BENCHMARK_OPENAI_MODEL", "") or args.model or "gpt-5.4").strip()
-        if not str(os.environ.get("OPENAI_API_KEY", "") or "").strip():
-            raise SystemExit("--backend openai requires OPENAI_API_KEY")
+    _apply_backend_specific_model_defaults(
+        args,
+        model_explicitly_set=model_explicitly_set,
+        eval_model_explicitly_set=eval_model_explicitly_set,
+        judge_explicitly_set=judge_explicitly_set,
+    )
+    if args.backend == "openai" and not str(os.environ.get("OPENAI_API_KEY", "") or "").strip():
+        raise SystemExit("--backend openai requires OPENAI_API_KEY")
     _require_openai_compatible_role_contract(args)
     judge_label = str(args.judge or "").strip().lower()
     wants_local_style_judge = any(tok in judge_label for tok in ("gemma", "qwen", "llama", "mistral"))
@@ -11732,8 +11918,8 @@ def main():
     if args.backend == "codex":
         print(f"  Codex deep model: {args.codex_deep_model}")
         print(f"  Codex fast model: {args.codex_fast_model}")
-        print(f"  Codex deep effort: {args.codex_deep_effort}")
-        print(f"  Codex fast effort: {args.codex_fast_effort}")
+        print(f"  Codex deep effort: {args.codex_deep_effort or '(provider default)'}")
+        print(f"  Codex fast effort: {args.codex_fast_effort or '(provider default)'}")
         print(f"  Codex base URL: {os.environ.get('BENCHMARK_CODEX_BASE_URL', 'https://chatgpt.com/backend-api')}")
         print("  Codex auth: QUAID_HOME/adaptors/codex/.auth-token or BENCHMARK_CODEX_API_KEY")
     if args.backend == "openai":
@@ -11798,8 +11984,8 @@ def main():
     _BACKEND = args.backend
     _CODEX_DEEP_MODEL = str(args.codex_deep_model or "gpt-5.4").strip()
     _CODEX_FAST_MODEL = str(args.codex_fast_model or "gpt-5.3-codex-spark").strip()
-    _CODEX_DEEP_EFFORT = str(args.codex_deep_effort or "high").strip()
-    _CODEX_FAST_EFFORT = str(args.codex_fast_effort or "none").strip()
+    _CODEX_DEEP_EFFORT = str(args.codex_deep_effort or "").strip()
+    _CODEX_FAST_EFFORT = str(args.codex_fast_effort or "").strip()
     if args.backend == "llama-cpp":
         _OPENAI_COMPAT_URL = str(args.llama_cpp_url or "").strip().rstrip("/")
         _OPENAI_COMPAT_MODEL = str(args.llama_cpp_model or "").strip()
