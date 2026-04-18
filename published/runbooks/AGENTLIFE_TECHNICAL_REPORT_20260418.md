@@ -2,6 +2,8 @@
 
 Status: draft. Final publication is waiting on two artifacts:
 
+- Fresh neutral-surface `AL-S` after removing benchmark data leaks from seeded
+  project/static context and wiring project updates through the runtime updater.
 - OpenClaw-native `AL-L` refresh on the same `2026.4.11 (769908e)` base as the new `AL-S` row.
 - Japanese `AL-S` attempt using the validated JP review/filler translation set.
 
@@ -49,6 +51,61 @@ This excludes:
 The new metric is intentionally more conservative and should be used for public
 numbers going forward. Older token totals that did not include preinject/tool
 recall are not directly comparable.
+
+## Methodology Change: Run Setup Integrity
+
+During the April 18 audit we found benchmark setup leakage in the harness-created
+workspace. The problem was not a model/runtime behavior change; it was the
+benchmark harness seeding more knowledge and instruction surface than a normal
+fresh Quaid project should have.
+
+Observed leak classes:
+
+- Project docs contained benchmark/data-specific future state rather than only
+  base project scaffolds and synced source artifacts.
+- `USER.md` had unnatural setup/coaching language instead of looking like the
+  normal production base user profile.
+- The benchmark extraction prompt had drifted into a harness fork with
+  AgentLife-specific examples instead of using the same extraction prompt as
+  product runtime.
+- Project file replay copied source snapshots directly, but did not call the
+  project updater path that normally runs when the daemon detects dirty project
+  files. This meant `PROJECT.md`/`PROJECT.log` behavior was not aligned with
+  production.
+
+New run-setup policy:
+
+- Seed only natural base Quaid context files that match production templates.
+- Seed project docs only as new-project scaffolds. Do not preload future project
+  facts, benchmark-specific examples, evaluator hints, or special instructions.
+- Project/code artifacts may be copied because they are the test artifacts.
+- After project artifacts change, the harness must call Quaid's product project
+  updater flow rather than doing project-doc reasoning in harness code.
+- `PROJECT.md` and `PROJECT.log` are runtime-managed artifacts and must be
+  preserved across project snapshot replay.
+- Extraction must use the runtime extraction prompt plus runtime-style dynamic
+  owner/domain/project blocks, not a benchmark-specific prompt fork.
+
+Harness changes made for this report:
+
+- `eval/extract_compact.py` now loads `modules/quaid/prompts/extraction.txt`
+  from the checkpoint/runtime tree and appends the same dynamic blocks used by
+  product runtime.
+- `eval/run_production_benchmark.py` now seeds `recipe-app` and
+  `portfolio-site` with base `PROJECT.md` scaffolds only, and no per-project
+  `TOOLS.md` future-state docs.
+- Project snapshot replay now preserves `PROJECT.md`, `PROJECT.log`, and
+  `TOOLS.md`.
+- After every benchmark project source sync, the harness queues a generic
+  source-file-change event and invokes `datastore/docsdb/project_updater.py
+  process-event`, followed by `refresh-project-md`.
+
+Implication:
+
+- Rows in this draft remain useful for internal lineage comparison, but the
+  final public table should be refreshed from the neutral-surface harness. The
+  immediate gate is a fresh `AL-S` run on the cleaned setup before publishing
+  updated headline claims.
 
 ## Current Quaid Rows
 
@@ -194,4 +251,3 @@ Avoid these claims:
   totals.
 - Do not present OC-native rows as full production-dreaming results until the
   harness can trigger dream cycles deterministically.
-
