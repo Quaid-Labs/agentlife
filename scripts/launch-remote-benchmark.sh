@@ -20,6 +20,7 @@ REMOTE=""
 REMOTE_BENCH_ROOT=""
 REMOTE_CHECKPOINT_ROOT=""
 REMOTE_CHECKPOINT_PLUGIN_ROOT=""
+REMOTE_WORKSPACE_ROOT=""
 DRY_RUN=false
 SKIP_LOCAL_CHECKS=false
 PARALLEL="${BENCHMARK_PARALLEL:-6}"
@@ -43,6 +44,8 @@ Options:
                                   (default: ~/quaid/benchmark-checkpoint)
   --remote-plugin-root PATH        Remote plugin checkout used by harness
                                   (default: ~/clawd/plugins/quaid)
+  --remote-workspace-root PATH     Neutral remote root for fresh Quaid workspaces
+                                  (default: ~/quaid-workspaces)
   --local-checkpoint-root PATH     Local checkpoint root
                                   (default: ~/quaidcode/benchmark-checkpoint)
   --dry-run                        Print actions without running rsync/ssh
@@ -67,6 +70,7 @@ while [[ $# -gt 0 ]]; do
     --remote-bench-root) REMOTE_BENCH_ROOT="$2"; shift 2 ;;
     --remote-checkpoint-root) REMOTE_CHECKPOINT_ROOT="$2"; shift 2 ;;
     --remote-plugin-root) REMOTE_CHECKPOINT_PLUGIN_ROOT="$2"; shift 2 ;;
+    --remote-workspace-root) REMOTE_WORKSPACE_ROOT="$2"; shift 2 ;;
     --local-checkpoint-root) LOCAL_CHECKPOINT_ROOT="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --skip-local-checks) SKIP_LOCAL_CHECKS=true; shift ;;
@@ -117,6 +121,9 @@ if [[ -z "$REMOTE_CHECKPOINT_ROOT" ]]; then
 fi
 if [[ -z "$REMOTE_CHECKPOINT_PLUGIN_ROOT" ]]; then
   REMOTE_CHECKPOINT_PLUGIN_ROOT="~/clawd/plugins/quaid"
+fi
+if [[ -z "$REMOTE_WORKSPACE_ROOT" ]]; then
+  REMOTE_WORKSPACE_ROOT="~/quaid-workspaces"
 fi
 
 if [[ ! -d "$LOCAL_BENCH_ROOT" ]]; then
@@ -286,6 +293,7 @@ echo "Local checkpoint root:      $LOCAL_CHECKPOINT_ROOT"
 echo "Remote benchmark root:      $REMOTE_BENCH_ROOT"
 echo "Remote checkpoint root:     $REMOTE_CHECKPOINT_ROOT"
 echo "Remote plugin root:         $REMOTE_CHECKPOINT_PLUGIN_ROOT"
+echo "Remote workspace root:      $REMOTE_WORKSPACE_ROOT"
 echo "Parallel workers:           $PARALLEL"
 echo "Loose timeouts:             $LOOSE_TIMEOUTS"
 echo "Run note:                   ${RUN_NOTE:-<empty>}"
@@ -326,6 +334,7 @@ if $AUTO_RESULTS_DIR; then
     RESULTS_DIR="runs/quaid-${SCALE}-${run_id}-${ts}"
   fi
 fi
+RESULTS_BASENAME="$(basename "$RESULTS_DIR")"
 
 # Ensure benchmark writes artifacts into the canonical run directory when
 # caller did not explicitly set --results-dir.
@@ -345,7 +354,7 @@ echo ""
 
 echo "--- 1) Ensure remote roots exist ---"
 run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" \
-  "mkdir -p $REMOTE_BENCH_ROOT $REMOTE_CHECKPOINT_ROOT $REMOTE_CHECKPOINT_PLUGIN_ROOT"
+  "mkdir -p $REMOTE_BENCH_ROOT $REMOTE_CHECKPOINT_ROOT $REMOTE_CHECKPOINT_PLUGIN_ROOT $REMOTE_WORKSPACE_ROOT"
 
 echo ""
 echo "--- 1b) Sync fresh Claude credentials for OAuth-backed runs ---"
@@ -696,6 +705,7 @@ PY
 REMOTE_BENCH_ROOT_RESOLVED=\$(resolve_remote_path $(printf %q "$REMOTE_BENCH_ROOT"))
 REMOTE_CHECKPOINT_ROOT_RESOLVED=\$(resolve_remote_path $(printf %q "$REMOTE_CHECKPOINT_ROOT"))
 REMOTE_CHECKPOINT_PLUGIN_ROOT_RESOLVED=\$(resolve_remote_path $(printf %q "$REMOTE_CHECKPOINT_PLUGIN_ROOT"))
+REMOTE_WORKSPACE_ROOT_RESOLVED=\$(resolve_remote_path $(printf %q "$REMOTE_WORKSPACE_ROOT"))
 cd \"\$REMOTE_BENCH_ROOT_RESOLVED\"
 if [[ -d \"\$REMOTE_CHECKPOINT_ROOT_RESOLVED/modules/quaid\" ]]; then
   export BENCHMARK_PLUGIN_DIR=\"\$REMOTE_CHECKPOINT_ROOT_RESOLVED/modules/quaid\"
@@ -778,9 +788,27 @@ else
 fi
 echo \"Using runner: \$RUNNER\"
 
-mkdir -p $(printf %q "$RESULTS_DIR")
+RESULTS_DIR=$(printf %q "$RESULTS_DIR")
+RESULTS_BASENAME=$(printf %q "$RESULTS_BASENAME")
+if [[ "$AUTO_RESULTS_DIR" == "true" && \"\${BENCHMARK_NEUTRAL_WORKSPACE:-1}\" != "0" ]]; then
+  NEUTRAL_WORKSPACE=\"\$REMOTE_WORKSPACE_ROOT_RESOLVED/\$RESULTS_BASENAME\"
+  if [[ -e \"\$RESULTS_DIR\" || -L \"\$RESULTS_DIR\" ]]; then
+    echo \"ERROR: results dir already exists: \$RESULTS_DIR\" >&2
+    exit 1
+  fi
+  if [[ -e \"\$NEUTRAL_WORKSPACE\" || -L \"\$NEUTRAL_WORKSPACE\" ]]; then
+    echo \"ERROR: neutral workspace already exists: \$NEUTRAL_WORKSPACE\" >&2
+    exit 1
+  fi
+  mkdir -p \"\$(dirname -- \"\$RESULTS_DIR\")\" \"\$REMOTE_WORKSPACE_ROOT_RESOLVED\"
+  mkdir -p \"\$NEUTRAL_WORKSPACE\"
+  ln -s \"\$NEUTRAL_WORKSPACE\" \"\$RESULTS_DIR\"
+  echo \"Neutral Quaid workspace: \$RESULTS_DIR -> \$NEUTRAL_WORKSPACE\"
+else
+  mkdir -p \"\$RESULTS_DIR\"
+fi
 if [[ -n \"\${BENCHMARK_RUN_NOTE:-}\" ]]; then
-  printf '%s\n' \"\$BENCHMARK_RUN_NOTE\" > $(printf %q "$RESULTS_DIR")/run_note.txt
+  printf '%s\n' \"\$BENCHMARK_RUN_NOTE\" > \"\$RESULTS_DIR/run_note.txt\"
 fi
 if [[ $(printf %q "$BACKEND_ARG") == "codex" ]]; then
   CODEX_TOKEN="\${BENCHMARK_CODEX_API_KEY:-\${OPENAI_API_KEY:-}}"
@@ -788,12 +816,12 @@ if [[ $(printf %q "$BACKEND_ARG") == "codex" ]]; then
     echo \"ERROR: Codex backend requires a Codex OAuth access token. Set BENCHMARK_CODEX_API_KEY, BENCHMARK_CODEX_TOKEN_PATH, auth.codex.solKeyPath/yuniKeyPath, or make OPENAI_API_KEY available on the remote host.\" >&2
     exit 1
   fi
-  mkdir -p $(printf %q "$RESULTS_DIR")/adaptors/codex
-  printf '%s\n' "\$CODEX_TOKEN" > $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token
-  chmod 600 $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token
-  echo \"Codex auth token: wrote $(printf %q "$RESULTS_DIR")/adaptors/codex/.auth-token\"
+  mkdir -p \"\$RESULTS_DIR/adaptors/codex\"
+  printf '%s\n' "\$CODEX_TOKEN" > \"\$RESULTS_DIR/adaptors/codex/.auth-token\"
+  chmod 600 \"\$RESULTS_DIR/adaptors/codex/.auth-token\"
+  echo \"Codex auth token: wrote \$RESULTS_DIR/adaptors/codex/.auth-token\"
 fi
-LAUNCH_LOG=${RESULTS_DIR}.launch.log
+LAUNCH_LOG=\${RESULTS_DIR}.launch.log
 nohup env PYTHONUNBUFFERED=1 python3 \"\$RUNNER\" $LAUNCH_ARGS_ESCAPED > \"\$LAUNCH_LOG\" 2>&1 &
 RPID=\$!
 sleep 1
