@@ -115,6 +115,59 @@ def test_store_facts_retries_store_timeout_and_succeeds(monkeypatch, tmp_path):
     assert calls["n"] == 2
 
 
+def test_store_facts_accepts_unsegmented_japanese_text(monkeypatch, tmp_path):
+    monkeypatch.setattr(rpb, "_MEMORY_GRAPH_SCRIPT", tmp_path / "dummy.py")
+    monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal", "work"])
+
+    calls = []
+
+    def _run(cmd, **kwargs):
+        calls.append(cmd)
+        return _ProcResult(returncode=0, stdout="Stored: fact-1\n")
+
+    monkeypatch.setattr(rpb.subprocess, "run", _run)
+    monkeypatch.setenv("BENCHMARK_FAIL_ON_STORE_FAILURE", "1")
+
+    facts = [{
+        "text": "マヤはオースティンに住んでいる",
+        "category": "fact",
+        "privacy": "shared",
+        "domains": ["personal"],
+        "edges": [],
+    }]
+
+    stored, edges = rpb._store_facts(tmp_path, facts, os.environ.copy(), 1, "2026-03-01")
+    assert stored == 1
+    assert edges == 0
+    assert calls and "マヤはオースティンに住んでいる" in calls[0]
+
+
+def test_store_facts_still_skips_short_space_separated_fragments(monkeypatch, tmp_path):
+    monkeypatch.setattr(rpb, "_MEMORY_GRAPH_SCRIPT", tmp_path / "dummy.py")
+    monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+
+    calls = []
+
+    def _run(cmd, **kwargs):
+        calls.append(cmd)
+        return _ProcResult(returncode=0, stdout="Stored: fact-1\n")
+
+    monkeypatch.setattr(rpb.subprocess, "run", _run)
+
+    facts = [{
+        "text": "Maya Austin",
+        "category": "fact",
+        "privacy": "shared",
+        "domains": ["personal"],
+        "edges": [],
+    }]
+
+    stored, edges = rpb._store_facts(tmp_path, facts, os.environ.copy(), 1, "2026-03-01")
+    assert stored == 0
+    assert edges == 0
+    assert calls == []
+
+
 def test_store_facts_tracks_domain_missing_metric(monkeypatch, tmp_path):
     monkeypatch.setattr(rpb, "_MEMORY_GRAPH_SCRIPT", tmp_path / "dummy.py")
     monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal", "project", "work", "technical"])

@@ -6409,6 +6409,11 @@ class TestMainIngestSchedule:
 # ===================================================================
 
 
+def test_extract_compact_storeable_text_accepts_unsegmented_script():
+    assert ec._is_storeable_extracted_fact_text("マヤはオースティンに住んでいる")
+    assert not ec._is_storeable_extracted_fact_text("Maya Austin")
+
+
 class TestBuildTranscript:
     """Tests for build_transcript: message filtering and formatting."""
 

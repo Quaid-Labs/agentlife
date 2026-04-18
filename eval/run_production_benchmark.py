@@ -3806,7 +3806,7 @@ def _store_facts(
 
     for fact in facts:
         text = fact.get("text", "").strip()
-        if not text or len(text.split()) < 3:
+        if not _is_storeable_extracted_fact_text(text):
             continue
 
         conf_str = str(fact.get("extraction_confidence") or "medium").strip().lower()
@@ -3973,6 +3973,24 @@ def _store_facts(
 
     _LAST_STORE_METRICS["domain_missing"] = domain_missing
     return stored, edges_created
+
+
+def _is_storeable_extracted_fact_text(text: str) -> bool:
+    """Return True when extracted fact text has enough substance to store.
+
+    The historical three-token guard prevents storing fragments in languages
+    that use whitespace word boundaries. Languages without whitespace word
+    boundaries must not be dropped just because ``split()`` returns one token.
+    """
+    value = (text or "").strip()
+    if not value:
+        return False
+    tokens = value.split()
+    if len(tokens) >= 3:
+        return True
+    if len(tokens) > 1:
+        return False
+    return sum(1 for ch in value if ch.isalnum()) >= 6
 
 
 # ---------------------------------------------------------------------------

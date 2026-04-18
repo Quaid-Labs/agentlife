@@ -56,6 +56,23 @@ _WEAKLY_INTERPRETED_FACT_RE = re.compile(
 )
 
 
+def _is_storeable_extracted_fact_text(text: str) -> bool:
+    """Return True when extracted fact text has enough substance to store.
+
+    Keep the historical three-token guard for whitespace-separated languages,
+    but allow unsegmented scripts where valid sentences have no spaces.
+    """
+    value = (text or "").strip()
+    if not value:
+        return False
+    tokens = value.split()
+    if len(tokens) >= 3:
+        return True
+    if len(tokens) > 1:
+        return False
+    return sum(1 for ch in value if ch.isalnum()) >= 6
+
+
 def read_session_messages(session_file: str) -> list[dict]:
     """Read messages from session JSONL file.
 
@@ -913,7 +930,7 @@ def main():
 
     for fact in facts:
         text = fact.get("text", "").strip()
-        if not text or len(text.split()) < 3:
+        if not _is_storeable_extracted_fact_text(text):
             skipped += 1
             continue
 
