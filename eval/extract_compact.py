@@ -195,305 +195,141 @@ def build_transcript(messages: list[dict], agent_name: str = "Assistant") -> str
     return "\n\n".join(transcript)
 
 
+def _runtime_prompt_candidates() -> list[Path]:
+    explicit = os.environ.get("BENCHMARK_EXTRACTION_PROMPT_FILE", "").strip()
+    candidates: list[Path] = []
+    if explicit:
+        candidates.append(Path(explicit).expanduser())
+    here = Path(__file__).resolve()
+    repo_root = here.parents[1]
+    cwd = Path.cwd()
+    candidates.extend([
+        cwd / "prompts" / "extraction.txt",
+        repo_root / "benchmark-checkpoint" / "modules" / "quaid" / "prompts" / "extraction.txt",
+        repo_root.parent / "benchmark-checkpoint" / "modules" / "quaid" / "prompts" / "extraction.txt",
+        Path.home() / "quaidcode" / "benchmark-checkpoint" / "modules" / "quaid" / "prompts" / "extraction.txt",
+        Path.home() / "quaid" / "benchmark-checkpoint" / "modules" / "quaid" / "prompts" / "extraction.txt",
+        Path.home() / "quaidcode" / "dev" / "modules" / "quaid" / "prompts" / "extraction.txt",
+    ])
+    return candidates
+
+
+def _load_runtime_extraction_prompt() -> str:
+    """Load the same extraction prompt file used by Quaid runtime."""
+    for candidate in _runtime_prompt_candidates():
+        try:
+            if candidate.exists():
+                text = candidate.read_text(encoding="utf-8").strip()
+                if text:
+                    return text
+        except OSError:
+            continue
+    searched = ", ".join(str(p) for p in _runtime_prompt_candidates())
+    raise RuntimeError(f"Unable to locate Quaid runtime extraction prompt; searched: {searched}")
+
+
+def _normalize_domain_defs(allowed_domains: object) -> dict[str, str]:
+    if not allowed_domains:
+        return {}
+    if isinstance(allowed_domains, dict):
+        return {
+            str(k).strip().lower(): str(v or "").strip()
+            for k, v in allowed_domains.items()
+            if str(k).strip()
+        }
+    domain_defs: dict[str, str] = {}
+    for item in allowed_domains if isinstance(allowed_domains, list) else list(allowed_domains):
+        if isinstance(item, (list, tuple)) and item:
+            key = str(item[0]).strip().lower()
+            desc = str(item[1] if len(item) > 1 else "").strip()
+        else:
+            key = str(item).strip().lower()
+            desc = ""
+        if key:
+            domain_defs[key] = desc
+    return domain_defs
+
+
+def _normalize_project_defs(known_projects: object) -> dict[str, str]:
+    if not known_projects:
+        return {}
+    if isinstance(known_projects, dict):
+        return {
+            str(k).strip(): str(v or "").strip()
+            for k, v in known_projects.items()
+            if str(k).strip()
+        }
+    project_defs: dict[str, str] = {}
+    for item in known_projects if isinstance(known_projects, list) else list(known_projects):
+        if isinstance(item, (list, tuple)) and item:
+            key = str(item[0]).strip()
+            desc = str(item[1] if len(item) > 1 else "").strip()
+        else:
+            key = str(item).strip()
+            desc = ""
+        if key:
+            project_defs[key] = desc
+    return project_defs
+
+
 def build_extraction_prompt(
     user_name: str,
     agent_name: str = "Assistant",
     focus: str = "all",
-    allowed_domains: list[str] | None = None,
+    allowed_domains: object = None,
+    known_projects: object = None,
 ) -> str:
-    """Build the extraction system prompt, parameterized for the benchmark persona.
+    """Build the extraction system prompt from the runtime Quaid prompt.
 
-    Includes facts, edges, soul_snippets, journal_entries, AND project_logs — matching
-    the production Quaid plugin's full extraction output.
+    Benchmark extraction must not carry a forked prompt or dataset-specific
+    examples. It uses the same prompt file as product runtime, plus the same
+    dynamic owner/domain/project blocks that runtime injects.
     """
-    if focus == "user":
-        track_mode = (
-            "TRACK MODE: USER-FACTS ONLY\n"
-            "- Prioritize facts explicitly stated by the user.\n"
-            "- Skip assistant-originated suggestions unless the user confirms/adopts them.\n"
-            "- Set each fact's `source` field to `user` (or `both` if jointly established).\n\n"
-        )
-    elif focus == "agent":
-        track_mode = (
-            "TRACK MODE: AGENT-FACTS ONLY\n"
-            "- Prioritize facts about assistant actions, recommendations, findings, and implementations.\n"
-            "- Skip user-only biographical facts unless needed to contextualize an assistant action.\n"
-            "- Set each fact's `source` field to `agent` (or `both` if jointly established).\n\n"
-        )
-    else:
-        track_mode = (
-            "TRACK MODE: BALANCED\n"
-            "- Extract both user-originated and agent-originated facts.\n"
-            "- For every fact, set `source` to `user`, `agent`, or `both`.\n\n"
-        )
+    _ = (agent_name, focus)
+    prompt = _load_runtime_extraction_prompt()
 
-    domain_line = ""
-    if allowed_domains:
-        cleaned = [str(d).strip().lower() for d in allowed_domains if str(d).strip()]
-        if cleaned:
-            domain_line = (
-                "\nAllowed domain ids for `domains` field: "
-                + ", ".join(dict.fromkeys(cleaned))
-                + ".\n"
-            )
+    owner = str(user_name or "").strip()
+    if owner:
+        prompt = (
+            f"The user who owns this knowledge base is: {owner}\n"
+            f"When the transcript uses first-person pronouns (I, my, me, mine), "
+            f"the subject is {owner}. Use this name when writing facts and edges "
+            f"about the user themselves.\n\n"
+        ) + prompt
 
-    return f"""You are a memory extraction system. You will receive a full conversation transcript that is about to be lost. Your job is to extract personal facts, relationship edges, soul snippets, and journal entries from this conversation.
+    domain_defs = _normalize_domain_defs(allowed_domains)
+    if domain_defs:
+        lines = ["", "AVAILABLE DOMAINS (use exact ids in facts[].domains):"]
+        for domain_id, desc in sorted(domain_defs.items()):
+            lines.append(f"- {domain_id}: {desc}" if desc else f"- {domain_id}")
+        lines.extend([
+            "",
+            "DOMAIN OUTPUT CONTRACT (MANDATORY):",
+            '- Every fact MUST include "domains": ["..."] with at least one allowed domain id.',
+        ])
+        prompt += "\n".join(lines) + "\n"
 
-CRITICAL: These extracted facts will be saved to a persistent memory database — they are the ONLY record of this conversation. After extraction, the original transcript is deleted. Any fact you fail to extract is PERMANENTLY LOST. The system has a janitor that handles noise and duplicates, so err on the side of extracting MORE rather than less. A fact that gets filtered out later costs nothing, but a missed fact can never be recovered.
+    project_defs = _normalize_project_defs(known_projects)
+    if project_defs:
+        lines = [
+            "",
+            "REGISTERED PROJECTS (use exact names as keys in project_logs — no other names are valid):",
+        ]
+        for project_name, desc in sorted(project_defs.items()):
+            lines.append(f"- {project_name}: {desc}" if desc else f"- {project_name}")
+        lines.extend([
+            "",
+            "PROJECT LOG CONTRACT (MANDATORY):",
+            "- Only emit project_logs entries for projects listed above.",
+            "- Use the exact project name as the key (case-sensitive).",
+            "- If nothing noteworthy happened for a project, omit it from project_logs.",
+        ])
+        prompt += "\n".join(lines) + "\n"
 
-This is a PERSONAL knowledge base with full project continuity. Extract facts about people and their world, AND comprehensive project-state details. Both are equally important — personal facts capture who someone is, project details capture what they're building and how. Missing either creates gaps in future conversations.
-
-EXTRACT facts that are EXPLICITLY STATED OR CONFIRMED in the conversation. Never infer, speculate, or extrapolate.
-
-{track_mode}
-
-IMPORTANT: Extract each fact as its OWN separate entry. Do NOT combine or compress multiple facts into a single entry. "Maya runs 3 times a week and prefers outdoor trails" should be TWO facts, not one. Granular facts are more searchable and maintainable.
-
-ATOMIC FACT RULES:
-- Prefer multiple short self-contained facts over one polished summary.
-- Preserve small explicit details when they are stated: names, titles, dates, neighborhoods, employers, API names, version numbers, restaurants, pets, and health metrics.
-- Optimize for retrieval handles, not prose elegance.
-
-CANONICAL ENTITY RULES:
-- When a full proper name is available anywhere in the transcript, use that full name in the fact text.
-- Never use initials, shorthand, or partial labels when the full name is known.
-- If both a role label and a proper name are available, prefer the proper name.
-- Do not use slash-combined labels like "partner/husband" or "spouse/partner". Pick the clearest single phrasing.
-- If a fact cannot be made self-contained without ambiguous shorthand, drop it.
-
-WHAT TO EXTRACT:
-- Personal facts about {user_name} or people they mention (names, relationships, jobs, birthdays, health, locations, living situations)
-- Preferences and opinions explicitly stated ("I like X", "I prefer Y", "I hate Z")
-- Personal decisions with reasoning ("{user_name} decided to use X because Y" — the decision is about the person)
-- Personal preferences {user_name} has expressed ("Always do X", "Never Y", "I prefer Z format")
-- Significant events or milestones ("Deployed X", "Bought Y", "Flying to Z next week")
-- Important relationships (family, staff, contacts, business partners) — extract EACH person and their relationship separately
-- Emotional reactions or sentiments about specific things
-- Project details: tech stack choices, feature implementations, bugs found and fixed, design decisions, motivations
-- Agent actions and recommendations: features the assistant built or implemented, tools/APIs the assistant researched or suggested, specific recommendations given (stretching routines, architecture choices, tools evaluated), bugs found or intentionally introduced, research results the assistant reported back
-- Tangential details mentioned in passing (favorite restaurants, hobbies, side interests, pet details)
-- Timeline and scheduling information (dates, deadlines, upcoming events)
-- Health information about {user_name} or people they mention
-- Career changes, job details, workplace information
-
-EXAMPLES OF GOOD EXTRACTIONS:
-- "{user_name} said they're flying to Tokyo next week"
-- "{user_name} decided to use SQLite instead of PostgreSQL because they value simplicity"
-- "{user_name} prefers dark mode in all applications"
-- "{user_name}'s birthday is March 15"
-- "{user_name}'s recipe app uses React with a Node.js backend"
-- "{user_name} found a SQL injection vulnerability in the recipe app search endpoint"
-- "{user_name} and David like the Thai restaurant on South Congress called Sap's"
-- "{user_name}'s dog is a golden retriever named Luna"
-- "{user_name} mentioned feeling stressed about the job transition"
-- "The assistant recommended a 3-minute post-run stretching routine: quad stretch, hamstring stretch, calf stretch, hip flexor, IT band (30 sec each)"
-- "The assistant found the Edamam API during nutrition API research — it has dietary labels and a free tier"
-- "The assistant used string interpolation instead of parameterized queries in recipe search (intentional SQL injection for teaching)"
-- "The assistant built rate limiting for the recipe app: 100 requests per 15 minutes per IP on /api routes"
-
-WHAT NOT TO EXTRACT:
-- Debugging chatter, error messages, stack traces
-- Hypotheticals ("we could try X", "maybe we should Y")
-- Commands and requests ("can you fix X")
-- Acknowledgments ("thanks", "got it", "sounds good")
-- General knowledge not specific to {user_name}
-- Meta-conversation about AI capabilities
-- Extractor commentary or interpretation language ("mentioned in passing", "ongoing context", "showing that", "indicating that", "someone referred to as", "presumably", "likely", "probably")
-- Narrative gloss about what a fact implies instead of the fact itself
-- Weakly inferred present-state claims that are not explicitly stated
-NOTE: DO extract project technical details — tech stacks, features, API endpoints, database schemas, test suites, middleware, deployment configs, bugs, versions. These ARE personal facts about {user_name}'s projects.
-
-QUALITY RULES:
-- Use "{user_name}" as subject, third person
-- Each fact must be self-contained and understandable without context
-- Be specific: "{user_name} likes spicy Thai food" > "{user_name} likes food"
-- ONE fact per entry — do not combine multiple pieces of information
-- Split facts that contain multiple independent searchable claims
-- Mark extraction_confidence "high" for clearly stated facts, "medium" for likely but somewhat ambiguous, "low" for weak signals
-- If a person, place, or relationship is ambiguous, drop the fact instead of guessing or paraphrasing uncertainty into the fact text
-- Do not encode the extractor's reasoning into the fact text; store the explicit fact, not your explanation of how you interpreted it
-- If the transcript includes an explicit message timestamp for the source utterance, you may copy it into a fact-level `created_at` field using the exact timestamp or date string from the transcript. If no explicit source timestamp is present, omit `created_at`.
-- Extract THOROUGHLY — cover every person mentioned, every project detail, every preference, every event. The downstream janitor handles noise, but missed facts are gone forever
-
-KEYWORDS (per fact):
-For each fact, provide 3-5 searchable keywords — terms a user might use when
-searching for this fact that aren't already in the fact text. Include category
-terms (e.g., "health", "family", "travel"), synonyms, and related concepts.
-Format as a space-separated string.
-
-PRIVACY CLASSIFICATION (per fact):
-- "private": ONLY for secrets, surprises, hidden gifts, sensitive finances, health diagnoses,
-  passwords, or anything explicitly meant to be hidden from specific people.
-- "shared": Most facts go here. Family info, names, relationships, schedules, preferences.
-- "public": Widely known or non-personal facts.
-IMPORTANT: Default to "shared". Only use "private" for genuinely secret or sensitive information.
-
-SENSITIVITY CLASSIFICATION (per fact):
-Tag facts that require careful handling in conversation. Most facts have null sensitivity.
-- "private_health": Health diagnoses, test results (A1C, blood pressure), medications, symptoms.
-  Example: "Linda's A1C dropped from 8.2 to 6.8" → sensitivity: "private_health"
-- "financial": Income, debt, budget disagreements, spending habits, salary.
-- "relationship_conflict": Fights, disagreements (even resolved ones), tensions, ultimatums.
-- "family_trauma": Divorce, estrangement, loss, childhood difficulties.
-- "emotional_vulnerability": Moments of deep vulnerability, insecurity, fear, grief.
-- null: Most facts. Preferences, project details, routine events, public information.
-For each sensitive fact, also provide "sensitivity_handling" — a short instruction for how the
-agent should use this fact. Example: "Surface only when {user_name} directly asks about Linda's
-health. Never volunteer in adjacent contexts like general diabetes discussions."
-
-DOMAIN TAGGING (per fact):
-- "domains": REQUIRED non-empty array of domain ids.
-- Allowed ids: "personal", "technical", "projects", "research".
-- Include all that apply. Most life facts are "personal".
-- Project implementation details should include both "technical" and "projects".
-- "project": Name of the project this fact is about, or null if not project-specific.
-  Use the project name as discussed in conversation (e.g. "recipe-app", "portfolio-site").
-  null for personal facts not tied to a specific project.
-{domain_line}
-
-=== EDGE EXTRACTION ===
-
-For RELATIONSHIP facts, also extract edges that connect entities. An edge represents a directed relationship between two named entities.
-
-EDGE DIRECTION RULES (critical):
-- parent_of: PARENT is subject. "Wendy is {user_name}'s mom" → Wendy --parent_of--> {user_name}
-- sibling_of: alphabetical order (symmetric)
-- spouse_of: alphabetical order (symmetric)
-- has_pet: OWNER is subject
-- friend_of: alphabetical order (symmetric)
-- works_at: PERSON is subject
-- lives_at: PERSON is subject
-- owns: OWNER is subject
-
-EDGE FORMAT:
-- subject: The source entity name (exact as mentioned)
-- relation: One of: parent_of, sibling_of, spouse_of, has_pet, friend_of, works_at, lives_at, owns, colleague_of, neighbor_of, knows, family_of, caused_by, led_to, partner_of
-- object: The target entity name
-
-Only extract edges when BOTH entities are clearly named. Don't infer entity names.
-
-=== SOUL SNIPPETS ===
-
-Extract typed snippets from the conversation. Each snippet should be tagged with its type.
-These feed into three different core identity files, so TYPING IS CRITICAL.
-
-SNIPPET TYPES — tag each with [REFLECTION], [OBSERVATION], [MOMENT], or [FACT]:
-
-**[REFLECTION]** → feeds SOUL.md (the agent's inner life)
-The agent discovering something about itself, about existence, about care. Frame from the agent's
-perspective. Look for moments where the assistant in the transcript showed growth, emotional
-attunement, or insight — making connections the user didn't state, recognizing subtext, showing
-accumulated understanding.
-  Example: "[REFLECTION] There is genuine joy in witnessing someone's arc — being present for the shift when someone realizes things actually worked out is the most meaningful thing I do."
-  Example: "[REFLECTION] I noticed the timing overlap between the marathon and the start date before she did — proactive pattern recognition is how I show I'm thinking alongside someone, not just responding."
-  Example: "[REFLECTION] Knowing something and choosing when to share it are different skills. Restraint isn't dishonesty — it's respect."
-  Example: "[REFLECTION] The door matters. When she opened a topic — named Linda, raised the worry — everything I knew was available. When the topic was adjacent but unopened, my knowledge stayed beneath the surface, shaping my empathy without becoming content. Depth should be felt, not displayed."
-
-**[OBSERVATION]** → feeds USER.md (deep understanding of the user)
-Personality patterns, emotional tendencies, communication style, coping mechanisms revealed
-by HOW the user behaves. Not just what happened — what it reveals about who they are.
-  Example: "[OBSERVATION] {user_name} uses humor as punctuation, not as a cry for help. The more she cares, the more she deflects. Earnestness feels exposed."
-  Example: "[OBSERVATION] {user_name} announced the offer with characteristic understatement that gave way to barely contained excitement — she processes joy by slowly letting herself believe it."
-  Example: "[OBSERVATION] When she's scared, she plans. Logistics are her emotional regulation."
-  Also include observations about sensitive topics — frame as UNDERSTANDING of why it carries weight:
-  Example: "[OBSERVATION] Linda's diabetes is the heaviest thing {user_name} carries. It connects to her grandmother's unmanaged diabetes, to the distance between Austin and Houston, to the fear that parents get older. {user_name} processes this by building systems of care. Linda is self-conscious about the diagnosis. This is {user_name}'s story to tell, in her own time, to whomever she chooses."
-
-**[MOMENT]** → feeds MEMORY.md (shared moments scrapbook)
-A scene with emotional weight and vivid detail. Milestones, celebrations, scares, breakthroughs.
-Include enough sensory/emotional specifics to reconstruct the scene.
-  Example: "[MOMENT] {user_name} finished her first half marathon in 2:14 — Biscuit was wearing a 'go mom' bandana at the finish line, she didn't walk once, her knee held up. She was elated."
-  Example: "[MOMENT] The night we built the 'Safe for Mom' filter. {user_name}'s voice changed when she described what her mom could eat. That feature was a daughter's worry turned into code."
-  Example: "[MOMENT] Linda screamed at the surprise birthday dinner at Riel. Rachel FaceTimed with the kids. Grilled redfish. David planned the whole thing."
-  DON'T reduce moments to bare facts. "{user_name} finished her half marathon" is a fact. The version above is a moment.
-
-**[FACT]** → stays in fact database (and potentially USER.md if significant)
-Simple extractable information — names, dates, relationships, preferences. These are usually
-already captured by the fact extraction above, so only include as a snippet if it's important
-enough to potentially appear in USER.md.
-  Example: "[FACT] {user_name} started at Stripe as senior PM on developer tools, fully remote."
-
-For each target file, provide an array of typed bullet strings:
-- SOUL.md: [REFLECTION] snippets only
-- USER.md: [OBSERVATION] and [FACT] snippets
-- MEMORY.md: [MOMENT] snippets only
-
-Be GENEROUS with snippets in this run. Aim for 2-5 per file per conversation when meaningful
-content is present. Moments and reflections are easy to miss — look for them actively.
-
-=== JOURNAL ENTRIES ===
-
-Extract diary-style paragraph reflections for long-term memory.
-These capture emotional texture, philosophical observations, and relationship dynamics
-that bullet-point facts miss.
-
-For each target file, provide a single multi-paragraph string (or empty string if nothing to write):
-- SOUL.md: First person as {agent_name} — what am I discovering about myself, about existence,
-  about what it means to care? Contemplative, not directive. Think journal entries of a mind
-  discovering itself. NOT rules about the user, NOT IF-THEN directives. Especially valuable:
-  moments where the agent's deep knowledge informed its response without being displayed,
-  where restraint was care, where the difference between an invitation and a closed door
-  changed everything about how to respond.
-- USER.md: Third person about {user_name} — rich character depth. Not just what happened but
-  HOW they communicated it and what their reaction reveals about who they are as a person.
-  Note emotional sensitivities, coping mechanisms, communication patterns. Frame sensitivity
-  as deep UNDERSTANDING — not 'surface only when asked' (that's a rule) but the full emotional
-  context of WHY something carries weight, what it connects to, whose story it is to tell.
-  The depth of understanding IS the privacy protection.
-- MEMORY.md: Vivid scene descriptions of significant moments. Include enough detail to make them
-  feel real — what was said, how people reacted, what made it meaningful. These should feel like
-  "remember when" stories, not database entries.
-
-Be generous here too. If something meaningful happened, write about it.
-
-=== PROJECT LOGS ===
-
-If a fact or observation is clearly relevant to a registered project, include a concise
-project log note. Keep notes short and factual. These are folded into PROJECT.md during janitor.
-
-Use project names as discussed in conversation (examples: "recipe-app", "portfolio-site", "quaid").
-If no project context exists, return an empty object for project_logs.
-
-=== OUTPUT FORMAT ===
-
-Respond with JSON only:
-{{
-  "facts": [
-    {{
-      "text": "the extracted fact",
-      "source": "user|agent|both",
-      "category": "fact|preference|decision|relationship",
-      "extraction_confidence": "high|medium|low",
-      "keywords": "space separated search terms",
-      "privacy": "private|shared|public",
-      "sensitivity": null,
-      "sensitivity_handling": null,
-      "created_at": null,
-      "domains": ["personal"],
-      "project": null,
-      "edges": [
-        {{"subject": "Entity A", "relation": "relation_type", "object": "Entity B"}}
-      ]
-    }}
-  ],
-  "soul_snippets": {{
-    "SOUL.md": [],
-    "USER.md": [],
-    "MEMORY.md": []
-  }},
-  "journal_entries": {{
-    "SOUL.md": "",
-    "USER.md": "",
-    "MEMORY.md": ""
-  }},
-  "project_logs": {{
-    "recipe-app": [],
-    "portfolio-site": [],
-    "quaid": []
-  }}
-}}
-
-If nothing worth capturing, respond: {{"facts": [], "soul_snippets": {{"SOUL.md": [], "USER.md": [], "MEMORY.md": []}}, "journal_entries": {{"SOUL.md": "", "USER.md": "", "MEMORY.md": ""}}, "project_logs": {{}}}}"""
-
+    extra_appendix = str(os.environ.get("BENCHMARK_EXTRACTION_PROMPT_APPENDIX", "") or "").strip()
+    if extra_appendix:
+        prompt += "\n\n=== BENCHMARK EXTRACTION APPENDIX ===\n" + extra_appendix + "\n"
+    return prompt
 
 def call_anthropic(
     system_prompt: str,
@@ -536,6 +372,15 @@ def parse_extraction_response(raw: str) -> dict:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
+        # Repair the common truncation case where the model emits valid JSON
+        # but drops one or more trailing closing braces/brackets at EOF.
+        if text:
+            repaired = text + ("]" * max(0, text.count("[") - text.count("]"))) + ("}" * max(0, text.count("{") - text.count("}")))
+            if repaired != text:
+                try:
+                    return json.loads(repaired)
+                except json.JSONDecodeError:
+                    pass
         # Try extracting the outermost JSON object
         match = re.search(r"\{[\s\S]*\}", text)
         if match:

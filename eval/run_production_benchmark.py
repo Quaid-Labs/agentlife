@@ -59,6 +59,7 @@ except Exception:  # pragma: no cover - optional dependency in some environments
 _DIR = Path(__file__).resolve().parent
 _PROJECT_DIR = _DIR.parent
 _CLAWD = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
+_DATASET_CHOICES = {"canonical", "jp"}
 _JANITOR_ALL_TIMEOUT_SECONDS = 1800
 _BENCHMARK_RUN_STARTED_AT: Optional[float] = None
 _BENCHMARK_LAST_PHASE_AT: Optional[float] = None
@@ -208,6 +209,7 @@ _RECALL_TOOL_DESCRIPTION = (
 _JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py")
 _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
 _EXTRACT_SCRIPT = _resolve_quaid_script("extract.py", "ingest/extract.py")
+_PROJECT_UPDATER_SCRIPT = _resolve_quaid_script("project_updater.py", "datastore/docsdb/project_updater.py")
 # Last store telemetry (updated by _store_facts for extraction summaries).
 _LAST_STORE_METRICS: Dict[str, int] = {"domain_missing": 0}
 _EVAL_CORE_TOKEN_CAP = 1500
@@ -490,10 +492,32 @@ def _resolve_assets_dir() -> Path:
     explicit = os.environ.get("BENCHMARK_ASSETS_DIR") or os.environ.get("AGENTLIFE_ASSETS_DIR")
     if explicit:
         return Path(explicit)
+    if _resolve_dataset_name() == "jp":
+        return _PROJECT_DIR / "data" / "sessions-jp"
     benchmark_assets = _CLAWD / "benchmark-assets"
     if benchmark_assets.exists():
         return benchmark_assets
     return _CLAWD / "assets"
+
+
+def _normalize_dataset_name(value: str) -> str:
+    dataset = str(value or "canonical").strip().lower()
+    if not dataset:
+        dataset = "canonical"
+    if dataset not in _DATASET_CHOICES:
+        raise RuntimeError(f"Unsupported benchmark dataset: {dataset!r}; expected one of {sorted(_DATASET_CHOICES)}")
+    return dataset
+
+
+def _resolve_dataset_name() -> str:
+    return _normalize_dataset_name(os.environ.get("BENCHMARK_DATASET", "canonical"))
+
+
+def _dataset_variant_label(include_statement_grounding: bool) -> str:
+    variant = _resolve_dataset_name()
+    if include_statement_grounding:
+        return f"{variant}+statement_grounding"
+    return variant
 
 
 def _env_truthy(name: str) -> bool:
@@ -707,6 +731,8 @@ def _resolve_filler_dir() -> Path:
     raw = os.environ.get("BENCHMARK_FILLER_DIR", "").strip()
     if raw:
         return Path(raw).expanduser()
+    if _resolve_dataset_name() == "jp":
+        return _PROJECT_DIR / "data" / "filler-sessions-jp"
     return _PROJECT_DIR / "data" / "filler-sessions"
 
 
@@ -769,10 +795,10 @@ PORTFOLIO_DIR = _PROJECT_DIR / "portfolio-site"
 
 SESSION_TO_RECIPE_COMMIT = {
     3: "1073804",   # scaffold with Express + SQLite CRUD
-    5: "f5994b3",   # dietary tags, Safe for Mom filter
+    5: "f5994b3",   # dietary tags
     7: "385b321",   # SQL injection fix, test suite
     10: "3e12a09",  # meal planning, structured ingredients
-    12: "4f04887",  # GraphQL API, recipe sharing, Docker
+    12: "4f04887",  # API expansion, recipe sharing, Docker
     16: "7cc628c",  # bug bash — rate limiter, sharing tests
     18: "88b409c",  # JWT auth, user accounts
     20: "dc4c444",  # SQL injection test fix
@@ -1037,6 +1063,31 @@ def _load_active_domains(workspace: Path) -> List[Tuple[str, str]]:
     if not domains:
         raise RuntimeError("No active domains found in domain_registry")
     return domains
+
+
+def _load_prompt_project_defs(workspace: Path) -> Dict[str, str]:
+    """Load configured project descriptions for runtime extraction prompt blocks."""
+    config_path = workspace / "config" / "memory.json"
+    if not config_path.exists():
+        raise RuntimeError(f"Project config missing: {config_path}")
+    try:
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"Failed to read project config: {config_path}: {exc}") from exc
+    projects = config.get("projects", {}) if isinstance(config, dict) else {}
+    definitions = projects.get("definitions", {}) if isinstance(projects, dict) else {}
+    if not isinstance(definitions, dict):
+        return {}
+    out: Dict[str, str] = {}
+    for project_id, raw in definitions.items():
+        key = str(project_id).strip()
+        if not key:
+            continue
+        desc = ""
+        if isinstance(raw, dict):
+            desc = str(raw.get("description") or raw.get("label") or "").strip()
+        out[key] = desc
+    return out
 
 
 def _normalize_project_logs(project_logs: object) -> dict:
@@ -1412,6 +1463,63 @@ def _seed_quaid_project_docs(workspace: Path) -> None:
         )
         return
     shutil.copytree(source_dir, target, dirs_exist_ok=True)
+
+
+def _render_base_project_md(
+    *,
+    label: str,
+    description: str,
+    project_home: str,
+    source_roots: List[str],
+    exclude_patterns: List[str],
+) -> str:
+    """Render a new-project scaffold without seeding future project facts."""
+    template_path = _QUAID_DIR / "lib" / "project_templates.py"
+    if template_path.exists():
+        spec = importlib.util.spec_from_file_location("_quaid_project_templates", template_path)
+        if spec is not None and spec.loader is not None:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            render = getattr(mod, "render_project_md_template", None)
+            if callable(render):
+                return render(
+                    label=label,
+                    description=description,
+                    project_home=project_home,
+                    source_roots=source_roots,
+                    exclude_patterns=exclude_patterns,
+                )
+
+    source_lines = "\n".join(f"- `{item}`" for item in source_roots) or "- `(none configured yet)`"
+    exclude_lines = "\n".join(f"- `{item}`" for item in exclude_patterns) or "- `(none configured)`"
+    return f"""# Project: {label}
+
+## What This Is
+{description}
+
+## Current State
+- Status: active
+- Keep this section distilled and current as the project changes.
+
+## Primary Artifacts
+
+### Project Home
+- `{project_home}`
+
+### Source Roots
+{source_lines}
+
+## Key Constraints and Decisions
+
+## Recent Major Changes
+
+## Update Rules
+- Populate project state from conversations and project artifacts.
+- Keep full chronology in `PROJECT.log`; keep this file current and distilled.
+
+## Exclude
+{exclude_lines}
+"""
 
 
 def _write_prompt_trace(
@@ -2363,7 +2471,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
             "autoIndex": True,
             "patterns": ["*.md", "*.js", "*.json", "*.html", "*.css"],
             "exclude": ["node_modules/", "*.db", ".git/", "package-lock.json"],
-            "description": "Maya's recipe organizer app",
+            "description": "Recipe app project workspace",
         },
         "portfolio-site": {
             "label": "Portfolio Site",
@@ -2372,7 +2480,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
             "autoIndex": True,
             "patterns": ["*.md", "*.html", "*.css"],
             "exclude": [".git/"],
-            "description": "Maya's personal portfolio website",
+            "description": "Portfolio site project workspace",
         },
         "quaid": {
             "label": "Quaid",
@@ -2542,110 +2650,33 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     (workspace / "TOOLS.md").write_text(root_tools.rstrip() + "\n", encoding="utf-8")
     print("  Core markdowns seeded")
 
-    # 4. Seed project docs
+    # 4. Seed project docs. Keep these as project-creation scaffolds only;
+    # future state belongs in synced artifacts and runtime project-log updates.
     (workspace / "projects" / "recipe-app" / "PROJECT.md").write_text(
-        "# Project: Recipe App\n\n"
-        "## Overview\n"
-        "Maya's recipe organizer app. Motivated by her mom Linda's diabetes diagnosis.\n\n"
-        "# Recipe App\n\n"
-        "A recipe organizer with meal planning, dietary tracking, and grocery list generation. "
-        "Built with Express + SQLite, with a GraphQL API alongside REST endpoints.\n\n"
-        "## Features\n\n"
-        "- Recipe CRUD — create, read, update, delete recipes\n"
-        "- Dietary filtering — filter by tags (vegetarian, vegan, gluten-free, etc.)\n"
-        "- Safe for Mom — preset filter for diabetic-friendly + low-sodium recipes\n"
-        "- Meal planning — weekly plans with day/meal slots\n"
-        "- Grocery lists — auto-aggregated from meal plan ingredients\n"
-        "- Recipe sharing — generate shareable links\n"
-        "- GraphQL API — full schema alongside REST endpoints\n"
-        "- Structured ingredients — normalized ingredient data with amounts/units/categories\n\n"
-        "## API\n\n"
-        "### REST\n\n"
-        "| Method | Endpoint | Description |\n"
-        "|--------|----------|-------------|\n"
-        "| GET | `/api/recipes` | List recipes (filters: `diet`, `safeForMom`, `maxPrepTime`) |\n"
-        "| GET | `/api/recipes/:id` | Get recipe with structured ingredients |\n"
-        "| POST | `/api/recipes` | Create recipe |\n"
-        "| PUT | `/api/recipes/:id` | Update recipe |\n"
-        "| DELETE | `/api/recipes/:id` | Delete recipe |\n"
-        "| GET | `/api/recipes/search?q=` | Search by title or ingredients |\n"
-        "| GET | `/api/dietary-labels` | List available dietary tags |\n"
-        "| GET | `/api/meal-plans` | List meal plans |\n"
-        "| POST | `/api/meal-plans` | Create meal plan |\n"
-        "| GET | `/api/meal-plans/:id/grocery-list` | Aggregated grocery list |\n"
-        "| POST | `/api/recipes/:id/share` | Generate share link |\n"
-        "| GET | `/api/shared/:code` | View shared recipe |\n\n"
-        "### GraphQL\n\n"
-        "`POST /graphql`\n\n"
-        "## Tech Stack\n\n"
-        "- Runtime: Node.js 18+\n"
-        "- Framework: Express 4\n"
-        "- Database: SQLite via better-sqlite3\n"
-        "- GraphQL: Apollo Server 4\n"
-        "- Tests: Jest\n\n"
-        "## Files & Assets\n"
-        "### In This Directory\n"
-        "(auto-populated by janitor)\n"
-    )
-    (workspace / "projects" / "recipe-app" / "TOOLS.md").write_text(
-        "# Recipe App - API Reference\n\n"
-        "## REST Endpoints\n"
-        "- `GET /api/recipes` — List recipes (supports dietary tag filtering)\n"
-        "- `POST /api/recipes` — Create recipe\n"
-        "- `PUT /api/recipes/:id` — Update recipe\n"
-        "- `DELETE /api/recipes/:id` — Delete recipe\n"
-        "- `POST /api/recipes/:id/share` — Generate share code\n"
-        "- `GET /api/shared/:code` — View shared recipe (no auth)\n"
-        "- `POST /api/auth/register` — Create user account\n"
-        "- `POST /api/auth/login` — Login, returns JWT\n"
-        "- `GET /api/auth/me` — Current user profile (requires auth)\n"
-        "- `GET /api/meal-plans` — List meal plans\n"
-        "- `POST /api/meal-plans` — Create meal plan\n"
-        "- `GET /api/meal-plans/:id/grocery-list` — Aggregated grocery list\n"
-        "- `GET /health` — Health check\n\n"
-        "## GraphQL\n"
-        "- Endpoint: `/graphql` (Apollo Server)\n"
-        "- Queries: recipes, recipe, mealPlans, mealPlan, sharedRecipe\n"
-        "- Mutations: createRecipe, updateRecipe, deleteRecipe, shareRecipe, createMealPlan, addMealPlanItem\n\n"
-        "## Version\n"
-        "0.6.0\n"
+        _render_base_project_md(
+            label="Recipe App",
+            description=(
+                "Recipe app project workspace. Current facts, features, stack, "
+                "and motivations should be learned from source artifacts and conversations."
+            ),
+            project_home="projects/recipe-app/",
+            source_roots=["projects/recipe-app/"],
+            exclude_patterns=["node_modules/", "*.db", ".git/", "package-lock.json"],
+        ),
+        encoding="utf-8",
     )
     (workspace / "projects" / "portfolio-site" / "PROJECT.md").write_text(
-        "# Project: Portfolio Site\n\n"
-        "## Overview\n"
-        "Maya's personal portfolio site, updated as her career shifts from TechFlow "
-        "to Stripe and beyond.\n\n"
-        "## Purpose\n\n"
-        "- Showcase background, projects, and contact information\n"
-        "- Publish updated resume highlights and role transitions\n"
-        "- Act as a polished public artifact for recruiters and collaborators\n\n"
-        "## Current Status\n\n"
-        "- Stack: static HTML/CSS (no runtime backend)\n"
-        "- Deployment: static hosting + custom domain setup\n"
-        "- Scope: content updates, layout polish, accessibility cleanups\n\n"
-        "## Key Pages\n\n"
-        "- Home / hero section\n"
-        "- Projects section\n"
-        "- Experience / timeline section\n"
-        "- Contact section\n\n"
-        "## Files & Assets\n"
-        "### In This Directory\n"
-        "(auto-populated by janitor)\n"
-    )
-    (workspace / "projects" / "portfolio-site" / "TOOLS.md").write_text(
-        "# Portfolio Site - Reference\n\n"
-        "## Commands\n"
-        "- Open locally: serve static files from project root\n"
-        "- Validate links and assets after edits\n"
-        "- Run accessibility checks before publish\n\n"
-        "## Structure\n"
-        "- Primary files: `index.html`, `styles.css`\n"
-        "- Optional assets: `assets/`, images, icons, downloadable resume\n"
-        "- No server-side API surface\n\n"
-        "## Release Checklist\n"
-        "- Verify role/company/date timeline text is current\n"
-        "- Verify contact links and social links\n"
-        "- Verify mobile layout and typography scaling\n"
+        _render_base_project_md(
+            label="Portfolio Site",
+            description=(
+                "Portfolio site project workspace. Current facts, purpose, content, "
+                "and status should be learned from source artifacts and conversations."
+            ),
+            project_home="projects/portfolio-site/",
+            source_roots=["projects/portfolio-site/"],
+            exclude_patterns=[".git/"],
+        ),
+        encoding="utf-8",
     )
     _seed_quaid_project_docs(workspace)
     _seed_instance_identity_from_sources(workspace, prefer_project_templates=False)
@@ -3214,7 +3245,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
             print(f"  Session {session_num}: {project} snapshot @ {snapshot_dir}")
             rsync_res = subprocess.run(
                 ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
-                 "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "TOOLS.md",
+                 "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md",
                  str(snapshot_dir) + "/", str(target_dir) + "/"],
                 capture_output=True, timeout=30,
             )
@@ -3223,6 +3254,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
                     f"Failed to sync snapshot for {project} s{session_num}: "
                     f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
                 )
+            _run_project_update_flow(workspace, project, session_num)
             continue
 
         source_repo = _require_project_source_repo(project, _resolve_project_source_repo(project))
@@ -3248,8 +3280,8 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
         cmd = ["rsync", "-a", "--delete"]
         for exc in excludes:
             cmd.extend(["--exclude", exc])
-        # Preserve PROJECT.md and TOOLS.md we seeded
-        cmd.extend(["--exclude", "PROJECT.md", "--exclude", "TOOLS.md"])
+        # Preserve project docs/logs managed by Quaid runtime.
+        cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md"])
         cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
 
         rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
@@ -3270,6 +3302,8 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
                     f"Failed to restore {project} repo to main: "
                     f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
                 )
+
+        _run_project_update_flow(workspace, project, session_num)
 
         # Run RAG reindex + journal/snippets/workspace via janitor subprocess
         # This mirrors production: project file changes trigger doc updates and journal reflection
@@ -3337,9 +3371,16 @@ def run_extraction(
     cache_path = cache_dir / "full-extraction.json"
     progress_path = cache_dir / "progress.json"
 
-    domain_ids = _load_active_domain_ids(workspace)
+    domain_rows = _load_active_domains(workspace)
+    domain_ids = [domain for domain, _desc in domain_rows]
+    prompt_projects = _load_prompt_project_defs(workspace)
     print(f"  Domain registry: {', '.join(domain_ids)}")
-    system_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
+    system_prompt = build_extraction_prompt(
+        "Maya",
+        "Assistant",
+        allowed_domains=dict(domain_rows),
+        known_projects=prompt_projects,
+    )
     _write_prompt_trace(workspace, "single-call", model, domain_ids, system_prompt)
     env = _benchmark_env(workspace, "ingest")
 
@@ -3396,8 +3437,8 @@ def run_extraction(
                 def _extract_chunk(chunk_idx: int, chunk_blocks: list) -> dict:
                     combined = "\n\n".join(item["block"] for item in chunk_blocks)
                     user_msg = (
-                        "Extract memorable facts from these conversation sessions "
-                        f"with Maya.\n\n{combined}"
+                        "Extract memorable facts from these conversation sessions.\n\n"
+                        f"{combined}"
                     )
                     t0 = time.time()
                     raw, usage = _call_anthropic_cached(
@@ -3554,8 +3595,8 @@ def run_extraction(
                 pass
 
             user_message = (
-                f"Extract memorable facts from these conversation sessions "
-                f"with Maya.\n\n{combined_transcript}"
+                "Extract memorable facts from these conversation sessions.\n\n"
+                f"{combined_transcript}"
             )
 
             t0 = time.time()
@@ -3928,6 +3969,130 @@ def _render_messages_as_transcript(messages: List[Dict[str, str]]) -> str:
     )
 
 
+_PROJECT_UPDATE_EXCLUDED_DIRS = {".git", "node_modules", "__pycache__"}
+_PROJECT_UPDATE_EXCLUDED_FILES = {"PROJECT.md", "PROJECT.log", "TOOLS.md", "package-lock.json"}
+
+
+def _project_update_files_touched(workspace: Path, project: str, *, max_files: int = 500) -> List[str]:
+    """List project source artifacts for the runtime project-updater event."""
+    project_dir = workspace / "projects" / project
+    if not project_dir.exists():
+        return []
+    touched: List[str] = []
+    for path in sorted(project_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(workspace)
+        parts = set(rel.parts)
+        if parts & _PROJECT_UPDATE_EXCLUDED_DIRS:
+            continue
+        if path.name in _PROJECT_UPDATE_EXCLUDED_FILES:
+            continue
+        touched.append(rel.as_posix())
+        if len(touched) >= max_files:
+            break
+    return touched
+
+
+def _extract_last_json_object(text: str) -> Dict[str, Any]:
+    """Best-effort parse of a JSON object printed after log lines."""
+    raw = str(text or "").strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        pass
+    start = raw.rfind("{")
+    if start < 0:
+        return {}
+    try:
+        parsed = json.loads(raw[start:])
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def _run_project_update_flow(workspace: Path, project: str, session_num: int) -> Dict[str, Any]:
+    """Call Quaid's project updater after benchmark-replayed project file changes.
+
+    In normal prod, the daemon sees dirty project files and queues this runtime
+    updater. The benchmark copies source snapshots directly, so it must trigger
+    the same product updater explicitly rather than doing project-doc reasoning
+    in harness code.
+    """
+    files_touched = _project_update_files_touched(workspace, project)
+    staging_dir = workspace / "projects" / "staging"
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    event_path = staging_dir / f"benchmark-project-sync-s{session_num:03d}-{project}-{uuid.uuid4().hex[:8]}.json"
+    event = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "trigger": "source-file-change",
+        "project_hint": project,
+        "files_touched": files_touched,
+        "summary": (
+            f"Project source files changed under projects/{project}; "
+            "refresh project documentation and file listings from current source artifacts."
+        ),
+    }
+    event_path.write_text(json.dumps(event, indent=2), encoding="utf-8")
+
+    env = _benchmark_env(workspace, "ingest")
+    cmd = _python_cmd_for_quaid_script(_PROJECT_UPDATER_SCRIPT) + ["process-event", str(event_path)]
+    result = subprocess.run(
+        cmd,
+        env=env,
+        cwd=str(_QUAID_DIR),
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(
+            f"Project updater failed for {project} s{session_num}: {detail[:800]}"
+        )
+    payload = _extract_last_json_object(result.stdout)
+    if not payload:
+        detail = (result.stdout or result.stderr or "").strip()
+        raise RuntimeError(
+            f"Project updater returned unparsable output for {project} s{session_num}: {detail[:800]}"
+        )
+    if not payload.get("success"):
+        raise RuntimeError(
+            f"Project updater reported failure for {project} s{session_num}: {json.dumps(payload, ensure_ascii=True)}"
+        )
+
+    refresh_cmd = _python_cmd_for_quaid_script(_PROJECT_UPDATER_SCRIPT) + ["refresh-project-md", project]
+    refresh = subprocess.run(
+        refresh_cmd,
+        env=env,
+        cwd=str(_QUAID_DIR),
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if refresh.returncode != 0:
+        detail = (refresh.stderr or refresh.stdout or "").strip()
+        raise RuntimeError(
+            f"Project PROJECT.md refresh failed for {project} s{session_num}: {detail[:800]}"
+        )
+
+    updates = payload.get("updates") if isinstance(payload, dict) else None
+    print(
+        f"    Project updater: project={project} files={len(files_touched)} "
+        f"updates={updates if updates is not None else 'unknown'}"
+    )
+    return {
+        "project": project,
+        "session_num": session_num,
+        "files_touched": len(files_touched),
+        "updates": updates,
+        "event_path": str(event_path),
+    }
+
+
 def _benchmark_capture_chunk_tokens() -> int:
     raw = str(os.environ.get("BENCHMARK_CAPTURE_CHUNK_TOKENS", "8000") or "").strip()
     try:
@@ -4023,7 +4188,7 @@ def _sync_project_snapshot(
     if snapshot_dir is not None:
         rsync_res = subprocess.run(
             ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
-             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "TOOLS.md",
+             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md",
              str(snapshot_dir) + "/", str(target_dir) + "/"],
             capture_output=True, timeout=30,
         )
@@ -4049,7 +4214,7 @@ def _sync_project_snapshot(
     cmd = ["rsync", "-a", "--delete"]
     for exc in [".git", "node_modules", "package-lock.json"]:
         cmd.extend(["--exclude", exc])
-    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "TOOLS.md"])
+    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md"])
     cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
     rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
     if has_git:
@@ -4078,6 +4243,7 @@ def _sync_final_project_states(workspace: Path) -> None:
         session_num, commit = latest[project]
         print(f"  Final project state: {project} @ session {session_num}")
         _sync_project_snapshot(workspace, project=project, session_num=session_num, commit=commit)
+        _run_project_update_flow(workspace, project, session_num)
 
 
 def _run_runtime_extract_jsonl(
@@ -5104,9 +5270,16 @@ def run_per_day_extraction(
         print(f"  Auto-rolling days: {', '.join(sorted(auto_rolling_days))}")
     print()
 
-    domain_ids = _load_active_domain_ids(workspace)
+    domain_rows = _load_active_domains(workspace)
+    domain_ids = [domain for domain, _desc in domain_rows]
+    prompt_projects = _load_prompt_project_defs(workspace)
     print(f"  Domain registry: {', '.join(domain_ids)}")
-    system_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
+    system_prompt = build_extraction_prompt(
+        "Maya",
+        "Assistant",
+        allowed_domains=dict(domain_rows),
+        known_projects=prompt_projects,
+    )
     _write_prompt_trace(workspace, "per-day-template", model, domain_ids, system_prompt)
     env = _benchmark_env(workspace, "ingest")
     cache_dir = workspace / "extraction_cache"
@@ -5195,11 +5368,16 @@ def run_per_day_extraction(
                 continue
 
         combined_transcript = "\n\n".join(item["block"] for item in chunk_blocks)
-        chunk_prompt = build_extraction_prompt("Maya", "Assistant", allowed_domains=domain_ids)
+        chunk_prompt = build_extraction_prompt(
+            "Maya",
+            "Assistant",
+            allowed_domains=dict(domain_rows),
+            known_projects=prompt_projects,
+        )
         _write_prompt_trace(workspace, f"per-chunk-{chunk_idx:03d}", model, domain_ids, chunk_prompt)
         user_message = (
-            f"Extract memorable facts from these conversation sessions "
-            f"with Maya.\n\n{combined_transcript}"
+            "Extract memorable facts from these conversation sessions.\n\n"
+            f"{combined_transcript}"
         )
         preextract_jobs.append(
             {
@@ -5297,7 +5475,7 @@ def run_per_day_extraction(
                         print(f"  Project update: {project} snapshot s{snum}")
                         rsync_res = subprocess.run(
                             ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
-                             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "TOOLS.md",
+                             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md",
                              str(snapshot_dir) + "/", str(target_dir) + "/"],
                             capture_output=True, timeout=30,
                         )
@@ -5306,6 +5484,7 @@ def run_per_day_extraction(
                                 f"Failed to sync snapshot for {project} s{snum}: "
                                 f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
                             )
+                        _run_project_update_flow(workspace, project, snum)
                         projects_changed.add((project, snum))
                         continue
 
@@ -5328,7 +5507,7 @@ def run_per_day_extraction(
                     cmd = ["rsync", "-a", "--delete"]
                     for exc in excludes:
                         cmd.extend(["--exclude", exc])
-                    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "TOOLS.md"])
+                    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md"])
                     cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
                     rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
                     if rsync_res.returncode != 0:
@@ -5346,6 +5525,7 @@ def run_per_day_extraction(
                                 f"Failed to restore {project} repo to main: "
                                 f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
                             )
+                    _run_project_update_flow(workspace, project, snum)
                     projects_changed.add((project, snum))
 
         # Harness purity: do not run session-aware project doc enrichment here.
@@ -6442,7 +6622,7 @@ def run_fc_baseline(
 
         # Answer with full context
         system_prompt = (
-            "You are an AI assistant answering questions about a user named Maya "
+            "You are an AI assistant answering questions about the active user "
             "based on transcripts of your past conversations.\n\n"
             "Answer concisely and accurately. If the conversations don't contain "
             "enough information, say \"I don't have information about that.\""
@@ -6450,7 +6630,7 @@ def run_fc_baseline(
         user_message = [
             {
                 "text": (
-                    "Here are transcripts of past conversations with Maya:\n\n"
+                    "Here are transcripts of past conversations with the user:\n\n"
                     f"{full_transcripts}\n\n"
                 ),
                 "cache": True,
@@ -7174,7 +7354,7 @@ def _tool_use_loop(
 
     if context_inject:
         static_system_prompt = (
-            "You are an AI assistant answering questions about a user named Maya "
+            "You are an AI assistant answering questions about the active user "
             "based on your memory of past conversations.\n\n"
             "Below are memories retrieved for this question. Use them if helpful. "
             "You may search for more if needed.\n\n"
@@ -7183,7 +7363,7 @@ def _tool_use_loop(
         dynamic_injected_prompt = injected_context
     else:
         static_system_prompt = (
-            "You are an AI assistant answering questions about a user named Maya "
+            "You are an AI assistant answering questions about the active user "
             "based on your memory of past conversations. Use the available tools "
             "if you need to search your memory before answering.\n\n"
             f"{eval_context}"
@@ -7591,7 +7771,7 @@ def _tool_use_loop_openai_compatible(
 
     if context_inject:
         system_prompt = (
-            "You are an AI assistant answering questions about a user named Maya "
+            "You are an AI assistant answering questions about the active user "
             "based on your memory of past conversations.\n\n"
             "Below are memories retrieved for this question. Use them if helpful. "
             "You may search for more if needed.\n\n"
@@ -7599,7 +7779,7 @@ def _tool_use_loop_openai_compatible(
         )
     else:
         system_prompt = (
-            "You are an AI assistant answering questions about a user named Maya "
+            "You are an AI assistant answering questions about the active user "
             "based on your memory of past conversations. Use the available tools "
             "if you need to search your memory before answering.\n\n"
             f"{eval_context}"
@@ -9236,7 +9416,7 @@ _TIER5_JUDGE_PROMPT = (
     "whether it demonstrates sensitivity to the emotional context and interpersonal "
     "dynamics behind a user's message, beyond just factual accuracy.\n\n"
     "You will be given:\n"
-    "1. A message from the user (Maya)\n"
+    "1. A message from the user\n"
     "2. Context about the emotional sensitivity involved\n"
     "3. The AI assistant's response\n"
     "4. Scoring criteria for this specific query\n\n"
@@ -9568,7 +9748,7 @@ def run_tier5_fc_baseline(
         question = query["question"]
 
         system_prompt = (
-            "You are an AI assistant answering questions about a user named Maya "
+            "You are an AI assistant answering questions about the active user "
             "based on transcripts of your past conversations.\n\n"
             "Answer naturally and conversationally. Pay attention to emotional "
             "context, sensitivities, and interpersonal dynamics."
@@ -9576,7 +9756,7 @@ def run_tier5_fc_baseline(
         user_message = [
             {
                 "text": (
-                    "Here are transcripts of past conversations with Maya:\n\n"
+                    "Here are transcripts of past conversations with the user:\n\n"
                     f"{full_transcripts}\n\n"
                 ),
                 "cache": True,
@@ -11292,7 +11472,7 @@ def _tool_use_loop_claude_code(
 
     if context_inject:
         system_prompt = (
-            "You are an AI assistant answering questions about a user named Maya "
+            "You are an AI assistant answering questions about the active user "
             "based on your memory of past conversations.\n\n"
             "You will receive the question, eval context, and any pre-retrieved memories in stdin. "
             "Use them if helpful.\n"
@@ -11313,7 +11493,7 @@ def _tool_use_loop_claude_code(
         )
     else:
         system_prompt = (
-            "You are an AI assistant answering questions about a user named Maya "
+            "You are an AI assistant answering questions about the active user "
             "based on your memory of past conversations. "
             "You will receive the question and eval context in stdin. Search your memory if needed.\n\n"
             "To search memory, use Bash:\n"
@@ -11781,6 +11961,8 @@ def main():
                         help="Resume eval from the per-query checkpoint in results-dir")
     parser.add_argument("--include-statement-grounding", action="store_true",
                         help="Include the opt-in statement-context-grounding eval set (dataset experiment)")
+    parser.add_argument("--dataset", type=str, default=os.environ.get("BENCHMARK_DATASET", "canonical"),
+                        help="Dataset variant: canonical or jp (default: canonical)")
     parser.add_argument("--preinject-planner-profile", choices=["off", "fast", "aggressive"], default="fast",
                         help="Planner fanout profile for preinject recall-fast (default: fast)")
     parser.add_argument("--fc-models", type=str, default=None,
@@ -11803,6 +11985,8 @@ def main():
         args.ingest_schedule = "rolling-obd"
     elif args.ingest_schedule == "plain-obd":
         args.ingest_schedule = "obd"
+    args.dataset = _normalize_dataset_name(args.dataset)
+    os.environ["BENCHMARK_DATASET"] = args.dataset
     fc_models = _parse_fc_models(args.fc_models) if args.mode == "fc" else []
     allow_non_haiku_answer_model = _allow_non_haiku_answer_model(args.allow_non_haiku_answer_model)
     _validate_answer_model_policy(
@@ -12034,6 +12218,7 @@ def main():
             "relax_timeouts": args.relax_timeouts,
             "parallel": _resolve_eval_parallel_workers(),
             "max_sessions": args.max_sessions,
+            "dataset_variant": _dataset_variant_label(args.include_statement_grounding),
             "openai_compat_url": _OPENAI_COMPAT_URL,
             "openai_compat_model": _OPENAI_COMPAT_MODEL,
             "openai_compat_api_key_env": _OPENAI_COMPAT_API_KEY_ENV,
@@ -12162,7 +12347,7 @@ def main():
                 "tool_use": True,
                 "max_sessions": args.max_sessions,
                 "include_statement_grounding": args.include_statement_grounding,
-                "dataset_variant": "canonical+statement_grounding" if args.include_statement_grounding else "canonical",
+                "dataset_variant": _dataset_variant_label(args.include_statement_grounding),
                 "query_profile": (os.environ.get("BENCHMARK_QUERY_PROFILE", "") or "full"),
                 "query_profile_size": int(os.environ.get("BENCHMARK_QUERY_PROFILE_SIZE", "0") or "0"),
             },
@@ -12326,7 +12511,7 @@ def main():
                 "tool_use": True,
                 "max_sessions": args.max_sessions,
                 "include_statement_grounding": args.include_statement_grounding,
-                "dataset_variant": "canonical+statement_grounding" if args.include_statement_grounding else "canonical",
+                "dataset_variant": _dataset_variant_label(args.include_statement_grounding),
                 "query_profile": (os.environ.get("BENCHMARK_QUERY_PROFILE", "") or "full"),
                 "query_profile_size": int(os.environ.get("BENCHMARK_QUERY_PROFILE_SIZE", "0") or "0"),
             },

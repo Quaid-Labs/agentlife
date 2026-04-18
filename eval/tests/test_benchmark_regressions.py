@@ -49,6 +49,76 @@ class _FakeSubprocessResult:
     stderr = ""
 
 
+def test_base_project_md_scaffold_does_not_seed_future_project_facts():
+    text = rpb._render_base_project_md(
+        label="Recipe App",
+        description=(
+            "Recipe app project workspace. Current facts, features, stack, "
+            "and motivations should be learned from source artifacts and conversations."
+        ),
+        project_home="projects/recipe-app/",
+        source_roots=["projects/recipe-app/"],
+        exclude_patterns=["node_modules/", "*.db"],
+    )
+
+    assert "# Project: Recipe App" in text
+    assert "projects/recipe-app/" in text
+    assert "source artifacts and conversations" in text
+    assert "Safe for Mom" not in text
+    assert "Linda" not in text
+    assert "GraphQL API" not in text
+    assert "TechFlow" not in text
+
+
+def test_project_update_flow_invokes_runtime_updater(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    project_dir = workspace / "projects" / "recipe-app"
+    project_dir.mkdir(parents=True)
+    (project_dir / "index.js").write_text("console.log('recipe')\n", encoding="utf-8")
+    (project_dir / "PROJECT.md").write_text("# Project: Recipe App\n", encoding="utf-8")
+    (project_dir / "TOOLS.md").write_text("# Tools\n", encoding="utf-8")
+    (project_dir / "node_modules").mkdir()
+    (project_dir / "node_modules" / "skip.js").write_text("skip\n", encoding="utf-8")
+
+    calls = []
+
+    class _Result:
+        def __init__(self, stdout='{"success": true, "updates": 0}\n'):
+            self.returncode = 0
+            self.stdout = stdout
+            self.stderr = ""
+
+    def _fake_run(cmd, **kwargs):
+        calls.append((list(cmd), kwargs))
+        if "process-event" in cmd:
+            return _Result("log line\n{\"success\": true, \"updates\": 0}\n")
+        return _Result("refreshed\n")
+
+    monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"QUAID_HOME": str(workspace)})
+    monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _script: [sys.executable, "project_updater.py"])
+    monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+    monkeypatch.setattr(rpb.subprocess, "run", _fake_run)
+
+    result = rpb._run_project_update_flow(workspace, "recipe-app", 3)
+
+    assert result["project"] == "recipe-app"
+    assert result["files_touched"] == 1
+    assert len(calls) == 2
+    assert "process-event" in calls[0][0]
+    assert calls[0][1]["env"]["QUAID_HOME"] == str(workspace)
+    assert calls[0][1]["cwd"] == str(tmp_path)
+    assert calls[1][0][-2:] == ["refresh-project-md", "recipe-app"]
+
+    event_path = Path(calls[0][0][-1])
+    event = json.loads(event_path.read_text(encoding="utf-8"))
+    assert event["trigger"] == "source-file-change"
+    assert event["project_hint"] == "recipe-app"
+    assert "Benchmark" not in event["summary"]
+    assert event["files_touched"] == ["projects/recipe-app/index.js"]
+    assert "PROJECT.md" not in json.dumps(event)
+    assert "TOOLS.md" not in json.dumps(event)
+
+
 def _fake_updater_module(fn_name="append_project_logs", fn=None):
     """Create fake datastore.docsdb.project_updater module hierarchy."""
     datastore_mod = ModuleType("datastore")
@@ -108,6 +178,10 @@ class TestNormalizeDomainList:
     def test_alias_financial_to_finance(self):
         out = rpb._normalize_domain_list(["financial", "work", "finance"])
         assert out == ["finance", "work"]
+
+    def test_alias_relationship_and_family_to_personal(self):
+        out = rpb._normalize_domain_list(["relationship", "family", "personal"])
+        assert out == ["personal"]
 
     def test_project_and_projects_dedup(self):
         out = rpb._normalize_domain_list(["project", "projects"])
@@ -254,7 +328,7 @@ class TestOpenAICompatibleProviderHealth:
 
 
 class TestEvalEmbeddingPreflight:
-    def test_skips_when_provider_is_not_ollama(self, tmp_path):
+    def test_fails_when_provider_is_not_ollama(self, tmp_path):
         ws = tmp_path / "ws"
         (ws / "config").mkdir(parents=True)
         (ws / "config" / "memory.json").write_text(json.dumps({
@@ -262,14 +336,37 @@ class TestEvalEmbeddingPreflight:
             "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
         }))
 
-        rpb._eval_embedding_provider_preflight(ws)
+        with pytest.raises(RuntimeError, match="embeddings provider must be 'ollama'"):
+            rpb._eval_embedding_provider_preflight(ws)
+
+    def test_fails_when_embedding_model_is_not_nomic(self, tmp_path):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True)
+        (ws / "config" / "memory.json").write_text(json.dumps({
+            "models": {"embeddingsProvider": "ollama"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b", "embeddingDim": 4096},
+        }))
+
+        with pytest.raises(RuntimeError, match="embedding model must be 'nomic-embed-text'"):
+            rpb._eval_embedding_provider_preflight(ws)
+
+    def test_fails_when_embedding_dim_is_not_768(self, tmp_path):
+        ws = tmp_path / "ws"
+        (ws / "config").mkdir(parents=True)
+        (ws / "config" / "memory.json").write_text(json.dumps({
+            "models": {"embeddingsProvider": "ollama"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "nomic-embed-text", "embeddingDim": 4096},
+        }))
+
+        with pytest.raises(RuntimeError, match="embedding dimension must be 768"):
+            rpb._eval_embedding_provider_preflight(ws)
 
     def test_fails_when_ollama_embedding_provider_unreachable(self, tmp_path, monkeypatch):
         ws = tmp_path / "ws"
         (ws / "config").mkdir(parents=True)
         (ws / "config" / "memory.json").write_text(json.dumps({
             "models": {"embeddingsProvider": "ollama"},
-            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "nomic-embed-text", "embeddingDim": 768},
         }))
 
         def _boom(*_a, **_k):
@@ -285,10 +382,10 @@ class TestEvalEmbeddingPreflight:
         (ws / "config").mkdir(parents=True)
         (ws / "config" / "memory.json").write_text(json.dumps({
             "models": {"embeddingsProvider": "ollama"},
-            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "nomic-embed-text", "embeddingDim": 768},
         }))
 
-        monkeypatch.setattr(rpb, "_ollama_list_models", lambda *_a, **_k: {"qwen3-embedding:4b", "nomic-embed-text:latest"})
+        monkeypatch.setattr(rpb, "_ollama_list_models", lambda *_a, **_k: {"qwen3-embedding:4b"})
 
         with pytest.raises(RuntimeError, match="configured Ollama embedding model is not available"):
             rpb._eval_embedding_provider_preflight(ws)
@@ -298,7 +395,7 @@ class TestEvalEmbeddingPreflight:
         (ws / "config").mkdir(parents=True)
         (ws / "config" / "memory.json").write_text(json.dumps({
             "models": {"embeddingsProvider": "ollama"},
-            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "nomic-embed-text"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "nomic-embed-text", "embeddingDim": 768},
         }))
 
         monkeypatch.setattr(rpb, "_ollama_list_models", lambda *_a, **_k: {"nomic-embed-text:latest"})
@@ -310,7 +407,7 @@ class TestEvalEmbeddingPreflight:
         (ws / "config").mkdir(parents=True)
         (ws / "config" / "memory.json").write_text(json.dumps({
             "models": {"embeddingsProvider": "ollama"},
-            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "nomic-embed-text", "embeddingDim": 768},
         }))
 
         monkeypatch.setattr(rpb, "_ollama_list_models", lambda *_a, **_k: {"qwen3-embedding:8b", "nomic-embed-text:latest"})
@@ -322,7 +419,7 @@ class TestEvalEmbeddingPreflight:
         (ws / "config").mkdir(parents=True)
         (ws / "config" / "memory.json").write_text(json.dumps({
             "models": {"embeddingsProvider": "ollama"},
-            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b"},
+            "ollama": {"url": "http://127.0.0.1:11434", "embeddingModel": "qwen3-embedding:8b", "embeddingDim": 4096},
         }))
         monkeypatch.setenv("BENCHMARK_SKIP_EMBEDDING_PREFLIGHT", "1")
         monkeypatch.setattr(rpb, "_ollama_list_models", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("should not probe")))
@@ -601,6 +698,7 @@ class TestFcBaselinesFailHard:
             ),
         )
         monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_eval_embedding_provider_preflight", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_write_eval_query_profile_manifest", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_resolve_eval_context_profile", lambda: ("lean", [], True))
         monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
@@ -699,6 +797,7 @@ class TestFcBaselinesFailHard:
             ),
         )
         monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_eval_embedding_provider_preflight", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_write_eval_query_profile_manifest", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_resolve_eval_context_profile", lambda: ("lean", [], True))
         monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
@@ -1609,6 +1708,7 @@ class TestOBDExtractionTimeoutEnv:
         assert out["signals_processed"] == 0
         assert "max_repeated_signal_retries" in captured["driver_code"]
         assert "rolling driver signal preserved after" in captured["driver_code"]
+        assert "os.environ['QUAID_CAPTURE_CHUNK_TOKENS'] = chunk_raw" in captured["driver_code"]
 
     def test_run_runtime_rolling_driver_rehydrates_anthropic_auth(self, tmp_path, monkeypatch):
         transcript = tmp_path / "obd.jsonl"
@@ -2946,6 +3046,163 @@ def test_call_openai_compatible_chat_uses_codex_oauth_sse_contract(monkeypatch, 
     assert captured["body"]["stream"] is True
     assert captured["body"]["input"][0]["role"] == "user"
     assert captured["body"]["prompt_cache_key"]
+    assert "include" not in captured["body"]
+
+
+def test_call_openai_compatible_chat_codex_omits_reasoning_when_effort_unset(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setattr(rpb, "_BACKEND", "codex")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "https://chatgpt.com/backend-api")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "gpt-5.4-mini")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "BENCHMARK_CODEX_API_KEY")
+    monkeypatch.setattr(rpb, "_CODEX_DEEP_EFFORT", "")
+    monkeypatch.setattr(rpb, "_CODEX_FAST_EFFORT", "")
+    monkeypatch.setenv(
+        "BENCHMARK_CODEX_API_KEY",
+        "aaa.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoiYWNjdC0xMjMifX0.bbb",
+    )
+
+    captured = {}
+
+    class _Resp:
+        def __init__(self):
+            self._lines = iter(
+                [
+                    b"event: response.output_text.delta\n",
+                    b"data: {\"type\":\"response.output_text.delta\",\"delta\":\"hello\"}\n",
+                    b"\n",
+                    b"event: response.completed\n",
+                    b"data: {\"type\":\"response.completed\",\"response\":{\"model\":\"gpt-5.4-mini-2026-03-17\",\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":3,\"total_tokens\":13}}}\n",
+                    b"\n",
+                    b"",
+                ]
+            )
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def readline(self):
+            return next(self._lines)
+
+    def _fake_urlopen(req, timeout=None):
+        captured["body"] = json.loads(req.data.decode("utf-8"))
+        return _Resp()
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    data, usage = rpb._call_openai_compatible_chat(
+        messages=[{"role": "user", "content": "hello"}],
+        model="gpt-5.4-mini",
+        max_tokens=32,
+        timeout=120,
+        workspace=workspace,
+        source="extraction",
+        provider="codex",
+    )
+
+    assert data["choices"][0]["message"]["content"] == "hello"
+    assert usage["output_tokens"] == 3
+    assert "reasoning" not in captured["body"]
+
+
+def test_call_openai_compatible_chat_codex_uses_configured_reasoning_efforts(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setattr(rpb, "_BACKEND", "codex")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_URL", "https://chatgpt.com/backend-api")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_MODEL", "gpt-5.4-mini")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "BENCHMARK_CODEX_API_KEY")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_JUDGE_URL", "https://chatgpt.com/backend-api")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_JUDGE_MODEL", "gpt-5.4-mini")
+    monkeypatch.setattr(rpb, "_OPENAI_COMPAT_JUDGE_API_KEY_ENV", "BENCHMARK_CODEX_JUDGE_API_KEY")
+    monkeypatch.setattr(rpb, "_CODEX_DEEP_EFFORT", "low")
+    monkeypatch.setattr(rpb, "_CODEX_FAST_EFFORT", "none")
+    monkeypatch.setenv(
+        "BENCHMARK_CODEX_API_KEY",
+        "aaa.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoiYWNjdC0xMjMifX0.bbb",
+    )
+    monkeypatch.setenv(
+        "BENCHMARK_CODEX_JUDGE_API_KEY",
+        "aaa.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoiYWNjdC0xMjMifX0.bbb",
+    )
+
+    captured_bodies = []
+
+    class _Resp:
+        def __init__(self):
+            self._lines = iter(
+                [
+                    b"event: response.output_text.delta\n",
+                    b"data: {\"type\":\"response.output_text.delta\",\"delta\":\"hello\"}\n",
+                    b"\n",
+                    b"event: response.completed\n",
+                    b"data: {\"type\":\"response.completed\",\"response\":{\"model\":\"gpt-5.4-mini-2026-03-17\",\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":3,\"total_tokens\":13}}}\n",
+                    b"\n",
+                    b"",
+                ]
+            )
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def readline(self):
+            return next(self._lines)
+
+    def _fake_urlopen(req, timeout=None):
+        captured_bodies.append(json.loads(req.data.decode("utf-8")))
+        return _Resp()
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    rpb._call_openai_compatible_chat(
+        messages=[{"role": "user", "content": "hello"}],
+        model="gpt-5.4-mini",
+        max_tokens=32,
+        timeout=120,
+        workspace=workspace,
+        source="extraction",
+        provider="codex",
+    )
+    rpb._call_openai_compatible_chat(
+        messages=[{"role": "user", "content": "hello"}],
+        model="gpt-5.4-mini",
+        max_tokens=32,
+        timeout=120,
+        workspace=workspace,
+        source="judge",
+        provider="codex",
+    )
+
+    assert captured_bodies[0]["reasoning"]["effort"] == "low"
+    assert captured_bodies[1]["reasoning"]["effort"] == "none"
+
+
+def test_write_extraction_output_trace_persists_raw_output(tmp_path):
+    rpb._write_extraction_output_trace(
+        tmp_path,
+        "per day chunk 000",
+        "gpt-5.4",
+        "{\"facts\":[]}",
+    )
+    trace_path = tmp_path / "logs" / "extraction-output-trace.jsonl"
+    assert trace_path.exists()
+    lines = trace_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    payload = json.loads(lines[0])
+    assert payload["event"] == "extraction_output"
+    assert payload["scope"] == "per day chunk 000"
+    assert payload["model"] == "gpt-5.4"
+    assert payload["chars"] == len("{\"facts\":[]}")
+    output_file = Path(payload["output_file"])
+    assert output_file.exists()
+    assert output_file.read_text(encoding="utf-8") == "{\"facts\":[]}"
 
 
 def test_resolve_judge_provider_uses_openai_compatible_for_codex_backend(monkeypatch):
@@ -4737,6 +4994,7 @@ def test_run_eval_parallel_progress_heartbeats_without_completed_queries(tmp_pat
     monkeypatch.setattr(rpb, "get_all_eval_queries", lambda _reviews: queries)
     monkeypatch.setattr(rpb, "_apply_eval_query_profile", lambda queries: (queries, {"profile": "full", "selected": len(queries), "requested": len(queries)}))
     monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "_eval_embedding_provider_preflight", lambda *_a, **_k: None)
     monkeypatch.setattr(rpb, "_write_eval_query_profile_manifest", lambda *_a, **_k: None)
     monkeypatch.setattr(rpb, "_resolve_eval_context_profile", lambda: ("full", ["SOUL", "USER", "MEMORY"], True))
     monkeypatch.setattr(rpb, "_build_eval_context", lambda *_a, **_k: "ctx")
@@ -5053,6 +5311,60 @@ def test_anthropic_text_blocks_support_mixed_cache_policy():
 
 
 class TestSetupWorkspaceConfig:
+    def test_workspace_seeds_janitor_checkpoint_and_clears_deferred_notices(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = tmp_path / "modules" / "quaid"
+        quaid_dir.mkdir(parents=True)
+        (quaid_dir / "schema.sql").write_text("CREATE TABLE test(id INTEGER);", encoding="utf-8")
+        (quaid_dir / "config").mkdir(parents=True)
+        (quaid_dir / "config" / "memory.json").write_text(json.dumps({}), encoding="utf-8")
+        monkeypatch.setattr(rpb, "_QUAID_DIR", quaid_dir)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_bootstrap_domain_registry", lambda conn: None)
+        monkeypatch.setattr(rpb, "_load_active_domains", lambda _workspace: [])
+
+        stale_checkpoint = {
+            "task": "all",
+            "status": "failed",
+            "last_completed_at": "2000-01-01T00:00:00Z",
+        }
+        stale_deferred = {
+            "version": 1,
+            "requests": [
+                {
+                    "id": "janitor-test",
+                    "status": "pending",
+                    "kind": "janitor",
+                    "priority": "normal",
+                    "message": "stale notice",
+                }
+            ],
+        }
+        roots = [
+            workspace / rpb._BENCHMARK_QUAID_INSTANCE,
+            workspace / "instances" / rpb._BENCHMARK_QUAID_INSTANCE,
+        ]
+        for root in roots:
+            checkpoint = root / "logs" / "janitor" / "checkpoint-all.json"
+            checkpoint.parent.mkdir(parents=True, exist_ok=True)
+            checkpoint.write_text(json.dumps(stale_checkpoint), encoding="utf-8")
+            deferred = root / ".runtime" / "notes" / "delayed-llm-requests.json"
+            deferred.parent.mkdir(parents=True, exist_ok=True)
+            deferred.write_text(json.dumps(stale_deferred), encoding="utf-8")
+
+        rpb.setup_workspace(workspace)
+
+        for root in roots:
+            checkpoint = root / "logs" / "janitor" / "checkpoint-all.json"
+            checkpoint_payload = json.loads(checkpoint.read_text(encoding="utf-8"))
+            assert checkpoint_payload["status"] == "completed"
+            assert str(checkpoint_payload.get("last_completed_at") or "").strip()
+            assert str(checkpoint_payload.get("benchmark_seeded_at") or "").strip()
+
+            deferred = root / ".runtime" / "notes" / "delayed-llm-requests.json"
+            deferred_payload = json.loads(deferred.read_text(encoding="utf-8"))
+            assert deferred_payload == {"version": 1, "requests": []}
+
     def test_claude_code_workspace_forces_split_tiers(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         quaid_dir = tmp_path / "modules" / "quaid"
@@ -5438,21 +5750,21 @@ class TestSetupWorkspaceConfig:
         monkeypatch.setattr(rpb, "_OPENAI_COMPAT_API_KEY_ENV", "BENCHMARK_LLAMA_CPP_API_KEY")
         monkeypatch.setenv("BENCHMARK_EMBEDDINGS_PROVIDER", "ollama")
         monkeypatch.setenv("BENCHMARK_OLLAMA_URL", "http://127.0.0.1:11434")
-        monkeypatch.setenv("BENCHMARK_EMBEDDING_MODEL", "qwen3-embedding:8b")
-        monkeypatch.setenv("BENCHMARK_EMBEDDING_DIM", "4096")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_MODEL", "nomic-embed-text")
+        monkeypatch.setenv("BENCHMARK_EMBEDDING_DIM", "768")
 
         rpb._normalize_workspace_runtime_config(workspace, requested_model="gemma-4-31b-it")
 
         cfg = json.loads((workspace / "config" / "memory.json").read_text(encoding="utf-8"))
         assert cfg["models"]["embeddingsProvider"] == "ollama"
         assert cfg["ollama"]["url"] == "http://127.0.0.1:11434"
-        assert cfg["ollama"]["embeddingModel"] == "qwen3-embedding:8b"
-        assert cfg["ollama"]["embeddingDim"] == 4096
+        assert cfg["ollama"]["embeddingModel"] == "nomic-embed-text"
+        assert cfg["ollama"]["embeddingDim"] == 768
         instance_cfg = json.loads(
             (workspace / rpb._BENCHMARK_QUAID_INSTANCE / "config" / "memory.json").read_text(encoding="utf-8")
         )
-        assert instance_cfg["ollama"]["embeddingModel"] == "qwen3-embedding:8b"
-        assert instance_cfg["ollama"]["embeddingDim"] == 4096
+        assert instance_cfg["ollama"]["embeddingModel"] == "nomic-embed-text"
+        assert instance_cfg["ollama"]["embeddingDim"] == 768
 
 
 def test_resolve_judge_provider_prefers_openai_for_gpt(monkeypatch):
@@ -5696,6 +6008,18 @@ def test_resolve_assets_dir_prefers_benchmark_assets_env(monkeypatch, tmp_path):
     monkeypatch.setenv("AGENTLIFE_ASSETS_DIR", str(agentlife_assets))
 
     assert rpb._resolve_assets_dir() == benchmark_assets
+
+
+def test_dataset_variant_jp_resolves_translated_assets_and_fillers(monkeypatch):
+    monkeypatch.delenv("BENCHMARK_ASSETS_DIR", raising=False)
+    monkeypatch.delenv("AGENTLIFE_ASSETS_DIR", raising=False)
+    monkeypatch.delenv("BENCHMARK_FILLER_DIR", raising=False)
+    monkeypatch.setenv("BENCHMARK_DATASET", "jp")
+
+    assert rpb._resolve_assets_dir() == rpb._PROJECT_DIR / "data" / "sessions-jp"
+    assert rpb._resolve_filler_dir() == rpb._PROJECT_DIR / "data" / "filler-sessions-jp"
+    assert rpb._dataset_variant_label(False) == "jp"
+    assert rpb._dataset_variant_label(True) == "jp+statement_grounding"
 
 
 def test_judge_non_question_uses_openai_compatible_when_requested(monkeypatch):
@@ -6101,46 +6425,72 @@ class TestBuildExtractionPrompt:
     def test_contains_system_prompt_structure(self):
         prompt = ec.build_extraction_prompt("Maya")
         assert "memory extraction system" in prompt
-        assert "Maya" in prompt
-        assert "Prefer multiple short self-contained facts" in prompt
-        assert "Never use initials" in prompt
-        assert "Extractor commentary or interpretation language" in prompt
-        assert "Do not encode the extractor's reasoning into the fact text" in prompt
-        assert "fact-level `created_at` field" in prompt
+        assert "The user who owns this knowledge base is: Maya" in prompt
+        assert "SPEAKER ATTRIBUTION" in prompt
+        assert "LANGUAGE FIDELITY (MANDATORY)" in prompt
+        assert "RELATIONSHIP ROLE FIDELITY" in prompt
+        assert "PROJECT LOGS" in prompt
 
-    def test_focus_user_mode(self):
-        prompt = ec.build_extraction_prompt("Maya", focus="user")
-        assert "USER-FACTS ONLY" in prompt
+    def test_owner_identity_is_not_hidden_prompt_context(self):
+        prompt = ec.build_extraction_prompt("Maya")
 
-    def test_focus_agent_mode(self):
-        prompt = ec.build_extraction_prompt("Maya", focus="agent")
-        assert "AGENT-FACTS ONLY" in prompt
+        assert "The user who owns this knowledge base is: Maya" in prompt
+        assert "USER.md/config seed" not in prompt
+        assert "Safe for Mom" not in prompt
+        assert "GraphQL API" not in prompt
 
-    def test_focus_balanced_default(self):
-        prompt = ec.build_extraction_prompt("Maya", focus="all")
-        assert "BALANCED" in prompt
+    def test_prompt_requires_source_language_fidelity(self):
+        prompt = ec.build_extraction_prompt("Maya")
+
+        assert "LANGUAGE FIDELITY (MANDATORY)" in prompt
+        assert "Detect the transcript's dominant language" in prompt
+        assert "Do not translate factual statements into another language" in prompt
+        assert "Keep named entities exactly as written" in prompt
+        assert "If transcript lines mix languages" in prompt
+
+    def test_focus_argument_does_not_fork_runtime_prompt(self):
+        prompt_user = ec.build_extraction_prompt("Maya", focus="user")
+        prompt_agent = ec.build_extraction_prompt("Maya", focus="agent")
+        prompt_all = ec.build_extraction_prompt("Maya", focus="all")
+        assert prompt_user == prompt_agent == prompt_all
 
     def test_allowed_domains_injected(self):
-        prompt = ec.build_extraction_prompt("Maya", allowed_domains=["finance", "health"])
-        assert "finance" in prompt
-        assert "health" in prompt
-        assert "Allowed domain ids" in prompt
+        prompt = ec.build_extraction_prompt(
+            "Maya",
+            allowed_domains={"finance": "Money facts", "health": "Health facts"},
+        )
+        assert "AVAILABLE DOMAINS" in prompt
+        assert "- finance: Money facts" in prompt
+        assert "- health: Health facts" in prompt
 
     def test_allowed_domains_deduped(self):
         prompt = ec.build_extraction_prompt("Maya", allowed_domains=["finance", "finance", "health"])
-        # Should only appear once in the domain line
-        domain_match = re.search(r"Allowed domain ids.*?:\s*(.*)", prompt)
-        assert domain_match
-        domain_str = domain_match.group(1)
-        assert domain_str.count("finance") == 1
+        assert prompt.count("- finance") == 1
+        assert prompt.count("- health") == 1
 
     def test_no_domains_no_domain_line(self):
         prompt = ec.build_extraction_prompt("Maya", allowed_domains=None)
-        assert "Allowed domain ids" not in prompt
+        assert "AVAILABLE DOMAINS" not in prompt
 
     def test_empty_domains_no_domain_line(self):
         prompt = ec.build_extraction_prompt("Maya", allowed_domains=[])
-        assert "Allowed domain ids" not in prompt
+        assert "AVAILABLE DOMAINS" not in prompt
+
+    def test_known_projects_injected_for_project_log_contract(self):
+        prompt = ec.build_extraction_prompt(
+            "Maya",
+            known_projects={"recipe-app": "Recipe app project workspace"},
+        )
+        assert "REGISTERED PROJECTS" in prompt
+        assert "- recipe-app: Recipe app project workspace" in prompt
+        assert "Only emit project_logs entries for projects listed above" in prompt
+
+    def test_prompt_appends_benchmark_appendix_from_env(self, monkeypatch):
+        monkeypatch.setenv("BENCHMARK_EXTRACTION_PROMPT_APPENDIX", "LEAN MODE\n- Keep one canonical fact.")
+        prompt = ec.build_extraction_prompt("Maya")
+        assert "=== BENCHMARK EXTRACTION APPENDIX ===" in prompt
+        assert "LEAN MODE" in prompt
+        assert "Keep one canonical fact." in prompt
 
 
 class TestStoreFact:
@@ -6216,6 +6566,45 @@ class TestBenchmarkStoreFacts:
         assert stored == 1
         assert edges_created == 0
 
+    def test_store_facts_tolerates_null_privacy_and_keywords(self, monkeypatch, tmp_path):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal", "travel"])
+        captured = {}
+
+        def _fake_run(cmd, capture_output, text, timeout, cwd, env):
+            captured["cmd"] = cmd
+            return SimpleNamespace(returncode=0, stdout="Stored: node-1", stderr="")
+
+        monkeypatch.setattr(rpb.subprocess, "run", _fake_run)
+
+        facts = [
+            {
+                "text": "Maya described Rachel's trip as a solo trip.",
+                "category": "fact",
+                "extraction_confidence": "high",
+                "privacy": None,
+                "keywords": None,
+                "domains": ["personal", "travel"],
+                "edges": [],
+            }
+        ]
+
+        stored, edges_created = rpb._store_facts(
+            workspace,
+            facts,
+            {"PATH": os.environ.get("PATH", "")},
+            11,
+            "2026-04-07",
+        )
+
+        assert stored == 1
+        assert edges_created == 0
+        assert "--privacy" in captured["cmd"]
+        assert captured["cmd"][captured["cmd"].index("--privacy") + 1] == "shared"
+        assert "--keywords" not in captured["cmd"]
+
 
 class TestStoreSessionFacts:
     def test_store_session_facts_prefers_fact_created_at(self, monkeypatch):
@@ -6284,6 +6673,12 @@ class TestParseExtractionResponse:
         raw = 'Here is the result: {"facts": [], "soul_snippets": {}} and some trailing text'
         result = ec.parse_extraction_response(raw)
         assert "facts" in result
+
+    def test_repairs_missing_trailing_brace(self):
+        raw = '{"facts":[{"text":"x"}],"soul_snippets":{},"journal_entries":{},"project_logs":{}'
+        result = ec.parse_extraction_response(raw)
+        assert len(result["facts"]) == 1
+        assert result["facts"][0]["text"] == "x"
 
     def test_unparseable_returns_defaults(self):
         result = ec.parse_extraction_response("not json at all")
@@ -6446,17 +6841,41 @@ class TestBenchmarkCoreArtifactMirroring:
 
         assert snippets == 1
         assert journals == 1
-        assert (workspace / "SOUL.snippets.md").exists()
-        assert (workspace / "journal" / "SOUL.journal.md").exists()
-        assert (workspace / "benchrunner" / "SOUL.snippets.md").exists()
-        assert (workspace / "benchrunner" / "journal" / "SOUL.journal.md").exists()
+        assert not (workspace / "SOUL.snippets.md").exists()
+        assert not (workspace / "journal" / "SOUL.journal.md").exists()
+        assert (workspace / "instances" / "benchrunner" / "SOUL.snippets.md").exists()
+        assert (workspace / "instances" / "benchrunner" / "journal" / "SOUL.journal.md").exists()
+
+    def test_cached_core_artifacts_ignore_non_markdown_journal_dict_payloads(self, tmp_path):
+        workspace = tmp_path / "ws"
+        (workspace / "config").mkdir(parents=True, exist_ok=True)
+        (workspace / "projects").mkdir(parents=True, exist_ok=True)
+        (workspace / "config" / "memory.json").write_text("{}")
+
+        snippets, journals = rpb._write_cached_core_artifacts(
+            workspace,
+            soul_snippets={"SOUL.md": ["noticed a pattern"]},
+            journal_entries={
+                "SOUL.md": "A deeper reflection.",
+                "project_logs": {"recipe-app": ["should be ignored"]},
+            },
+            trigger="Compaction",
+            date_str="2026-03-26",
+        )
+
+        assert snippets == 1
+        assert journals == 1
+        journal_path = workspace / "instances" / "benchrunner" / "journal" / "SOUL.journal.md"
+        assert journal_path.exists()
+        assert "A deeper reflection." in journal_path.read_text()
+        assert not (workspace / "instances" / "benchrunner" / "journal" / "project_logs.journal.md").exists()
 
     def test_syncs_evolved_instance_identity_back_to_workspace_root(self, tmp_path):
         workspace = tmp_path / "ws"
         (workspace / "config").mkdir(parents=True, exist_ok=True)
         (workspace / "projects").mkdir(parents=True, exist_ok=True)
         (workspace / "config" / "memory.json").write_text("{}")
-        identity_dir = rpb._ensure_quaid_instance_layout(workspace) / "identity"
+        identity_dir = rpb._ensure_quaid_instance_layout(workspace)
         identity_dir.mkdir(parents=True, exist_ok=True)
 
         (workspace / "SOUL.md").write_text("seed soul")
@@ -6715,6 +7134,67 @@ class TestLoadActiveDomainIds:
         with pytest.raises(RuntimeError, match="No active domains"):
             rpb._load_active_domain_ids(workspace)
 
+    def test_bootstrap_domain_registry_adds_missing_defaults_to_nonempty_registry(self, tmp_path):
+        workspace = self._setup_db(tmp_path, [("personal", 1)])
+        db_path = workspace / "data" / "memory.db"
+        conn = sqlite3.connect(str(db_path))
+        try:
+            rpb._bootstrap_domain_registry(conn)
+            conn.commit()
+            rows = conn.execute(
+                "SELECT domain FROM domain_registry WHERE active = 1 ORDER BY domain"
+            ).fetchall()
+        finally:
+            conn.close()
+        active = {str(row[0]) for row in rows}
+        assert "personal" in active
+        assert "education" in active
+        assert "hobby" in active
+
+
+class TestBackendSpecificModelDefaults:
+    def test_codex_backend_rewrites_default_judge_to_fast_model(self):
+        args = SimpleNamespace(
+            backend="codex",
+            mode="full",
+            model="claude-opus-4-6",
+            eval_model="claude-haiku-4-5-20251001",
+            judge="gpt-4o-mini",
+            codex_deep_model="gpt-5.4-mini",
+            codex_fast_model="gpt-5.4-mini",
+            vllm_model="",
+            llama_cpp_model="",
+        )
+        rpb._apply_backend_specific_model_defaults(
+            args,
+            model_explicitly_set=False,
+            eval_model_explicitly_set=False,
+            judge_explicitly_set=False,
+        )
+        assert args.model == "gpt-5.4-mini"
+        assert args.eval_model == "gpt-5.4-mini"
+        assert args.judge == "gpt-5.4-mini"
+
+    def test_codex_backend_preserves_explicit_judge(self):
+        args = SimpleNamespace(
+            backend="codex",
+            mode="full",
+            model="claude-opus-4-6",
+            eval_model="claude-haiku-4-5-20251001",
+            judge="gpt-5.4",
+            codex_deep_model="gpt-5.4-mini",
+            codex_fast_model="gpt-5.4-mini",
+            vllm_model="",
+            llama_cpp_model="",
+        )
+        rpb._apply_backend_specific_model_defaults(
+            args,
+            model_explicitly_set=False,
+            eval_model_explicitly_set=False,
+            judge_explicitly_set=True,
+        )
+        assert args.judge == "gpt-5.4"
+
 
 # ===================================================================
 # Eval context source selection + preflight
@@ -6863,6 +7343,7 @@ class TestRunEvalProviderGuard:
             lambda _reviews: [{"question": "Q?", "ground_truth": "A", "query_type": "factual_recall"}],
         )
         monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_eval_embedding_provider_preflight", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
         monkeypatch.setattr(rpb, "_make_env", lambda _ws: {})
         monkeypatch.setattr(
@@ -6910,6 +7391,7 @@ def test_run_eval_syncs_instance_identity_before_building_context(tmp_path, monk
         lambda _reviews: [{"question": "Q?", "ground_truth": "A", "query_type": "factual_recall"}],
     )
     monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+    monkeypatch.setattr(rpb, "_eval_embedding_provider_preflight", lambda *a, **k: None)
     monkeypatch.setattr(rpb, "_sync_instance_identity_to_workspace_root", lambda _ws: sync_calls.append(_ws))
     monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
     monkeypatch.setattr(rpb, "_make_env", lambda _ws: {})
@@ -6968,6 +7450,7 @@ def test_claude_code_eval_still_requires_nonzero_claude_calls(tmp_path, monkeypa
         lambda _reviews: [{"question": "Q?", "ground_truth": "A", "query_type": "factual_recall"}],
     )
     monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+    monkeypatch.setattr(rpb, "_eval_embedding_provider_preflight", lambda *a, **k: None)
     monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
     monkeypatch.setattr(rpb, "_make_env", lambda _ws: {})
     monkeypatch.setattr(
@@ -7800,10 +8283,10 @@ def test_seed_instance_identity_from_sources_prefers_project_templates(tmp_path)
         prefer_project_templates=True,
     )
 
-    assert instance_root == workspace / "benchrunner"
-    assert (instance_root / "identity" / "SOUL.md").read_text(encoding="utf-8") == "# Project Soul\n"
-    assert (instance_root / "identity" / "USER.md").read_text(encoding="utf-8") == "# Project User\n"
-    assert (instance_root / "identity" / "ENVIRONMENT.md").read_text(encoding="utf-8") == "# Project Environment\n"
+    assert instance_root == workspace / "instances" / "benchrunner"
+    assert (instance_root / "SOUL.md").read_text(encoding="utf-8") == "# Project Soul\n"
+    assert (instance_root / "USER.md").read_text(encoding="utf-8") == "# Project User\n"
+    assert (instance_root / "ENVIRONMENT.md").read_text(encoding="utf-8") == "# Project Environment\n"
 
 
 def test_imported_claude_rewrite_workspace_seeds_instance_identity_from_project_bases(monkeypatch, tmp_path):
@@ -7830,7 +8313,7 @@ def test_imported_claude_rewrite_workspace_seeds_instance_identity_from_project_
 
     imported._rewrite_workspace_for_claude_history(workspace)
 
-    identity_dir = workspace / "benchrunner" / "identity"
+    identity_dir = workspace / "instances" / "benchrunner"
     assert (identity_dir / "SOUL.md").read_text(encoding="utf-8") == "# Seed Soul\n"
     assert (identity_dir / "USER.md").read_text(encoding="utf-8") == "# Seed User\n"
     assert (identity_dir / "ENVIRONMENT.md").read_text(encoding="utf-8") == "# Seed Environment\n"
