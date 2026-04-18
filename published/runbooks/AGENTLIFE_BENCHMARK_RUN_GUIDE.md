@@ -46,6 +46,8 @@ This section is the operator map for the run families we actively use.
 |Sonnet / Haiku|`AL-S`, `AL-L`, `AL-L OBD`|Sonnet deep, Haiku fast|`oauth`|current stable|main release lanes|
 |Haiku / Haiku|`AL-S`, `AL-L`, `AL-L OBD`|Haiku deep, Haiku fast|`oauth` or `api`|current stable|budget and speed comparison|
 |Sonnet eval-only|`AL-S`, `AL-L`, `AL-L OBD`|reuse ingest, Sonnet eval|`oauth`|current stable|headline ceiling on a fixed ingest base|
+|Codex app-server OpenAI|usually `AL-S` first|`gpt-5.4` deep/eval, `gpt-5.4-mini` fast/judge|`codex`|usage-sensitive experimental|OpenAI-family lane through Spark Codex login|
+|Direct OpenAI|usually `AL-S` first|`gpt-5.4` deep/eval, `gpt-5.4-mini` fast/judge|`openai`|usage-sensitive experimental|OpenAI API comparison lane|
 |Single-model local Gemma|usually `AL-S` or eval-only lineage|Gemma answer + Gemma judge|`llama-cpp`|current stable after April 5 reasoning fix|local baseline and smoke tests|
 |31B / 26B local hybrid|usually eval-only lineage first|31B answer, 26B runtime/judge|`llama-cpp` split endpoints|experimental|mixed local frontier mapping|
 
@@ -149,6 +151,68 @@ BENCHMARK_EMBEDDING_DIM=768 \
   --judge gpt-4o-mini \
   --results-dir runs/quaid-s-rXXXX-YYYYMMDD-als-haiku-nomic-full
 ```
+
+### 1d. Fresh Full `AL-S` Codex App-Server OpenAI
+
+Use this for the OpenAI-family comparison lane when Spark has a working Codex
+login. This route uses `codex app-server` via the Quaid Codex provider, not a
+raw OpenAI API key.
+
+```bash
+cd ~/agentlife-benchmark
+./scripts/launch-remote-benchmark.sh --remote spark --scale s \
+  --note "AL-S Codex app-server OpenAI: deep/eval=gpt-5.4 fast/judge=gpt-5.4-mini" -- \
+  --mode full \
+  --backend codex \
+  --codex-deep-model gpt-5.4 \
+  --codex-fast-model gpt-5.4-mini \
+  --model gpt-5.4 \
+  --eval-model gpt-5.4 \
+  --judge gpt-5.4-mini \
+  --allow-non-haiku-answer-model \
+  --results-dir runs/quaid-s-rXXXX-YYYYMMDD-als-codex-gpt54-full
+```
+
+Requirements:
+
+- Spark must have `codex` installed and a valid logged-in Codex account under
+  `~/.codex`.
+- No `OPENAI_API_KEY` is required for this route; the app-server piggybacks on
+  the logged-in Codex account on Spark.
+- This lane is still usage-sensitive. Monitor the Spark dashboard and
+  `token_usage.json`; app-server/OAuth billing may not expose exact billed
+  dollar spend even when token counts are recorded.
+
+### 1e. Fresh Full `AL-S` Direct OpenAI
+
+Use this for the usage-sensitive OpenAI API comparison lane. Run a small smoke
+first if the key or request shape changed recently.
+
+```bash
+cd ~/agentlife-benchmark
+BENCHMARK_DEEP_REASONING_MODEL=gpt-5.4 \
+BENCHMARK_FAST_REASONING_MODEL=gpt-5.4-mini \
+BENCHMARK_OPENAI_MODEL=gpt-5.4 \
+BENCHMARK_OPENAI_JUDGE_MODEL=gpt-5.4-mini \
+./scripts/launch-remote-benchmark.sh --remote spark --scale s \
+  --note "AL-S direct OpenAI: deep/eval=gpt-5.4 fast/judge=gpt-5.4-mini" -- \
+  --mode full \
+  --backend openai \
+  --model gpt-5.4 \
+  --eval-model gpt-5.4 \
+  --judge gpt-5.4-mini \
+  --allow-non-haiku-answer-model \
+  --results-dir runs/quaid-s-rXXXX-YYYYMMDD-als-openai-gpt54-full
+```
+
+Requirements:
+
+- `OPENAI_API_KEY` must be exported locally before launch, or the local config
+  must define `auth.openai.keyPath` or `auth.openai.judgeKeyPath`.
+- The launcher syncs only the key value to Spark; do not put raw keys in the
+  runbook, command history, or result artifacts.
+- Token spend is higher than the standard Haiku eval lane because OpenAI backs
+  ingest/deep reasoning, runtime fast reasoning, answer generation, and judging.
 
 ### 2. Eval-Only Rerun on Existing Ingest
 
@@ -300,7 +364,7 @@ For Gemma 4 local tool-use evals, use:
 /home/solomon/llama.cpp/build/bin/llama-server \
   -m /home/solomon/models/hf/unsloth-gemma-4-26B-A4B-it-GGUF/gemma-4-26B-A4B-it-UD-Q6_K.gguf \
   --host 0.0.0.0 --port 30001 \
-  --parallel 16 --ctx-size 962560 \
+  --parallel <N> --ctx-size 962560 \
   --threads 16 --threads-batch 16 \
   --n-gpu-layers 999 --batch-size 2048 --ubatch-size 1024 \
   --jinja --reasoning on --api-key localtest
@@ -308,6 +372,15 @@ For Gemma 4 local tool-use evals, use:
 
 Important:
 
+- For local Gemma lanes, keep server slots and harness workers matched:
+  - llama-server `--parallel <N>`
+  - launcher `BENCHMARK_PARALLEL=<N>`
+  - current preferred sweep point: `N=10`
+- The launcher preflight now enforces this match for `--backend llama-cpp` by default.
+- Preflight now also gates on:
+  - llama.cpp readiness (`/health`)
+  - Ollama embed endpoint readiness (`/api/tags`)
+  - embedding model presence and a live `/api/embed` success
 - Do not run Gemma tool-use evals with:
   - `--reasoning-format none`
 - That setting caused `peg-gemma4` parse failures on tool-capable requests during April 5 local mixed-eval testing.
@@ -421,6 +494,25 @@ Headline reporting should capture:
 - eval tokens
 - total tokens when available
 - DB size when doing embedding studies
+
+Token accounting note (updated April 18, 2026):
+
+- Legacy headline token rows often used `evaluation_results.json` per-question
+  `eval_tokens` sums, which track answer-call tokens but do not include
+  preinject/tool recall call tokens.
+- Current benchmark reporting should use a non-judge eval spend metric from
+  `token_usage.json`:
+  - `eval_tokens_ex_judge = eval.total_tokens - sum(by_source[*judge*].total_tokens)`
+- This updated metric includes answer + preinject + tool-recall token spend,
+  while excluding judge spend from the headline token total.
+
+Canonical helper command:
+
+```bash
+python3 scripts/token_accounting.py --run runs/<run-id>
+```
+
+Use `eval_tokens_ex_judge` from this helper for public benchmark token rows.
 
 ## Failure Signatures
 

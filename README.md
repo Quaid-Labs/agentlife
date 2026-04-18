@@ -127,8 +127,17 @@ evaluated, but underperformed `Sonnet` overall and is not the recommended
 launch configuration. On `AL-L` and `AL-L OBD`, FC is forced to compact, and
 the drop in FC quality reflects that compaction plus the added noise in the
 larger corpus. OpenClaw Native tokens remain unknown due to telemetry
-restrictions. Token counts here are the minimum tokens used to answer the full
-set of 283 eval questions.
+restrictions.
+
+Token accounting standard (public, effective April 18, 2026):
+
+- Public token rows now use `eval_tokens_ex_judge` from `token_usage.json`:
+  - `eval_tokens_ex_judge = eval.total_tokens - sum(by_source[*judge*].total_tokens)`
+- This includes answer + preinject + tool-recall token spend, while excluding
+  judge spend from headline token totals.
+- Older historical rows that cite `evaluation_results.json` per-question
+  `eval_tokens` are legacy answer-only accounting and are not directly
+  comparable to the current standard.
 
 Historical token-cost reference from the March 29 technical report / Sonnet study:
 - `AL-S`: Quaid Sonnet/Haiku (`r880`, `r847`) reached `87.69%` at `5,753,673` eval tokens, versus FC Sonnet (`r606`) at `92.90%` and `29,828,646` eval tokens.
@@ -148,6 +157,7 @@ Canonical docs for full tables and methodology:
 - Technical reports:
   - [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md)
   - [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260405.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260405.md)
+  - [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260418.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260418.md)
 
 ## Quick Start
 

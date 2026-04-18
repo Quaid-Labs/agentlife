@@ -117,7 +117,63 @@ FC runs skip ingest entirely:
 - no memory DB or janitor lifecycle is involved
 - only the answer model changes in FC experiments
 
-## 5. Public Runbook Policy
+## 5. Native OpenClaw VM Methodology
+
+The native OpenClaw lane is run through `eval/vm_benchmark.py --system
+oc-native`, not through the Quaid production launcher. It uses a Tart macOS VM
+with OpenClaw installed and no Quaid plugin dependency.
+
+The current native OC memory stack under test is:
+
+- `memory-core` with builtin memory backend
+- native session transcript indexing
+- bundled `session-memory` hook on `/new`
+- `active-memory` blocking recall sub-agent for direct `main` sessions
+- `memory-wiki` bridge/import/compile flow over memory-core public artifacts
+- host-visible `qwen3-embedding:8b` embeddings through
+  `http://192.168.64.1:11434/v1`
+
+Injection semantics:
+
+- benchmark transcripts are written as real OpenClaw session JSONL files
+- each synthetic session is closed with `/new` so the bundled
+  `session-memory` hook can create workspace memory
+- the harness forces `openclaw memory index --agent main --force`
+- after indexing, the harness runs `openclaw wiki init`, `openclaw wiki bridge
+  import`, and `openclaw wiki compile`
+- evaluation sends each benchmark question through `openclaw agent` in an
+  isolated eval session
+
+Run `AL-S` with `--no-filler`. Run `AL-L` without `--no-filler`, using the same
+arc sessions plus filler corpus. Restore the clean VM snapshot before each
+scored lane.
+
+## 6. Token Accounting
+
+Token numbers have different precision depending on the lane and phase:
+
+- Quaid ingest/janitor lanes record real runtime token usage where the runtime
+  exposes usage accounting.
+- VM session context metrics are simulated from benchmark transcript token
+  counts and show context growth, compaction savings, and cache-aware effective
+  token estimates.
+- Eval rows record visible lower-bound token estimates: question tokens,
+  prediction tokens, visible agent total, and judge prompt tokens.
+- `scores.json` aggregates eval estimates under `eval_token_estimate`.
+- Codex app-server/OpenAI-family lanes use Spark's logged-in Codex account
+  rather than a raw `OPENAI_API_KEY`; provider-reported token counts are
+  recorded when exposed, but OAuth/app-server billing spend is not treated as an
+  exact dollar-cost source.
+- For native OpenClaw, hidden prompt context, active-memory sub-agent calls,
+  tool-call payloads, gateway provider overhead, and any unreported provider
+  usage are not included unless OpenClaw exposes them in machine-readable usage
+  logs.
+
+Use eval token estimates for relative lower-bound comparisons and trend checks.
+Do not present them as exact billed provider spend unless the run also has
+provider-reported usage artifacts.
+
+## 7. Public Runbook Policy
 
 Exact public numbers are now kept out of this file.
 
@@ -143,7 +199,7 @@ This methodology file should describe:
 
 It should not become a second competing source of exact leaderboard numbers.
 
-## 6. Reproduction
+## 8. Reproduction
 
 The canonical launcher is:
 
@@ -177,7 +233,32 @@ Examples:
   --judge gpt-4o-mini
 ```
 
-## 7. Unscored Utilities
+Native OpenClaw VM examples:
+
+```bash
+# AL-S OC native
+python3 eval/vm_benchmark.py \
+  --system oc-native \
+  --vm-ip 192.168.64.3 \
+  --snapshot clean-openclaw \
+  --results-dir data/results-vm-oc-native-current-als \
+  --answer-model openai/gpt-5.4 \
+  --judge-model gpt-4o-mini \
+  --splitting timeout \
+  --no-filler
+
+# AL-L OC native
+python3 eval/vm_benchmark.py \
+  --system oc-native \
+  --vm-ip 192.168.64.3 \
+  --snapshot clean-openclaw \
+  --results-dir data/results-vm-oc-native-current-all \
+  --answer-model openai/gpt-5.4 \
+  --judge-model gpt-4o-mini \
+  --splitting timeout
+```
+
+## 9. Unscored Utilities
 
 Rolling replay utilities exist for migration and stress testing:
 
@@ -187,7 +268,7 @@ Rolling replay utilities exist for migration and stress testing:
 These are useful for understanding scaling, migration, and daemon behavior, but
 they are not leaderboard lanes.
 
-## 8. Source of Truth
+## 10. Source of Truth
 
 For released/public numbers:
 
