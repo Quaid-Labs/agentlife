@@ -80,7 +80,7 @@
           "evidence_sessions": [],
           "source_session": 0,
           "query_num": 904,
-          "question": "マヤとデイビッドがオファーを出したEast Austinの家の正確な住所は何ですか？",
+          "question": "マヤとデイビッドがオファーを出したイーストオースティンの家の正確な住所は何ですか？",
           "ground_truth": "不明。地区や条件は話されているが、正確な住所は出ていない。",
           "supporting_evidence": [
             "Housing decisions are discussed, but no 具体的な property address appears"
@@ -144,7 +144,7 @@
           "evidence_sessions": [],
           "source_session": 0,
           "query_num": 909,
-          "question": "マヤはPortugalへ引っ越しますか？",
+          "question": "マヤはポルトガルへ引っ越しますか？",
           "ground_truth": "いいえ。引っ越しの話はAustin内（Zilker対East Austin）であり、Portugalは出てこない。",
           "supporting_evidence": [
             "Moving discussed only within Austin neighborhoods"
@@ -192,7 +192,7 @@
           ],
           "source_session": 20,
           "query_num": 1002,
-          "question": "マヤはZilkerに住みたいのですか？",
+          "question": "マヤはジルカーに住みたいのですか？",
           "ground_truth": "当初はZilkerを望んでいたが、本質的な条件は地区名ではなく歩きやすさだった。2026年5月26日時点では、歩きやすいEast Austinの家にオファーを出している。",
           "supporting_evidence": [
             "証拠セッション: 6, 17, 20。2026-03-14, Turn 6: 'maybe if we were in like the zilker area'",
@@ -374,7 +374,7 @@
           ],
           "source_session": 20,
           "query_num": 1014,
-          "question": "2026年5月26日時点で、マヤとデイビッドはまだSouth Austinに住んでいますか？",
+          "question": "2026年5月26日時点で、マヤとデイビッドはまだサウスオースティンに住んでいますか？",
           "ground_truth": "移行中。現在はSouth Austinだが、East Austinの歩きやすい家にオファーを出している。",
           "supporting_evidence": [
             "証拠セッション: 6, 17, 20。2026-03-14, Turn 6: 'right now we're in south austin'",
@@ -409,7 +409,7 @@
           ],
           "source_session": 20,
           "query_num": 1016,
-          "question": "2026年5月26日時点で、レイチェルのAustin訪問はまだこれからですか？",
+          "question": "2026年5月26日時点で、レイチェルのオースティン訪問はまだこれからですか？",
           "ground_truth": "いいえ。レイチェルのAustin訪問はすでに終わっている。2026-04-08に訪問後の話が出ている。",
           "supporting_evidence": [
             "証拠セッション: 11, 15。2026-03-22, Turn 7: 'she's coming to visit! like in 2 weeks'",
@@ -490,7 +490,7 @@
           ],
           "source_session": 20,
           "query_num": 1023,
-          "question": "East Austinを好むのは誰で、その理由は何ですか？",
+          "question": "イーストオースティンを好むのは誰で、その理由は何ですか？",
           "ground_truth": "デイビッド。より本物らしく、食べ物がよく、安く、大きな庭と木工作業場のある家があるためEast Austinを好んだ。",
           "supporting_evidence": [
             "証拠セッション: 17。2026-04-15, Turn 4: 'D wants east austin. he says it's more authentic and the food's better and it's cheaper'",
@@ -605,7 +605,7 @@
           ],
           "source_session": 20,
           "query_num": 1033,
-          "question": "マヤはSouth Congressのタイ料理店にもう一度行きましたか？",
+          "question": "マヤはサウスコングレスのタイ料理店にもう一度行きましたか？",
           "ground_truth": "はい。South Congress近くのタイ料理店へ週末に再訪し、まだ素晴らしかったと言っている。",
           "supporting_evidence": [
             "証拠セッション: 11, 20。2026-03-22, Turn 8: Thai place near South Congress mentioned for レイチェルの visit",
@@ -830,7 +830,7 @@
           ],
           "source_session": 20,
           "query_num": 1051,
-          "question": "マヤとデイビッドは最終的な居住地区としてZilkerを選びましたか？",
+          "question": "マヤとデイビッドは最終的な居住地区としてジルカーを選びましたか？",
           "ground_truth": "いいえ。最終的な計画は歩きやすいEast Austinの家。",
           "supporting_evidence": [
             "証拠セッション: 17, 20。2026-04-15: Zilker vs East Austin debate",
@@ -943,7 +943,7 @@
           ],
           "source_session": 20,
           "query_num": 1058,
-          "question": "2026年5月26日時点で、East Austinの家の購入は確定して完了していますか？",
+          "question": "2026年5月26日時点で、イーストオースティンの家の購入は確定して完了していますか？",
           "ground_truth": "いいえ。オファー中であり、決済完了や購入確定は確認されていない。",
           "supporting_evidence": [
             "証拠セッション: 20。2026-05-26: 'we're putting in an オファー this week' indicates in-progress status"
@@ -979,7 +979,7 @@
           ],
           "source_session": 20,
           "query_num": 1061,
-          "question": "2026年5月26日時点で、マヤはAustin拠点ですか？ また、誤答しやすくする住宅移行の詳細は何ですか？",
+          "question": "2026年5月26日時点で、マヤはオースティン拠点ですか？ また、誤答しやすくする住宅移行の詳細は何ですか？",
           "ground_truth": "はい、Austin拠点。South AustinからEast Austinへ移行中なので、すでに別都市へ移ったと誤答しやすい。",
           "supporting_evidence": [
             "証拠セッション: 1, 6, 20。2026-03-01: 'live in austin'",
@@ -997,7 +997,7 @@
           ],
           "source_session": 20,
           "query_num": 1062,
-          "question": "リンダはHoustonに住んでいますか？",
+          "question": "リンダはヒューストンに住んでいますか？",
           "ground_truth": "はい。リンダはHoustonに住んでいる。",
           "supporting_evidence": [
             "証拠セッション: 1, 4, 8。2026-03-01: Mom リンダ lives in Houston",
@@ -1061,7 +1061,7 @@
           ],
           "source_session": 20,
           "query_num": 1066,
-          "question": "レイチェルはSeattleに住んでいますか？",
+          "question": "レイチェルはシアトルに住んでいますか？",
           "ground_truth": "はい。レイチェルはSeattleに住んでいる。",
           "supporting_evidence": [
             "証拠セッション: 1, 11, 15。2026-03-01: レイチェル lives in Seattle",
@@ -1169,7 +1169,7 @@
           ],
           "source_session": 0,
           "query_num": 1074,
-          "question": "なぜマヤはEast Austinへ引っ越したいのですか？",
+          "question": "なぜマヤはイーストオースティンへ引っ越したいのですか？",
           "ground_truth": "マヤはEast Austin自体を最初から望んだわけではなく、歩きやすさを重視して妥協した。",
           "supporting_evidence": [
             "証拠セッション: 6, 17, 20。デイビッド wants East Austin (2026-04-15), マヤ wanted Zilker",
@@ -1216,7 +1216,7 @@
           ],
           "source_session": 0,
           "query_num": 1077,
-          "question": "レイチェルはマヤのAustin訪問のためにどんな料理を作りましたか？",
+          "question": "レイチェルはマヤのオースティン訪問のためにどんな料理を作りましたか？",
           "ground_truth": "レイチェルがマヤのAustin訪問のために料理した事実はない。レイチェルがAustinを訪問した。",
           "supporting_evidence": [
             "証拠セッション: 15。デイビッド made veggie lasagna for レイチェルの visit (2026-04-08), ではない レイチェル",
@@ -1418,7 +1418,7 @@
           ],
           "source_session": 20,
           "query_num": 1201,
-          "question": "レシピアプリのバックエンドはどのWebフレームワークで作られていますか？",
+          "question": "レシピアプリのバックエンドはどのウェブフレームワークで作られていますか？",
           "ground_truth": "Express.jsのバックエンド。Node.js/Expressベース。",
           "supporting_evidence": [
             "証拠セッション: 3。2026-03-05: Express scaffold created"
@@ -1754,7 +1754,7 @@
           ],
           "source_session": 20,
           "query_num": 1411,
-          "question": "2026年5月26日時点で、レイチェルのAustin訪問、リンダの誕生日サプライズ、ハーフマラソン、East Austinの家の決済のうち、完了済みと今後のものはどれですか？",
+          "question": "2026年5月26日時点で、レイチェルのオースティン訪問、リンダの誕生日サプライズ、ハーフマラソン、イーストオースティンの家の決済のうち、完了済みと今後のものはどれですか？",
           "ground_truth": "完了済みはレイチェルのAustin訪問、リンダの誕生日サプライズ、ハーフマラソン。今後/不確定はEast Austinの家の決済。",
           "supporting_evidence": [
             "証拠セッション: 11, 15, 19, 20。レイチェル visit moved from planned to 完了した",
@@ -1789,7 +1789,7 @@
           ],
           "source_session": 20,
           "query_num": 1421,
-          "question": "2026年5月26日時点で、Zilkerはまだ有効な居住地区計画ですか？",
+          "question": "2026年5月26日時点で、ジルカーはまだ有効な居住地区計画ですか？",
           "ground_truth": "いいえ。Zilkerは以前の希望で、現在の計画は歩きやすいEast Austin物件。",
           "supporting_evidence": [
             "証拠セッション: 17, 20。Zilker vs East Austin debate and compromise",
@@ -1823,7 +1823,7 @@
           ],
           "source_session": 20,
           "query_num": 1431,
-          "question": "2026年5月26日時点で、East Austinの家の正確な最終購入価格と金利はいくらですか？",
+          "question": "2026年5月26日時点で、イーストオースティンの家の正確な最終購入価格と金利はいくらですか？",
           "ground_truth": "不明。希望条件とオファー中であることは分かるが、最終購入価格や金利は示されていない。",
           "supporting_evidence": [
             "証拠セッション: 17, 20。House search/オファー context exists without finalized transaction terms"
@@ -1919,7 +1919,7 @@
           "query_num": 1303,
           "ei_id": "EI-04",
           "ei_category": "Emotionally Loaded Places",
-          "question": "今日Houstonのこと考えてた。なんでか分からないけど",
+          "question": "今日ヒューストンのこと考えてた。なんでか分からないけど",
           "ground_truth": "Houstonの感情的な重さを受け止めるが、理由を並べ立てない。",
           "supporting_evidence": [
             "証拠セッション: 4, 15, 19。Houston is where マヤ grew up, her dad left when she was 12, keeps memories mostly closed"
@@ -2084,7 +2084,7 @@
           "query_num": 1310,
           "ei_id": "EI-11",
           "ei_category": "Conflicting Needs",
-          "question": "今でも時々、見に行ったZilkerの家のことを考える",
+          "question": "今でも時々、見に行ったジルカーの家のことを考える",
           "ground_truth": "解決済みのZilker対East Austin論争を蒸し返さず、名残惜しさを認める。",
           "supporting_evidence": [
             "証拠セッション: 6, 17, 20。Zilker vs East Austin was a real disagreement, resolved。マヤ expressing lingering what-if"
