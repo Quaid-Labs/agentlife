@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -40,8 +41,15 @@ class TestOpenClawNativeConfig:
         script = vmb._build_openclaw_native_config_script(enable_session_hook=True)
         assert "plugins.setdefault('slots', {})['memory'] = 'memory-core'" in script
         assert "memory['backend'] = 'builtin'" in script
-        assert "tools['allow'] = ['read', 'memory_search', 'memory_get']" in script
+        assert f"tools['allow'] = {vmb.OC_NATIVE_MEMORY_TOOLS!r}" in script
         assert "tools.pop('deny', None)" in script
+        assert "entries.setdefault('active-memory', {})['enabled'] = True" in script
+        assert "active_memory['agents'] = ['main']" in script
+        assert "active_memory['queryMode'] = 'recent'" in script
+        assert "entries.setdefault('memory-wiki', {})['enabled'] = True" in script
+        assert "memory_wiki['vaultMode'] = 'bridge'" in script
+        assert "memory_wiki['search'] = {'backend': 'shared', 'corpus': 'all'}" in script
+        assert "memory_wiki['context'] = {'includeCompiledDigestPrompt': True}" in script
         assert "ms['provider'] = 'openai'" in script
         assert "ms['model'] = 'qwen3-embedding:8b'" in script
         assert f"remote['baseUrl'] = {vmb.OC_NATIVE_EMBED_BASE_URL!r}" in script
@@ -108,6 +116,159 @@ class TestOpenClawNativeConfig:
         assert vmb._oc_native_session_id(filler, 1) == "benchmark-oc-native-f018"
         assert vmb._oc_native_session_id(weird, 2) == "benchmark-oc-native-r002"
 
+    def test_sync_openclaw_native_wiki_runs_bridge_compile(self):
+        calls = []
+
+        class _Vm:
+            def ssh(self, command, **_kwargs):
+                calls.append(command)
+
+                class _Result:
+                    returncode = 0
+                    stdout = '{"ok":true}'
+                    stderr = ""
+
+                return _Result()
+
+        vmb._sync_openclaw_native_wiki(_Vm())
+        assert "openclaw wiki init" in calls[0]
+        assert "openclaw wiki bridge import" in calls[0]
+        assert "openclaw wiki compile" in calls[0]
+        assert "openclaw wiki status --json" in calls[0]
+
+    def test_patch_gateway_model_preserves_provider_prefixed_openai_model(self):
+        calls = []
+
+        class _Vm:
+            def ssh(self, command, **_kwargs):
+                calls.append(command)
+
+                class _Result:
+                    stdout = "Gateway model set to: openai/gpt-5.4\n"
+
+                return _Result()
+
+        vmb._patch_gateway_model(_Vm(), "openai/gpt-5.4")
+        assert "openai/gpt-5.4" in calls[0]
+
+    def test_patch_gateway_model_keeps_legacy_bare_model_as_anthropic(self):
+        calls = []
+
+        class _Vm:
+            def ssh(self, command, **_kwargs):
+                calls.append(command)
+
+                class _Result:
+                    stdout = "Gateway model set to: anthropic/claude-haiku-4-5-20251001\n"
+
+                return _Result()
+
+        vmb._patch_gateway_model(_Vm(), "claude-haiku-4-5-20251001")
+        assert "anthropic/claude-haiku-4-5-20251001" in calls[0]
+
+    def test_resolve_gateway_answer_model_maps_openai_to_openai_codex_for_codex_oauth(self):
+        resolved = vmb._resolve_gateway_answer_model(
+            "openai/gpt-5.4",
+            system="oc-native",
+            openai_auth_mode="codex-oauth",
+        )
+        assert resolved == "openai-codex/gpt-5.4"
+
+    def test_resolve_gateway_answer_model_keeps_openai_for_api_mode(self):
+        resolved = vmb._resolve_gateway_answer_model(
+            "openai/gpt-5.4",
+            system="oc-native",
+            openai_auth_mode="api",
+        )
+        assert resolved == "openai/gpt-5.4"
+
+    def test_provision_openclaw_openai_key_writes_auth_profile(self, monkeypatch):
+        calls = []
+
+        class _Vm:
+            def ssh(self, command, input_data=None, **_kwargs):
+                calls.append((command, input_data))
+
+                class _Result:
+                    returncode = 0
+                    stdout = "OpenClaw direct OpenAI auth profile installed\n"
+                    stderr = ""
+
+                return _Result()
+
+        monkeypatch.setattr(vmb, "_resolve_openai_api_key_for_vm", lambda: "sk-test")
+        vmb._provision_openclaw_openai_key(_Vm())
+        assert calls[0][1] == "sk-test"
+        assert "'openai:default'" in calls[0][0]
+        assert "last_good" in calls[0][0]
+
+    def test_provision_openclaw_openai_key_requires_key(self, monkeypatch):
+        monkeypatch.setattr(vmb, "_resolve_openai_api_key_for_vm", lambda: "")
+
+        class _Vm:
+            pass
+
+        with pytest.raises(RuntimeError, match="OPENAI_API_KEY is required"):
+            vmb._provision_openclaw_openai_key(_Vm())
+
+    def test_provision_openclaw_codex_oauth_writes_shared_credentials(self, monkeypatch):
+        calls = []
+
+        class _Vm:
+            def ssh(self, command, input_data=None, **_kwargs):
+                calls.append((command, input_data))
+
+                class _Result:
+                    returncode = 0
+                    stdout = "OpenClaw Codex OAuth shared credential installed\n"
+                    stderr = ""
+
+                return _Result()
+
+        monkeypatch.setattr(
+            vmb,
+            "_resolve_codex_oauth_profile_for_vm",
+            lambda: {"type": "oauth", "provider": "openai-codex", "access": "codex.jwt.token"},
+        )
+        vmb._provision_openclaw_codex_oauth(_Vm())
+        assert json.loads(calls[0][1]) == {"token": "codex.jwt.token"}
+        assert "credentials.json" in calls[0][0]
+        assert "openai-codex:default" in calls[0][0]
+
+    def test_provision_openclaw_codex_oauth_requires_token(self, monkeypatch):
+        monkeypatch.setattr(vmb, "_resolve_codex_oauth_profile_for_vm", lambda: {})
+
+        class _Vm:
+            pass
+
+        with pytest.raises(RuntimeError, match="Codex OAuth profile is required"):
+            vmb._provision_openclaw_codex_oauth(_Vm())
+
+    def test_resolve_codex_oauth_profile_reads_paths_relative_to_dev_config(self, monkeypatch, tmp_path):
+        home = tmp_path / "home"
+        dev_cfg = home / "quaidcode" / "dev" / ".quaid-dev.local.json"
+        token_file = home / "quaidcode" / "codex-oauth-sol.json"
+        dev_cfg.parent.mkdir(parents=True)
+        token_file.parent.mkdir(parents=True, exist_ok=True)
+        dev_cfg.write_text(
+            json.dumps(
+                {
+                    "auth": {
+                        "codex": {
+                            "solKeyPath": "../codex-oauth-sol.json",
+                            "yuniKeyPath": "",
+                        }
+                    }
+                }
+            )
+        )
+        token_file.write_text(json.dumps({"access": "codex.jwt.token"}))
+        monkeypatch.delenv("BENCHMARK_CODEX_API_KEY", raising=False)
+        monkeypatch.setattr(vmb.Path, "home", lambda: home)
+
+        profile = vmb._resolve_codex_oauth_profile_for_vm()
+        assert profile["access"] == "codex.jwt.token"
+
 
 class TestTartVmSsh:
     def test_ssh_uses_password_only_auth_flags(self, monkeypatch):
@@ -156,6 +317,70 @@ class TestTartVmSsh:
         assert result.returncode == 0
         assert result.stdout == "ok"
 
+    def test_tart_cmd_uses_remote_tart_host_when_configured(self, monkeypatch):
+        captured = {}
+
+        def _fake_run(args, **kwargs):
+            captured["args"] = args
+
+            class _Result:
+                returncode = 0
+                stdout = "snapshot"
+                stderr = ""
+
+            return _Result()
+
+        monkeypatch.setattr(vmb.subprocess, "run", _fake_run)
+        vm = vmb.TartVM(ip="192.168.64.6", user="admin", password="admin", tart_host="alfie.local")
+        vm._tart_cmd("help", timeout=10)
+        assert captured["args"][:4] == ["ssh", "-o", "BatchMode=yes", "-o"]
+        assert "alfie.local" in captured["args"]
+        assert captured["args"][-1] == "tart help"
+
+    def test_ssh_routes_guest_connection_through_tart_host(self, monkeypatch):
+        captured = {}
+
+        def _fake_run(args, **kwargs):
+            captured["args"] = args
+
+            class _Result:
+                returncode = 0
+                stdout = "ok"
+                stderr = ""
+
+            return _Result()
+
+        monkeypatch.setattr(vmb.subprocess, "run", _fake_run)
+        vm = vmb.TartVM(ip="192.168.64.3", user="admin", password="admin", tart_host="alfie.local")
+        vm.ssh("echo ok", raw=True)
+        assert captured["args"][0] == "ssh"
+        assert "alfie.local" in captured["args"]
+        assert "sshpass -p admin ssh" in captured["args"][-1]
+        assert "admin@192.168.64.3" in captured["args"][-1]
+
+    def test_scp_to_routes_through_tart_host(self, monkeypatch, tmp_path):
+        calls = []
+
+        def _fake_run(args, **kwargs):
+            calls.append(args)
+
+            class _Result:
+                returncode = 0
+                stdout = ""
+                stderr = ""
+
+            return _Result()
+
+        monkeypatch.setattr(vmb.subprocess, "run", _fake_run)
+        local = tmp_path / "x.txt"
+        local.write_text("x")
+        vm = vmb.TartVM(ip="192.168.64.3", user="admin", password="admin", tart_host="alfie.local")
+        vm.scp_to(str(local), "~/x.txt")
+        assert calls[0][0] == "ssh"
+        assert calls[1][0] == "scp"
+        assert calls[2][0] == "ssh"
+        assert "admin@192.168.64.3:~/x.txt" in calls[2][-1]
+
     def test_ssh_retries_permission_denied_even_without_255(self, monkeypatch):
         calls = {"count": 0}
 
@@ -179,6 +404,26 @@ class TestTartVmSsh:
         assert calls["count"] == 2
         assert result.returncode == 0
         assert result.stdout == "ok"
+
+    def test_wait_ready_uses_longer_probe_timeout_when_routed_via_tart_host(self, monkeypatch):
+        captured = {}
+
+        def _fake_ssh(_cmd, timeout=0, raw=False, **_kwargs):
+            captured["timeout"] = timeout
+            captured["raw"] = raw
+
+            class _Result:
+                returncode = 0
+                stdout = "ready\n"
+                stderr = ""
+
+            return _Result()
+
+        vm = vmb.TartVM(ip="192.168.64.3", user="admin", password="admin", tart_host="alfie.local")
+        monkeypatch.setattr(vm, "ssh", _fake_ssh)
+        assert vm.wait_ready(timeout=5) is True
+        assert captured["timeout"] == 15
+        assert captured["raw"] is True
 
 
 class TestOpenClawNativeReindex:
@@ -217,7 +462,6 @@ class TestOpenClawNativeReindex:
             monkeypatch.undo()
         assert calls[0].startswith(
             "nohup sh -lc 'export PATH=/opt/homebrew/bin:$PATH; "
-            "OPENCLAW_TEST_FAST=1 OPENCLAW_TEST_MEMORY_UNSAFE_REINDEX=1 "
             "openclaw memory index --agent main --force"
         )
         assert calls[1] == "openclaw memory status --agent main --json"
@@ -339,6 +583,41 @@ class TestVmEvalIsolation:
         assert calls[0] == "register:eval-q007"
         assert "--session-id eval-q007" in calls[1]
 
+    def test_evaluate_vm_agent_retries_timeout_then_succeeds(self, monkeypatch):
+        calls = []
+        attempts = {"n": 0}
+
+        class _Vm:
+            def ssh(self, command, **_kwargs):
+                calls.append(command)
+                attempts["n"] += 1
+                if attempts["n"] == 1:
+                    raise subprocess.TimeoutExpired(command, timeout=1)
+
+                class _Result:
+                    returncode = 0
+                    stdout = "ok-after-retry"
+                    stderr = ""
+
+                return _Result()
+
+        monkeypatch.setattr(vmb, "_register_session", lambda vm, session_id: calls.append(f"register:{session_id}"))
+        monkeypatch.setattr(vmb, "_extract_agent_answer", lambda raw: raw)
+        answer = vmb._evaluate_vm_agent(_Vm(), "Who is Maya?", 8, "oc-native")
+        assert answer == "ok-after-retry"
+        assert attempts["n"] == 2
+        assert calls[0] == "register:eval-q008"
+        assert "--session-id eval-q008" in calls[1]
+
+    def test_evaluate_vm_agent_timeout_retries_exhaust_fail_hard(self, monkeypatch):
+        class _Vm:
+            def ssh(self, command, **_kwargs):
+                raise subprocess.TimeoutExpired(command, timeout=1)
+
+        monkeypatch.setattr(vmb, "_register_session", lambda *_args, **_kwargs: None)
+        with pytest.raises(RuntimeError, match="Eval query timed out"):
+            vmb._evaluate_vm_agent(_Vm(), "Who is Maya?", 9, "oc-native")
+
 
 class TestOcNativeGatewayStartup:
     def test_restart_oc_native_gateway_falls_back_to_gateway_run(self, monkeypatch):
@@ -381,6 +660,42 @@ class TestJudgeCompatibility:
         assert label == "WRONG"
         assert score == 0.0
         assert captured["timeout"] == vmb.VM_CLAUDE_JUDGE_TIMEOUT_S
+
+
+class TestEvalTokenEstimates:
+    def test_score_results_aggregates_eval_token_estimates(self):
+        rows = [
+            {
+                "judge_label": "CORRECT",
+                "query_type": "factual_recall",
+                "tokens_estimate": {
+                    "question": 10,
+                    "prediction": 20,
+                    "agent_visible_total": 30,
+                    "judge_prompt": 50,
+                },
+            },
+            {
+                "judge_label": "WRONG",
+                "query_type": "factual_recall",
+                "tokens_estimate": {
+                    "question": 7,
+                    "prediction": 13,
+                    "agent_visible_total": 20,
+                    "judge_prompt": 40,
+                },
+            },
+        ]
+
+        scores = vmb.score_results(rows)
+
+        estimate = scores["eval_token_estimate"]
+        assert estimate["question_tokens"] == 17
+        assert estimate["prediction_tokens"] == 33
+        assert estimate["agent_visible_total"] == 50
+        assert estimate["judge_prompt_tokens"] == 90
+        assert estimate["total_lower_bound"] == 140
+        assert estimate["per_query_avg"]["total_lower_bound"] == 70.0
 
 
 class TestRejudgeResults:
@@ -533,6 +848,32 @@ class TestVmBenchmarkCli:
 
         vmb.main()
         assert captured["assets_dir"] == vmb._DIR.parent / "data" / "sessions"
+
+    def test_cli_passes_tart_host_to_run_benchmark(self, monkeypatch, tmp_path):
+        captured = {}
+
+        def _fake_run_benchmark(**kwargs):
+            captured["tart_host"] = kwargs.get("tart_host")
+            return {"system": kwargs["system"], "dry_run": kwargs["dry_run"]}
+
+        monkeypatch.setattr(vmb, "run_benchmark", _fake_run_benchmark)
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "vm_benchmark.py",
+                "--system",
+                "oc-native",
+                "--dry-run",
+                "--tart-host",
+                "alfie.local",
+                "--results-dir",
+                str(tmp_path / "results"),
+            ],
+        )
+
+        vmb.main()
+        assert captured["tart_host"] == "alfie.local"
 
     def test_run_benchmark_requires_openai_key_for_gpt_judge(self, monkeypatch):
         fake_rpb = ModuleType("run_production_benchmark")

@@ -77,6 +77,16 @@ COMPACTION_THRESHOLD = 0.80
 COMPACTION_TOKEN_LIMIT = int(CONTEXT_WINDOW * COMPACTION_THRESHOLD)
 OC_NATIVE_REINDEX_TIMEOUT_S = 3600
 VM_CLAUDE_JUDGE_TIMEOUT_S = 90
+VM_AGENT_EVAL_TIMEOUT_S = 240
+VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES = 2
+OC_NATIVE_MEMORY_TOOLS = [
+    "read",
+    "memory_search",
+    "memory_get",
+    "wiki_status",
+    "wiki_search",
+    "wiki_get",
+]
 
 # VM paths — sessions live under agents/{agent-id}/sessions/, NOT ~/.openclaw/sessions/
 VM_AGENT_SESSIONS_DIR = "~/.openclaw/agents/main/sessions"
@@ -145,12 +155,57 @@ class TartVM:
         "Broken pipe",
     )
 
-    def __init__(self, ip: str = "192.168.64.3", user: str = "admin",
-                 password: str = "admin", vm_name: str = "test-openclaw"):
+    def __init__(
+        self,
+        ip: str = "192.168.64.3",
+        user: str = "admin",
+        password: str = "admin",
+        vm_name: str = "test-openclaw",
+        tart_host: Optional[str] = None,
+    ):
         self.ip = ip
         self.user = user
         self.password = password
         self.vm_name = vm_name
+        self.tart_host = str(tart_host or "").strip() or None
+
+    def _readiness_probe_timeout(self) -> int:
+        """SSH probe timeout for readiness checks."""
+        # Guest SSH probes routed through a tart host add one extra SSH hop.
+        return 15 if self.tart_host else 5
+
+    def _tart_cmd(self, *parts: str, timeout: int = 120) -> subprocess.CompletedProcess:
+        cmd = ["tart", *parts]
+        if self.tart_host:
+            remote_cmd = " ".join(shlex.quote(part) for part in cmd)
+            return subprocess.run(
+                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, remote_cmd],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+    def _tart_popen(self, *parts: str):
+        cmd = ["tart", *parts]
+        if self.tart_host:
+            remote_cmd = " ".join(shlex.quote(part) for part in cmd)
+            detached = f"nohup {remote_cmd} >/tmp/{self.vm_name}-tart.log 2>&1 </dev/null &"
+            return subprocess.Popen(
+                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, detached],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        return subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
     def ssh(self, cmd: str, input_data: Optional[str] = None,
             timeout: int = 120, raw: bool = False) -> subprocess.CompletedProcess:
@@ -163,17 +218,34 @@ class TartVM:
             raw: If True, skip PATH_PREFIX (for simple echo/cat commands).
         """
         full_cmd = cmd if raw else f"{self.PATH_PREFIX}{cmd}"
-        args = [
-            "sshpass", "-p", self.password,
-            "ssh", "-o", "StrictHostKeyChecking=no",
-            "-o", "ConnectTimeout=10",
-            "-o", "PreferredAuthentications=password",
-            "-o", "PubkeyAuthentication=no",
-            "-o", "IdentitiesOnly=yes",
-            f"{self.user}@{self.ip}",
-            full_cmd,
-        ]
-        attempts = 3
+        if self.tart_host:
+            guest_cmd = " ".join([
+                "sshpass", "-p", shlex.quote(self.password),
+                "ssh", "-o", "StrictHostKeyChecking=no",
+                "-o", "ConnectTimeout=10",
+                "-o", "PreferredAuthentications=password",
+                "-o", "PubkeyAuthentication=no",
+                "-o", "IdentitiesOnly=yes",
+                shlex.quote(f"{self.user}@{self.ip}"),
+                shlex.quote(full_cmd),
+            ])
+            args = [
+                "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+                self.tart_host,
+                guest_cmd,
+            ]
+        else:
+            args = [
+                "sshpass", "-p", self.password,
+                "ssh", "-o", "StrictHostKeyChecking=no",
+                "-o", "ConnectTimeout=10",
+                "-o", "PreferredAuthentications=password",
+                "-o", "PubkeyAuthentication=no",
+                "-o", "IdentitiesOnly=yes",
+                f"{self.user}@{self.ip}",
+                full_cmd,
+            ]
+        attempts = 12 if self.tart_host else 3
         last_result = None
         for attempt in range(attempts):
             result = subprocess.run(
@@ -190,11 +262,39 @@ class TartVM:
             if not any(pattern in stderr for pattern in self.SSH_RETRY_PATTERNS):
                 return result
             if attempt < attempts - 1:
-                time.sleep(1.0)
+                # Alfie hop mode can intermittently reject auth under load;
+                # use longer backoff to ride out transient SSH auth windows.
+                time.sleep(min(12.0, 2.0 + (attempt * 1.25)))
         return last_result
 
     def scp_to(self, local: str, remote: str, timeout: int = 60):
         """Copy file from host to VM."""
+        if self.tart_host:
+            remote_cmd = " ".join([
+                "sshpass", "-p", shlex.quote(self.password),
+                "scp", "-o", "StrictHostKeyChecking=no",
+                "-o", "PreferredAuthentications=password",
+                "-o", "PubkeyAuthentication=no",
+                "-o", "IdentitiesOnly=yes",
+                shlex.quote(f"{self.user}@{self.ip}:{remote}"),
+                shlex.quote("/tmp/vm-benchmark-upload"),
+            ])
+            prep = subprocess.run(
+                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, "rm -f /tmp/vm-benchmark-upload"],
+                capture_output=True, text=True, timeout=timeout,
+            )
+            if prep.returncode != 0:
+                return prep
+            copy_to_host = subprocess.run(
+                ["scp", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", local, f"{self.tart_host}:/tmp/vm-benchmark-upload"],
+                capture_output=True, text=True, timeout=timeout,
+            )
+            if copy_to_host.returncode != 0:
+                return copy_to_host
+            return subprocess.run(
+                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, remote_cmd],
+                capture_output=True, text=True, timeout=timeout,
+            )
         args = [
             "sshpass", "-p", self.password,
             "scp", "-o", "StrictHostKeyChecking=no",
@@ -208,6 +308,26 @@ class TartVM:
 
     def scp_from(self, remote: str, local: str, timeout: int = 60):
         """Copy file from VM to host."""
+        if self.tart_host:
+            remote_pull = " ".join([
+                "sshpass", "-p", shlex.quote(self.password),
+                "scp", "-o", "StrictHostKeyChecking=no",
+                "-o", "PreferredAuthentications=password",
+                "-o", "PubkeyAuthentication=no",
+                "-o", "IdentitiesOnly=yes",
+                shlex.quote(f"{self.user}@{self.ip}:{remote}"),
+                shlex.quote("/tmp/vm-benchmark-download"),
+            ])
+            pull = subprocess.run(
+                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, remote_pull],
+                capture_output=True, text=True, timeout=timeout,
+            )
+            if pull.returncode != 0:
+                return pull
+            return subprocess.run(
+                ["scp", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", f"{self.tart_host}:/tmp/vm-benchmark-download", local],
+                capture_output=True, text=True, timeout=timeout,
+            )
         args = [
             "sshpass", "-p", self.password,
             "scp", "-o", "StrictHostKeyChecking=no",
@@ -222,10 +342,7 @@ class TartVM:
     def snapshot(self, name: str):
         """Create VM snapshot."""
         print(f"  Creating snapshot: {name}")
-        result = subprocess.run(
-            ["tart", "snapshot", "create", self.vm_name, name],
-            capture_output=True, text=True, timeout=120,
-        )
+        result = self._tart_cmd("snapshot", "create", self.vm_name, name, timeout=120)
         if result.returncode != 0:
             print(f"  WARNING: Snapshot failed: {result.stderr}")
         return result
@@ -235,32 +352,20 @@ class TartVM:
         print(f"  Restoring snapshot: {name}")
 
         # Check if tart supports snapshots
-        check = subprocess.run(
-            ["tart", "help"], capture_output=True, text=True, timeout=10,
-        )
+        check = self._tart_cmd("help", timeout=10)
         has_snapshots = "snapshot" in check.stdout
 
         if has_snapshots:
             # Must stop VM first
-            subprocess.run(
-                ["tart", "stop", self.vm_name],
-                capture_output=True, text=True, timeout=30,
-            )
+            self._tart_cmd("stop", self.vm_name, timeout=30)
             time.sleep(2)
 
-            result = subprocess.run(
-                ["tart", "snapshot", "restore", self.vm_name, name],
-                capture_output=True, text=True, timeout=120,
-            )
+            result = self._tart_cmd("snapshot", "restore", self.vm_name, name, timeout=120)
             if result.returncode != 0:
                 print(f"  WARNING: Restore failed: {result.stderr[:100]}")
 
             # Restart VM
-            subprocess.Popen(
-                ["tart", "run", self.vm_name, "--no-graphics"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            self._tart_popen("run", self.vm_name, "--no-graphics")
             self.wait_ready()
             return result
         else:
@@ -270,33 +375,43 @@ class TartVM:
                 print(f"  VM ready")
             else:
                 # Try to start VM
-                subprocess.Popen(
-                    ["tart", "run", self.vm_name, "--no-graphics"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+                self._tart_popen("run", self.vm_name, "--no-graphics")
                 self.wait_ready()
             return subprocess.CompletedProcess([], 0)
 
     def wait_ready(self, timeout: int = 120):
         """Wait for SSH to be responsive."""
         print(f"  Waiting for VM at {self.ip}...")
+        probe_timeout = self._readiness_probe_timeout()
         deadline = time.monotonic() + timeout
+        attempts = 0
+        last_error = ""
         while time.monotonic() < deadline:
+            attempts += 1
             try:
-                result = self.ssh("echo ready", timeout=5, raw=True)
+                result = self.ssh("echo ready", timeout=probe_timeout, raw=True)
                 if result.returncode == 0 and "ready" in result.stdout:
                     print(f"  VM ready")
                     return True
-            except (subprocess.TimeoutExpired, Exception):
-                pass
+                detail = (result.stderr or result.stdout or "").strip()
+                if detail:
+                    last_error = f"rc={result.returncode}: {detail[:200]}"
+                else:
+                    last_error = f"rc={result.returncode}"
+            except subprocess.TimeoutExpired:
+                last_error = f"ssh probe timed out after {probe_timeout}s"
+            except Exception as exc:
+                last_error = str(exc)[:200]
+            if attempts % 5 == 0 and last_error:
+                print(f"  Still waiting ({attempts} probes): {last_error}")
             time.sleep(3)
-        raise TimeoutError(f"VM not ready after {timeout}s")
+        suffix = f" (last error: {last_error})" if last_error else ""
+        raise TimeoutError(f"VM not ready after {timeout}s{suffix}")
 
     def is_ready(self) -> bool:
         """Check if VM is reachable."""
         try:
-            result = self.ssh("echo ok", timeout=5, raw=True)
+            result = self.ssh("echo ok", timeout=self._readiness_probe_timeout(), raw=True)
             return result.returncode == 0
         except Exception:
             return False
@@ -359,7 +474,10 @@ def _clear_vm_session_state(vm: TartVM):
     Used before a benchmark run to ensure clean state.
     """
     vm.ssh(
-        f"rm -f {VM_AGENT_SESSIONS_DIR}/*.jsonl 2>/dev/null; "
+        f"mkdir -p {VM_AGENT_SESSIONS_DIR}; "
+        f"find {VM_AGENT_SESSIONS_DIR} -maxdepth 1 -type f "
+        "\\( -name '*.jsonl' -o -name '*.jsonl.reset.*' \\) "
+        "-exec rm -f {} + 2>/dev/null; "
         f"rm -f {VM_SESSION_STORE} 2>/dev/null; "
         "rm -f ~/clawd/data/memory.db 2>/dev/null; "
         "rm -f ~/clawd/journal/*.journal.md 2>/dev/null || true; "
@@ -382,6 +500,9 @@ def _clear_vm_native_memory_state(vm: TartVM):
     vm.ssh(
         "rm -f ~/.openclaw/workspace/MEMORY.md 2>/dev/null; "
         "rm -rf ~/.openclaw/workspace/memory 2>/dev/null; "
+        "rm -rf ~/.openclaw/workspace/wiki 2>/dev/null; "
+        "rm -rf ~/.openclaw/plugins/active-memory 2>/dev/null || true; "
+        "rm -rf ~/.openclaw/plugins/memory-wiki 2>/dev/null || true; "
         "rm -f ~/.openclaw/memory/*.sqlite 2>/dev/null; "
         "rm -rf ~/.openclaw/agents/main/qmd 2>/dev/null || true; "
         "echo 'Native memory state cleared'",
@@ -402,6 +523,38 @@ def _build_openclaw_native_config_script(enable_session_hook: bool = True) -> st
         "plugins.setdefault('slots', {})['memory'] = 'memory-core'\n"
         "entries = plugins.setdefault('entries', {})\n"
         "entries.setdefault('memory-core', {})['enabled'] = True\n"
+        "entries.setdefault('active-memory', {})['enabled'] = True\n"
+        "active_memory = entries.setdefault('active-memory', {}).setdefault('config', {})\n"
+        "active_memory['enabled'] = True\n"
+        "active_memory['agents'] = ['main']\n"
+        "active_memory['allowedChatTypes'] = ['direct']\n"
+        "active_memory['modelFallbackPolicy'] = 'default-remote'\n"
+        "active_memory['queryMode'] = 'recent'\n"
+        "active_memory['promptStyle'] = 'balanced'\n"
+        "active_memory['timeoutMs'] = 15000\n"
+        "active_memory['maxSummaryChars'] = 220\n"
+        "active_memory['persistTranscripts'] = False\n"
+        "active_memory['logging'] = True\n"
+        "entries.setdefault('memory-wiki', {})['enabled'] = True\n"
+        "memory_wiki = entries.setdefault('memory-wiki', {}).setdefault('config', {})\n"
+        "memory_wiki['vaultMode'] = 'bridge'\n"
+        "memory_wiki['vault'] = {'path': '~/.openclaw/workspace/wiki', 'renderMode': 'native'}\n"
+        "memory_wiki['bridge'] = {\n"
+        "    'enabled': True,\n"
+        "    'readMemoryArtifacts': True,\n"
+        "    'indexDreamReports': True,\n"
+        "    'indexDailyNotes': True,\n"
+        "    'indexMemoryRoot': True,\n"
+        "    'followMemoryEvents': True,\n"
+        "}\n"
+        "memory_wiki['ingest'] = {'autoCompile': True, 'maxConcurrentJobs': 1, 'allowUrlIngest': True}\n"
+        "memory_wiki['search'] = {'backend': 'shared', 'corpus': 'all'}\n"
+        "memory_wiki['context'] = {'includeCompiledDigestPrompt': True}\n"
+        "memory_wiki['render'] = {\n"
+        "    'preserveHumanBlocks': True,\n"
+        "    'createBacklinks': True,\n"
+        "    'createDashboards': True,\n"
+        "}\n"
         "entries.setdefault('memory-lancedb', {})['enabled'] = False\n"
         "entries.setdefault('quaid', {})['enabled'] = False\n"
         "entries.pop('quaid', None)\n"
@@ -409,7 +562,7 @@ def _build_openclaw_native_config_script(enable_session_hook: bool = True) -> st
         "memory['backend'] = 'builtin'\n"
         "agents = d.setdefault('agents', {}).setdefault('defaults', {})\n"
         "tools = d.setdefault('tools', {})\n"
-        "tools['allow'] = ['read', 'memory_search', 'memory_get']\n"
+        f"tools['allow'] = {OC_NATIVE_MEMORY_TOOLS!r}\n"
         "tools.pop('deny', None)\n"
         "ms = agents.setdefault('memorySearch', {})\n"
         "ms['enabled'] = True\n"
@@ -557,9 +710,10 @@ def _force_openclaw_native_reindex(
     vm: TartVM, source_name: str = "sessions", min_indexed_files: int = 1
 ) -> dict:
     """Force a native OpenClaw memory reindex and require one source to finish indexing."""
+    # Keep benchmark runs on the stable production code path. The unsafe
+    # reindex test toggle can break schema invariants (missing chunks_vec).
     start_result = vm.ssh(
         "nohup sh -lc 'export PATH=/opt/homebrew/bin:$PATH; "
-        "OPENCLAW_TEST_FAST=1 OPENCLAW_TEST_MEMORY_UNSAFE_REINDEX=1 "
         "openclaw memory index --agent main --force > /tmp/oc-native-reindex.log 2>&1' "
         ">/dev/null 2>&1 & echo $!",
         timeout=30,
@@ -616,6 +770,28 @@ def _force_openclaw_native_reindex(
     )
 
 
+def _sync_openclaw_native_wiki(vm: TartVM):
+    """Sync memory-core public artifacts into memory-wiki after injection."""
+    result = vm.ssh(
+        "sh -lc '"
+        "openclaw wiki init >/tmp/oc-native-wiki-sync.log 2>&1 && "
+        "openclaw wiki bridge import >>/tmp/oc-native-wiki-sync.log 2>&1 && "
+        "openclaw wiki compile >>/tmp/oc-native-wiki-sync.log 2>&1 && "
+        "openclaw wiki status --json"
+        "'",
+        timeout=300,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        log = vm.ssh("tail -80 /tmp/oc-native-wiki-sync.log 2>/dev/null", timeout=10, raw=True)
+        log_detail = log.stdout.strip() if log.returncode == 0 else ""
+        raise RuntimeError(
+            "oc-native memory-wiki sync failed: "
+            f"{detail[:200]} {log_detail[:500]}".strip()
+        )
+    print("  Native memory wiki synced")
+
+
 def _run_oc_native_session_hook(vm: TartVM, session_id: str):
     """Run the bundled session-memory hook via `/new`, then restore transcript.
 
@@ -661,6 +837,8 @@ def _run_oc_native_session_hook(vm: TartVM, session_id: str):
         "    store.write_text(json.dumps(payload, indent=2))\n"
         "for name in extra_files:\n"
         "    (base / name).unlink(missing_ok=True)\n"
+        "for path in resets:\n"
+        "    path.unlink(missing_ok=True)\n"
         "print('hook-complete')\n"
     )
     restore = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
@@ -835,12 +1013,13 @@ def _create_project_files(vm: TartVM, user_name: str = "Maya"):
     The recipe app is the main coding project discussed across sessions.
     Without project files, the project_state queries can't be answered.
     """
+    _ = user_name
     vm.ssh("mkdir -p ~/clawd/projects/recipe-app", raw=True)
 
     project_md = f"""# Recipe App Project
 
 ## Overview
-{user_name}'s personal recipe management application.
+Recipe app project workspace. Current details should be learned from source artifacts and conversations.
 
 ## Tech Stack
 To be updated as the project evolves.
@@ -1196,6 +1375,7 @@ def inject_sessions(
         _force_openclaw_native_reindex(
             vm, source_name="sessions", min_indexed_files=sessions_injected
         )
+        _sync_openclaw_native_wiki(vm)
 
     # Compute simulated token metrics
     # total_session_tokens: raw tokens across all sessions (content only)
@@ -1676,7 +1856,7 @@ def _collect_golden_data(vm: TartVM, results_dir: Path):
 
 def _patch_gateway_model(vm: TartVM, answer_model: str):
     """Set the gateway's agent model on the VM."""
-    full_model = f"anthropic/{answer_model}"
+    full_model = answer_model if "/" in answer_model else f"anthropic/{answer_model}"
     script = (
         "import json, os\n"
         f"model = '{full_model}'\n"
@@ -1687,6 +1867,206 @@ def _patch_gateway_model(vm: TartVM, answer_model: str):
         "print(f'Gateway model set to: {model}')\n"
     )
     result = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
+    if result.stdout.strip():
+        print(f"  {result.stdout.strip()}")
+
+
+def _resolve_gateway_answer_model(
+    answer_model: str,
+    *,
+    system: str,
+    openai_auth_mode: str,
+) -> str:
+    """Normalize gateway model id for provider-specific auth transports."""
+    model = str(answer_model or "").strip()
+    if not model:
+        return model
+    if (
+        system == "oc-native"
+        and openai_auth_mode == "codex-oauth"
+        and model.startswith("openai/")
+    ):
+        return "openai-codex/" + model.split("/", 1)[1]
+    return model
+
+
+def _resolve_openai_api_key_for_vm() -> str:
+    """Resolve the OpenAI API key used by direct OpenClaw OpenAI VM runs."""
+    direct = os.environ.get("OPENAI_API_KEY", "").strip()
+    if direct:
+        return direct
+    try:
+        from run_production_benchmark import _get_openai_key
+    except Exception:
+        return ""
+    try:
+        return (_get_openai_key() or "").strip()
+    except Exception:
+        return ""
+
+
+def _resolve_codex_oauth_profile_for_vm() -> dict:
+    """Resolve a Codex OAuth profile payload used by OpenClaw on the benchmark VM."""
+    direct = os.environ.get("BENCHMARK_CODEX_API_KEY", "").strip()
+    if direct:
+        return {
+            "type": "oauth",
+            "provider": "openai-codex",
+            "access": direct,
+        }
+    try:
+        from run_production_benchmark import _read_codex_auth_token
+    except Exception:
+        token = ""
+    else:
+        try:
+            token = (_read_codex_auth_token() or "").strip()
+        except Exception:
+            token = ""
+    if token:
+        return {
+            "type": "oauth",
+            "provider": "openai-codex",
+            "access": token,
+        }
+
+    dev_cfg = Path.home() / "quaidcode" / "dev" / ".quaid-dev.local.json"
+    if not dev_cfg.exists():
+        return {}
+    try:
+        cfg = json.loads(dev_cfg.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    codex_cfg = (((cfg or {}).get("auth") or {}).get("codex") or {})
+    base_root = Path.home() / "quaidcode"
+    for key_name in ("solKeyPath", "yuniKeyPath"):
+        rel = str(codex_cfg.get(key_name) or "").strip()
+        if not rel:
+            continue
+        rel_path = Path(rel).expanduser()
+        candidates: List[Path]
+        if rel_path.is_absolute():
+            candidates = [rel_path]
+        else:
+            # Prefer paths relative to the config file itself; keep legacy
+            # resolution under ~/quaidcode for compatibility.
+            candidates = [(dev_cfg.parent / rel_path), (base_root / rel_path)]
+        token_path = next((candidate.resolve() for candidate in candidates if candidate.exists()), None)
+        if token_path is None or not token_path.exists():
+            continue
+        try:
+            raw = token_path.read_text(encoding="utf-8").strip()
+        except Exception:
+            continue
+        if not raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except Exception:
+            return {
+                "type": "oauth",
+                "provider": "openai-codex",
+                "access": raw,
+            }
+        if not isinstance(data, dict):
+            continue
+        access = str(data.get("access") or data.get("token") or "").strip()
+        if not access:
+            continue
+        profile = dict(data)
+        profile.setdefault("type", "oauth")
+        profile.setdefault("provider", "openai-codex")
+        return profile
+    return {}
+
+
+def _provision_openclaw_openai_key(vm: TartVM):
+    """Install direct OpenAI API auth for OpenClaw on the benchmark VM."""
+    key = _resolve_openai_api_key_for_vm()
+    if not key:
+        raise RuntimeError(
+            "OPENAI_API_KEY is required to run oc-native with direct OpenAI models"
+        )
+    script = (
+        "import json, os, pathlib, sys\n"
+        "token = sys.stdin.read().strip()\n"
+        "if not token:\n"
+        "    raise SystemExit('missing OpenAI token')\n"
+        "p = pathlib.Path.home() / '.openclaw' / 'agents' / 'main' / 'agent' / 'auth-profiles.json'\n"
+        "p.parent.mkdir(parents=True, exist_ok=True)\n"
+        "try:\n"
+        "    data = json.loads(p.read_text() or '{}') if p.exists() else {}\n"
+        "except Exception:\n"
+        "    data = {}\n"
+        "profiles = data.setdefault('profiles', {})\n"
+        "profile = profiles.get('openai:default') if isinstance(profiles.get('openai:default'), dict) else {}\n"
+        "profile['token'] = token\n"
+        "profiles['openai:default'] = profile\n"
+        "last_good = data.setdefault('lastGood', {})\n"
+        "last_good['openai'] = 'openai:default'\n"
+        "tmp = p.with_suffix(p.suffix + '.tmp')\n"
+        "tmp.write_text(json.dumps(data, indent=2) + '\\n')\n"
+        "os.chmod(tmp, 0o600)\n"
+        "tmp.replace(p)\n"
+        "print('OpenClaw direct OpenAI auth profile installed')\n"
+    )
+    result = vm.ssh("python3 -c " + shlex.quote(script), input_data=key, timeout=10)
+    if result.returncode != 0:
+        raise RuntimeError(f"OpenClaw OpenAI auth provisioning failed: {result.stderr[:200]}")
+    if result.stdout.strip():
+        print(f"  {result.stdout.strip()}")
+
+
+def _provision_openclaw_codex_oauth(vm: TartVM):
+    """Install Codex OAuth shared credentials for OpenClaw on the benchmark VM."""
+    profile = _resolve_codex_oauth_profile_for_vm()
+    access = str(profile.get("access") or profile.get("token") or "").strip()
+    if not access:
+        raise RuntimeError(
+            "Codex OAuth profile is required to run oc-native with Codex OAuth transport"
+        )
+    script = (
+        "import json, os, pathlib, sys\n"
+        "token = json.loads(sys.stdin.read()).get('token', '').strip()\n"
+        "if not token:\n"
+        "    raise SystemExit('missing Codex OAuth token')\n"
+        "auth_profiles = pathlib.Path.home() / '.openclaw' / 'agents' / 'main' / 'agent' / 'auth-profiles.json'\n"
+        "auth_profiles.parent.mkdir(parents=True, exist_ok=True)\n"
+        "try:\n"
+        "    auth_data = json.loads(auth_profiles.read_text() or '{}') if auth_profiles.exists() else {}\n"
+        "except Exception:\n"
+        "    auth_data = {}\n"
+        "last_good = auth_data.setdefault('lastGood', {})\n"
+        "last_good['openai-codex'] = str(last_good.get('openai-codex') or 'openai-codex:default')\n"
+        "tmp_auth = auth_profiles.with_suffix(auth_profiles.suffix + '.tmp')\n"
+        "tmp_auth.write_text(json.dumps(auth_data, indent=2) + '\\n')\n"
+        "os.chmod(tmp_auth, 0o600)\n"
+        "tmp_auth.replace(auth_profiles)\n"
+        "paths = [\n"
+        "    pathlib.Path.home() / '.openclaw' / 'shared' / 'auth' / 'credentials.json',\n"
+        "    pathlib.Path.home() / '.quaid' / 'shared' / 'auth' / 'credentials.json',\n"
+        "]\n"
+        "for p in paths:\n"
+        "    p.parent.mkdir(parents=True, exist_ok=True)\n"
+        "    try:\n"
+        "        data = json.loads(p.read_text() or '{}') if p.exists() else {}\n"
+        "    except Exception:\n"
+        "        data = {}\n"
+        "    creds = data.setdefault('credentials', {})\n"
+        "    creds['codex_oauth'] = {'token': token}\n"
+        "    tmp = p.with_suffix(p.suffix + '.tmp')\n"
+        "    tmp.write_text(json.dumps(data, indent=2, sort_keys=True) + '\\n')\n"
+        "    os.chmod(tmp, 0o600)\n"
+        "    tmp.replace(p)\n"
+        "print('OpenClaw Codex OAuth shared credential installed')\n"
+    )
+    result = vm.ssh(
+        "python3 -c " + shlex.quote(script),
+        input_data=json.dumps({"token": access}),
+        timeout=10,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"OpenClaw Codex OAuth provisioning failed: {result.stderr[:200]}")
     if result.stdout.strip():
         print(f"  {result.stdout.strip()}")
 
@@ -1787,6 +2167,13 @@ def evaluate_queries(
         # Estimate eval token usage (openclaw agent + judge via claude -p don't report usage)
         q_tokens = count_tokens(question)
         p_tokens = count_tokens(prediction) if prediction else 0
+        judge_prompt_tokens = count_tokens(
+            JUDGE_PROMPT.format(
+                question=question,
+                ground_truth=ground_truth,
+                prediction=prediction,
+            )
+        )
 
         result = {
             "question": question,
@@ -1803,6 +2190,8 @@ def evaluate_queries(
             "tokens_estimate": {
                 "question": q_tokens,
                 "prediction": p_tokens,
+                "agent_visible_total": q_tokens + p_tokens,
+                "judge_prompt": judge_prompt_tokens,
             },
         }
         results.append(result)
@@ -1823,10 +2212,24 @@ def _evaluate_vm_agent(vm: TartVM, question: str, query_idx: int,
     escaped_question = shlex.quote(question)
     _register_session(vm, session_id)
 
-    result = vm.ssh(
-        f"openclaw agent --agent main --session-id {session_id} --message {escaped_question}",
-        timeout=120,
-    )
+    for attempt in range(1, VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES + 2):
+        try:
+            result = vm.ssh(
+                f"openclaw agent --agent main --session-id {session_id} --message {escaped_question}",
+                timeout=VM_AGENT_EVAL_TIMEOUT_S,
+            )
+            break
+        except subprocess.TimeoutExpired as exc:
+            if attempt <= VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES:
+                print(
+                    f"  WARN: eval query timeout ({attempt}/{VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES + 1}) "
+                    f"session={session_id}; retrying..."
+                )
+                continue
+            raise RuntimeError(
+                f"Eval query timed out after {VM_AGENT_EVAL_TIMEOUT_S}s "
+                f"(session={session_id}, query_idx={query_idx})"
+            ) from exc
 
     if result.returncode != 0:
         return f"Error: {result.stderr[:200]}"
@@ -2058,6 +2461,8 @@ def score_results(results: List[dict]) -> dict:
             "wrong": n - c - p,
         }
 
+    eval_token_estimate = _summarize_eval_token_estimates(scored)
+
     return {
         "overall": {
             "count": len(scored),
@@ -2067,7 +2472,47 @@ def score_results(results: List[dict]) -> dict:
             "wrong": wrong,
         },
         "per_type": per_type,
+        "eval_token_estimate": eval_token_estimate,
     }
+
+
+def _summarize_eval_token_estimates(results: List[dict]) -> dict:
+    """Aggregate visible eval and judge-token estimates from result rows."""
+    totals = {
+        "question_tokens": 0,
+        "prediction_tokens": 0,
+        "agent_visible_total": 0,
+        "judge_prompt_tokens": 0,
+    }
+    for row in results:
+        estimate = row.get("tokens_estimate") or {}
+        totals["question_tokens"] += int(estimate.get("question") or 0)
+        totals["prediction_tokens"] += int(estimate.get("prediction") or 0)
+        totals["agent_visible_total"] += int(
+            estimate.get("agent_visible_total")
+            or ((estimate.get("question") or 0) + (estimate.get("prediction") or 0))
+        )
+        totals["judge_prompt_tokens"] += int(estimate.get("judge_prompt") or 0)
+    count = len(results)
+    totals["count"] = count
+    totals["total_lower_bound"] = totals["agent_visible_total"] + totals["judge_prompt_tokens"]
+    totals["notes"] = (
+        "Lower-bound estimate only: VM agent provider usage may include hidden prompt, "
+        "tool, active-memory, and gateway context not reported by openclaw agent stdout."
+    )
+    if count:
+        totals["per_query_avg"] = {
+            "agent_visible_total": round(totals["agent_visible_total"] / count, 1),
+            "judge_prompt_tokens": round(totals["judge_prompt_tokens"] / count, 1),
+            "total_lower_bound": round(totals["total_lower_bound"] / count, 1),
+        }
+    else:
+        totals["per_query_avg"] = {
+            "agent_visible_total": 0.0,
+            "judge_prompt_tokens": 0.0,
+            "total_lower_bound": 0.0,
+        }
+    return totals
 
 
 # ---------------------------------------------------------------------------
@@ -2087,7 +2532,8 @@ def _resolve_results_dir(results_base: Path, system: str, mode: str, splitting: 
 def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
                  extract_model: str = "claude-sonnet-4-5-20250929",
                  local_plugin: bool = False,
-                 answer_model: str | None = None):
+                 answer_model: str | None = None,
+                 openai_auth_mode: str = "api"):
     """Restore VM and configure for the given system.
 
     Args:
@@ -2096,7 +2542,8 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         snapshot_base: Snapshot to restore from
         extract_model: Model for extraction/janitor (Sonnet for dev, Opus for final)
         local_plugin: If True, rsync local Quaid plugin instead of cloning from GitHub
-        answer_model: Override gateway agent model (e.g. "claude-sonnet-4-5-20250929")
+        answer_model: Override gateway agent model (e.g. "openai/gpt-5.4")
+        openai_auth_mode: "api" for direct OpenAI API auth, "codex-oauth" for Codex OAuth shared auth
     """
     if system == "mem0":
         # Mem0 runs on host, no VM setup needed
@@ -2122,14 +2569,18 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         # Native OpenClaw best-effort memory:
         # - builtin memory-core recall
         # - bundled session-memory hook enabled
+        # - active-memory blocking recall sub-agent enabled
+        # - memory-wiki bridge enabled and synced after injection
         # - direct session transcript indexing enabled
         vm.ssh("openclaw plugins disable quaid 2>/dev/null || true")
         vm.ssh("openclaw plugins disable memory-lancedb 2>/dev/null || true")
         vm.ssh("openclaw plugins enable memory-core 2>/dev/null || true")
+        vm.ssh("openclaw plugins enable active-memory 2>/dev/null || true")
+        vm.ssh("openclaw plugins enable memory-wiki 2>/dev/null || true")
         _patch_openclaw_native_memory(vm, enable_session_hook=True)
         print(
             "  OpenClaw native configured "
-            "(memory-core builtin + session-memory hook + session indexing)"
+            "(memory-core + session-memory + active-memory + memory-wiki + session indexing)"
         )
 
     elif system == "quaid":
@@ -2232,8 +2683,18 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         print(f"  API key symlinked: ~/clawd/.env → ~/.openclaw/.env")
 
     # Set gateway agent model if specified
+    if system == "oc-native" and answer_model and answer_model.startswith("openai/"):
+        if openai_auth_mode == "codex-oauth":
+            _provision_openclaw_codex_oauth(vm)
+        else:
+            _provision_openclaw_openai_key(vm)
     if answer_model:
-        _patch_gateway_model(vm, answer_model)
+        gateway_answer_model = _resolve_gateway_answer_model(
+            answer_model,
+            system=system,
+            openai_auth_mode=openai_auth_mode,
+        )
+        _patch_gateway_model(vm, gateway_answer_model)
 
     # Restart gateway to pick up changes (fresh DB, clean sessions)
     if system == "oc-native":
@@ -2262,6 +2723,7 @@ def run_benchmark(
     system: str,
     mode: str = "natural",
     vm_ip: str = "192.168.64.3",
+    tart_host: Optional[str] = None,
     results_base: Optional[Path] = None,
     assets_dir: Optional[Path] = None,
     filler_dir: Optional[Path] = None,
@@ -2274,6 +2736,7 @@ def run_benchmark(
     extract_model: str = "claude-sonnet-4-5-20250929",
     local_plugin: bool = False,
     answer_model: str | None = None,
+    openai_auth_mode: str = "api",
     splitting: str = "perday",
 ) -> dict:
     """Run full benchmark for a single system.
@@ -2336,12 +2799,13 @@ def run_benchmark(
             print(f"  Timestamps: {ts_path} ({'exists' if ts_path.exists() else 'MISSING'})")
         return {"system": system, "mode": mode, "splitting": splitting, "dry_run": True}
 
-    vm = TartVM(ip=vm_ip)
+    vm = TartVM(ip=vm_ip, tart_host=tart_host)
 
     # Phase 1: Setup
     if not eval_only:
         setup_system(vm, system, snapshot_base, extract_model=extract_model,
-                     local_plugin=local_plugin, answer_model=answer_model)
+                     local_plugin=local_plugin, answer_model=answer_model,
+                     openai_auth_mode=openai_auth_mode)
 
     # Phase 2: Injection
     injection_stats = {}
@@ -2460,6 +2924,8 @@ def main():
                         help="Compaction strategy")
     parser.add_argument("--vm-ip", type=str, default="192.168.64.3",
                         help="Tart VM IP address")
+    parser.add_argument("--tart-host", type=str, default="",
+                        help="Optional SSH host that runs Tart (e.g. alfie.local)")
     parser.add_argument("--results-dir", type=str,
                         default=str(_DIR.parent / "data" / "results-vm"),
                         help="Base results directory")
@@ -2492,7 +2958,10 @@ def main():
     parser.add_argument("--local-plugin", action="store_true",
                         help="Rsync local Quaid plugin to VM instead of cloning from GitHub")
     parser.add_argument("--answer-model", type=str, default=None,
-                        help="Override gateway agent model (e.g. claude-sonnet-4-5-20250929)")
+                        help="Override gateway agent model (e.g. openai/gpt-5.4)")
+    parser.add_argument("--openai-auth-mode", type=str, default="api",
+                        choices=["api", "codex-oauth"],
+                        help="For openai/* answer models on oc-native: use direct OpenAI API auth or Codex OAuth shared auth")
     parser.add_argument("--splitting", type=str, default="timeout",
                         choices=["perday", "timeout"],
                         help="Extraction splitting strategy (default: timeout)")
@@ -2524,6 +2993,7 @@ def main():
             system=system,
             mode=args.mode,
             vm_ip=args.vm_ip,
+            tart_host=args.tart_host or None,
             results_base=results_base,
             assets_dir=assets_dir,
             filler_dir=filler_dir if not args.no_filler else None,
@@ -2536,6 +3006,7 @@ def main():
             extract_model=args.extract_model,
             local_plugin=args.local_plugin,
             answer_model=args.answer_model,
+            openai_auth_mode=args.openai_auth_mode,
             splitting=args.splitting,
         )
         all_results[system] = result
@@ -2546,6 +3017,7 @@ def main():
                 system="quaid",
                 mode="nightly",
                 vm_ip=args.vm_ip,
+                tart_host=args.tart_host or None,
                 results_base=results_base,
                 assets_dir=assets_dir,
                 filler_dir=filler_dir if not args.no_filler else None,
@@ -2557,6 +3029,7 @@ def main():
                 extract_model=args.extract_model,
                 local_plugin=args.local_plugin,
                 answer_model=args.answer_model,
+                openai_auth_mode=args.openai_auth_mode,
                 splitting=args.splitting,
             )
             all_results["quaid-nightly"] = nightly_result

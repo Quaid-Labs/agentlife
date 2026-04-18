@@ -241,4 +241,4 @@ ssh_vm "WORKSPACE=$(printf '%q' "$WORKSPACE") OPENCLAW_VERSION=$(printf '%q' "$O
 
 echo
 echo "[oc-native] Next step:"
-echo "  python3 eval/vm_benchmark.py --system oc-native --vm-ip ${VM_IP} --answer-model claude-haiku-4-5-20251001 --dry-run"
+echo "  python3 eval/vm_benchmark.py --system oc-native --vm-ip ${VM_IP} --answer-model openai/gpt-5.4 --dry-run"
