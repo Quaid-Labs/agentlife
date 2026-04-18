@@ -146,6 +146,7 @@ LAUNCH_ARGS_ESCAPED=""
 printf -v LAUNCH_ARGS_ESCAPED '%q ' "${LAUNCH_ARGS[@]}"
 LAUNCH_ARGS_ESCAPED="${LAUNCH_ARGS_ESCAPED% }"
 RESULTS_DIR=""
+WORKSPACE_BASENAME=""
 AUTO_RESULTS_DIR=false
 for ((i=0; i<${#LAUNCH_ARGS[@]}; i++)); do
   if [[ "${LAUNCH_ARGS[$i]}" == "--results-dir" ]] && (( i + 1 < ${#LAUNCH_ARGS[@]} )); then
@@ -312,6 +313,7 @@ SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=10)
 
 if $AUTO_RESULTS_DIR; then
   ts="$(date +%Y%m%d-%H%M%S)"
+  WORKSPACE_BASENAME="personal-workspace-${ts}"
   if $DRY_RUN; then
     RESULTS_DIR="runs/quaid-${SCALE}-r000-${ts}"
   else
@@ -335,6 +337,9 @@ if $AUTO_RESULTS_DIR; then
   fi
 fi
 RESULTS_BASENAME="$(basename "$RESULTS_DIR")"
+if [[ -z "$WORKSPACE_BASENAME" ]]; then
+  WORKSPACE_BASENAME="$RESULTS_BASENAME"
+fi
 
 # Ensure benchmark writes artifacts into the canonical run directory when
 # caller did not explicitly set --results-dir.
@@ -790,8 +795,9 @@ echo \"Using runner: \$RUNNER\"
 
 RESULTS_DIR=$(printf %q "$RESULTS_DIR")
 RESULTS_BASENAME=$(printf %q "$RESULTS_BASENAME")
+WORKSPACE_BASENAME=$(printf %q "$WORKSPACE_BASENAME")
 if [[ "$AUTO_RESULTS_DIR" == "true" && \"\${BENCHMARK_NEUTRAL_WORKSPACE:-1}\" != "0" ]]; then
-  NEUTRAL_WORKSPACE=\"\$REMOTE_WORKSPACE_ROOT_RESOLVED/\$RESULTS_BASENAME\"
+  NEUTRAL_WORKSPACE=\"\$REMOTE_WORKSPACE_ROOT_RESOLVED/\$WORKSPACE_BASENAME\"
   if [[ -e \"\$RESULTS_DIR\" || -L \"\$RESULTS_DIR\" ]]; then
     echo \"ERROR: results dir already exists: \$RESULTS_DIR\" >&2
     exit 1
