@@ -70,6 +70,25 @@ def test_base_project_md_scaffold_does_not_seed_future_project_facts():
     assert "TechFlow" not in text
 
 
+def test_base_project_support_files_are_neutral_scaffolds():
+    tools = rpb._render_base_project_support_file(
+        kind="TOOLS.md",
+        label="Recipe App",
+        description="Recipe app project workspace.",
+    )
+    agents = rpb._render_base_project_support_file(
+        kind="AGENTS.md",
+        label="Recipe App",
+        description="Recipe app project workspace.",
+    )
+
+    combined = tools + "\n" + agents
+    assert "Recipe App" in combined
+    assert "benchmark" not in combined.lower()
+    assert "maya" not in combined.lower()
+    assert "Safe for Mom" not in combined
+
+
 def test_project_update_flow_invokes_runtime_updater(monkeypatch, tmp_path):
     workspace = tmp_path / "ws"
     project_dir = workspace / "projects" / "recipe-app"
@@ -79,6 +98,8 @@ def test_project_update_flow_invokes_runtime_updater(monkeypatch, tmp_path):
     (project_dir / "PROJECT.log").write_text("- system-managed history\n", encoding="utf-8")
     (project_dir / "TOOLS.md").write_text("# Tools\n", encoding="utf-8")
     (project_dir / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
+    (project_dir / "docs").mkdir()
+    (project_dir / "docs" / "runtime-generated.md").write_text("# Runtime generated\n", encoding="utf-8")
     (project_dir / "node_modules").mkdir()
     (project_dir / "node_modules" / "skip.js").write_text("skip\n", encoding="utf-8")
 
@@ -121,6 +142,7 @@ def test_project_update_flow_invokes_runtime_updater(monkeypatch, tmp_path):
     assert "PROJECT.log" not in json.dumps(event)
     assert "TOOLS.md" not in json.dumps(event)
     assert "AGENTS.md" not in json.dumps(event)
+    assert "runtime-generated.md" not in json.dumps(event)
 
 
 def _fake_updater_module(fn_name="append_project_logs", fn=None):

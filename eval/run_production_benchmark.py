@@ -1522,6 +1522,31 @@ def _render_base_project_md(
 """
 
 
+def _render_base_project_support_file(
+    *,
+    kind: str,
+    label: str,
+    description: str,
+) -> str:
+    """Render canonical project TOOLS.md/AGENTS.md scaffolds from checkpoint."""
+    template_path = _QUAID_DIR / "lib" / "project_templates.py"
+    if template_path.exists():
+        spec = importlib.util.spec_from_file_location("_quaid_project_templates", template_path)
+        if spec is not None and spec.loader is not None:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            fn_name = "render_project_tools_template" if kind == "TOOLS.md" else "render_project_agents_template"
+            render = getattr(mod, fn_name, None)
+            if callable(render):
+                return render(label=label, description=description)
+    heading = "Tools" if kind == "TOOLS.md" else "Agent Notes"
+    return (
+        f"# {label} {heading}\n\n"
+        f"Project context: {description}\n\n"
+        "Use this file for stable project-specific context discovered while working.\n"
+    )
+
+
 def _write_prompt_trace(
     workspace: Path,
     scope: str,
@@ -2652,30 +2677,48 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
 
     # 4. Seed project docs. Keep these as project-creation scaffolds only;
     # future state belongs in synced artifacts and runtime project-log updates.
+    recipe_desc = (
+        "Recipe app project workspace. Current facts, features, stack, "
+        "and motivations should be learned from source artifacts and conversations."
+    )
     (workspace / "projects" / "recipe-app" / "PROJECT.md").write_text(
         _render_base_project_md(
             label="Recipe App",
-            description=(
-                "Recipe app project workspace. Current facts, features, stack, "
-                "and motivations should be learned from source artifacts and conversations."
-            ),
+            description=recipe_desc,
             project_home="projects/recipe-app/",
             source_roots=["projects/recipe-app/"],
             exclude_patterns=["node_modules/", "*.db", ".git/", "package-lock.json"],
         ),
         encoding="utf-8",
     )
+    (workspace / "projects" / "recipe-app" / "TOOLS.md").write_text(
+        _render_base_project_support_file(kind="TOOLS.md", label="Recipe App", description=recipe_desc),
+        encoding="utf-8",
+    )
+    (workspace / "projects" / "recipe-app" / "AGENTS.md").write_text(
+        _render_base_project_support_file(kind="AGENTS.md", label="Recipe App", description=recipe_desc),
+        encoding="utf-8",
+    )
+    portfolio_desc = (
+        "Portfolio site project workspace. Current facts, purpose, content, "
+        "and status should be learned from source artifacts and conversations."
+    )
     (workspace / "projects" / "portfolio-site" / "PROJECT.md").write_text(
         _render_base_project_md(
             label="Portfolio Site",
-            description=(
-                "Portfolio site project workspace. Current facts, purpose, content, "
-                "and status should be learned from source artifacts and conversations."
-            ),
+            description=portfolio_desc,
             project_home="projects/portfolio-site/",
             source_roots=["projects/portfolio-site/"],
             exclude_patterns=[".git/"],
         ),
+        encoding="utf-8",
+    )
+    (workspace / "projects" / "portfolio-site" / "TOOLS.md").write_text(
+        _render_base_project_support_file(kind="TOOLS.md", label="Portfolio Site", description=portfolio_desc),
+        encoding="utf-8",
+    )
+    (workspace / "projects" / "portfolio-site" / "AGENTS.md").write_text(
+        _render_base_project_support_file(kind="AGENTS.md", label="Portfolio Site", description=portfolio_desc),
         encoding="utf-8",
     )
     _seed_quaid_project_docs(workspace)
@@ -3244,7 +3287,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
         if snapshot_dir is not None:
             print(f"  Session {session_num}: {project} snapshot @ {snapshot_dir}")
             rsync_res = subprocess.run(
-                ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
+                ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER, "--exclude", ".git", "--exclude", "node_modules",
                  "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md",
                  str(snapshot_dir) + "/", str(target_dir) + "/"],
                 capture_output=True, timeout=30,
@@ -3277,7 +3320,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
         # Rsync files (exclude .git, node_modules, package-lock, preserve existing docs)
         excludes = [".git", "node_modules", "package-lock.json"]
         # Build rsync command
-        cmd = ["rsync", "-a", "--delete"]
+        cmd = ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER]
         for exc in excludes:
             cmd.extend(["--exclude", exc])
         # Preserve project docs/logs managed by Quaid runtime.
@@ -3969,10 +4012,11 @@ def _render_messages_as_transcript(messages: List[Dict[str, str]]) -> str:
     )
 
 
-_PROJECT_UPDATE_EXCLUDED_DIRS = {".git", "node_modules", "__pycache__"}
+_PROJECT_UPDATE_EXCLUDED_DIRS = {".git", "node_modules", "__pycache__", "docs"}
 # These are runtime-managed project outputs, not source inputs. Including them
 # in updater events would make project-doc refresh self-trigger recursively.
 _PROJECT_UPDATE_EXCLUDED_FILES = {"PROJECT.md", "PROJECT.log", "TOOLS.md", "AGENTS.md", "package-lock.json"}
+_PROJECT_DOCS_RSYNC_PROTECT_FILTER = ["--filter", "P docs/***"]
 
 
 def _project_update_files_touched(workspace: Path, project: str, *, max_files: int = 500) -> List[str]:
@@ -4189,7 +4233,7 @@ def _sync_project_snapshot(
     target_dir = workspace / "projects" / project
     if snapshot_dir is not None:
         rsync_res = subprocess.run(
-            ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
+            ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER, "--exclude", ".git", "--exclude", "node_modules",
              "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md",
              str(snapshot_dir) + "/", str(target_dir) + "/"],
             capture_output=True, timeout=30,
@@ -4213,7 +4257,7 @@ def _sync_project_snapshot(
                 f"Failed to checkout {project}@{commit}: "
                 f"{(checkout_res.stderr or checkout_res.stdout or '').strip()[:300]}"
             )
-    cmd = ["rsync", "-a", "--delete"]
+    cmd = ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER]
     for exc in [".git", "node_modules", "package-lock.json"]:
         cmd.extend(["--exclude", exc])
     cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md"])
@@ -5476,7 +5520,7 @@ def run_per_day_extraction(
                     if snapshot_dir is not None:
                         print(f"  Project update: {project} snapshot s{snum}")
                         rsync_res = subprocess.run(
-                            ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
+                            ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER, "--exclude", ".git", "--exclude", "node_modules",
                              "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md",
                              str(snapshot_dir) + "/", str(target_dir) + "/"],
                             capture_output=True, timeout=30,
@@ -5506,7 +5550,7 @@ def run_per_day_extraction(
                     else:
                         print(f"    NOTE: {project} source has no .git; using snapshot without commit replay")
                     excludes = [".git", "node_modules", "package-lock.json"]
-                    cmd = ["rsync", "-a", "--delete"]
+                    cmd = ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER]
                     for exc in excludes:
                         cmd.extend(["--exclude", exc])
                     cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md"])
@@ -9938,6 +9982,11 @@ def _make_env(
     env["BENCHMARK_LIFECYCLE_PREPASS_WORKERS"] = str(
         max(1, int(os.environ.get("BENCHMARK_LIFECYCLE_PREPASS_WORKERS", env["BENCHMARK_PARALLEL"])))
     )
+    # AgentLife replays days/minutes faster than wall-clock. Treat each janitor
+    # cycle as occurring after the normal doc-health quiet window; product
+    # defaults remain 20m outside benchmark orchestration.
+    env.setdefault("QUAID_PROJECT_DOC_HEALTH_QUIET_SECONDS", "0")
+    env.setdefault("QUAID_PROJECT_DOC_HEALTH_REQUEST_QUIET_SECONDS", "0")
     if mock_embeddings is True:
         env["MOCK_EMBEDDINGS"] = "1"
     elif mock_embeddings is False:
