@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   ねえ、バグを見つけた。prep_time に負の数を入れられるんだけどｗ たとえば -30 分。さすがにバリデーションした方がいいよね
 
-AI ASSISTANT:
+AIアシスタント:
   そうですね。database schema と API route の両方で validation を追加するのがいいです。修正はこちらです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   ALTER TABLE の方法を試したけど、「Cannot add a CHECK constraint to an existing table」って出る :/
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、SQLite は既存テーブルに CHECK 制約を追加できません。テーブルを作り直す必要があります。migration script はこうです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   それは通ったけど、今度はテストが全部失敗してる lol。大量に「SQLITE_CONSTRAINT: CHECK constraint failed: prep_time >= 0」が出る
 
-AI ASSISTANT:
+AIアシスタント:
   テスト fixture に負の値か 0 が入っているはずです。テストデータを更新してください:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   テストは通った。backend だけじゃなく frontend でも validation した方がいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん両方やるべきです。backend の validation は安全網ですが、frontend は UX が良くなります:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   いいね。あと `max="999"` も入れた。誰も 16 時間分の下ごしらえはしないからね lol
 
-AI ASSISTANT:
+AIアシスタント:
   lol 賢いですね。backend の validation にも入れておくといいですよ:
 
 ---

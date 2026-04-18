@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   dietary filter が vegan を検索したのに vegetarian recipes を返してる。たぶん設定自体は合ってると思うんだけど、よくわからない
 
-AI ASSISTANT:
+AIアシスタント:
   filter のロジックを見せてもらえますか？ たいていこれは、DB クエリが `includes('vegan')` みたいになっていて、vegetarian も含まれてしまうときに起きます。WHERE 句を見たいです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~1
 
-MAYA:
+マヤ:
   ```js
 
-AI ASSISTANT:
+AIアシスタント:
   ここが問題です。`LIKE '%vegan%'` だと、"vegan" と "vegetarian" の両方に部分一致してしまいます。厳密な tag matching にする必要があります。こうしてみてください:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   あー、なるほど。試してみるね
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。これで解決するはずです。カンマで囲むと、"vegan" は ",vegan," にだけ一致して、",vegetarian," には一致しません。いくつか recipe を試して、両方の filter が動くことを確認してください。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   ちょっとエラーが出る
 
-AI ASSISTANT:
+AIアシスタント:
   すみません、文字列連結の構文が間違っていました。SQLite では `||` の使い方が違います。代わりにこちらを試してください:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   まだエラーだね。schema が悪いのかな？ tags カラムはただの TEXT なんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   schema は問題ありません。TEXT でもカンマ区切りの値として使えます。エラーは tag の保存方法かもしれません。これを実行してみてください:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~1
 
-MAYA:
+マヤ:
   ```
 
-AI ASSISTANT:
+AIアシスタント:
   見つけました。スペースの不一致でマッチが壊れています。`"vegan, gluten-free"`（スペースあり）と `"vegan"`（スペースなし）が混在しています。2 つ修正があります:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   了解、既存データを正規化して insert も直したら動いた。これのテストも追加した方がいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。こういう edge case は regression test にしておくべきです。こんな感じで:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
-  いいね、スペースの件のテストも追加した。ありがとう、D
+マヤ:
+  いいね、スペースの件のテストも追加した。ありがとう、ディー
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ ちゃんと対応できています。スペースの違いもテストしておいたのは正解です。ほかに filter 周りで変な挙動があったら言ってください。
 
 ---

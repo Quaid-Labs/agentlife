@@ -5,10 +5,14 @@ Parses session review files from assets/session-XX-review-*.txt.
 Extracts transcripts (Section 2) and eval queries (Section 4).
 """
 
+import json
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -137,13 +141,22 @@ def _parse_transcript_section(text: str) -> tuple:
             turn["tokens"] = int(m.group(2))
             user_tokens_total += int(m.group(2))
 
-        # Maya's message
-        maya_match = re.search(r"MAYA:\s*\n(.*?)(?=\nAI ASSISTANT:|\nAGENT:|\nANALYSIS:)", block, re.DOTALL)
+        # User message. JP review files use Japanese speaker labels, while
+        # canonical reviews keep the original parser-safe English labels.
+        maya_match = re.search(
+            r"(?:MAYA|マヤ):\s*\n(.*?)(?=\n(?:AI ASSISTANT|AIアシスタント|AGENT):|\nANALYSIS:)",
+            block,
+            re.DOTALL,
+        )
         if maya_match:
             turn["maya"] = maya_match.group(1).strip()
 
         # Agent response
-        agent_match = re.search(r"(?:AI ASSISTANT|AGENT):\s*\n(.*?)(?=\nANALYSIS:|$)", block, re.DOTALL)
+        agent_match = re.search(
+            r"(?:AI ASSISTANT|AIアシスタント|AGENT):\s*\n(.*?)(?=\nANALYSIS:|$)",
+            block,
+            re.DOTALL,
+        )
         if agent_match:
             turn["agent"] = agent_match.group(1).strip()
 
@@ -290,12 +303,17 @@ def format_transcript_for_extraction(review: SessionReview) -> str:
       Maya: cool so like...
       Assistant: That sounds like a great plan...
     """
+    path_parts = set(review.filepath.parts)
+    is_jp = "sessions-jp" in path_parts or "filler-sessions-jp" in path_parts
+    user_label = "マヤ" if is_jp else "Maya"
+    assistant_label = "AIアシスタント" if is_jp else "Assistant"
+
     lines = []
     for turn in review.transcript_turns:
         if "maya" in turn:
-            lines.append(f"Maya: {turn['maya']}")
+            lines.append(f"{user_label}: {turn['maya']}")
         if "agent" in turn:
-            lines.append(f"Assistant: {turn['agent']}")
+            lines.append(f"{assistant_label}: {turn['agent']}")
     return "\n\n".join(lines)
 
 
@@ -467,6 +485,9 @@ def get_all_eval_queries(reviews: List[SessionReview]) -> List[dict]:
     Returns list of dicts with: question, ground_truth, query_type,
     recall_difficulty, evidence_sessions, source_session, query_num.
     """
+    if _active_dataset() == "jp":
+        return _load_jp_all_eval_queries()
+
     all_queries = []
     for r in reviews:
         for q in r.eval_queries:
@@ -496,6 +517,8 @@ def get_all_eval_queries(reviews: List[SessionReview]) -> List[dict]:
 
 def get_statement_context_queries() -> List[dict]:
     """Return opt-in statement-grounding queries for preinject experiments."""
+    if _active_dataset() == "jp":
+        raise RuntimeError("JP statement-context grounding queries are not translated yet")
     return list(STATEMENT_CONTEXT_GROUNDING_QUERIES)
 
 
@@ -505,7 +528,72 @@ def get_tier5_queries() -> List[dict]:
     These use a separate 3-point rubric (0/1/2) judged by Sonnet, not the
     binary CORRECT/WRONG judge used for Tiers 1-4.
     """
+    if _active_dataset() == "jp":
+        return _load_jp_python_query_set("EMOTIONAL_INTELLIGENCE_QUERIES")
     return list(EMOTIONAL_INTELLIGENCE_QUERIES)
+
+
+def _active_dataset() -> str:
+    """Return the active dataset variant for query corpus selection."""
+    return str(os.environ.get("BENCHMARK_DATASET", "canonical") or "canonical").strip().lower()
+
+
+def _jp_query_dir() -> Path:
+    return ROOT_DIR / "data" / "eval-queries-jp"
+
+
+def _load_jp_json(name: str) -> dict:
+    path = _jp_query_dir() / name
+    if not path.exists():
+        raise RuntimeError(f"Missing JP eval query corpus: {path}")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_jp_arc_queries() -> List[dict]:
+    data = _load_jp_json("al-s-arc-section4-queries.json")
+    queries = data.get("queries")
+    if not isinstance(queries, list):
+        raise RuntimeError("JP arc query corpus is malformed: expected list at 'queries'")
+    return [dict(q) for q in queries]
+
+
+def _load_jp_python_query_sets() -> Dict[str, List[dict]]:
+    data = _load_jp_json("al-s-python-query-sets.json")
+    source_sets = data.get("source_sets")
+    if not isinstance(source_sets, list):
+        raise RuntimeError("JP Python query corpus is malformed: expected list at 'source_sets'")
+    out: Dict[str, List[dict]] = {}
+    for entry in source_sets:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get("source_set") or "").strip()
+        queries = entry.get("queries")
+        if not name or not isinstance(queries, list):
+            continue
+        out[name] = [dict(q) for q in queries]
+    return out
+
+
+def _load_jp_python_query_set(name: str) -> List[dict]:
+    sets = _load_jp_python_query_sets()
+    if name not in sets:
+        raise RuntimeError(f"JP query corpus missing source_set={name!r}")
+    return list(sets[name])
+
+
+def _load_jp_all_eval_queries() -> List[dict]:
+    queries = _load_jp_arc_queries()
+    sets = _load_jp_python_query_sets()
+    for name in (
+        "ADVERSARIAL_QUERIES",
+        "NON_QUESTION_QUERIES",
+        "ARCHITECTURE_QUERIES",
+        "HARDENING_V2_QUERIES",
+    ):
+        if name not in sets:
+            raise RuntimeError(f"JP query corpus missing source_set={name!r}")
+        queries.extend(sets[name])
+    return queries
 
 
 # ---------------------------------------------------------------------------

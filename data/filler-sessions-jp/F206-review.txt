@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   通知設定機能のユーザーストーリーを書くのを手伝ってくれる？ 今四半期中に支払いダッシュボードに入れて出したいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。通知設定の包括的なユーザーストーリーをまとめるよ。まずは中核機能を押さえた構成を作るね。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いいね、そのまま続けて。ダイジェストと頻度の部分も入れて。あと、マルチユーザーアカウントがあるからチーム通知用の項目も必要
 
-AI ASSISTANT:
+AIアシスタント:
   **ストーリー5: メールダイジェスト設定**
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   うん、Slack連携とWebhookも追加して。あと通知履歴と監査ログのストーリーも必要
 
-AI ASSISTANT:
+AIアシスタント:
   **ストーリー9: Slack連携**
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   モバイルのプッシュ通知もあるといいね。あと、有効化する前に通知の見た目をプレビューできるのはどう？
 
-AI ASSISTANT:
+AIアシスタント:
   **ストーリー12: モバイルプッシュ通知**
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   スヌーズも便利そうだし、管理者ユーザーがカスタマイズできる通知テンプレートの項目もあったらいいかも
 
-AI ASSISTANT:
+AIアシスタント:
   **ストーリー14: 通知のスヌーズ**
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   分析もね。A/Bテストは要らない。あと、通知設定のバックアップ/エクスポートも必要かも
 
-AI ASSISTANT:
+AIアシスタント:
   **ストーリー16: 通知分析ダッシュボード**
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   そうだね、誰がどの設定を変えられるかというロールもあるといい。GDPR対応のための通知同意についても何か入れたい
 
-AI ASSISTANT:
+AIアシスタント:
   **ストーリー18: 通知権限のロールベース管理**
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   うん、そのへんで十分かな。これを表形式にしてくれる？ ストーリー番号、タイトル、優先度、見積もりストーリーポイントみたいな感じで
 
-AI ASSISTANT:
+AIアシスタント:
   **通知設定機能 - ユーザーストーリー一覧**
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   すごくいい。必要なAPIエンドポイントの受け入れ条件も書ける？ どのルートで、リクエスト/レスポンス形式がどうなるかみたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   **通知設定APIエンドポイント**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うん、それと履歴/監査用のエンドポイントも続けて
 
-AI ASSISTANT:
+AIアシスタント:
   **5. GET /v1/notification_preferences/team**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   そう、分析とテスト/プレビュー用のエンドポイントもあるといい
 
-AI ASSISTANT:
+AIアシスタント:
   **12. GET /v1/notifications/analytics**
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   うん、それと委任用のエンドポイントも
 
-AI ASSISTANT:
+AIアシスタント:
   **15. POST /v1/notification_preferences/export**
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   じゃあ次は大丈夫。これの簡単なデータベーススキーマも書いてくれる？ 主要テーブルとリレーションで
 
-AI ASSISTANT:
+AIアシスタント:
   **通知設定データベーススキーマ**
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   最後に、コアフローのテストケースも書いてほしい。たとえばメール通知を有効化する、Webhookを設定する、委任する、みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   **テストケース: 通知設定のコアフロー**
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うん、すごくいい。まさに欲しかったものだ、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ これでしっかりした土台ができたね。
 
 ---
@@ -191,10 +191,10 @@ AI ASSISTANT:
 TURN 16 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   完璧。これを今からQ2のロードマップ文書に入れるつもり
 
-AI ASSISTANT:
+AIアシスタント:
   Q2の計画にちょうどいいね。入れるときのちょっとしたポイントをいくつか挙げるよ。
 
 ================================================================================

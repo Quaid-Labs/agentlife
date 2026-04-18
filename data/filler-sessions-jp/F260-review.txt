@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うわ、人生で最悪の会議を終えたばかり
 
-AI ASSISTANT:
+AIアシスタント:
   それはつらいね。何があったの？ 話したいなら聞くよ。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   私のプロダクトマネージャーの同僚が、VPの前で私が設計した認証フロー全体の手柄をそのまま持っていったの
 
-AI ASSISTANT:
+AIアシスタント:
   それはひどいね。会議の中で言い返した？ それとも、あとで別の場で対処するつもり？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   ただ呆然として座ってただけ、バカみたいに。ショックで何も言えなかった
 
-AI ASSISTANT:
+AIアシスタント:
   それはごく普通の反応だよ - ああいうふうに不意打ちを食らうと、動揺するものだから。マネージャーにも入ってもらう？ それとも、まず同僚本人に直接話す？
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   うん、明日マネージャーに話すつもり。とにかく愚痴りたかっただけ、正直ね
 
-AI ASSISTANT:
+AIアシスタント:
   それでいいよ。ああいうのは本当に腹が立つからね。少しでも吐き出せてたらいいな - 自分で設計したなら、かなり強い根拠があるよ。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   ありがとう。気分転換に走ってくる
 
-AI ASSISTANT:
+AIアシスタント:
   それがいいと思う。走るのが一番リセットになることもある。少し楽になるといいね！
 
 ---

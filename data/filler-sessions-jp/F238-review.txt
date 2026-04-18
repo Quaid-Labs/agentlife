@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   ねえ、ちょっと聞きたいんだけど - ポルトガルの首都ってどこだっけ
 
-AI ASSISTANT:
+AIアシスタント:
   リスボンです！ ポルトガルの首都で最大の都市で、大西洋沿岸にあります。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   え、なんでポルトだと思ってたんだろ
 
-AI ASSISTANT:
+AIアシスタント:
   よくある勘違いですよね！ ポルトは2番目に大きい都市で、ポートワインでも有名だから、みんなよく混同します。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   あー、なるほど。ありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！
 
 ---

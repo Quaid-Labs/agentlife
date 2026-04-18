@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   ねえ、データベースクエリを別モジュールにリファクタリングしてもらえる？ ルート全体に散らばっていて、だんだんごちゃごちゃしてきたんだ
 
-AI ASSISTANT:
+AIアシスタント:
   データベースクエリをきれいなリポジトリパターンに整理するのを手伝うよ。これでデータアクセスのロジックをルートハンドラから分離できて、テストもしやすくなる。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね！ このルートファイルでどう使うか見せてもらえる？
 
-AI ASSISTANT:
+AIアシスタント:
   リポジトリパターンを使うと、ルートファイルはこんな感じになるよ：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   完璧。じゃあ今度はリポジトリのテストを書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   Jest とインメモリの SQLite データベースを使って、RecipeRepository 用の包括的なテストスイートを用意するよ：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   テストが "Cannot find module 'sqlite3'" で失敗してる - 何かインストールする必要ある？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、sqlite3 を依存関係としてインストールする必要があるよ。実行するコマンドはこれ：
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   了解。あと、タイトルでレシピを探す検索メソッドも追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   SQL LIKE を使ったあいまい検索つきの検索メソッドを追加するよ。更新後のリポジトリはこうなる：
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね。検索エンドポイントを叩くと "Cannot set headers after they are sent to the client" ってエラーになるんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   そのエラーは、複数回レスポンスを返しているときによく出るんだ。ルートファイルを見る限り、検索ルートが `/:id` ルートの後ろに定義されているんじゃないかな。Express が `/search` を id パラメータとしてマッチさせているはず！
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ああ、なるほど笑。じゃあ最後に、メインの一覧エンドポイントにページネーションを追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   オフセットと上限に対応したページネーションを追加するよ。更新後のリポジトリメソッドとルートはこれ：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   完璧。最後にもう一つ、認証ミドルウェアを単体でテストするにはどうすればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   Jest のモックを使って、認証ミドルウェアを単体でテストする方法はこうだよ：
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   テストは通ってるけど、jest.mock について非推奨警告が出てる - 別のものに切り替えるべき？
 
-AI ASSISTANT:
+AIアシスタント:
   その警告は、おそらくホイスティングに関するものだね。`jest.mock()` のままでもいいけど、トップレベルに置くようにしてね。ただ、より明示的に制御したいなら、手動モックを使うのがおすすめ。改善したテストはこんな感じ：
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   了解ありがとう。あ、今度は "Cannot find module './auth'" って出てる - このファイルはどこに置くべき？
 
-AI ASSISTANT:
+AIアシスタント:
   認証ミドルウェアは `middleware` ディレクトリに置くべきだよ。完全なファイル構成と、実際のミドルウェア実装はこれ：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   完璧、全部動いた。レシピ CRUD の全体フローに対する統合テストを書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   supertest を使って、実際の HTTP リクエストで完全な CRUD フローをテストする包括的な統合テストスイートを用意するよ：
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   すごい。最後の質問、DB のクエリ性能を上げるためにインデックスを追加したほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   うん！ `user_id` に対するインデックスはもうあるけど、よくあるクエリパターン用にいくつか追加したほうがいい。おすすめのインデックスを全部入れた最適化済みスキーマはこれ：
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   完璧ありがとう！ これなら十分よさそう。明日 Render にデプロイするつもり
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ Render にデプロイする前に、簡単なデプロイチェックリストと環境設定を確認しておこう：
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   えっと、カップって大さじ何杯だっけ？ いつも忘れちゃう、笑
 
-AI ASSISTANT:
+AIアシスタント:
   大さじ 16 杯で 1 カップです。だから大さじ 8 杯なら、半カップですね！
 
 ---

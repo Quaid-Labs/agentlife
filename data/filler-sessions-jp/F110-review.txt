@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   recipe app の user behavior data を analytics チームに渡すための data pipeline spec を書きたいんだけど、手伝ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。まず基本からいきましょう。どんな user action を追跡したいですか？ たとえば recipe の閲覧、保存、検索？ それと、今すでに event tracking は入っていますか、それともゼロからですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   basic logging はあるけど structured ではない。recipe views、saves、shares、ingredient clicks、search queries を追いたい
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。spec を組み立てましょう。今の app backend の tech stack は何ですか？ それと analytics 側は data warehouse を指定していますか？ 期限も知りたいです。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   backend は node/postgres。analytics は snowflake。3 週間くらいで欲しいらしい lol
 
-AI ASSISTANT:
+AIアシスタント:
   了解、いけそうです。まずは構成案を作ります:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   いま 2k dau くらいで、たぶん 1 日 1〜1.5 万 events くらい
 
-AI ASSISTANT:
+AIアシスタント:
   完璧です。spec を続けます:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   そういえば、どの screen から来たかも追うべき？ たとえば ingredient を recipe detail からクリックしたのか、search results からなのか
 
-AI ASSISTANT:
+AIアシスタント:
   いい考えです。schema に `referrer_screen` と `referrer_id` を追加しましょう:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   gcp 使ってるから aws じゃなくて pubsub だよね？
 
-AI ASSISTANT:
+AIアシスタント:
   その通り、むしろその方がいいです。更新した architecture はこうです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うん。snowflake の table schema はどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが Snowflake DDL です:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   performance のために partitioning も入れた方がいいかな。あと section 5 として error handling もほしい
 
-AI ASSISTANT:
+AIアシスタント:
   partitioning を入れた DDL に更新しました:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   いいね。data validation のルールはどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   **6. Data Validation Rules**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、それも大事。search term にはセンシティブな内容が入るかもしれないし。gdpr の user deletion も考えないと
 
-AI ASSISTANT:
+AIアシスタント:
   **7. Privacy & Compliance**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   完璧。deployment plan と estimated effort も入れてくれる？ そしたらもう十分かな
 
-AI ASSISTANT:
+AIアシスタント:
   **8. Deployment Plan**
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
-  いや、もう最高。Confluence に貼るわ。ありがとう、D！すごく助かった
+マヤ:
+  いや、もう最高。Confluence に貼るわ。ありがとう、ディー！すごく助かった
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ analytics チーム、うまくいくといいですね。何か反論が出たら、期限の調整が必要になったら、また言ってください。spec は何度でも一緒に直せます。
 
 ---

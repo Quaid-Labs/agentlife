@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   リテンション分析用に SQL クエリを書きたいんだけど、ここ 90 日以内に登録したのにアカウントを一度も有効化していないユーザーを全部見つけたい
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。スキーマに応じたいくつかのバリエーションを含めて、包括的な SQL クエリを作るよ：
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   うちは PostgreSQL を使ってる。あと、有効化は users テーブルの boolean だよ。どの登録元から来たかを示す列も追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   いいね。登録元を含めた更新版の PostgreSQL クエリはこれだよ：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   その内訳クエリ、すごくいい。あと、有効化はしていないけど少なくとも一度はログインした人が何人いるかも列で出せる？
 
-AI ASSISTANT:
+AIアシスタント:
   ログイン追跡を追加した更新版の内訳クエリはこれだよ：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   うん、last_login_at はある。これいいね。今すぐ回して、何が出るか見てみるよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいね。何が出たか教えて。どのソースが伸び悩んでいるのか気になる。データの中で意外なものがあれば、もっと深掘りする追加クエリも手伝えるよ。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   うわ、うちの「partner_referral」ソースは非アクティブユーザーが 847 人いて、12% しか一度もログインしてない。ほかよりかなり悪い
 
-AI ASSISTANT:
+AIアシスタント:
   うわ、それはかなり大きな赤信号だね。88% も一度もログインしていないなら、紹介フローが壊れているか、そのパートナー経由のリードの質がかなり低いかのどちらかだろう。さらに調べるためのクエリを置いておくよ：
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   referrer_id フィールドはないんだけど、これは明日のグロース会議で必ず触れるべきだね。話すときの要点をまとめてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   グロース会議向けの要点はこんな感じだよ：
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   いいね。あと、パートナー経由の登録だけはメール認証を必須にしたほうがいいかも、という一文も入れてくれる？ 他のソースは問題なさそうだし
 
-AI ASSISTANT:
+AIアシスタント:
   メール認証の提案を入れた版に更新したよ：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   ありがとう！ これをメモに貼り付けるよ。あとさっきの話に戻るけど、その referrer_id フィールドを追加する移行はどんな感じになる？
 
-AI ASSISTANT:
+AIアシスタント:
   移行と実装の計画はこれだよ：
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いや、API 側の変更は自分でやるよ。これで十分。スプリントに入れておく
 
-AI ASSISTANT:
+AIアシスタント:
   いいね。小さな変更で、分析面へのインパクトは大きいはずだよ。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   ちょっと待って、その partner_referrers テーブル、かなりいいね。数週間分のデータがたまったあとで、パートナー別の有効化率を見せるクエリを書ける？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。パートナーの実績をまとめるクエリはこれだよ：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   いいね。最後にほんとこれだけ。今のパートナー 8 社くらいを partner_referrers にバックフィルする insert 文を書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。バックフィル用の insert はこれだよ。カスタマイズできるように 8 件のプレースホルダー行を含めてある：
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いや、ここから先は自分でやるよ。パートナーシップ用のスプレッドシートから名前を拾ってくる。ほんと助かった！
 
-AI ASSISTANT:
+AIアシスタント:
   問題ないよ。これでかなりしっかりした計画ができたね：
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   うん、行って明日の準備するよ。助かった
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。これで準備は万端だよ：
 
 ---

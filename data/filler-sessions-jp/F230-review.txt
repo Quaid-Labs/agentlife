@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ちょっと、async と await の違いを手短に説明してくれる？ いつも混同しちゃうんだよね、笑
 
-AI ASSISTANT:
+AIアシスタント:
   async は関数を非同期として扱えるようにするもの（その中で await を使える）。await は Promise が解決するまで実行を止める。つまり async = 関数宣言、await = その関数内で結果を待つためのもの。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ああ、つまり async がラッパーで、await が実際に待つ役ってこと？
 
-AI ASSISTANT:
+AIアシスタント:
   そのとおり！ async 関数 = 「この関数は途中で止まって待てる」。await = 「この Promise が終わるまでここで待つ」。await を使うには async が必要。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   うん、これでずっと分かりやすくなった、ありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ async を入れ物、await をその中の動作だと考えるとすぐ腑に落ちるよ。
 
 ---

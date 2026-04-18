@@ -26,49 +26,49 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   package.json に追加して、validation のテストも書いて
 
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   いいけど、テストを実行すると "Cannot find module '../app'" って出る
 
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、テストは通った。次は recipe を実際に保存する db ロジックを入れて
 
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うーん、「Error: SQLITE_BUSY: database is locked」って出てる
 
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   完璧、それで動いた。次は全部の recipes を取る GET エンドポイントがほしい
 
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   いや、まだいい。get エンドポイントのテストを書いてくれる？
 
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   テストは通ったけど、sqlite cleanup の警告が出る。気にするべき？
 
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   lol かなり速くなったね。ありがと、これで solid だ
 
 ================================================================================

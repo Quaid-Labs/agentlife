@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   ねえ、チームのレトロ用アジェンダをまとめないといけないんだ。Merchant Dashboardのリデザインを出したばかりで、いくつかつまずきもあった。下書きを作ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   Merchant Dashboardのリデザイン案件向けに、包括的な振り返りアジェンダを作成します。使いやすいように、整理された形式でまとめます:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいけど長すぎる。うちは60分しかないし、チームは集中力が続かない。もっと削ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   60分版に絞ったものはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。これを送るSlackメッセージも下書きしてくれる？ カレンダーの仮押さえも必要なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   Slackメッセージとカレンダー招待の両方はこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   いや、それでいい。もう1つ - ファシリテーションのコツも教えてくれる？ 前回のレトロはバックエンドの遅れの話で少し熱くなったんだ
 
-AI ASSISTANT:
+AIアシスタント:
   難しい会話をうまく進めるための具体的なファシリテーション戦略はこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   すごく助かる。じゃあ話を変えるけど、このレトロから実際に何を測ればいい？ つまり、どれだけ役に立ったかはどう判断すればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   レトロの効果を測るうえで本当に重要な指標はこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
+マヤ:
   うん、シートのテンプレート構成を送って。あと、レトロの前にプロジェクトのタイムラインを見直す必要があることに気づいた。どんな質問をしておくべきかまとめてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **Google Sheetテンプレートの構成:**
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね。実際にMiroのボードがどう見えるべきかもモックアップしてくれる？ どんなセクションにして、どう整理するかを知りたい
 
-AI ASSISTANT:
+AIアシスタント:
   Miroボードの構成はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   いや、ここまでで大丈夫。最後に - バックエンドの遅れの話が本当にピリついたら、私の切り返し用の正確なセリフは何？
 
-AI ASSISTANT:
+AIアシスタント:
   そのまま使えるセリフはこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   その手の話ね。よし、あと本当に最後の1つだけ - レトロの前に1対1をやったほうがいい人はいる？ たとえば、気にしそうな人に先に話をしておくとか
 
-AI ASSISTANT:
+AIアシスタント:
   **はい。次の人たちとはレトロ前に1対1をしておくといいです:**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   うん、納得。よし、もう大丈夫。Slackメッセージを送って、1対1は明日の朝にやるよ
 
-AI ASSISTANT:
+AIアシスタント:
   完璧な計画です。これでかなりいい状態に整っています。
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ありがとう！ あ、待って - レトロ後のサマリーって送るべき？ 何を入れればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   **はい。レトロ後24時間以内に、内容が新しいうちにサマリーを送るべきです。**
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   完璧。じゃあ本当に終わり。いろいろありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。これでレトロの準備は整いました。整理されたアジェンダ、時間を節約するための事前準備、難しい場面で使えるファシリテーション用のセリフ、そして予想外の話を減らすための1対1まで揃っています。
 
 ---

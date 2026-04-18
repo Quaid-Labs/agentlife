@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   ねえ、フィクスチャをちゃんと使うようにテストスイート全体をリファクタするのを手伝ってくれる？ テストがごちゃごちゃしてきてて、同じセットアップコードを何度もコピペしちゃうんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。まず今の内容を見せてもらえますか？ どんなパターンを繰り返しているか把握したいです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   これが今のレシピテストだよ
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。`tests/fixtures/db.js` ファイルを作りましょう:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   ぜひ！ supertest のセットアップも全部重複してるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが `tests/fixtures/app.js` です:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   うん、それはかなりいい。でもテストごとに違うシードデータが必要なときはどうするの？ たとえばタグが必要なときと、いらないときがあるんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   シード関数を組み合わせ可能にしましょう:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   うーん、でも今テストを走らせたらこんなエラーが出てる:
 
-AI ASSISTANT:
+AIアシスタント:
   schema.sql が正しく読み込まれていないんだと思います。確認してみて:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   ああ、パスが間違ってた。動いた。クリーンアップはどうしたらいい？ afterEach でDB閉じるべき？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、絶対に閉じましょう:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   withTestDb はちょっと面白いけど、まあ設計過剰な気がする笑。afterEach のままにする
 
-AI ASSISTANT:
+AIアシスタント:
   うん、それでいいです。こちらが `tests/fixtures/auth.js` です:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   いいね。テストではアプリが TEST_SECRET を使うようにしないとだめ？
 
-AI ASSISTANT:
+AIアシスタント:
   そうです、そこも大事です。アプリ生成を更新しましょう:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   いい感じ。最後の1つ - テストがちょっと遅くなってる。20個のテストで3秒くらい。普通なの？ それとも何か変なことしてる？
 
-AI ASSISTANT:
+AIアシスタント:
   単体テストで3秒は遅いですね。いくつか確認すべき点があります:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   あっ、待って、原因見つけたかも… beforeAll にこれ入れてた:
 
-AI ASSISTANT:
+AIアシスタント:
   笑、それが原因だね - 100ms × 20テスト = 2秒弱になる。特別な理由がないなら消してしまおう（たぶん必要ないはず）
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うわ、それだ。DB呼び出しをたくさん await してた。消したら合計0.4秒くらいになった。かなり速い
 
-AI ASSISTANT:
+AIアシスタント:
   いや、テストフィクスチャをテストするのはやりすぎです。実際のテストがそのフィクスチャで通れば、フィクスチャはちゃんと動いています。
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   完璧。これで十分だと思う。テストがきれいで速くなった、ありがと！
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ ぜんぶリファクタできてよかったです。フィクスチャのパターンがあれば、これから新しいテストを足すのがかなり楽になります。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
-  うん、もうかなり楽になった。夕飯作りに行くよ。Dはたぶんどこ行ったんだって思ってる笑
+マヤ:
+  うん、もうかなり楽になった。夕飯作りに行くよ。デイビッドはたぶんどこ行ったんだって思ってる笑
 
-AI ASSISTANT:
+AIアシスタント:
   はは、楽しんで！ あれだけリファクタしたなら、そのくらいの休憩は当然です
 
 ---

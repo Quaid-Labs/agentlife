@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   デプロイ手順の runbook を書くのを手伝ってくれる？ いつもミスが起きるから、ちゃんとみんなが使えるものがほしいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。まず基本からいきましょう。今のデプロイはどんな流れですか？ staging に出してから prod ですか？ それと、みんなが一番やらかしているのは何ですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   うん、staging から prod。主な問題は、みんな migration を新しいコードを出す前に実行し忘れて、全部壊れること lol
 
-AI ASSISTANT:
+AIアシスタント:
   それはよくある話ですね。では段階的に作りましょう。まず、deploy に関わるのは誰ですか？ engineering だけ、それとも PM や design の承認も必要ですか？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   engineering だけ。でも deploy するときは team channel に知らせるべき。あと QA は prod に行く前に staging をテストする必要がある
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。ドラフトの構成はこうです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うん、いいね。rollback の手順も足して。前回何か壊れたとき、どう戻せばいいか全然わからなかったから
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。rollback section を追加します:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね。たとえば error rate が 5% を超えたら、とか core payment flow が壊れたら、みたいな。他にある？
 
-AI ASSISTANT:
+AIアシスタント:
   そのくらいが重要ですね。これも入れた方がいいです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね。あと、実際の terminal command も入れてくれる？ そのままコピペできるように全部
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。commands section はこうです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   うん、それに slack 通知の command も入れられるなら入れて
 
-AI ASSISTANT:
+AIアシスタント:
   prod section に Slack も入れた版はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね。Datadog も追加して、admin panel を見て普通っぽいか確認するのも入れて
 
-AI ASSISTANT:
+AIアシスタント:
   monitoring section を追加します:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   いい感じ。でも database backups は？ migration の前に snapshot 取るべき？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。migration の手順に追加します:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   うん、それ助かる。あと、この command を実行できるのは誰？ その部分も書くべきかな
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。restore procedure と access control を入れた版はこちらです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いや、これでいい。全部まとめた 1 つの doc にしてくれる？ チームに共有したい
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが complete runbook です:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   markdown file で送ってくれる？ docs repo に入れるつもり
 
-AI ASSISTANT:
+AIアシスタント:
   ファイルは直接作れませんが、上の内容をそのまま貼ってください。`deployment-runbook.md` という名前で docs repo に新規作成すれば大丈夫です。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
-  うん、完璧。D と Rach に送るわ、ありがと
+マヤ:
+  うん、完璧。デイビッド と レイチ に送るわ、ありがと
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ 次のデプロイ火災を回避できるといいですね。使ってみてフィードバックが出たら、また調整しましょう。
 
 ---

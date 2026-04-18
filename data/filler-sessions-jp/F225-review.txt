@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   ちょっとだけでいいから、上司に送るこのメールを校正してくれる？　あまりくだけすぎていないか確認したくて。
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。お手伝いします。メールを貼ってください。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   "hey sarah - wanted to loop you in on the auth work. we're like 80% done, should ship next week. lmk if you need anything!" って、ちょっとくだけすぎかな？
 
-AI ASSISTANT:
+AIアシスタント:
   上司への進捗報告としては、少しくだけていますね。たとえば、"Hi Sarah - Quick update on the auth implementation. We're about 80% complete and on track to ship next week. Let me know if you have any questions." なら、丁寧さを保ちつつ親しみも残せます。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   いい感じ、ありがとう。だいぶ良くなった笑
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。来週のリリース、うまくいくといいですね。
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   ねえ、シニアバックエンドエンジニア職の面接質問をまとめたいんだ。RailsとPostgresがわかって、メンターにもなれる人。しっかりしたリストを作ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   シニアバックエンドエンジニア向けの包括的な面接質問リストを作るね。カテゴリ別に整理した構成はこちら：
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   すごくいいね。API設計のセクションと、実際にやるライブのコーディング課題も追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **API DESIGN & BEST PRACTICES (15-20 min)**
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。セキュリティのベストプラクティスについて、3〜4問くらい追加してくれる？ 特にSQLインジェクションと認証まわりで
 
-AI ASSISTANT:
+AIアシスタント:
   **SECURITY & BEST PRACTICES (15 min)**
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   これを採用マネージャーと共有できるドキュメントにしてくれる？ 冒頭の説明文と、ざっくりした所要時間の内訳も入れて
 
-AI ASSISTANT:
+AIアシスタント:
   **SENIOR BACKEND ENGINEER - INTERVIEW QUESTION GUIDE**
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   最高。最後に、面接中に見るべき「危険信号」の小さなセクションも入れてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **RED FLAGS TO WATCH FOR**
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   完璧、ありがとう。今日はこれをレイチェルに送るよ
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ レイチェルに共有できる状態になったね。かなり包括的だし、シニア候補を評価するためのしっかりした枠組みになるはずだよ。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   ちょっと待って、簡単なスコアカードのテンプレも作れる？ 候補者を採点するのに使えるGoogle Sheetの構成みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   **SENIOR BACKEND ENGINEER - INTERVIEW SCORECARD**
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   いや、これで十分。今それをコピペするよ
 
-AI ASSISTANT:
+AIアシスタント:
   完璧！ Google Sheetに貼り付ければ、候補者を並べて比べやすいきれいなスコアカードになるよ。その構成なら、複数人を面接する場合にも比較しやすいはず。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   あ、いい考えだね。あと、ライブコーディングの代わりに持ち帰り課題にした方がいいかな？ ライブでコード書くの緊張する人もいるし
 
-AI ASSISTANT:
+AIアシスタント:
   それは良い視点だね！ どちらにも長所と短所がある。私の考えはこう：
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   うん、前に言ってたみたいに持ち帰り版を作って。2時間以内でお願いします
 
-AI ASSISTANT:
+AIアシスタント:
   **SENIOR BACKEND ENGINEER - TAKE-HOME ASSIGNMENT**
 
 ---
@@ -136,21 +136,21 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
-  すごくいい。これで面接ドキュメントに両方の選択肢を入れるよ。あとでDが一緒にレビューしてくれることになってる
+マヤ:
+  すごくいい。これで面接ドキュメントに両方の選択肢を入れるよ。あとでデイビッドが一緒にレビューしてくれることになってる
 
-AI ASSISTANT:
-  いいね！ Davidにレビューしてもらうのはすごく良いアイデアだね。彼の面接経験からもきっと有益な意見が出るはずだし。ライブコーディングと持ち帰りの両方を用意する形なら、好みの違う優秀な候補者にも対応しやすいよ。
+AIアシスタント:
+  いいね！ デイビッドにレビューしてもらうのはすごく良いアイデアだね。彼の面接経験からもきっと有益な意見が出るはずだし。ライブコーディングと持ち帰りの両方を用意する形なら、好みの違う優秀な候補者にも対応しやすいよ。
 
 ---
 
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   あ、そうだ。簡単なリファレンスチェック用の質問リストも作れる？ 5〜6問くらいで
 
-AI ASSISTANT:
+AIアシスタント:
   **REFERENCE CHECK QUESTIONS - SENIOR BACKEND ENGINEER**
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   完璧。よし、これで大丈夫かな。全部まとめてレイチェルに送るよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ これでかなりしっかりした面接パッケージになったよ：
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   ありがとう！ いつも助かるよ
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ またいつでも手伝うよ。面接がどうだったか、あるいは必要なら内定通知のテンプレートやオンボーディングチェックリストでも、何でも言って。頑張って！ 🎯
 
 ---

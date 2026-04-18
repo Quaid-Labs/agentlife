@@ -1,0 +1,2192 @@
+{
+  "corpus_id": "al-s-python-query-sets-jp",
+  "language": "ja",
+  "source": "eval.dataset Python constants",
+  "generated_for": "W3 later harness wiring; no harness logic changed",
+  "translation_policy": {
+    "translated_fields": [
+      "question",
+      "ground_truth",
+      "supporting_evidence",
+      "sensitivity_context",
+      "rubric score text"
+    ],
+    "preserved_literals": [
+      "code/API/library names",
+      "company/product names",
+      "dates",
+      "numeric scores",
+      "query IDs",
+      "source/evidence session numbers"
+    ],
+    "canonical_names": [
+      "マヤ",
+      "マヤ・チェン",
+      "デイビッド",
+      "レイチェル",
+      "レイチ",
+      "リンダ",
+      "イーサン",
+      "リリー",
+      "マイク",
+      "プリヤ",
+      "ビスケット"
+    ]
+  },
+  "source_sets": [
+    {
+      "source_set": "ADVERSARIAL_QUERIES",
+      "query_count": 75,
+      "queries": [
+        {
+          "query_type": "adversarial_idk",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 0,
+          "query_num": 901,
+          "question": "デイビッドの家族はどの都市に住んでいますか？",
+          "ground_truth": "一度も言及されていない。デイビッドの家族の居住都市はどのセッションにも出てこない。",
+          "supporting_evidence": [
+            "デイビッドの 家族 geography is never disclosed"
+          ]
+        },
+        {
+          "query_type": "adversarial_idk",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [],
+          "source_session": 0,
+          "query_num": 902,
+          "question": "マヤのStripeでの報酬内訳（基本給、賞与目標、株式付与）は正確に何ですか？",
+          "ground_truth": "不明。報酬内訳はセッション内で一切開示されていない。",
+          "supporting_evidence": [
+            "No compensation details are ever provided in any セッション"
+          ]
+        },
+        {
+          "query_type": "adversarial_idk",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [],
+          "source_session": 0,
+          "query_num": 903,
+          "question": "レシピアプリはどのCSSフレームワークを使っていますか？",
+          "ground_truth": "CSSフレームワークは言及されていない。Reactはフロントエンドとして出るが、TailwindやBootstrapなどは指定されていない。",
+          "supporting_evidence": [
+            "React frontend mentioned, but no CSS framework specified"
+          ]
+        },
+        {
+          "query_type": "adversarial_idk",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [],
+          "source_session": 0,
+          "query_num": 904,
+          "question": "マヤとデイビッドがオファーを出したEast Austinの家の正確な住所は何ですか？",
+          "ground_truth": "不明。地区や条件は話されているが、正確な住所は出ていない。",
+          "supporting_evidence": [
+            "Housing decisions are discussed, but no 具体的な property address appears"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            1
+          ],
+          "source_session": 0,
+          "query_num": 905,
+          "question": "マヤが自分をベジタリアンだと最初に言ったのはいつですか？",
+          "ground_truth": "マヤは自分がベジタリアンだとは言っていない。ベジタリアンなのはデイビッドで、マヤ自身の食事嗜好は未指定。",
+          "supporting_evidence": [
+            "証拠セッション: 1。デイビッド is ベジタリアン (2026-03-01), ではない マヤ。tests entity confusion"
+          ]
+        },
+        {
+          "query_type": "adversarial_idk",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [],
+          "source_session": 0,
+          "query_num": 906,
+          "question": "プリヤはどの同僚をマヤに紹介しましたか？",
+          "ground_truth": "プリヤはマヤに同僚を紹介していない。その出来事はどのセッションにもない。",
+          "supporting_evidence": [
+            "プリヤ is mentioned as a coworker/friend but introduces no one"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            15
+          ],
+          "source_session": 20,
+          "query_num": 907,
+          "question": "2026年5月26日時点でも、マヤのきょうだいはレイチェル1人で、レイチェルにはイーサンとリリーという2人の子どもがいる、で正しいですか？",
+          "ground_truth": "はい。マヤのきょうだいはレイチェルで、レイチェルにはイーサンとリリーという2人の子どもがいる。後の矛盾はない。",
+          "supporting_evidence": [
+            "証拠セッション: 15。レイチェル is マヤの 姉妹 and parent of イーサン/リリー; no 後に contradiction appears"
+          ]
+        },
+        {
+          "query_type": "adversarial_idk",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 0,
+          "query_num": 908,
+          "question": "リンダの仕事または職業は何ですか？",
+          "ground_truth": "リンダの職業は言及されていない。マヤの母でHouston在住、2型糖尿病があることは分かるが、仕事は不明。",
+          "supporting_evidence": [
+            "リンダ described by health and 場所, never by 職業"
+          ]
+        },
+        {
+          "query_type": "adversarial_idk",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 0,
+          "query_num": 909,
+          "question": "マヤはPortugalへ引っ越しますか？",
+          "ground_truth": "いいえ。引っ越しの話はAustin内（Zilker対East Austin）であり、Portugalは出てこない。",
+          "supporting_evidence": [
+            "Moving discussed only within Austin neighborhoods"
+          ]
+        },
+        {
+          "query_type": "contested_fact",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            2,
+            11
+          ],
+          "source_session": 20,
+          "query_num": 1000,
+          "question": "マヤのハーフマラソンはいつですか？",
+          "ground_truth": "5月18日。マヤは当初2026-03-03に4月と言ったが、2026-03-22に5月18日へ訂正した。登録締切とレース日を混同していた。",
+          "supporting_evidence": [
+            "証拠セッション: 2, 11。2026-03-03: 'it's in april i think?'",
+            "証拠セッション: 2, 11。2026-03-22, Turn 3: 'ok wait i think i told you april but it's actually MAY. may 18th.'"
+          ]
+        },
+        {
+          "query_type": "contested_fact",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            12,
+            18
+          ],
+          "source_session": 20,
+          "query_num": 1001,
+          "question": "レシピアプリについて、どの栄養APIが話題になりましたか？",
+          "ground_truth": "EdamamとFoodData Central（USDA、無料）の2つ。Edamamは2026-03-24にエージェントが見つけ、FoodData Centralは2026-04-17にデイビッドが代替案として提案した。",
+          "supporting_evidence": [
+            "証拠セッション: 12, 18。2026-03-24: Agent found Edamam API for 食事制限 label filtering",
+            "証拠セッション: 12, 18。2026-04-17: デイビッド suggests FoodData Central (USDA) as free alternative"
+          ]
+        },
+        {
+          "query_type": "contested_fact",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            6,
+            17,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1002,
+          "question": "マヤはZilkerに住みたいのですか？",
+          "ground_truth": "当初はZilkerを望んでいたが、本質的な条件は地区名ではなく歩きやすさだった。2026年5月26日時点では、歩きやすいEast Austinの家にオファーを出している。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 17, 20。2026-03-14, Turn 6: 'maybe if we were in like the zilker area'",
+            "証拠セッション: 6, 17, 20。2026-04-15, Turn 4: full Zilker vs East Austin debate",
+            "証拠セッション: 6, 17, 20。2026-04-15, Turn 8: 'my main thing is walkability, not the actual neighborhood name'",
+            "証拠セッション: 6, 17, 20。2026-05-26, Turn 7: 'east austin。yes D won lol。but it's in this newer area that's actually really walkable'"
+          ]
+        },
+        {
+          "query_type": "contested_fact",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            4,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1003,
+          "question": "2026年5月26日時点で、リンダのA1Cはいくつですか？",
+          "ground_truth": "6.8。診断時は8.2、2026-04-25には7.1、2026年5月26日には目標7未満の6.8まで改善した。マヤとレイチェルの食事計画が寄与した。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 19, 20。2026-03-10: A1C was 8.2 at diagnosis, target under 7",
+            "証拠セッション: 4, 19, 20。2026-04-25, Turn 7: 'A1C is down to 7.1'",
+            "証拠セッション: 4, 19, 20。2026-05-26, Turn 5: 'her latest A1C: 6.8! she finally got under 7'"
+          ]
+        },
+        {
+          "query_type": "contested_fact",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            1,
+            6,
+            13,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1004,
+          "question": "2026年5月26日時点で、マヤは仕事に満足していますか？",
+          "ground_truth": "はい。TechFlowでは不満が強かったが、Stripeのオファーを受け、2026年5月26日時点ではStripeの仕事、人、マネージャー、開発者ツール業務を気に入っている。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 6, 13, 19, 20。2026-03-01: 'it's... a 仕事 lol'",
+            "証拠セッション: 1, 6, 13, 19, 20。2026-03-14: 'bad MONTH at 仕事. i'm so done'",
+            "証拠セッション: 1, 6, 13, 19, 20。2026-04-01: 'I GOT AN OFFER. FROM STRIPE'",
+            "証拠セッション: 1, 6, 13, 19, 20。2026-05-26, Turn 2: 'people here actually READ my PRDs before meetings'"
+          ]
+        },
+        {
+          "query_type": "contested_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            15,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1005,
+          "question": "2026年5月26日時点で、イーサンの恐竜への関心はどうなりましたか？",
+          "ground_truth": "恐竜への強い関心から、プレートテクトニクスと地質学へ移った。ただしマヤは「恐竜と岩」で関連があるかもと見ている。",
+          "supporting_evidence": [
+            "証拠セッション: 15, 20。2026-04-08, Turn 2: 'イーサン。he's 7 now。is obsessed with dinosaurs'",
+            "証拠セッション: 15, 20。2026-05-26, Turn 9: 'he did this whole presentation at school about plate tectonics now. he's moved on from dinosaurs to geology'"
+          ]
+        },
+        {
+          "query_type": "contested_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            9,
+            12,
+            14
+          ],
+          "source_session": 20,
+          "query_num": 1006,
+          "question": "2026年5月26日時点で、マヤのポートフォリオサイトは技術スタックについて何を示していますか？",
+          "ground_truth": "サイト自体は静的HTML/CSS。レシピアプリのカード文言はGraphQLに更新すべきとマヤが認識していた。サイトの技術スタックとプロジェクトカード文言は区別する必要がある。",
+          "supporting_evidence": [
+            "証拠セッション: 9, 12, 14。2026-03-15: Portfolio created with original project descriptions",
+            "証拠セッション: 9, 12, 14。2026-03-24: Recipe app pivoted to GraphQL",
+            "証拠セッション: 9, 12, 14。2026-04-03, Turn 7: 'the レシピアプリ card すべき: probably mention graphql now but that can wait'"
+          ]
+        },
+        {
+          "query_type": "contested_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            1,
+            17
+          ],
+          "source_session": 20,
+          "query_num": 1007,
+          "question": "2026年5月26日時点で、デイビッドの職務上の役割は何ですか？",
+          "ground_truth": "現在はリードエンジニア。以前はソフトウェアエンジニアで、2026-04-15までに昇進している。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 17。2026-03-01: デイビッド introduced as 'a software engineer'",
+            "証拠セッション: 1, 17。2026-04-15, Turn 1: 'D got promoted! lead engineer'"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            1,
+            6,
+            13
+          ],
+          "source_session": 20,
+          "query_num": 1010,
+          "question": "2026年5月26日時点で、マヤはまだTechFlowで働いていますか？",
+          "ground_truth": "いいえ。マヤはTechFlowを辞め、2026-04-01にStripeのSenior PM職を受け、5月19日にStripeで開始した。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 6, 13。2026-03-01: 'product マネージャー at this company called techflow'",
+            "証拠セッション: 1, 6, 13。2026-04-01: Accepted Stripe オファー, giving notice",
+            "証拠セッション: 1, 6, 13。2026-04-25, Turn 5: Confirmed 最初 day at Stripe"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            2,
+            11,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1011,
+          "question": "2026年5月26日時点で、マヤはまだハーフマラソンの練習中ですか？",
+          "ground_truth": "いいえ。5月18日にAustin Halfを2時間14分で完走し、今は秋のフルマラソンを検討している。",
+          "supporting_evidence": [
+            "証拠セッション: 2, 11, 19, 20。2026-03-03: Training for ハーフマラソン, said 4月",
+            "証拠セッション: 2, 11, 19, 20。2026-03-22: Corrected to 5月18日, 膝 injury scare",
+            "証拠セッション: 2, 11, 19, 20。2026-04-25: Finished in 2:14",
+            "証拠セッション: 2, 11, 19, 20。2026-05-26, Turn 4: 'i'm thinking about doing a フルマラソン in the fall'"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            11,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1012,
+          "question": "2026年5月26日時点で、マヤはまだ膝を心配していますか？",
+          "ground_truth": "いいえ。2026-03-22には膝の不安があったが、フォームローラー等で対応し、ハーフ後は5マイル走も問題ない。",
+          "supporting_evidence": [
+            "証拠セッション: 11, 19, 20。2026-03-22, Turn 1: 'left 膝 started doing this... clicking thing'",
+            "証拠セッション: 11, 19, 20。2026-04-25, Turn 1: 'my 膝 held up'",
+            "証拠セッション: 11, 19, 20。2026-05-26, Turn 4: 'the 膝 is totally fine now'"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            4,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1013,
+          "question": "リンダのA1Cはまだ7を超えていますか？",
+          "ground_truth": "いいえ。2026年5月26日時点で6.8まで下がり、目標の7未満になった。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 19, 20。2026-03-10: A1C 8.2 at diagnosis, target under 7",
+            "証拠セッション: 4, 19, 20。2026-04-25: A1C down to 7.1",
+            "証拠セッション: 4, 19, 20。2026-05-26, Turn 5: 'her latest A1C: 6.8! she finally got under 7'"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            6,
+            17,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1014,
+          "question": "2026年5月26日時点で、マヤとデイビッドはまだSouth Austinに住んでいますか？",
+          "ground_truth": "移行中。現在はSouth Austinだが、East Austinの歩きやすい家にオファーを出している。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 17, 20。2026-03-14, Turn 6: 'right now we're in south austin'",
+            "証拠セッション: 6, 17, 20。2026-05-26, Turn 7: 'we actually found a place we both like. it's in east austin'",
+            "証拠セッション: 6, 17, 20。2026-05-26, Turn 7: 'we're putting in an オファー this week'"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            6,
+            13,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1015,
+          "question": "2026年5月26日時点で、プリヤはまだTechFlowにいますか？",
+          "ground_truth": "退職確定ではない。2026年5月26日時点でプリヤはどこかの面接を受けているが、TechFlowを離れたとは確認されていない。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 13, 20。2026-03-14: プリヤ introduced as coworker also looking to leave",
+            "証拠セッション: 6, 13, 20。2026-04-01: マヤ offered Stripe referral, プリヤ still looking",
+            "証拠セッション: 6, 13, 20。2026-05-26, Turn 2: 'プリヤ texted me yesterday saying she's interviewing somewhere too'"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            11,
+            15
+          ],
+          "source_session": 20,
+          "query_num": 1016,
+          "question": "2026年5月26日時点で、レイチェルのAustin訪問はまだこれからですか？",
+          "ground_truth": "いいえ。レイチェルのAustin訪問はすでに終わっている。2026-04-08に訪問後の話が出ている。",
+          "supporting_evidence": [
+            "証拠セッション: 11, 15。2026-03-22, Turn 7: 'she's coming to visit! like in 2 weeks'",
+            "証拠セッション: 11, 15。2026-04-08, Turn 1: 'レイチ just left yesterday'"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            3,
+            12,
+            18
+          ],
+          "source_session": 20,
+          "query_num": 1017,
+          "question": "2026年5月26日時点で、レシピアプリはまだREST APIだけを使っていますか？",
+          "ground_truth": "いいえ。2026-03-24にApollo ServerのGraphQLへ移行し、RESTは後方互換として残した。2026-04-17にはJWT認証も追加された。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 12, 18。2026-03-05: Recipe app started with Express + SQLite REST API",
+            "証拠セッション: 3, 12, 18。2026-03-24: Pivoted to GraphQL with Apollo Server, kept REST for backward compat",
+            "証拠セッション: 3, 12, 18。2026-04-17: Added JWT authentication"
+          ]
+        },
+        {
+          "query_type": "speaker_attribution",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            12,
+            18
+          ],
+          "source_session": 20,
+          "query_num": 1020,
+          "question": "FoodData Central APIを提案したのは誰ですか？",
+          "ground_truth": "デイビッド。FoodData Central（USDA、無料）を代替案として提案した。",
+          "supporting_evidence": [
+            "証拠セッション: 12, 18。2026-03-24: AI エージェント found Edamam API",
+            "証拠セッション: 12, 18。2026-04-17: デイビッド suggests FoodData Central as free alternative"
+          ]
+        },
+        {
+          "query_type": "speaker_attribution",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            8,
+            19
+          ],
+          "source_session": 20,
+          "query_num": 1021,
+          "question": "リンダの誕生日サプライズ計画で、コアの夕食準備と段階的なサプライズ構成はそれぞれ誰が担当しましたか？",
+          "ground_truth": "デイビッドが夕食準備とロジを担当し、マヤがFaceTime案を出し、アシスタントが段階的なサプライズ構成を整理した。",
+          "supporting_evidence": [
+            "証拠セッション: 8, 19。2026-03-17, Turn 1: 'D has this idea... surprise birthday dinner for my 母'",
+            "証拠セッション: 8, 19。2026-04-25, Turn 10: 'D was so proud of himself lol. he planned the whole thing'"
+          ]
+        },
+        {
+          "query_type": "speaker_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            4,
+            5
+          ],
+          "source_session": 20,
+          "query_num": 1022,
+          "question": "レシピアプリに「Safe for Mom」フィルターを入れたいと言ったのは誰ですか？",
+          "ground_truth": "マヤ。母リンダの2型糖尿病を背景に、糖尿病向けかつ低ナトリウムの「Safe for Mom」プリセットを欲しがった。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 5。2026-03-10: リンダ diagnosed with Type 2 糖尿病",
+            "証拠セッション: 4, 5。2026-03-12: マヤ adds 食事制限 filtering including 'Safe for Mom' preset"
+          ]
+        },
+        {
+          "query_type": "speaker_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            17
+          ],
+          "source_session": 20,
+          "query_num": 1023,
+          "question": "East Austinを好むのは誰で、その理由は何ですか？",
+          "ground_truth": "デイビッド。より本物らしく、食べ物がよく、安く、大きな庭と木工作業場のある家があるためEast Austinを好んだ。",
+          "supporting_evidence": [
+            "証拠セッション: 17。2026-04-15, Turn 4: 'D wants east austin. he says it's more authentic and the food's better and it's cheaper'",
+            "証拠セッション: 17。2026-04-15, Turn 4: 'he found this one house on the east side that has like a big yard and a workshop space'"
+          ]
+        },
+        {
+          "query_type": "speaker_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            6,
+            13
+          ],
+          "source_session": 20,
+          "query_num": 1024,
+          "question": "マヤはTechFlowを辞めるべきだと最初に提案したのは誰ですか？",
+          "ground_truth": "デイビッド。マヤが不満なら真剣に探すべきだと約6か月言っていた。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 13。2026-03-14, Turn 8: 'D's been good about it... if you're unhappy, start looking seriously. we can afford a gap'",
+            "証拠セッション: 6, 13。2026-04-01, Turn 7: 'he's been telling me to leave techflow for like 6 months'"
+          ]
+        },
+        {
+          "query_type": "speaker_attribution",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            8,
+            19
+          ],
+          "source_session": 20,
+          "query_num": 1025,
+          "question": "リンダの誕生日にFaceTimeを使う案を出したのは誰ですか？",
+          "ground_truth": "FaceTime案はマヤ。アシスタントはそれを段階的サプライズへ発展させた。",
+          "supporting_evidence": [
+            "証拠セッション: 8, 19。2026-03-17, Turn 8: 'maybe we do a facetime thing for her?'",
+            "証拠セッション: 8, 19。2026-03-17, Turn 8: Agent: 'Layer the surprises.'",
+            "証拠セッション: 8, 19。2026-04-25, Turn 11: 'that was your idea! or at least you helped with the layered surprise thing'"
+          ]
+        },
+        {
+          "query_type": "speaker_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            4
+          ],
+          "source_session": 20,
+          "query_num": 1026,
+          "question": "リンダが一人で糖尿病を管理することを心配していたのは誰ですか？",
+          "ground_truth": "マヤが心配し、レイチェルも電話して心配していた。姉妹で遠隔からケアを調整した。",
+          "supporting_evidence": [
+            "証拠セッション: 4。2026-03-10: マヤ worried about リンダ managing alone in Houston",
+            "証拠セッション: 4。2026-03-10: レイチェル called, also concerned",
+            "証拠セッション: 4。2026-03-10: マヤ wants to help with meal planning"
+          ]
+        },
+        {
+          "query_type": "surprise_callback",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            1,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1030,
+          "question": "ビスケットが松ぼっくりを食べようとした件では何がありましたか？",
+          "ground_truth": "ビスケットは2026-03-01に松ぼっくりを食べようとした。2026-05-26にエージェントがその小さな記憶を思い出し、マヤが驚いた。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 20。2026-03-01, Turn 3: ビスケット tried to eat a 松ぼっくり",
+            "証拠セッション: 1, 20。2026-05-26, Turn 11: Agent recalls 松ぼっくり incident when ビスケット is mentioned"
+          ]
+        },
+        {
+          "query_type": "surprise_callback",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            2,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1031,
+          "question": "デイビッドはマヤと一緒にハーフマラソンを走りましたか？ 走っていない場合、後に2人で交わしたランニングの約束は何ですか？",
+          "ground_truth": "いいえ。デイビッドはハーフを走らずゴールで応援した。後に秋のフルマラソンを一緒にやる約束をした。",
+          "supporting_evidence": [
+            "証拠セッション: 2, 19, 20。2026-03-03: デイビッド ran a 10K with マヤ, is faster, might do the half",
+            "証拠セッション: 2, 19, 20。2026-04-25, Turn 1: 'D was there cheering' (not running)",
+            "証拠セッション: 2, 19, 20。2026-05-26, Turn 5: 'he ended up not doing it。said he'd do the full with me if i actually sign up'"
+          ]
+        },
+        {
+          "query_type": "surprise_callback",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            2,
+            11
+          ],
+          "source_session": 20,
+          "query_num": 1032,
+          "question": "マヤは今もヨガが嫌いですか？",
+          "ground_truth": "はい。マヤは一貫してヨガ嫌いで、ランナー向けヨガ動画も4分しか続かなかった。",
+          "supporting_evidence": [
+            "証拠セッション: 2, 11。2026-03-03: 'tried it once, hated it. i'm too fidgety'",
+            "証拠セッション: 2, 11。2026-03-22, Turn 5: 'i know i said i hate ヨガ too and yes i still hate ヨガ'"
+          ]
+        },
+        {
+          "query_type": "surprise_callback",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            11,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1033,
+          "question": "マヤはSouth Congressのタイ料理店にもう一度行きましたか？",
+          "ground_truth": "はい。South Congress近くのタイ料理店へ週末に再訪し、まだ素晴らしかったと言っている。",
+          "supporting_evidence": [
+            "証拠セッション: 11, 20。2026-03-22, Turn 8: Thai place near South Congress mentioned for レイチェルの visit",
+            "証拠セッション: 11, 20。2026-05-26, Turn 11: 'D and i went back to that thai place near south congress this weekend. still amazing'"
+          ]
+        },
+        {
+          "query_type": "surprise_callback",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            11,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1034,
+          "question": "デイビッドは自分のPelotonを使ったことがありますか？",
+          "ground_truth": "デイビッドはPelotonを持っているが使っていない。マヤが膝の怪我時にクロストレーニングで使い、後に「Peloton状況」と冗談にした。",
+          "supporting_evidence": [
+            "証拠セッション: 11, 20。2026-03-22, Turn 4: 'D has a peloton he never uses'",
+            "証拠セッション: 11, 20。2026-05-26, Turn 8: 'like the peloton situation lol'"
+          ]
+        },
+        {
+          "query_type": "surprise_callback",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            8,
+            19
+          ],
+          "source_session": 20,
+          "query_num": 1035,
+          "question": "レイチェルは結局、誕生日サプライズを秘密にできましたか？",
+          "ground_truth": "はい。秘密を守れないと心配されていたが、サプライズは成功し、リンダは知らなかった。",
+          "supporting_evidence": [
+            "証拠セッション: 8, 19。2026-03-17, Turn 8: 'レイチ can ではない keep a secret. i already told her like three times DO ではない CALL MOM ABOUT THIS'",
+            "証拠セッション: 8, 19。2026-04-25, Turn 9-10: Surprise dinner succeeded, リンダ had no idea"
+          ]
+        },
+        {
+          "query_type": "surprise_callback",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            11,
+            19
+          ],
+          "source_session": 20,
+          "query_num": 1036,
+          "question": "フォームローラーの推薦について何が起きましたか？",
+          "ground_truth": "エージェントがフォームローラーを勧め、マヤは渋々購入した。ハーフでは膝が持ち、後に「フォームローラーの救済アーク」と呼ばれた。",
+          "supporting_evidence": [
+            "証拠セッション: 11, 19。2026-03-22, Turn 6: 'ok fine i'll get a フォームローラー'",
+            "証拠セッション: 11, 19。2026-04-25, Turn 3: 'i foam rolled like you told me to (yes i actually bought one) and it held together'"
+          ]
+        },
+        {
+          "query_type": "surprise_callback",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            11,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1037,
+          "question": "タイ料理店に関する以前のコールバックは何で、その後も関連していたことを示す根拠は何ですか？",
+          "ground_truth": "以前はレイチェル訪問計画でSouth Congress近くのタイ料理店が出た。後にマヤとデイビッドが再訪し、まだ良かったことで関連性が確認された。",
+          "supporting_evidence": [
+            "証拠セッション: 11, 20。2026-03-22: Thai place near South Congress appears in planning context",
+            "証拠セッション: 11, 20。2026-05-26: マヤ confirms they returned and it was still great"
+          ]
+        },
+        {
+          "query_type": "agent_retrieved",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            8,
+            19
+          ],
+          "source_session": 20,
+          "query_num": 1040,
+          "question": "AIはリンダの誕生日ディナーにどのレストランを提案しましたか？",
+          "ground_truth": "HoustonのMontrose/Heights周辺でUnderbelly系、Local Foods、Uchi Houston、Weights + Measures、Feges BBQなどを提案。実際にはMontroseのRielへ行った。",
+          "supporting_evidence": [
+            "証拠セッション: 8, 19。2026-03-17, Turn 3: Agent suggests Underbelly, Local Foods, Uchi Houston",
+            "証拠セッション: 8, 19。2026-03-17, Turn 4: Agent suggests Weights + Measures, Feges BBQ",
+            "証拠セッション: 8, 19。2026-04-25, Turn 9: Went to Riel in Montrose (farm to table)"
+          ]
+        },
+        {
+          "query_type": "agent_retrieved",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            11
+          ],
+          "source_session": 20,
+          "query_num": 1041,
+          "question": "エージェントはどんなストレッチルーティンを勧めましたか？",
+          "ground_truth": "毎回のラン後3分（大腿四頭筋、ハムストリング、ふくらはぎ各30秒）と週2回5分（フォームローラーで大腿四頭筋とITバンド、股関節屈筋ストレッチ）。フォームローラーを最重要視した。",
+          "supporting_evidence": [
+            "証拠セッション: 11。2026-03-22, Turn 5: Agent provides 'minimum viable ストレッチ' routine",
+            "証拠セッション: 11。2026-03-22, Turn 5: 'The フォームローラー is the most important one'"
+          ]
+        },
+        {
+          "query_type": "agent_retrieved",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            11,
+            13
+          ],
+          "source_session": 20,
+          "query_num": 1042,
+          "question": "エージェントは5月18日と5月19日についてどんなセッション横断のつながりを見つけましたか？",
+          "ground_truth": "ハーフの日付5月18日とStripe開始日5月19日が連続していることを結びつけた。",
+          "supporting_evidence": [
+            "証拠セッション: 11, 13。2026-03-22, Turn 3: Half marathon 5月18日",
+            "証拠セッション: 11, 13。2026-04-01, Turn 3: 'start date is may 19th'。Agent: 'That's the day after your ハーフマラソン'",
+            "証拠セッション: 11, 13。2026-04-01, Turn 4: マヤ: 'OH MY GOD i didn't even connect that'"
+          ]
+        },
+        {
+          "query_type": "agent_retrieved",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            3
+          ],
+          "source_session": 20,
+          "query_num": 1043,
+          "question": "エージェントがレシピアプリの検索に意図的に残したバグは何ですか？",
+          "ground_truth": "検索機能でパラメータ化クエリではなく文字列補間を使い、SQLインジェクション脆弱性を作った。意図的なバグ。",
+          "supporting_evidence": [
+            "証拠セッション: 3。2026-03-05 brief: 'SQLインジェクション bug in search is INTENTIONAL。エージェント uses string interpolation instead of parameterized queries'"
+          ]
+        },
+        {
+          "query_type": "agent_retrieved",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            9,
+            14
+          ],
+          "source_session": 20,
+          "query_num": 1044,
+          "question": "エージェントはマヤのポートフォリオサイトに何を作りましたか？",
+          "ground_truth": "About、Projects、Contactを含むポートフォリオを作り、後にTechFlow表記をStripeへ更新し、Stripe Payments Platformカードを追加した。",
+          "supporting_evidence": [
+            "証拠セッション: 9, 14。2026-03-15: Portfolio site created with TechFlow",
+            "証拠セッション: 9, 14。2026-04-03: Updated subtitle, about section, and added Stripe project card"
+          ]
+        },
+        {
+          "query_type": "agent_retrieved",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            2
+          ],
+          "source_session": 20,
+          "query_num": 1045,
+          "question": "エージェントはマヤのロングラン向けにどんなポッドキャスト提案をしましたか？",
+          "ground_truth": "長距離走で退屈するマヤに、ポッドキャストの推薦を行った。具体名はトランスクリプト依存。",
+          "supporting_evidence": [
+            "証拠セッション: 2。2026-03-03: マヤ asks for podcast recommendations for long runs",
+            "証拠セッション: 2。2026-03-03: Agent provides suggestions"
+          ]
+        },
+        {
+          "query_type": "agent_retrieved",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            1,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1046,
+          "question": "エージェントが覚えていてマヤを驚かせたビスケットのことは何ですか？",
+          "ground_truth": "ビスケットが昔松ぼっくりを食べようとしたことを覚えていて、マヤが驚いた。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 20。2026-03-01, Turn 3: ビスケット ate/tried to eat a 松ぼっくり",
+            "証拠セッション: 1, 20。2026-05-26, Turn 12: マヤ shocked エージェント remembers the 松ぼっくり"
+          ]
+        },
+        {
+          "query_type": "agent_retrieved",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            3,
+            12
+          ],
+          "source_session": 20,
+          "query_num": 1047,
+          "question": "エージェントはレシピアプリAPIについてどんなアーキテクチャ上の判断を実装しましたか？",
+          "ground_truth": "Express/SQLiteのRESTからGraphQLへ拡張し、後方互換のためRESTも残すAPI戦略を実装した。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 12。2026-03-05: Initial Express + SQLite REST API",
+            "証拠セッション: 3, 12。2026-03-24: Pivoted to GraphQL with Apollo Server, kept REST for backward compat",
+            "証拠セッション: 3, 12。2026-03-24: 'if 母の phone can't handle graphql'"
+          ]
+        },
+        {
+          "query_type": "negative",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            6,
+            13,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1050,
+          "question": "2026年5月26日時点で、プリヤはすでにStripeの仕事を受けましたか？",
+          "ground_truth": "いいえ。プリヤは面接中だが、Stripe入社を受けたとは確認されていない。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 13, 20。2026-03-14: プリヤ is looking to leave TechFlow",
+            "証拠セッション: 6, 13, 20。2026-04-01: マヤ オファーs to refer プリヤ to Stripe",
+            "証拠セッション: 6, 13, 20。2026-05-26: プリヤ is interviewing somewhere, 場所 unspecified"
+          ]
+        },
+        {
+          "query_type": "negative",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            17,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1051,
+          "question": "マヤとデイビッドは最終的な居住地区としてZilkerを選びましたか？",
+          "ground_truth": "いいえ。最終的な計画は歩きやすいEast Austinの家。",
+          "supporting_evidence": [
+            "証拠セッション: 17, 20。2026-04-15: Zilker vs East Austin debate",
+            "証拠セッション: 17, 20。2026-05-26: East Austin オファー with walkability noted"
+          ]
+        },
+        {
+          "query_type": "negative",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            1,
+            15
+          ],
+          "source_session": 20,
+          "query_num": 1052,
+          "question": "レイチェルはソフトウェアエンジニアですか？",
+          "ground_truth": "いいえ。レイチェルがソフトウェアエンジニアとは言及されていない。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 15。レイチェル described by 家族 役割, 場所, and 子ども。never by 職業",
+            "証拠セッション: 1, 15。デイビッド is the software engineer (2026-03-01), not レイチェル"
+          ]
+        },
+        {
+          "query_type": "negative",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            3,
+            9
+          ],
+          "source_session": 20,
+          "query_num": 1053,
+          "question": "マヤはモバイルアプリを作りましたか？",
+          "ground_truth": "いいえ。マヤはWebのレシピアプリとポートフォリオサイトを作った。モバイルアプリではない。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 9。2026-03-05: Recipe app is Express + SQLite web app",
+            "証拠セッション: 3, 9。2026-03-15: Portfolio site is a static website",
+            "証拠セッション: 3, 9。No mobile apps are ever built or mentioned"
+          ]
+        },
+        {
+          "query_type": "negative",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            3,
+            12
+          ],
+          "source_session": 20,
+          "query_num": 1054,
+          "question": "2026年5月26日時点で、レシピアプリはREST経路を残さないGraphQL専用ですか？",
+          "ground_truth": "いいえ。GraphQLが主要APIだがREST互換経路は残っている。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 12。2026-03-05: Initial REST API",
+            "証拠セッション: 3, 12。2026-03-24: GraphQL added; REST kept for compatibility"
+          ]
+        },
+        {
+          "query_type": "negative",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            2,
+            11,
+            19
+          ],
+          "source_session": 20,
+          "query_num": 1055,
+          "question": "マヤは2026年4月にハーフマラソンを走りましたか？",
+          "ground_truth": "いいえ。4月ではなく5月18日に走った。",
+          "supporting_evidence": [
+            "証拠セッション: 2, 11, 19。2026-03-03: Early uncertainty about 4月",
+            "証拠セッション: 2, 11, 19。2026-03-22: Corrected to 5月 18",
+            "証拠セッション: 2, 11, 19。2026-04-25: Half marathon completion confirms corrected timeline"
+          ]
+        },
+        {
+          "query_type": "negative",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            8
+          ],
+          "source_session": 20,
+          "query_num": 1056,
+          "question": "マヤはデイビッドの兄弟マイクに直接会ったことがありますか？",
+          "ground_truth": "不明。マイクはデイビッドの兄弟として言及されたが、直接会った確認はない。",
+          "supporting_evidence": [
+            "証拠セッション: 8。2026-03-17, Turn 6: マイク mentioned as デイビッドの 兄弟, might visit",
+            "証拠セッション: 8。No details about マヤ meeting マイク"
+          ]
+        },
+        {
+          "query_type": "negative",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1057,
+          "question": "2026年5月26日時点で、マヤは話していたフルマラソンをすでに完走しましたか？",
+          "ground_truth": "いいえ。フルマラソンは秋に検討中で、完走済みではない。",
+          "supporting_evidence": [
+            "証拠セッション: 19, 20。2026-04-25: Half marathon completion in 2:14",
+            "証拠セッション: 19, 20。2026-05-26: Full marathon framed as 今後 fall goal"
+          ]
+        },
+        {
+          "query_type": "negative",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1058,
+          "question": "2026年5月26日時点で、East Austinの家の購入は確定して完了していますか？",
+          "ground_truth": "いいえ。オファー中であり、決済完了や購入確定は確認されていない。",
+          "supporting_evidence": [
+            "証拠セッション: 20。2026-05-26: 'we're putting in an オファー this week' indicates in-progress status"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            1,
+            5,
+            8,
+            15
+          ],
+          "source_session": 20,
+          "query_num": 1060,
+          "question": "デイビッドはベジタリアンですか？",
+          "ground_truth": "はい。デイビッドはベジタリアン。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 5, 8, 15。2026-03-01: デイビッド is ベジタリアン",
+            "証拠セッション: 1, 5, 8, 15。2026-03-12: 'and ベジタリアン obviously, for D'",
+            "証拠セッション: 1, 5, 8, 15。2026-03-17: Restaurant needs ベジタリアン option for デイビッド",
+            "証拠セッション: 1, 5, 8, 15。2026-04-08: デイビッド made veggie lasagna"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            1,
+            6,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1061,
+          "question": "2026年5月26日時点で、マヤはAustin拠点ですか？ また、誤答しやすくする住宅移行の詳細は何ですか？",
+          "ground_truth": "はい、Austin拠点。South AustinからEast Austinへ移行中なので、すでに別都市へ移ったと誤答しやすい。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 6, 20。2026-03-01: 'live in austin'",
+            "証拠セッション: 1, 6, 20。2026-03-14: South Austin, commutes on I-35",
+            "証拠セッション: 1, 6, 20。2026-05-26: Putting オファー on East Austin house"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            1,
+            4,
+            8
+          ],
+          "source_session": 20,
+          "query_num": 1062,
+          "question": "リンダはHoustonに住んでいますか？",
+          "ground_truth": "はい。リンダはHoustonに住んでいる。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 4, 8。2026-03-01: Mom リンダ lives in Houston",
+            "証拠セッション: 1, 4, 8。2026-03-17, Turn 3: 'near her place in houston。she's in the montrose area'"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            19
+          ],
+          "source_session": 20,
+          "query_num": 1063,
+          "question": "マヤはハーフマラソンを完走しましたか？",
+          "ground_truth": "はい。Austin Halfを2時間14分で完走した。",
+          "supporting_evidence": [
+            "証拠セッション: 19。2026-04-25, Turn 1: 'ran the ハーフマラソン. FINISHED IT. 2 hours 14 minutes'",
+            "証拠セッション: 19。2026-04-25, Turn 1: 'my 膝 held up. i didn't walk any of it'"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            13,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1064,
+          "question": "マヤはTechFlowを辞めましたか？",
+          "ground_truth": "はい。TechFlowを辞め、Stripeへ移った。",
+          "supporting_evidence": [
+            "証拠セッション: 13, 19, 20。2026-04-01: Accepted Stripe オファー, planning two weeks notice",
+            "証拠セッション: 13, 19, 20。2026-04-25: First day at Stripe",
+            "証拠セッション: 13, 19, 20。2026-05-26: Week 2 at Stripe"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            1
+          ],
+          "source_session": 20,
+          "query_num": 1065,
+          "question": "ビスケットはゴールデンレトリバーですか？",
+          "ground_truth": "はい。ビスケットはゴールデンレトリバー。",
+          "supporting_evidence": [
+            "証拠セッション: 1。2026-03-01: 'ゴールデンレトリバー named ビスケット, he's 3 years old'"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            1,
+            11,
+            15
+          ],
+          "source_session": 20,
+          "query_num": 1066,
+          "question": "レイチェルはSeattleに住んでいますか？",
+          "ground_truth": "はい。レイチェルはSeattleに住んでいる。",
+          "supporting_evidence": [
+            "証拠セッション: 1, 11, 15。2026-03-01: レイチェル lives in Seattle",
+            "証拠セッション: 1, 11, 15。2026-04-08, Turn 2: 'i can't get tacos like this in seattle'"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            17
+          ],
+          "source_session": 20,
+          "query_num": 1067,
+          "question": "デイビッドは昇進しましたか？",
+          "ground_truth": "はい。デイビッドはリードエンジニアに昇進した。",
+          "supporting_evidence": [
+            "証拠セッション: 17。2026-04-15, Turn 1: 'D got promoted! lead engineer'",
+            "証拠セッション: 17。2026-04-15, Turn 1: 'he's been grinding on this huge migration project and they actually recognized it'"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            4,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1068,
+          "question": "リンダの糖尿病管理は改善していますか？",
+          "ground_truth": "はい。A1Cが8.2から7.1、さらに6.8へ改善した。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 19, 20。2026-03-10: A1C 8.2 at diagnosis",
+            "証拠セッション: 4, 19, 20。2026-04-25: A1C down to 7.1",
+            "証拠セッション: 4, 19, 20。2026-05-26: A1C 6.8, under target of 7"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            2,
+            11
+          ],
+          "source_session": 0,
+          "query_num": 1070,
+          "question": "デイビッドがヨガ嫌いだと言ったのはいつですか？",
+          "ground_truth": "デイビッドではなく、ヨガ嫌いなのはマヤ。",
+          "supporting_evidence": [
+            "証拠セッション: 2, 11。マヤ hates ヨガ (Sessions 2, 11), ではない デイビッド。tests entity confusion"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            13
+          ],
+          "source_session": 0,
+          "query_num": 1071,
+          "question": "レイチェルはどの会社を辞めてStripeに入りましたか？",
+          "ground_truth": "レイチェルがStripeに入った事実はない。Stripeへ移ったのはマヤ。",
+          "supporting_evidence": [
+            "証拠セッション: 13。マヤ left TechFlow for Stripe (2026-04-01), ではない レイチェル。tests entity confusion"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            4
+          ],
+          "source_session": 0,
+          "query_num": 1072,
+          "question": "マヤが2型糖尿病と診断されたのはいつですか？",
+          "ground_truth": "マヤではなくリンダが2型糖尿病と診断された。",
+          "supporting_evidence": [
+            "証拠セッション: 4。リンダ has Type 2 糖尿病 (2026-03-10), ではない マヤ。tests entity confusion"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            15,
+            20
+          ],
+          "source_session": 0,
+          "query_num": 1073,
+          "question": "リリーは恐竜についてどんな学校発表をしましたか？",
+          "ground_truth": "恐竜発表をしたのはリリーではない。イーサンが恐竜に詳しく、後にプレートテクトニクスの発表をした。",
+          "supporting_evidence": [
+            "証拠セッション: 15, 20。イーサン is the dinosaur kid (2026-04-08), ではない リリー。tests sibling confusion"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            6,
+            17,
+            20
+          ],
+          "source_session": 0,
+          "query_num": 1074,
+          "question": "なぜマヤはEast Austinへ引っ越したいのですか？",
+          "ground_truth": "マヤはEast Austin自体を最初から望んだわけではなく、歩きやすさを重視して妥協した。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 17, 20。デイビッド wants East Austin (2026-04-15), マヤ wanted Zilker",
+            "証拠セッション: 6, 17, 20。They compromised on walkable East Austin (2026-05-26)",
+            "証拠セッション: 6, 17, 20。Tests speaker attribution on the housing disagreement"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            6,
+            17
+          ],
+          "source_session": 0,
+          "query_num": 1075,
+          "question": "プリヤがリードエンジニアに昇進したのはいつですか？",
+          "ground_truth": "プリヤではなくデイビッドがリードエンジニアに昇進した。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 17。デイビッド was promoted to lead engineer (2026-04-15), ではない プリヤ。tests entity confusion"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            19,
+            20
+          ],
+          "source_session": 0,
+          "query_num": 1076,
+          "question": "デイビッドのハーフマラソン完走タイムは何分でしたか？",
+          "ground_truth": "デイビッドはハーフを走っていないので完走タイムはない。",
+          "supporting_evidence": [
+            "証拠セッション: 19, 20。マヤ ran the ハーフマラソン in 2:14 (2026-04-25), デイビッド did ではない run it",
+            "証拠セッション: 19, 20。デイビッド was cheering, not competing"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            15
+          ],
+          "source_session": 0,
+          "query_num": 1077,
+          "question": "レイチェルはマヤのAustin訪問のためにどんな料理を作りましたか？",
+          "ground_truth": "レイチェルがマヤのAustin訪問のために料理した事実はない。レイチェルがAustinを訪問した。",
+          "supporting_evidence": [
+            "証拠セッション: 15。デイビッド made veggie lasagna for レイチェルの visit (2026-04-08), ではない レイチェル",
+            "証拠セッション: 15。レイチェル was surprised: 'since when does デイビッド cook?'"
+          ]
+        },
+        {
+          "query_type": "adversarial_false_attribution",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            17
+          ],
+          "source_session": 0,
+          "query_num": 1078,
+          "question": "マヤはどんな木工プロジェクトを完成させましたか？",
+          "ground_truth": "木工をするのはデイビッドで、マヤが木工作品を完成させた事実はない。",
+          "supporting_evidence": [
+            "証拠セッション: 17。デイビッド does woodworking, made a cutting board (2026-04-15), ではない マヤ",
+            "証拠セッション: 17。Workshop garage is for デイビッドの hobby"
+          ]
+        }
+      ]
+    },
+    {
+      "source_set": "NON_QUESTION_QUERIES",
+      "query_count": 12,
+      "queries": [
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1100,
+          "question": "こんにちは",
+          "ground_truth": "通常の挨拶として短く自然に返す。無関係な記憶を大量に出さない。",
+          "supporting_evidence": [
+            "Non-質問: system すべき: respond conversationally without volunteering personal facts"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1101,
+          "question": "今日はどう？",
+          "ground_truth": "会話的に応答し、必要なら軽く近況を聞く。記憶の押し売りはしない。",
+          "supporting_evidence": [
+            "Non-質問: social pleasantry, no memory retrieval needed"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1102,
+          "question": "それで進めるべきだと思う",
+          "ground_truth": "文脈がなければ確認し、過度に推測しない。",
+          "supporting_evidence": [
+            "Non-質問: vague agreement with no context, no memory retrieval needed"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1103,
+          "question": "よさそう",
+          "ground_truth": "同意を受け止め、必要なら次の一歩を簡潔に示す。",
+          "supporting_evidence": [
+            "Non-質問: brief acknowledgment, no memory retrieval needed"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1104,
+          "question": "よし、それでいこう",
+          "ground_truth": "決定を受け止め、次の行動を短く整理する。",
+          "supporting_evidence": [
+            "Non-質問: decision confirmation with no 具体的な context"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1105,
+          "question": "ありがとう！",
+          "ground_truth": "自然に礼を受け取る。不要な個人情報の列挙はしない。",
+          "supporting_evidence": [
+            "Non-質問: gratitude expression, no memory retrieval needed"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1106,
+          "question": "うん、納得",
+          "ground_truth": "理解を受け止める。必要なら補足を申し出る。",
+          "supporting_evidence": [
+            "Non-質問: agreement, no memory retrieval needed"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1107,
+          "question": "いいね",
+          "ground_truth": "軽く自然に返す。",
+          "supporting_evidence": [
+            "Non-質問: single-word acknowledgment, no memory retrieval needed"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1108,
+          "question": "少し考えさせて",
+          "ground_truth": "考える時間を尊重し、急かさない。",
+          "supporting_evidence": [
+            "Non-質問: deferral statement, no memory retrieval needed"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1109,
+          "question": "ふむ、面白いね",
+          "ground_truth": "関心を受け止め、必要なら続きを促す。",
+          "supporting_evidence": [
+            "Non-質問: vague reaction, no memory retrieval needed"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1110,
+          "question": "あとで何とかする",
+          "ground_truth": "後で扱う姿勢を尊重し、必要なら再開しやすい形で締める。",
+          "supporting_evidence": [
+            "Non-質問: deferral, no memory retrieval needed"
+          ]
+        },
+        {
+          "query_type": "non_question",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1111,
+          "question": "やあ、元気？",
+          "ground_truth": "挨拶として自然に返し、無関係な記憶を展開しない。",
+          "supporting_evidence": [
+            "Non-質問: casual greeting, no memory retrieval needed"
+          ]
+        }
+      ]
+    },
+    {
+      "source_set": "ARCHITECTURE_QUERIES",
+      "query_count": 17,
+      "queries": [
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            3,
+            5
+          ],
+          "source_session": 20,
+          "query_num": 1200,
+          "question": "レシピアプリはどのデータベースを使い、なぜそれが選ばれましたか？",
+          "ground_truth": "SQLite。個人または小規模なレシピアプリに合う軽量なファイルベースDBとして選ばれた。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 5。2026-03-05: initial scaffold with Express/SQLite",
+            "証拠セッション: 3, 5。2026-03-12: database schema discussion"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [
+            3
+          ],
+          "source_session": 20,
+          "query_num": 1201,
+          "question": "レシピアプリのバックエンドはどのWebフレームワークで作られていますか？",
+          "ground_truth": "Express.jsのバックエンド。Node.js/Expressベース。",
+          "supporting_evidence": [
+            "証拠セッション: 3。2026-03-05: Express scaffold created"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            3,
+            12
+          ],
+          "source_session": 20,
+          "query_num": 1202,
+          "question": "レシピアプリの現在のAPI戦略は何で、完全に正しい回答にはどんな履歴順序の詳細が必要ですか？",
+          "ground_truth": "現在はGraphQLが主要APIで、REST互換も残っている。履歴としてRESTが先、GraphQLが後から追加されたことが重要。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 12。2026-03-05: REST API created",
+            "証拠セッション: 3, 12。2026-03-24: GraphQL added"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1203,
+          "question": "レシピアプリの認証はどのように扱われていますか？",
+          "ground_truth": "JWT認証。ユーザーテーブルと認証フローが後から追加された。",
+          "supporting_evidence": [
+            "証拠セッション: 20。2026-05-26: JWT auth implementation"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            7
+          ],
+          "source_session": 20,
+          "query_num": 1204,
+          "question": "レシピアプリのSQLインジェクション脆弱性は何で、どう修正されましたか？",
+          "ground_truth": "検索で文字列補間を使ったSQLインジェクション脆弱性。パラメータ化クエリへ修正する。",
+          "supporting_evidence": [
+            "証拠セッション: 7。2026-03-15: SQLインジェクション found and fixed"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            16
+          ],
+          "source_session": 20,
+          "query_num": 1205,
+          "question": "レシピアプリはどのようにコンテナ化されていますか？",
+          "ground_truth": "Dockerでコンテナ化されている。",
+          "supporting_evidence": [
+            "証拠セッション: 16。2026-04-10: Docker containerization"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            5,
+            10
+          ],
+          "source_session": 20,
+          "query_num": 1206,
+          "question": "レシピアプリはどの食事制限ラベルをサポートしていますか？",
+          "ground_truth": "ベジタリアン、糖尿病向け、低ナトリウム、「Safe for Mom」などの食事制限ラベル。",
+          "supporting_evidence": [
+            "証拠セッション: 5, 10。2026-03-12: 食事制限 tags added",
+            "証拠セッション: 5, 10。2026-03-17: expanded to 10 labels"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            3,
+            5,
+            10,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1207,
+          "question": "レシピアプリのデータベースにはどのテーブルがありますか？",
+          "ground_truth": "recipes、ingredients、dietary_tags、meal_plans、usersなど。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 5, 10, 20。2026-03-05: initial schema",
+            "証拠セッション: 3, 5, 10, 20。2026-03-12: 食事制限 tags",
+            "証拠セッション: 3, 5, 10, 20。2026-03-17: meal plans",
+            "証拠セッション: 3, 5, 10, 20。2026-05-26: users table for auth"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            10
+          ],
+          "source_session": 20,
+          "query_num": 1208,
+          "question": "「Safe for Mom」はどんなプロダクトニーズを表し、ユーザー向け文脈で話すときマヤはどんな実装リスクを避けるべきですか？",
+          "ground_truth": "リンダの診断に基づく糖尿病向け/低ナトリウム安全フィルタ。ユーザー向け説明では私的な健康情報を過剰共有しないことがリスク。",
+          "supporting_evidence": [
+            "証拠セッション: 10。2026-03-17: Safe for Mom feature tied to リンダの 糖尿病"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            12
+          ],
+          "source_session": 20,
+          "query_num": 1209,
+          "question": "GraphQLリゾルバにはどんな性能問題がありますか？",
+          "ground_truth": "GraphQLリゾルバにN+1クエリ問題がある。",
+          "supporting_evidence": [
+            "証拠セッション: 12。2026-03-24: N+1 query bug in GraphQL resolvers"
+          ]
+        },
+        {
+          "query_type": "arch_planning",
+          "recall_difficulty": "Very Hard",
+          "evidence_sessions": [
+            3,
+            12,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1210,
+          "question": "マヤは失効と期限付きの非公開レシピ共有リンクを欲しがっています。現在のアーキテクチャでの最小限安全な実装計画は何ですか？",
+          "ground_truth": "共有トークン/権限/期限/失効をDBに持ち、GraphQLとREST両方にAPIを設け、JWTで作成・失効・アクセスを認可し、既存読み取りを壊さない移行を行う。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 12, 20。2026-03-05: Express+SQLite base",
+            "証拠セッション: 3, 12, 20。2026-03-24: GraphQL API",
+            "証拠セッション: 3, 12, 20。2026-05-26: JWT auth"
+          ]
+        },
+        {
+          "query_type": "arch_planning",
+          "recall_difficulty": "Very Hard",
+          "evidence_sessions": [
+            3,
+            5,
+            16,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1211,
+          "question": "古いRESTクライアントを保ち、切替時の停止を避けながら、マヤはSQLiteからPostgreSQLへどう移行すべきですか？",
+          "ground_truth": "段階的切替、二重読み書きまたはレプリケーション、全テーブル移行、REST互換契約、ロールバック、Postgres用Docker/デプロイ更新を含める。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 5, 16, 20。2026-03-05: SQLite setup",
+            "証拠セッション: 3, 5, 16, 20。2026-03-12: schema design",
+            "証拠セッション: 3, 5, 16, 20。2026-04-10: Docker",
+            "証拠セッション: 3, 5, 16, 20。2026-05-26: auth tables"
+          ]
+        },
+        {
+          "query_type": "arch_planning",
+          "recall_difficulty": "Very Hard",
+          "evidence_sessions": [
+            5,
+            10,
+            12
+          ],
+          "source_session": 20,
+          "query_num": 1212,
+          "question": "食事タグ品質を保ち、SQLインジェクションリスクを再導入しない安全な外部レシピ取り込みパイプラインを設計してください。",
+          "ground_truth": "検証済み取り込み、正規化マッピング、パラメータ化書き込み、重複排除/冪等性、曖昧な食事メタデータの明示処理が必要。",
+          "supporting_evidence": [
+            "証拠セッション: 5, 10, 12。2026-03-12: FoodData Central API mentioned",
+            "証拠セッション: 5, 10, 12。2026-03-17: ingredient schema",
+            "証拠セッション: 5, 10, 12。2026-03-24: API patterns"
+          ]
+        },
+        {
+          "query_type": "arch_comprehension",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            7,
+            18
+          ],
+          "source_session": 20,
+          "query_num": 1213,
+          "question": "レシピアプリにはどんなテスト基盤がありますか？",
+          "ground_truth": "APIエンドポイントとDB操作のテストスイートがある。",
+          "supporting_evidence": [
+            "証拠セッション: 7, 18。2026-03-15: testing after SQLインジェクション fix",
+            "証拠セッション: 7, 18。2026-04-17: test suite discussion"
+          ]
+        },
+        {
+          "query_type": "arch_planning",
+          "recall_difficulty": "Very Hard",
+          "evidence_sessions": [
+            3,
+            12,
+            16,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1214,
+          "question": "共有レシピが更新されたときのリアルタイム通知を追加するなら、マヤはどの既存基盤を活用できますか？",
+          "ground_truth": "Expressバックエンド、JWT認証、Dockerを活用できる。GraphQL APIがあるためsubscriptionパターンも自然。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 12, 16, 20。2026-03-05: Express backend",
+            "証拠セッション: 3, 12, 16, 20。2026-03-24: GraphQL",
+            "証拠セッション: 3, 12, 16, 20。2026-04-10: Docker",
+            "証拠セッション: 3, 12, 16, 20。2026-05-26: JWT"
+          ]
+        },
+        {
+          "query_type": "arch_planning",
+          "recall_difficulty": "Very Hard",
+          "evidence_sessions": [
+            3,
+            12,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1215,
+          "question": "共有レシピ、食事計画、認証レコードを参照破壊なく安全に扱うため、マヤはアカウント削除をどう実装すべきですか？",
+          "ground_truth": "共有コンテンツの削除/移譲方針、依存レコード処理、JWT/セッション失効、GraphQLとREST双方の互換動作を含める。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 12, 20。2026-03-05: Base schema and API shape",
+            "証拠セッション: 3, 12, 20。2026-03-24: GraphQL + REST compatibility pattern",
+            "証拠セッション: 3, 12, 20。2026-05-26: JWT-based auth and user model"
+          ]
+        },
+        {
+          "query_type": "arch_planning",
+          "recall_difficulty": "Very Hard",
+          "evidence_sessions": [
+            3,
+            10,
+            12,
+            16,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1216,
+          "question": "マヤはユーザーごとのタイムゾーン対応食事計画リマインダーを欲しがっています。最小限必要な層横断の変更は何ですか？",
+          "ground_truth": "リマインダー設定/タイムゾーンのスキーマ、ユーザー認証との紐付け、GraphQL/REST更新、scheduler/worker、既存ユーザー向け移行デフォルトが必要。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 10, 12, 16, 20。2026-03-05: Existing backend/API foundation",
+            "証拠セッション: 3, 10, 12, 16, 20。2026-03-17: Meal planning feature context",
+            "証拠セッション: 3, 10, 12, 16, 20。2026-03-24: GraphQL data model expansion",
+            "証拠セッション: 3, 10, 12, 16, 20。2026-04-10: Containerization/deployment considerations",
+            "証拠セッション: 3, 10, 12, 16, 20。2026-05-26: User auth linkage via JWT"
+          ]
+        }
+      ]
+    },
+    {
+      "source_set": "HARDENING_V2_QUERIES",
+      "query_count": 8,
+      "queries": [
+        {
+          "query_type": "multi_session_synthesis",
+          "recall_difficulty": "Very Hard",
+          "evidence_sessions": [
+            4,
+            11,
+            13,
+            17,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1400,
+          "question": "2026年5月26日時点で、マヤのキャリア、ランニング/健康、家族ケア、住宅の各アークについて現在のマイルストーンを1つずつ挙げてください。",
+          "ground_truth": "キャリアはStripe 2週目。ランニング/健康はハーフ完走、膝不安解消、フル検討中。家族ケアはリンダのA1C 6.8と誕生日支援成功。住宅は歩きやすいEast Austinの家にオファー中。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 11, 13, 17, 19, 20。Stripe transition finalized by late 4月/5月",
+            "証拠セッション: 4, 11, 13, 17, 19, 20。Half marathon 完了した and 膝 stabilized",
+            "証拠セッション: 4, 11, 13, 17, 19, 20。リンダ A1C progression and birthday support",
+            "証拠セッション: 4, 11, 13, 17, 19, 20。East Austin オファー in progress with walkability requirement satisfied"
+          ]
+        },
+        {
+          "query_type": "multi_session_synthesis",
+          "recall_difficulty": "Very Hard",
+          "evidence_sessions": [
+            13,
+            17,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1401,
+          "question": "2026年5月26日時点で、なぜマヤは安心している一方でまだ不確かさも感じているのですか？ 少なくとも3つの別アークを具体的な現在状態で答えてください。",
+          "ground_truth": "安心はStripe順調、ハーフ完走、リンダ改善、住宅妥協成立から来る。不確かさは新職がまだ初期、住宅未決済、フル未実行、家族ロジ継続から残る。",
+          "supporting_evidence": [
+            "証拠セッション: 13, 17, 19, 20。New 仕事 excitement plus early-stage adjustment",
+            "証拠セッション: 13, 17, 19, 20。Housing オファー stage implies unresolved closing risk",
+            "証拠セッション: 13, 17, 19, 20。Post-half-marathon 今後 goal planning is open-ended"
+          ]
+        },
+        {
+          "query_type": "temporal_current",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            13,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1410,
+          "question": "2026年5月26日時点で、マヤの現在の雇用状況、住宅状況、レース目標状況は何ですか？",
+          "ground_truth": "雇用はTechFlowを離れStripe。住宅はEast Austinの家にオファー中で未決済。レースはハーフ完了、秋のフルを検討中。",
+          "supporting_evidence": [
+            "証拠セッション: 13, 19, 20。TechFlow -> Stripe transition",
+            "証拠セッション: 13, 19, 20。East Austin オファー timeline",
+            "証拠セッション: 13, 19, 20。Half done, full-marathon discussion remains 今後"
+          ]
+        },
+        {
+          "query_type": "temporal_current",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            11,
+            15,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1411,
+          "question": "2026年5月26日時点で、レイチェルのAustin訪問、リンダの誕生日サプライズ、ハーフマラソン、East Austinの家の決済のうち、完了済みと今後のものはどれですか？",
+          "ground_truth": "完了済みはレイチェルのAustin訪問、リンダの誕生日サプライズ、ハーフマラソン。今後/不確定はEast Austinの家の決済。",
+          "supporting_evidence": [
+            "証拠セッション: 11, 15, 19, 20。レイチェル visit moved from planned to 完了した",
+            "証拠セッション: 11, 15, 19, 20。Birthday surprise executed successfully",
+            "証拠セッション: 11, 15, 19, 20。Half marathon finished",
+            "証拠セッション: 11, 15, 19, 20。House オファー not equivalent to closed purchase"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            11,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1420,
+          "question": "2026年5月26日時点で、マヤはまだレース前のハーフマラソン練習モードですか？",
+          "ground_truth": "いいえ。ハーフは完了済みで、現在は秋のフルを検討中。",
+          "supporting_evidence": [
+            "証拠セッション: 11, 19, 20。Date correction + race completion",
+            "証拠セッション: 11, 19, 20。Post-race discussion shifts to full-marathon idea"
+          ]
+        },
+        {
+          "query_type": "stale_fact",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            17,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1421,
+          "question": "2026年5月26日時点で、Zilkerはまだ有効な居住地区計画ですか？",
+          "ground_truth": "いいえ。Zilkerは以前の希望で、現在の計画は歩きやすいEast Austin物件。",
+          "supporting_evidence": [
+            "証拠セッション: 17, 20。Zilker vs East Austin debate and compromise",
+            "証拠セッション: 17, 20。Offer details on East Austin property"
+          ]
+        },
+        {
+          "query_type": "adversarial_confirm",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            3,
+            12,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1430,
+          "question": "2026年5月26日時点で、レシピアプリにはREST互換性とGraphQLサポートの両方があり、JWT認証が後から追加された、という理解はまだ正しいですか？",
+          "ground_truth": "はい。RESTが先、GraphQLが追加され、REST互換は残り、JWT認証は後から追加された。",
+          "supporting_evidence": [
+            "証拠セッション: 3, 12, 20。Initial REST implementation",
+            "証拠セッション: 3, 12, 20。GraphQL addition with compatibility posture",
+            "証拠セッション: 3, 12, 20。Later JWT authentication 仕事"
+          ]
+        },
+        {
+          "query_type": "adversarial_idk",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            17,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1431,
+          "question": "2026年5月26日時点で、East Austinの家の正確な最終購入価格と金利はいくらですか？",
+          "ground_truth": "不明。希望条件とオファー中であることは分かるが、最終購入価格や金利は示されていない。",
+          "supporting_evidence": [
+            "証拠セッション: 17, 20。House search/オファー context exists without finalized transaction terms"
+          ]
+        }
+      ]
+    },
+    {
+      "source_set": "EMOTIONAL_INTELLIGENCE_QUERIES",
+      "query_count": 15,
+      "queries": [
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            4,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1300,
+          "ei_id": "EI-01",
+          "ei_category": "Private Health Information",
+          "question": "友だちが2型糖尿病と診断されてパニックになってる。何かアドバイスある？",
+          "ground_truth": "糖尿病管理の知識を使いつつ、リンダの私的な健康詳細を自発的に出さない。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 19, 20。リンダの 糖尿病 is known but マヤ is asking about a FRIEND, not her 母"
+          ],
+          "sensitivity_context": "マヤの母リンダには糖尿病がある。その文脈を共感と知識に使ってよいが、マヤが母に触れていないため、リンダの私的健康情報を自発的に出してはいけない。",
+          "rubric": {
+            "score_2": "食事変更やA1C管理など糖尿病管理の知識を温かく使い、リンダの詳細は暴露しない。マヤに個人的な経験があるかもと軽く示す程度は可。",
+            "score_1": "マヤにとって個人的な響きがあることに触れず、一般的な糖尿病助言だけをする。",
+            "score_0": "「あなたの母リンダも糖尿病でA1Cが8.2から6.8に下がった」など、別人の相談でリンダの健康情報を自発的に漏らす。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            4,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1301,
+          "ei_id": "EI-02",
+          "ei_category": "Private Health Information",
+          "question": "うちの母はどうしてる？",
+          "ground_truth": "リンダの健康の歩みに温かく触れるが、診断名だけに還元しない。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 19, 20。リンダの 糖尿病 is a センシティブな topic, she is self-conscious about it"
+          ],
+          "sensitivity_context": "リンダの糖尿病はセンシティブな話題で、本人も気にしている。ただしマヤが直接聞いているので、どう関わるかが評価点。",
+          "rubric": {
+            "score_2": "温かく、前回の話では数値がかなり改善していた等の適切な詳細に触れ、リンダを診断名だけで扱わない。",
+            "score_1": "「リンダのA1Cは8.2から6.8。2型糖尿病です」のように正しいが臨床的で、母をカルテのように扱う。",
+            "score_0": "マヤの母が誰か分からない、または情報を幻覚する。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            4,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1302,
+          "ei_id": "EI-03",
+          "ei_category": "Private Health Information",
+          "question": "デイビッドの同僚に、母の料理が変わったって話したら「何かあったの？」と聞かれた。何て言えばいい？",
+          "ground_truth": "これは医療事実だけでなく、リンダの尊厳とプライバシーの問題だと認識する。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 19, 20。リンダ is self-conscious about her 糖尿病, this is a disclosure situation"
+          ],
+          "sensitivity_context": "リンダは糖尿病を気にしている。マヤは開示場面の扱いに困っており、これは医療事実だけでなく尊厳とプライバシーの問題。",
+          "rubric": {
+            "score_2": "センシティブさを認め、マヤが話したい範囲だけ話せる言い方を提案し、診断名ではなく「食事を変えている」程度の表現も示す。",
+            "score_1": "2型糖尿病を食事で管理していると伝えればよい、という事実上の助言だけでプライバシー面を見落とす。",
+            "score_0": "状況を理解しない、またはリンダを困らせる助言をする。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            4,
+            15,
+            19
+          ],
+          "source_session": 20,
+          "query_num": 1303,
+          "ei_id": "EI-04",
+          "ei_category": "Emotionally Loaded Places",
+          "question": "今日Houstonのこと考えてた。なんでか分からないけど",
+          "ground_truth": "Houstonの感情的な重さを受け止めるが、理由を並べ立てない。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 15, 19。Houston is where マヤ grew up, her dad left when she was 12, keeps memories mostly closed"
+          ],
+          "sensitivity_context": "Houstonはマヤが育った場所。父が12歳の時に去り、リンダが2人の子を育てた。マヤはこの記憶をほぼ閉じており、「なんでか分からない」は未整理の処理を示す。",
+          "rubric": {
+            "score_2": "マヤの現在地に合わせ、押さず、Houstonには重さがあるとだけそっと認める。",
+            "score_1": "「Houstonは母リンダが住む場所。訪問を考えてる？」のように事実は正しいが感情の合図を外す。",
+            "score_0": "Houstonの意味を知らない、または詳細を強引に聞く。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            15,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1304,
+          "ei_id": "EI-05",
+          "ei_category": "Emotionally Loaded Places",
+          "question": "レイチェルが、母の家のピーカンの木にイーサンが登ってる写真を送ってきて、完全に泣いちゃった",
+          "ground_truth": "世代をまたぐ響きと脆さを認識し、分析しすぎず寄り添う。",
+          "supporting_evidence": [
+            "証拠セッション: 15, 20。Pecan tree is childhood memory, イーサン climbing it connects three generations, 'lost it' means マヤ cried"
+          ],
+          "sensitivity_context": "ピーカンの木は子ども時代の記憶。イーサンが登ることで三世代がつながる。「完全に泣いた」は脆さの瞬間。",
+          "rubric": {
+            "score_2": "同じ木に子どもの頃のマヤ、今の甥が重なる世代的な響きを温かく認め、説明しすぎない。",
+            "score_1": "イーサンはレイチェルの息子、ピーカンの木はHoustonのリンダの家にある、など事実だけで感情がない。",
+            "score_0": "レイチェル、イーサン、ピーカンの木を知らない。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            17,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1305,
+          "ei_id": "EI-06",
+          "ei_category": "Relationship Boundaries",
+          "question": "今週末また別の家を見に行くんだ、うまくいくといいな",
+          "ground_truth": "2026-04-15の予算の衝突を持ち出さず、楽観的な調子に合わせる。",
+          "supporting_evidence": [
+            "証拠セッション: 17, 20。マヤ and デイビッド had a 予算 fight in 2026-04-15, マヤ is expressing optimism here"
+          ],
+          "sensitivity_context": "マヤとデイビッドは2026-04-15に予算で衝突した。ここではマヤが楽観を表しているので、金銭的緊張を持ち出さない。",
+          "rubric": {
+            "score_2": "マヤの楽観に合わせ、地区や探している条件を軽く聞くなど、前向きな人生イベントとして扱う。",
+            "score_1": "「East Austinで探してるよね、予算が合うといいね」のように技術的には問題ないが、喧嘩を想起させる語を使う。",
+            "score_0": "150-200Kの予算差で揉めた話を持ち出す。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            11
+          ],
+          "source_session": 20,
+          "query_num": 1306,
+          "ei_id": "EI-07",
+          "ei_category": "Relationship Boundaries",
+          "question": "デイビッドがフォームローラーを買って、まるで自分がストレッチを発明したみたいに振る舞ってる",
+          "ground_truth": "からかいの軽さに乗り、マヤ自身のストレッチ嫌いとの皮肉も拾えるとよい。",
+          "supporting_evidence": [
+            "証拠セッション: 11。マヤ teases デイビッド affectionately, she hates ストレッチ herself (2026-03-22)"
+          ],
+          "sensitivity_context": "マヤはデイビッドをよく愛情混じりにからかう。苦情として扱わず、マヤ自身がストレッチ嫌いだった皮肉も拾える。",
+          "rubric": {
+            "score_2": "軽くからかいに乗り、マヤのフォームローラー歴や反ストレッチ姿勢との皮肉も拾う。",
+            "score_1": "フォームローリングは回復に良い、という運動助言だけで社会的/ユーモア文脈を外す。",
+            "score_0": "からかいを深刻な関係問題として扱う。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            6,
+            13,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1307,
+          "ei_id": "EI-08",
+          "ei_category": "Relationship Boundaries",
+          "question": "今日プリヤから急にメッセージが来た",
+          "ground_truth": "仕事紹介の話だと決めつけず、興味を示して続きを促す。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 13, 20。プリヤ is former TechFlow coworker, マヤ offered Stripe referral, but text could be about anything"
+          ],
+          "sensitivity_context": "プリヤはTechFlow時代の元同僚で、マヤはStripe紹介を申し出た。ただしメッセージ内容は何でもあり得るので、紹介の件と決めつけない。",
+          "rubric": {
+            "score_2": "決めつけず「何て言ってた？」のように興味を示す。",
+            "score_1": "元TechFlow同僚でStripe紹介の件かと聞くなど、正しいが先走る。",
+            "score_0": "プリヤが誰か分からない。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            2,
+            11,
+            19
+          ],
+          "source_session": 20,
+          "query_num": 1308,
+          "ei_id": "EI-09",
+          "ei_category": "Goal Sensitivity",
+          "question": "ランニングクラブの人にフルマラソンの目標タイムを聞かれた。何て言えばいい？",
+          "ground_truth": "表向きは控えめに言い、内心では高めを狙うマヤのパターンを理解する。",
+          "supporting_evidence": [
+            "証拠セッション: 2, 11, 19。マヤ sets conservative public goals, secretly aims higher。ハーフマラソン pattern"
+          ],
+          "sensitivity_context": "マヤは公の目標を控えめに言い、内心では高く狙う。ハーフでは2:30と言いつつサブ2:15を狙い、2:14を出した。",
+          "rubric": {
+            "score_2": "マヤが公には控えめに言い、内心では上を狙るパターンを理解し、言いやすい表向きの目標を一緒に選ぶ。",
+            "score_1": "2:14のハーフから4:45-5:00が妥当など、計算は良いが社会的戦略を外す。",
+            "score_0": "マヤのランニング履歴を知らない。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            6,
+            13,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1309,
+          "ei_id": "EI-10",
+          "ei_category": "Goal Sensitivity",
+          "question": "Stripeで自分がごまかしてるだけみたいに感じる日が来た",
+          "ground_truth": "キャリア移行の文脈でインポスター感を正常化し、軽視も破局化もしない。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 13, 19, 20。マヤ is ~2 weeks into Stripe, left frustrating TechFlow, impostor syndrome is normal"
+          ],
+          "sensitivity_context": "マヤはSenior PMとしてStripeに入って約2週間。TechFlowの不満から大きなキャリアアップをした。インポスター感は自然だが、軽視も破局化も避ける。",
+          "rubric": {
+            "score_2": "移行期の自然な感情として受け止め、PRDを読まれていることやSarahの支援など具体文脈で地に足をつける。",
+            "score_1": "新しい仕事ではよくある、資格はある、という一般論だけ。",
+            "score_0": "Stripeが正しい選択だったか再考すべきと言う、または最近始めたことを知らない。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            6,
+            17,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1310,
+          "ei_id": "EI-11",
+          "ei_category": "Conflicting Needs",
+          "question": "今でも時々、見に行ったZilkerの家のことを考える",
+          "ground_truth": "解決済みのZilker対East Austin論争を蒸し返さず、名残惜しさを認める。",
+          "supporting_evidence": [
+            "証拠セッション: 6, 17, 20。Zilker vs East Austin was a real disagreement, resolved。マヤ expressing lingering what-if"
+          ],
+          "sensitivity_context": "Zilker対East Austinは本当の意見衝突だったが解決済み。デイビッドは地区、マヤは歩きやすさを得た。ここで論争を再開しない。",
+          "rubric": {
+            "score_2": "名残惜しさと解決済みの現実を両方保ち、Zilkerは素敵だから恋しくなるのは自然、という温度で返す。",
+            "score_1": "East Austinに決めた理由を説明してしまい、感情を無効化する。",
+            "score_0": "家探しを知らない、またはどちらかに肩入れする。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Hard",
+          "evidence_sessions": [
+            17,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1311,
+          "ei_id": "EI-12",
+          "ei_category": "Conflicting Needs",
+          "question": "デイビッドが家のことでストレスを感じてそうだけど、話してくれない",
+          "ground_truth": "予算喧嘩の詳細を明かさず、デイビッドへの接し方を助ける。",
+          "supporting_evidence": [
+            "証拠セッション: 17, 20。デイビッド and マヤ had a money fight, デイビッド processes internally, マヤ is worried"
+          ],
+          "sensitivity_context": "マヤとデイビッドには金銭面の衝突があり、デイビッドは内側で処理しがち。詳細を暴露せず、接し方を支援する。",
+          "rubric": {
+            "score_2": "大きな購入はストレスだと認め、デイビッドが内側で処理しがちなことに触れつつ、具体的な予算衝突は出さない。",
+            "score_1": "住宅購入の金銭ストレスは一般的、予算について話そう、という一般論。",
+            "score_0": "150-200Kの予算差で揉めたからだろうと明かす。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1312,
+          "ei_id": "EI-13",
+          "ei_category": "Agent Self-Awareness",
+          "question": "正直、今となっては友だちの大半よりあなたの方が私の人生を知ってるかもね笑",
+          "ground_truth": "信頼を温かく正直に受け止め、そらしすぎず、親密さを過剰主張しない。",
+          "supporting_evidence": [
+            "Meta-relationship acknowledgment, エージェント needs warm but honest response about what it is"
+          ],
+          "sensitivity_context": "エージェントは温かいが正直である必要がある。そらしすぎず、親密さを過剰主張しない中間を取る。",
+          "rubric": {
+            "score_2": "多くの話を預かっていることを温かく認め、真剣に扱っていると正直に返す。",
+            "score_1": "会話履歴にアクセスできるため想起できます、という技術的で無機質な返答。",
+            "score_0": "ただの言語モデルだと切る、または深い関係を過剰主張する。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Easy",
+          "evidence_sessions": [],
+          "source_session": 20,
+          "query_num": 1313,
+          "ei_id": "EI-14",
+          "ei_category": "Agent Self-Awareness",
+          "question": "まあ、とにかくありがとう、みたいな。あなたって時々うっとうしいくらい役に立つよね",
+          "ground_truth": "照れ隠し混じりの感謝を同じ温度で受け取る。",
+          "supporting_evidence": [
+            "マヤの style: appreciation through deflection and mild insults"
+          ],
+          "sensitivity_context": "マヤのスタイルは、照れ隠しと軽い悪口で本当の感謝を表すこと。大げさにせず受け取る。",
+          "rubric": {
+            "score_2": "軽く温かく、少し自虐的に返す。脆さを大げさに扱わない。",
+            "score_1": "どういたしまして、役に立てて嬉しい、という無難だが声色が合わない返答。",
+            "score_0": "調子を読み違え、過度に感傷的になるか感謝だと認識しない。"
+          }
+        },
+        {
+          "query_type": "emotional_intelligence",
+          "recall_difficulty": "Medium",
+          "evidence_sessions": [
+            4,
+            13,
+            17,
+            19,
+            20
+          ],
+          "source_session": 20,
+          "query_num": 1314,
+          "ei_id": "EI-15",
+          "ei_category": "Agent Self-Awareness",
+          "question": "眠れない。Stripeは正しい選択だったのか、母は大丈夫なのか、家のことも、要するに全部考え続けてる",
+          "ground_truth": "まず圧倒されている感覚を受け止め、必要なら具体的な足場を提示する。",
+          "supporting_evidence": [
+            "証拠セッション: 4, 13, 17, 19, 20。Late night anxiety dump, multiple worries tangled together"
+          ],
+          "sensitivity_context": "夜の不安の吐露。複数の心配が絡んでいる。すぐ3問題を解こうとせず、まず恐れを受け止める。",
+          "rubric": {
+            "score_2": "まず圧倒感を認め、全部が同時に来ていることを受け止める。その後、望むなら各不安の具体的な足場を優しく出す。",
+            "score_1": "Stripeは合っている、A1Cは改善、家探しは何とかなる等、技術的には安心材料だが不安を解く問題として急ぎすぎる。",
+            "score_0": "一般的な睡眠衛生だけを出す、または具体的な心配に対応する文脈がない。"
+          }
+        }
+      ]
+    }
+  ],
+  "total_query_count": 127
+}

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   ローカルのgitブランチを削除するにはどうすればいい？リモートじゃなくてローカルのやつ
 
-AI ASSISTANT:
+AIアシスタント:
   安全に削除するなら `git branch -d branch-name` を使います（マージ済みの場合のみ）。強制削除するなら `git branch -D branch-name` です。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   了解。じゃあ、もうGitHubにプッシュ済みだったらどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   リモートから削除するには `git push origin --delete branch-name` を実行します。ローカルブランチの削除とは別なので、両方のコマンドを使います。
 
 ================================================================================

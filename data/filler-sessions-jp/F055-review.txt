@@ -8,7 +8,7 @@ SECTION 1: SESSION BRIEF
 ================================================================================
 Session: F055 (Filler — Cross-Reference Reinforcer)
 Date: 2026-04-13 22:15
-Topic: Linda がまた別のレシピを試した。減塩系がだいぶ上達してる
+Topic: リンダ がまた別のレシピを試した。減塩系がだいぶ上達してる
 Turn Count: 6
 
 ================================================================================
@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
-  Linda が今夜またあのレモンチキンを作ったんだけど、塩をあまり使わずにちゃんとおいしくするのが本当に上手くなってきてる
+マヤ:
+  リンダ が今夜またあのレモンチキンを作ったんだけど、塩をあまり使わずにちゃんとおいしくするのが本当に上手くなってきてる
 
-AI ASSISTANT:
+AIアシスタント:
   それはすごい！ 減塩料理のコツがちゃんと身についてきたんだね。今のところ、何かお気に入りの定番レシピはあるの？ それともまだ試行錯誤中？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   ハーブとニンニクをかなり使ってるんだよね笑。塩の代わりになるって言ってた。正直、もう違いが分からないくらい
 
-AI ASSISTANT:
+AIアシスタント:
   それはかなりいいサインだね。味のバランスをつかめてるってことだ。ニンニクと新鮮なハーブは、ほんとに味を支えてくれる。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うん、しかも本人の健康にもいいし一石二鳥。次はパンを作ってみたいらしいけど、それはなかなか意欲的だよね笑
 
-AI ASSISTANT:
+AIアシスタント:
   はは、パンはかなり次の段階だけど、味付けのコツが身についてるならたぶん大丈夫。手作りパンは本当においしいしね。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
-  そうだよね、最悪失敗してもまずいパンになるだけでピザ頼めばいいし。D も今週末いっしょにやるって言ってた
+マヤ:
+  そうだよね、最悪失敗してもまずいパンになるだけでピザ頼めばいいし。デイビッド も今週末いっしょにやるって言ってた
 
-AI ASSISTANT:
+AIアシスタント:
   それはいいね！ 一緒にやる相手がいると、ベーキングもずっと気楽になる。うまくいくといいな。
 
 ---
@@ -71,8 +71,8 @@ AI ASSISTANT:
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-QUERY 1: "What did Maya mention about linda tried another recipe. she's gettin?"
-  Ground Truth: linda tried another recipe. she's getting good at the low sodium ones
+QUERY 1: "What did マヤ mention about リンダ tried another recipe. she's gettin?"
+  Ground Truth: リンダ tried another recipe. she's getting good at the low sodium ones
   Evidence Session: F055
   Query Type: cross_reference
   Recall Difficulty: Medium (filler session callback)

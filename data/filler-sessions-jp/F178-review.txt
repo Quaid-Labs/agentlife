@@ -8,7 +8,7 @@ SECTION 1: SESSION BRIEF
 ================================================================================
 Session: F178 (Filler — Cross-Reference Reinforcer)
 Date: 2026-04-18 08:21
-Topic: lindaが別のレシピを試した。減塩系がかなり上達してきている
+Topic: リンダが別のレシピを試した。減塩系がかなり上達してきている
 Turn Count: 3
 
 ================================================================================
@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
-  lindaがまた別のレシピを試したんだ。減塩系がかなり上手くなってきてる
+マヤ:
+  リンダがまた別のレシピを試したんだ。減塩系がかなり上手くなってきてる
 
-AI ASSISTANT:
+AIアシスタント:
   それはいいね。体調のことがあってから、あの手のレシピをいろいろ試してるんだよね。慣れてきてるのが見えるのはいいことだよ。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   うん、写真を送ってくれて、実際かなりおいしそうだった。やり方をちょっと盗ませてもらおうかな、笑
 
-AI ASSISTANT:
+AIアシスタント:
   いいね、無料のレシピテストだ。塩を減らしつつ風味を保つコツで、何が一番効くか共有してくれてる？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   たいていハーブと柑橘だって。レモンを使うやり方がかなり効くって言ってた
 
-AI ASSISTANT:
+AIアシスタント:
   なるほど。酸味は本当に味を明るくしてくれるからね。うまく自分のやり方をつかんだみたいだ。
 
 ---
@@ -60,8 +60,8 @@ AI ASSISTANT:
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-QUERY 1: "Mayaは『lindaが別のレシピを試した。減塩系がかなり上達してきている』について何と言った？"
-  Ground Truth: lindaが別のレシピを試した。減塩系がかなり上達してきている
+QUERY 1: "マヤは『リンダが別のレシピを試した。減塩系がかなり上達してきている』について何と言った？"
+  Ground Truth: リンダが別のレシピを試した。減塩系がかなり上達してきている
   Evidence Session: F178
   Query Type: cross_reference
   Recall Difficulty: Medium (filler session callback)

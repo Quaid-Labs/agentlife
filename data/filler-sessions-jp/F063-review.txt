@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   Gitブランチの消し方、また忘れた笑
 
-AI ASSISTANT:
+AIアシスタント:
   ローカルなら `git branch -d branch-name`（安全に削除）か `git branch -D branch-name`（強制削除）です。リモートなら `git push origin --delete branch-name` です。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   ああ、-d フラグだよね。ありがと
 
-AI ASSISTANT:
+AIアシスタント:
   そうです。リモートブランチも消したいなら、2つ目のコマンドを忘れずに。お役に立ててよかったです！
 
 ---

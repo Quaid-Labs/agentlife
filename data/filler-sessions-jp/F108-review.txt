@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   うちの API に追加する新しい caching layer の技術設計書を書きたいんだけど、こういうの書くの初めてで lol。構成のコツある？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。cache layer の design doc なら、目的/背景、提案アーキテクチャ、データフロー、cache invalidation 戦略、監視、ロールアウト計画を含めるといいです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   product catalog API 用なんだ。redis を考えてる。response time が今 800ms くらいで、200ms 未満にしたい
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。それならいい use case です。まず doc の構成を作りましょう:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね。competitive analysis も入れるべき？ マネージャーが stripe のやり方を見ろって言ってた
 
-AI ASSISTANT:
+AIアシスタント:
   社内向けの design doc なら、フルの competitive analysis は不要です。ただし、Stripe や似た企業のやり方を 2〜3 点まとめた簡単な「Industry Context」セクションがあると説得力が増します。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   それめっちゃいい。architecture セクション書いてくれる？ redis cluster に read replica を置くイメージなんだけど、どう表現したらいいかわからなくて
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。Redis cluster に replicas を置く構成は高可用性に向いています。architecture セクションはこんな感じです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   まさにそれ。図も入れた方がいい？ あと invalidation 戦略が重要そう
 
-AI ASSISTANT:
+AIアシスタント:
   はい、図は必ず入れた方がいいです。簡単なものでも十分役立ちます。Client → API Server → Redis → Database（cache miss 時） の流れを示すといいでしょう。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   それはいいけど、catalog service が更新を kafka に流してるんだ。invalidiation のためにそのイベントを購読するって書いた方がいい？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、それは TTL だけに頼るよりずっといいです。event-driven invalidation の方がずっと正確です。修正します:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。じゃあ rollout は？ prod を壊さずにどうテストするか、マネージャーに絶対聞かれる
 
-AI ASSISTANT:
+AIアシスタント:
   いい視点です。rollout plan はステークホルダーが一番不安に思うところです。フェーズ分けした進め方はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね。cost の section も必要かな？ redis cluster って安くないし
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。finance や leadership は必ず cost justification を求めます。cost section はこう書けます:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   そこは絶対聞かれるね lol。最後に metrics と monitoring は何を書けばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   ここは oncall チームが喜ぶ metrics section です:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   うん、それで完璧。これを doc にまとめるよ。manager に見せる前に一回見てくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。Google doc でも何でもできたら共有してください。ざっと見て、抜けているところがないか、流れが自然か、必要なら締めるべき箇所を提案します。
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   ありがとう。ちなみに、検討した代替案も入れた方がいいと思う？ memcached も見たけど redis を選んだ、みたいな
 
-AI ASSISTANT:
+AIアシスタント:
   それは入れた方がいいです。`Alternatives Considered` セクションがあると、ちゃんと比較したことが伝わって、doc の説得力が上がります。短めで大丈夫です:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いいね。これで必要なものは全部そろった気がする。今から書くよ、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。課題、アーキテクチャ、invalidation、rollout、cost、metrics、代替案まで揃っています。かなり solid な design doc になりそうです。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   そうそう、TL;DR も入れるべきだよね。うちの vp はそこまで読まないから lol。ありがとうね
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです。TL;DR は、タブを 47 個開いていて会議が 12 件ある人向けです。箇条書きを見て、雰囲気で approve してくれるはずです。
 
 ---

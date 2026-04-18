@@ -8,7 +8,7 @@ SECTION 1: SESSION BRIEF
 ================================================================================
 Session: F053 (Filler — Personal Chat)
 Date: 2026-04-12 15:15
-Topic: 今週末 Big Bend に行くか、D と迷ってる
+Topic: 今週末 Big Bend に行くか、デイビッド と迷ってる
 Turn Count: 7
 
 ================================================================================
@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
-  ねえ、D は今週末 Big Bend に行きたがってるんだけど… あそこって車で7時間くらいかかるよね笑
+マヤ:
+  ねえ、デイビッド は今週末 Big Bend に行きたがってるんだけど… あそこって車で7時間くらいかかるよね笑
 
-AI ASSISTANT:
+AIアシスタント:
   うん、オースティンからだとかなり遠いよ。交通次第だけど7〜8時間くらい。週末旅行としてはかなり運転時間が長いね。何が迷いどころなの？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   星がめちゃくちゃきれいらしいし、Stripe に入る前に一息つく必要もあるって言うんだけど… ほんとに行くべきかなって感じ
 
-AI ASSISTANT:
+AIアシスタント:
   それはもっともだね。もうすぐ転機があるし。もっと近い場所にするのもありかも？ Enchanted Rock なら90分くらいで行けるし、星もきれいだよ。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   あー、それは考えてなかった。正直、土曜を丸ごと車の中で過ごしたくはないんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   それは分かる。どうしても Big Bend に行きたいなら、金曜から月曜までの3泊4日にするのも手だよ。移動が分散されるし、現地で過ごせる1日も増える。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
-  それ、実は悪くないね。D が金曜休めるか聞いてみる
+マヤ:
+  それ、実は悪くないね。デイビッド が金曜休めるか聞いてみる
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ そのほうがずっと行く価値が出る。Big Bend は未体験なら特にすごい場所だし、景色だけでも行く価値があるよ。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   そう、写真見せてもらったらめっちゃ良さそうだった。よし、長めの週末案を提案してみる
 
-AI ASSISTANT:
+AIアシスタント:
   うまくいくといいね！ どっちにしても、Big Bend でも Enchanted Rock でも、Stripe 前のリセットとしてはかなりいい選択だよ。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   ありがと！！ じゃあ共有機能のデバッグに戻るわ笑
 
-AI ASSISTANT:
+AIアシスタント:
   うまくいくといいね！ 必要ならまた手伝うよ。
 
 ---

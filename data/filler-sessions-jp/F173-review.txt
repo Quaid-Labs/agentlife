@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   ねえ、PMチーム向けに競合分析テンプレートを一緒に作ってくれる？ いつも場当たり的にやっていて、内容がバラバラなんだ
 
-AI ASSISTANT:
+AIアシスタント:
   PMチーム全体で標準化できる、包括的な競合分析テンプレートを作ります。以下の構成で整理すると使いやすいです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   すごくいいね！ セクション3を、もっと機能比較マトリクスっぽくできる？ 複数の競合をまとめて埋められるような感じで
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。セクション3を機能比較マトリクス形式にすると、こんな形になります。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   いいね。じゃあ今度は、チームに展開するときに送るイントロメールの文面を作ってくれる？ カジュアルだけど、なぜ標準化するのかはちゃんと伝わる感じで
 
-AI ASSISTANT:
+AIアシスタント:
   メールの下書きはこちらです。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   うん、トーンはいいんだけど、「なぜこれをやるのか」の説明をもう少し短くできる？ 2文以内くらいで
 
-AI ASSISTANT:
+AIアシスタント:
   では、短くした版はこちらです。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   うん、それならいいね。じゃあテンプレートに、最近のニュースや発表を入れるセクションも追加できる？ 資金調達、役員交代、製品発表みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   セクション8の後ろに追加する新しい項目はこちらです。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   いいね。あと一番上に、「いつ更新するか」のセクションも入れられる？ どれくらいの頻度で見直すべきかの指針みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   テンプレートの一番上、タイトルの直後に入れる追加文はこちらです。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   完璧。あともう1つだけ。強み・弱みのセクションで使える採点基準も作れる？ 競合を標準化して評価できるようなもの
 
-AI ASSISTANT:
+AIアシスタント:
   セクション5に追加できる採点基準はこちらです。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   すごくいいんだけど、脅威レベルの計算はもっと簡単にできる？ ギャップスコアみたいなのは複雑だから、全体の印象で高・中・低くらいにしたい
 
-AI ASSISTANT:
+AIアシスタント:
   その指摘はもっともです。簡略版はこんな感じです。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   うん、そっちのほうがずっといい。最後にもう1個だけ。競合インテリジェンスの情報源をまとめた付録も追加できる？ 一貫して情報を集められる場所みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   最後に追加できる付録はこちらです。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   うん、これで十分網羅的。あ、待って。価格を公開していない競合を分析するときの扱い方も追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   付録に入れられる追加項目はこちらです。
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   うん、それかなり助かる。よし、テンプレートはこれで大丈夫そう。じゃあ次に、例として Square の機能マトリクスを埋めるのを手伝ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。Square を入れた機能比較マトリクスはこちらです。
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。じゃあ次は Adyen もすぐやってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   Adyen をマトリクスに追加した版はこちらです。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。じゃあ今やった内容をもとに、Adyen のエグゼクティブサマリーも書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   Adyen 向けのエグゼクティブサマリーはこちらです。
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   うん、すごくいい。じゃあ全部を、Google Docs にそのまま貼り付けられるように、1つのアウトラインにまとめてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   Google Docs にそのまま貼れる、完全版のテンプレートを1つのアウトラインにまとめました。
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   最高、ありがとう！！ まさに欲しかったやつだ
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。これでチームの競合分析をかなり標準化しやすくなるはずです。機能比較マトリクスにすると複数の競合を横並びで比べやすいですし、セクションを揃えておけば競合の変化も追いやすくなります。
 
 ---
@@ -191,10 +191,10 @@ AI ASSISTANT:
 TURN 16 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、そうする。ちなみに、製品スクリーンショット用のセクションも追加するつもり。見た目の参照資料があるといいから
 
-AI ASSISTANT:
+AIアシスタント:
   それはいい追加です。機能比較マトリクスの後ろにそのまま入れられるセクションはこちらです。
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   ねえ、grocery list に重複が出てるんだけど... たとえば「卵 2 個」と「卵 3 個」が両方出てくる。集約ロジック見てくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   grocery list の集約処理を見ます。複数レシピの材料をまとめているコードを見せてもらえますか？ grocery list の route か helper 関数にありそうです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   うん、これが route。かなり基本的なやつだよ
 
-AI ASSISTANT:
+AIアシスタント:
   見つけました。まだ集約していません。ただ raw の材料を返しているだけです。修正はこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   あー、なるほど。でもレシピによって「cup」と「cups」が混ざってたら？ また重複しちゃうよね
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。まとめる前に unit を正規化する必要があります。こういう helper を追加してください:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ちょっと待って。レシピを保存するときに正規化すべき？ それともリストを生成するとき？ 古いデータを再処理したくないんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   今のところは生成時で十分です:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   テストしたら動いたけど、「eggs-undefined」って出るｗ 単位がないレシピもあるっぽい
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、それなら unit がない場合を処理する必要があります:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
-  完璧、それで直った！ D に後で壊されないように、この前にテストも足しておくわ lol
+マヤ:
+  完璧、それで直った！ デイビッド に後で壊されないように、この前にテストも足しておくわ lol
 
-AI ASSISTANT:
+AIアシスタント:
   いい判断です lol。スターターテストはこちらです:
 
 ---

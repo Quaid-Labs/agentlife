@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   auth スプリントについて、ステークホルダー向けの短いアップデートメールを書きたいんだけど、手伝ってくれる？ 先週 SSO は出して、ユーザー権限はテスト中なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。強調したいのは SSO のリリースですか、それとも次に来るものですか？ それと、宛先は exec チーム、product council、eng lead のどれですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   product council 向け。順調に進んでることを伝えつつ、permissions matrix が予想より時間かかってることも伝えたい
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。ドラフトはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいけど、もっとくだけた感じにしてほしい。日常的に一緒に働いてる人たちに送るんだよね lol
 
-AI ASSISTANT:
+AIアシスタント:
   はは、わかりました。もっとカジュアルな版はこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   うん、それで完璧。木曜にあったセキュリティレビューのことも入れてくれる？ そこで approach は承認されたんだ
 
-AI ASSISTANT:
+AIアシスタント:
   追加しました:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   shipped の下に入れて。あ、ちょっと待って。permissions matrix の部分だけ別セクションに切り出してもらえる？ リスクをちゃんと見せたい
 
-AI ASSISTANT:
+AIアシスタント:
   こちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   うん、完璧。送ってくれたら下書きに入れる。ちなみに、permissions の元の見積もりは何だったっけ？
 
-AI ASSISTANT:
+AIアシスタント:
   一般的なスプリント計画を見ると、permissions は最初 5〜8 ポイントくらいで見積もっていた可能性があります。実際の見積もりを project tracker か Jira で確認しましょうか？ それとも、スプリント計画でだいたい何を約束したか覚えていますか？
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いや、思い出した。5 ポイントだったんだけど、もう 8 くらいかかってる lol。まあ大丈夫、メールはいい感じ。ありがと
 
-AI ASSISTANT:
+AIアシスタント:
   問題ないです。メールは準備できています。permissions の複雑さ、がんばってください。共有リソースのエッジケースはいつも面倒ですからね。水曜の sync 用の準備が必要なら手伝います。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   それは助かる。standup 前にコーヒー取ってくるわ
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ いい standup を。
 
 ---

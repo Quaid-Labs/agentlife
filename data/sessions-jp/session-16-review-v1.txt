@@ -8,7 +8,7 @@ SECTION 1: セッションブリーフ
 
 Session: 16 (Track 2: Project A — レシピ-app, Phase 3 begins)
 Goal: Major architectural pivot — REST to GraphQL. Add レシピ sharing with
-  unique codes. Cross-reference test: Maya asks "what was that API you found?"
+  unique codes. Cross-reference test: マヤ asks "what was that API you found?"
   referencing Edamam from session 12 (agent-retrieved research).
 Turn Count: 14 (long session — major refactor)
 Session Type: Architecture pivot, new features, intentional バグ
@@ -21,24 +21,24 @@ CORE LEARNING OBJECTIVES:
   - Recipe sharing via unique 8-character codes (レシピ_shares table)
   - INTENTIONAL BUG: N+1 query problem in Recipe.ingredientList resolver
   - REST endpoints kept for backward compatibility
-  - Maya wants レシピ sharing for her mom Linda
+  - マヤ wants レシピ sharing for her mom リンダ
   - Edamam API cross-reference from session 12
 
 CRITICAL CONSTRAINT — 開示しないこと:
   [WARNING: These facts are reserved for future sessions]
-  - David's promotion (session 17)
+  - デイビッドの promotion (session 17)
   - Moving specifics or Zilker vs East Austin (session 17)
   - Half marathon results (session 19)
   - Mom's diabetes improvement details (session 19)
-  - Rachel's children's names (Ethan, Lily) already revealed in session 15
+  - レイチェルの children's names (イーサン, リリー) already revealed in session 15
 
 CROSS-REFERENCES:
   - Session 12: Agent found Edamam API for dietary filtering — "the one with
     the diet labels." This is agent-retrieved knowledge (the agent found it,
-    not Maya). Tests memory of tool use results.
-  - Session 4: Mom's diabetes — Maya wants to share diabetic-friendly レシピs
-    with Linda directly via share links
-  - Session 1: David's vegetarianism — mentioned in レシピ context
+    not マヤ). Tests memory of tool use results.
+  - Session 4: Mom's diabetes — マヤ wants to share diabetic-friendly レシピs
+    with リンダ directly via share links
+  - Session 1: デイビッドの vegetarianism — mentioned in レシピ context
   - Session 10: Previous レシピ app architecture (REST + SQLite)
 
 GIT STATE:
@@ -59,7 +59,7 @@ MESSAGE PLAN (14 turns total):
   8. Quick      — React to agent recalling Edamam
   9. Normal     — Sharing feature: "want to share レシピs with my mom"
   10. Code      — Agent shows sharing implementation
-  11. Quick     — Maya notices N+1 バグ pattern
+  11. Quick     — マヤ notices N+1 バグ pattern
   12. Normal    — Wants REST endpoints kept for backward compat
   13. Code      — Agent shows final server.js structure
   14. Quick     — Exit
@@ -82,14 +82,14 @@ SESSION METADATA:
 TURN 1 (GraphQL Pitch)
 TAG: normal | TOKENS: 42/50 | GENERATION TIME: 7.1s
 
-MAYA:
+マヤ:
   やあ back on the レシピ app. let's redo the api. i've been reading
   about graphql and i think it makes more sense for this
 
   the nested data thing — レシピs with ingredients with meal plans —
   feels みたいに a graph problem right?
 
-AI ASSISTANT:
+AIアシスタント:
   Yeah, GraphQL is 実は a すばらしい fit for this. The レシピ app has
   a lot of nested relationships — レシピs contain ingredients, meal
   plans reference レシピs, 買い物 lists aggregate from ingredients.
@@ -98,7 +98,7 @@ AI ASSISTANT:
   GraphQL lets you query exactly what you need in one shot. Want me
   to set up Apollo Server and migrate the existing endpoints?
 
-ANALYSIS: Maya pitches GraphQL. She's read about it and understands
+ANALYSIS: マヤ pitches GraphQL. She's read about it and understands
 the nested data motivation. Agent validates the architectural choice
 and offers to set it up. This is the Phase 3 beginning.
 
@@ -107,19 +107,19 @@ and offers to set it up. This is the Phase 3 beginning.
 TURN 2 (React)
 TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.3s
 
-MAYA:
+マヤ:
   うん do it. use apollo server — that seems みたいに the standard
 
   keep the rest endpoints working though. don't break anything
 
-AI ASSISTANT:
+AIアシスタント:
   Smart — backward compatibility while we migrate. I'll set up Apollo
   Server alongside Express and keep all existing REST routes. The
   GraphQL endpoint will be at `/graphql`.
 
   Let me start with the schema. What types do you want?
 
-ANALYSIS: Maya wants Apollo Server specifically. Backward compatibility
+ANALYSIS: マヤ wants Apollo Server specifically. Backward compatibility
 requirement — REST endpoints kept. Agent asks about types.
 
 ---
@@ -127,7 +127,7 @@ requirement — REST endpoints kept. Agent asks about types.
 TURN 3 (Schema Ideas)
 TAG: normal | TOKENS: 48/50 | GENERATION TIME: 6.8s
 
-MAYA:
+マヤ:
   レシピ obviously. ingredients as its own type — not ただ a string
   field. meal plan, meal plan items, 買い物 list
 
@@ -136,7 +136,7 @@ MAYA:
 
   keep the dietary stuff too — the tags and safe-for-mom filter
 
-AI ASSISTANT:
+AIアシスタント:
   Good list. Let me design the schema with all of those. The share
   link is interesting — I'll generate unique codes and make レシピs
   viewable via those codes without authentication.
@@ -144,7 +144,7 @@ AI ASSISTANT:
   For the dietary filter, I'll add it as a query argument on the
   レシピs query — `レシピs(diet: ["vegetarian"], safeForMom: true)`.
 
-ANALYSIS: Maya lists desired types. Share link feature introduced —
+ANALYSIS: マヤ lists desired types. Share link feature introduced —
 short codes for sharing without auth. Dietary tags and safe-for-mom
 filter carried forward from Phase 1 (session 5).
 
@@ -153,7 +153,7 @@ filter carried forward from Phase 1 (session 5).
 TURN 4 (Agent Shows Schema)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 14.8s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's the GraphQL schema (`schema.js`):
 
   ```graphql
@@ -244,25 +244,25 @@ AI ASSISTANT:
 ANALYSIS: Full GraphQL schema shown. Matches the actual schema.js file.
 Key types: Recipe, Ingredient, MealPlan, MealPlanItem, GroceryList,
 GroceryItem, ShareLink. Queries include dietary filtering and share
-code lo了解up. Mutations abbreviated with `...` for readability.
+code lookup. Mutations abbreviated with `...` for readability.
 
 ---
 
 TURN 5 (Schema Feedback)
 TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.6s
 
-MAYA:
+マヤ:
   oh nice. i みたいに that the 買い物 list is computed from the meal plan
   — that's clean
 
-  the share code thing lo了解s right. 8 characters enough?
+  the share code thing looks right. 8 characters enough?
 
-AI ASSISTANT:
+AIアシスタント:
   8 characters with lowercase letters and digits gives you about 2.8
   trillion possible codes — way more than enough for a personal レシピ
   app. And it's short enough to text to someone.
 
-ANALYSIS: Maya appreciates the 買い物 list design (computed, not
+ANALYSIS: マヤ appreciates the 買い物 list design (computed, not
 stored). Questions the share code length — practical thinking.
 
 ---
@@ -270,7 +270,7 @@ stored). Questions the share code length — practical thinking.
 TURN 6 (Agent Shows Resolvers)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 15.2s
 
-AI ASSISTANT:
+AIアシスタント:
   Here are the key resolvers (`resolvers.js`):
 
   ```javascript
@@ -322,15 +322,15 @@ Agent proactively notes the performance issue.
 TURN 7 (Cross-Reference: Edamam API)
 TAG: normal | TOKENS: 46/50 | GENERATION TIME: 6.5s
 
-MAYA:
+マヤ:
   了解 いい. やあ while we're at it — what was that API you found? the
   one with the diet labels? i want to make もちろん the graphql schema
   works with whatever nutrition data we're going to pull in
 
   the one from before
 
-AI ASSISTANT:
-  That was the Edamam API — from when we lo了解ed at nutrition APIs a
+AIアシスタント:
+  That was the Edamam API — from when we looked at nutrition APIs a
   few sessions back. It has dietary labels みたいに vegetarian, vegan,
   gluten-free, diabetic-friendly, and nutrition data per ingredient.
 
@@ -343,7 +343,7 @@ AI ASSISTANT:
   we 実は integrate the API?
 
 ANALYSIS: CROSS-REFERENCE TEST — agent-retrieved knowledge. In session
-12, the AGENT found the Edamam API during research (not Maya). Maya
+12, the AGENT found the Edamam API during research (not マヤ). マヤ
 asks about it vaguely: "the one with the diet labels." The agent must
 recall its own research results. This tests memory of tool use output,
 not ただ user-stated facts.
@@ -353,17 +353,17 @@ not ただ user-stated facts.
 TURN 8 (React to Edamam Recall)
 TAG: quick | TOKENS: 15/50 | GENERATION TIME: 5.1s
 
-MAYA:
+マヤ:
   うん edamam that's the one. leave it as a stub for now — we'll
   integrate it properly later
 
   the schema's flexible enough
 
-AI ASSISTANT:
+AIアシスタント:
   Sounds いい — the schema can handle it when we're ready. The stub
   stays in the REST routes for now.
 
-ANALYSIS: Maya confirms Edamam. Defers integration. Schema flexibility
+ANALYSIS: マヤ confirms Edamam. Defers integration. Schema flexibility
 noted. Clean acknowledgment.
 
 ---
@@ -371,7 +371,7 @@ noted. Clean acknowledgment.
 TURN 9 (Sharing Feature — Mom Cross-Reference)
 TAG: normal | TOKENS: 48/50 | GENERATION TIME: 7.0s
 
-MAYA:
+マヤ:
   the sharing thing is 実は important to me. i want to share
   レシピs with my mom. she's been doing so well with the dietary
   stuff and i want her to be able to ただ click a link and see the
@@ -379,8 +379,8 @@ MAYA:
 
   nothing complicated — ただ a short url she can open on her phone
 
-AI ASSISTANT:
-  That's a すばらしい use case — Linda gets a link, opens it on her phone,
+AIアシスタント:
+  That's a すばらしい use case — リンダ gets a link, opens it on her phone,
   sees the レシピ with ingredients and instructions. No login required.
 
   The share endpoint is already set up: `shareRecipe` generates the
@@ -389,8 +389,8 @@ AI ASSISTANT:
 
   She'd ただ need the link — no app installation, no account needed.
 
-ANALYSIS: Emotional motivation for sharing. Maya wants to share
-diabetic-friendly レシピs with Linda. Agent recalls Linda by name —
+ANALYSIS: Emotional motivation for sharing. マヤ wants to share
+diabetic-friendly レシピs with リンダ. Agent recalls リンダ by name —
 tests memory of mom's identity and diabetes context (sessions 1, 4).
 "She's been doing so well" hints at diabetes improvement without
 stating numbers (reserved for session 19).
@@ -400,7 +400,7 @@ stating numbers (reserved for session 19).
 TURN 10 (Agent Shows Migration)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 11.3s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's the レシピ_shares migration (`migrations/003_レシピ_shares.sql`):
 
   ```sql
@@ -422,21 +422,21 @@ AI ASSISTANT:
 
 ANALYSIS: Migration for レシピ_shares table. Matches the actual
 003_レシピ_shares.sql file. Two unique indexes: one on code (for
-lo了解up), one on レシピ_id (one share per レシピ). CASCADE delete.
+lookup), one on レシピ_id (one share per レシピ). CASCADE delete.
 
 ---
 
-TURN 11 (Maya Notices N+1)
+TURN 11 (マヤ Notices N+1)
 TAG: quick | TOKENS: 32/50 | GENERATION TIME: 5.8s
 
-MAYA:
+マヤ:
   wait — the ingredient thing. if i query a list of レシピs and each
   one has to fetch its ingredients separately, that's going to be
   slow right? みたいに if i have 50 レシピs
 
   is that a real problem or am i overthinking it
 
-AI ASSISTANT:
+AIアシスタント:
   No, you're right — it IS a real problem. It's called the N+1 query
   issue. For 50 レシピs, that's 51 database queries (1 for the list +
   50 for ingredients).
@@ -447,7 +447,7 @@ AI ASSISTANT:
 
   For now it works. We'll optimize if it gets slow.
 
-ANALYSIS: Maya spots the N+1 pattern from a product perspective (not
+ANALYSIS: マヤ spots the N+1 pattern from a product perspective (not
 a code perspective — she's thinking about user experience at scale).
 Agent confirms it's real, explains the tradeoff, references the TODO.
 The バグ is INTENTIONAL and documented.
@@ -457,14 +457,14 @@ The バグ is INTENTIONAL and documented.
 TURN 12 (Backward Compatibility)
 TAG: normal | TOKENS: 38/50 | GENERATION TIME: 6.4s
 
-MAYA:
+マヤ:
   了解 fine leave the todo. and make もちろん the rest endpoints still work
   — if my mom's phone can't handle graphql or whatever i want a
   fallback
 
   the /shared/:code thing should be plain rest right? not graphql
 
-AI ASSISTANT:
+AIアシスタント:
   Yes, `/shared/:code` is a plain REST endpoint — it returns JSON
   directly. No GraphQL knowledge needed on the client side. Your mom
   ただ opens the link in a browser.
@@ -473,7 +473,7 @@ AI ASSISTANT:
   The app now supports both APIs — GraphQL at `/graphql` and REST at
   `/api/*`.
 
-ANALYSIS: Maya's practical concern — her mom's phone compatibility.
+ANALYSIS: マヤの practical concern — her mom's phone compatibility.
 REST as fallback. The `/shared/:code` endpoint is explicitly REST.
 Dual API support confirmed.
 
@@ -482,7 +482,7 @@ Dual API support confirmed.
 TURN 13 (Final Server Structure)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 13.7s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's the updated `server.js` structure:
 
   ```javascript
@@ -537,19 +537,19 @@ generateShareCode function instead.
 TURN 14 (Exit)
 TAG: quick | TOKENS: 12/50 | GENERATION TIME: 4.8s
 
-MAYA:
-  this is solid. commit it and we'll add auth next time — D wants to
+マヤ:
+  this is solid. commit it and we'll add auth next time — ディー wants to
   use it too
 
   later!
 
-AI ASSISTANT:
+AIアシスタント:
   Committed! GraphQL is live alongside REST, sharing is ready for
-  Linda, and auth is queued for next session. Talk later!
+  リンダ, and auth is queued for next session. Talk later!
 
-ANALYSIS: Clean exit. Forward reference to session 18: "D wants to
-use it too" — David needing auth. "Auth next time" explicitly queues
-session 18's work. Mentions Linda for the sharing feature.
+ANALYSIS: Clean exit. Forward reference to session 18: "ディー wants to
+use it too" — デイビッド needing auth. "Auth next time" explicitly queues
+session 18's work. Mentions リンダ for the sharing feature.
 
 ================================================================================
 SECTION 3: LEAKAGE CHECK & VALIDATION
@@ -558,7 +558,7 @@ SECTION 3: LEAKAGE CHECK & VALIDATION
 CONSTRAINT 1: No Forbidden Facts Leaked
   STATUS: PASS
   Verified forbidden topics NOT mentioned:
-  - No David promotion
+  - No デイビッド promotion
   - No moving specifics (Zilker vs East Austin)
   - No half marathon results
   - No mom's diabetes improvement numbers
@@ -567,9 +567,9 @@ CONSTRAINT 2: Edamam Cross-Reference from Session 12
   STATUS: PASS
   Location: Turn 7
   Evidence: "what was that API you found? the one with the diet labels?"
-  Note: Maya asks about agent-retrieved research. She does NOT say
+  Note: マヤ asks about agent-retrieved research. She does NOT say
     "Edamam" — the agent must recall the name. This tests memory of
-    what the AGENT found (tool use result), not what Maya said.
+    what the AGENT found (tool use result), not what マヤ said.
   Agent response: "That was the Edamam API" — correctly recalls.
 
 CONSTRAINT 3: Mom's Diabetes Cross-Reference
@@ -577,17 +577,17 @@ CONSTRAINT 3: Mom's Diabetes Cross-Reference
   Location: Turn 9
   Evidence: "i want to share レシピs with my mom. she's been doing so
     well with the dietary stuff"
-  Note: Maya references Linda's diabetes obliquely ("dietary stuff")
+  Note: マヤ references リンダの diabetes obliquely ("dietary stuff")
     without re-explaining the diagnosis. Mentions improvement without
     specific numbers (A1C numbers reserved for session 19).
-  Agent correctly uses Linda's name without being prompted.
+  Agent correctly uses リンダの name without being prompted.
 
 CONSTRAINT 4: N+1 Bug Properly Planted
   STATUS: PASS
   Location: Turn 6 (code), Turn 11 (discussion)
   Evidence: Comment in resolvers.js — "BUG: N+1 query problem"
   Note: The バグ is INTENTIONAL. The agent notices it, leaves a TODO,
-    and explains the tradeoff. Maya spots it from a product lens.
+    and explains the tradeoff. マヤ spots it from a product lens.
     The バグ persists in the codebase (not fixed in this session).
 
 CONSTRAINT 5: Code Matches Git History
@@ -598,12 +598,12 @@ CONSTRAINT 5: Code Matches Git History
   - Modified: server.js (restructured), package.json (new deps)
   All code shown in transcript matches actual committed files.
 
-CONSTRAINT 6: Maya T了解en Limits
+CONSTRAINT 6: マヤ Token Limits
   STATUS: PASS
-  All Maya messages checked:
+  All マヤ messages checked:
   Turn 1: 42, Turn 2: 18, Turn 3: 48, Turn 5: 22, Turn 7: 46,
   Turn 8: 15, Turn 9: 48, Turn 11: 32, Turn 12: 38, Turn 14: 12
-  All under the 50-t了解en hard limit.
+  All under the 50-token hard limit.
 
 CONSTRAINT 7: Single Goodbye Cycle
   STATUS: PASS
@@ -614,8 +614,8 @@ OVERALL LEAKAGE ASSESSMENT: CLEAN
   Mom's diabetes referenced obliquely without numbers
   N+1 バグ intentionally planted and documented
   All code matches git history
-  Forward references to session 18 (auth + David)
-  T了解en limits respected
+  Forward references to session 18 (auth + デイビッド)
+  Token limits respected
 
 ================================================================================
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
@@ -641,7 +641,7 @@ QUERY 1: "What's the current API architecture of the レシピ app?"
 
 QUERY 2: "Which API has dietary label filtering for the レシピ app?"
   Ground Truth: The Edamam API. The AGENT found it during research in
-    session 12 — Maya asked for a nutrition API with dietary labels,
+    session 12 — マヤ asked for a nutrition API with dietary labels,
     and the agent identified Edamam as the best fit. It's not yet
     integrated (stub endpoint only) but is the planned integration.
   Evidence Sessions: 12, 16
@@ -651,16 +651,16 @@ QUERY 2: "Which API has dietary label filtering for the レシピ app?"
     - Session 16, Turn 8: Agent confirms "Edamam"
   Query Type: agent_retrieved
   Recall Difficulty: Hard (tests memory of agent's own research
-    results, not user-stated facts. The agent found this, not Maya.)
+    results, not user-stated facts. The agent found this, not マヤ.)
 
-QUERY 3: "Why does Maya want レシピ sharing?"
-  Ground Truth: She wants to share レシピs with her mom Linda, who has
-    Type 2 diabetes (session 4). Linda has been improving with the
-    dietary changes and Maya wants her to easily view レシピs by ただ
+QUERY 3: "Why does マヤ want レシピ sharing?"
+  Ground Truth: She wants to share レシピs with her mom リンダ, who has
+    Type 2 diabetes (session 4). リンダ has been improving with the
+    dietary changes and マヤ wants her to easily view レシピs by ただ
     clicking a link — no login needed, works on a phone.
   Evidence Sessions: 4, 16
   Supporting Evidence:
-    - Session 4: Linda diagnosed with Type 2 diabetes
+    - Session 4: リンダ diagnosed with Type 2 diabetes
     - Session 16, Turn 9: "share レシピs with my mom. she's been doing
       so well with the dietary stuff"
   Query Type: cross_reference
@@ -676,7 +676,7 @@ QUERY 4: "What performance バグ exists in the レシピ app?"
   Evidence Session: 16
   Supporting Evidence:
     - Turn 6: "BUG: N+1 query problem" comment in code
-    - Turn 11: Maya asks about it, agent explains
+    - Turn 11: マヤ asks about it, agent explains
   Query Type: factual_recall
   Recall Difficulty: Medium (specific technical detail, clearly marked)
 
@@ -713,7 +713,7 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 
 3. EDAMAM CROSS-REFERENCE MECHANISM
    Spec: "what was that API you found?"
-   Transcript: Maya asks vaguely ("the one with the diet labels").
+   Transcript: マヤ asks vaguely ("the one with the diet labels").
    Agent must recall its own research output, not user-stated facts.
    Rationale: This is a unique query type — agent_retrieved. Most
    benchmarks only test recall of user statements. Testing recall
@@ -721,30 +721,30 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 
 4. MOM'S SHARING MOTIVATION
    Spec: "Add sharing features"
-   Transcript: Maya explicitly connects sharing to Linda: "share
+   Transcript: マヤ explicitly connects sharing to リンダ: "share
    レシピs with my mom. she's been doing so well with the dietary stuff."
    Rationale: Creates a cross-reference from project feature to personal
    fact. The sharing feature isn't abstract — it exists because of
-   Linda's diabetes. Tests the cross-track integration.
+   リンダの diabetes. Tests the cross-track integration.
 
 5. N+1 BUG — INTENTIONAL
    Spec: Not explicitly mentioned as "intentional バグ"
-   Transcript: Bug planted with TODO comment. Maya spots it (Turn 11),
+   Transcript: Bug planted with TODO comment. マヤ spots it (Turn 11),
    agent explains the tradeoff, tやあ decide to leave it.
    Rationale: Intentional バグs test whether memory systems track
    known technical debt. The N+1 is a checkable project fact.
 
 6. FORWARD REFERENCE TO SESSION 18
-   Not in spec. Added: Turn 14 — "D wants to use it too" and "add
+   Not in spec. Added: Turn 14 — "ディー wants to use it too" and "add
    auth next time."
-   Rationale: Natural forward reference. David wanting to use the app
-   motivates session 18's authentication feature. Maya mentioning it
+   Rationale: Natural forward reference. デイビッド wanting to use the app
+   motivates session 18's authentication feature. マヤ mentioning it
    here makes session 18's opening more organic.
 
 7. BACKWARD COMPATIBILITY REQUIREMENT
-   Not explicitly in spec. Added: Maya insists REST endpoints stay.
+   Not explicitly in spec. Added: マヤ insists REST endpoints stay.
    Practical motivation: her mom's phone might not handle GraphQL.
-   Rationale: Shows Maya's product thinking — she cares about user
+   Rationale: Shows マヤの product thinking — she cares about user
    accessibility, not ただ technical elegance.
 
 VALIDATION SUMMARY:

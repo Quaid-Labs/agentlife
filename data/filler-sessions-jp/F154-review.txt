@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   ねえ、レシピアプリに Prometheus のメトリクスを追加したいんだ。リクエスト遅延とか、DB クエリ時間とか、そういうやつ。Express でセットアップする最善の方法って何？
 
-AI ASSISTANT:
+AIアシスタント:
   Node.js なら `prom-client` を使うのがいいよ。標準的だし。基本構成はこんな感じ：
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うん、DB のメトリクスもあるとすごく助かる。あと、別の scrape エンドポイントって必要？ それとも Prometheus が `/metrics` を叩けばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   Prometheus はそのまま `/metrics` を叩けばいいよ。それが標準パターン。DB メトリクスは SQLite 呼び出しをラップして：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いいね。レシピ作成率とか認証失敗も追跡したいんだけど、そういうのってビジネスメトリクスとして重要そう
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。こんなカウンターを追加しよう：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   ちょっと待って、user_id でラベル付けしたら何千ものメトリクス系列ができない？ Prometheus のアンチパターンだと思ってたけど
 
-AI ASSISTANT:
+AIアシスタント:
   その通りだよ。カーディナリティ爆発になる。user_id ラベルは外そう：
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   なるほど。じゃあ実際にローカルでどうテストすればいい？ Prometheus を動かす必要があるのか、それとももっと簡単な方法がある？
 
-AI ASSISTANT:
+AIアシスタント:
   単純に `/metrics` エンドポイントを `curl` して出力を見ればいいよ：
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   いいね。最後に一つ - エラーレートは別で追うべき？ それとも HTTP duration metric の status_code ラベルだけで十分？
 
-AI ASSISTANT:
+AIアシスタント:
   両方使うのがいいよ。役割が違うから：
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   なるほど。じゃあ、プロセスが落ちるような未処理エラーはどう？ それが死ぬ前に追跡すべき？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、process handlers で拾おう：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   わかった。gauge は何に使うべき？ アクティブな DB 接続とか、そういうの？
 
-AI ASSISTANT:
+AIアシスタント:
   そう、gauge は「現在の状態」を表すメトリクスにぴったりだよ：
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   わかった。最後に - これのテストってどう書くの？ リファクタでメトリクスを壊したくない
 
-AI ASSISTANT:
+AIアシスタント:
   メトリクスを直接テストしよう：
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね。モックは必要？ それとも prom-client はテストでもそのままで平気？
 
-AI ASSISTANT:
+AIアシスタント:
   そのままで動くけど、テスト間のリークを防ぐために registry は毎回クリアしたほうがいいよ：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   ああ、それは前に timers でやられたことある。よし、実装を始める準備はできた。これ全部 1 つの PR にまとめるべき？ それとも分けるべき？
 
-AI ASSISTANT:
+AIアシスタント:
   分けたほうがいい。レビューしやすいし、安全だよ：
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   賢い。じゃあまず PR 1 から始めるね。ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ ひとつだけ補足すると - `prometheus.yml` に scrape interval のコメントを入れておくといいよ。デフォルトは 15s だけど、今は 5s にしてあるからかなり攻めてる。小さいアプリなら本番では 10〜15s に上げて、負荷を下げたほうがいいかも。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   ああ、いい指摘。15s に上げるよ。助かった！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ 何かあれば気軽に聞いて。`prom-client` の docs もかなりしっかりしてるから、あとで histogram の bucket 調整や summary metrics が必要になっても見やすいよ。
 
 ---

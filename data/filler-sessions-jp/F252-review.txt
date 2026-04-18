@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   ねえ、あまり堅苦しくないプロダクトマネジメントの本ってある？
 
-AI ASSISTANT:
+AIアシスタント:
   "Inspired" の Marty Cagan はかなり良いよ。実践的で、そんなに難解じゃない。"The Mom Test" は短くて、ユーザーと話すときにすごく役立つ。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   そういえば Inspired は聞いたことあるけど、まだ読んでないんだ。The Mom Test って何についての本？
 
-AI ASSISTANT:
+AIアシスタント:
   お客さんに、相手を気遣って嘘をつかせずに質問する方法についての本だよ。アイデアの検証にすごく使える。100ページくらいで、さくっと読める。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   それ、今まさに欲しかったやつかも。レシピアプリの認証を作っていて、ユーザーが本当に何を求めているのかを見極めようとしてるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   ちょうどいいタイミングだね。人が機能を本当に欲しがっているのか、それとも単に遠慮しているだけなのかを見分けるのに役立つはず。読破まで2時間くらいかな。
 
 ---

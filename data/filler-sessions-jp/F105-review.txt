@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   recipes に「最終更新日時」を追加したいんだ。最近何を更新したか見られるようにしたくて
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。`recipes` テーブルに `updated_at` カラムを追加して、編集時に更新するようにします。schema と routes を直します。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   うん、完璧。毎回手動で入れたくないから、自動で更新されるようにしてね
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。UPDATE のたびに timestamp を自動更新する SQL trigger を使います。migration はこうです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。API response にも入れて、最近更新された順に並べてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   できます。GET /recipes エンドポイントを更新しました:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いい感じ。更新日時は raw timestamp じゃなくて、読みやすい形式にできる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。backend で date-fns を使って整形します:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   完璧 lol。これのテストも書いてくれる？ timestamp がちゃんと更新されるか確認したい
 
-AI ASSISTANT:
+AIアシスタント:
   テストはこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   テスト実行中... 「TypeError: Cannot read property 'updated_at' of undefined」が出る。response body が空っぽみたい
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、PUT endpoint が更新済みの recipe を返していません。そこを直します:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   テスト通った、ありがとう！これ deploy する
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ updated_at タイムスタンプが live になって、自動更新されるようになりました。レシピ一覧では「5 分前に更新」みたいな表示になり、最近編集したものから順に並びます。
 
 ---

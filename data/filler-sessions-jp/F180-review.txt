@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~33
 
-MAYA:
+マヤ:
   ねえ、今うちの決済処理システムのアーキテクチャ図を見てるんだけど、正直この箱と矢印の半分が何を意味してるのか全然わからないんだよね、笑。こういうのって実際どう読めばいいの？
 
-AI ASSISTANT:
+AIアシスタント:
   アーキテクチャ図は最初はたしかに象形文字みたいに見えるよ。読むための実践的な見方はこんな感じ。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   なるほど。じゃあ「event bus」ってラベルの箱があって、そこから6本くらい矢印が出てるんだけど、あれって何をしてるの？
 
-AI ASSISTANT:
+AIアシスタント:
   **event bus** は、システムのいろんな部分が直接つながっていなくても会話できるようにするメッセージの高速道路みたいなものだよ。通知センターみたいに考えるとわかりやすい。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   なるほど！ じゃあ、APIサーバーの前にあるこの「load balancer」って何？
 
-AI ASSISTANT:
+AIアシスタント:
   **load balancer** は、入ってくるリクエストを複数のサーバーに振り分けて、1台だけに負荷が集中しないようにする交通整理役みたいなものだよ。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   わかった。あと、APIとデータベースの間に「cache」って書かれた円柱もあるんだけど、なんで直接DBを叩かないの？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。**キャッシュ**は速度を上げて、データベースへの負荷を減らすためのものだよ。特にトラフィックが多いときは、DBはキャッシュよりかなり遅い。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   なるほど、すごくわかりやすい。もうひとつ。いくつかのサービスの周りに点線の枠があって、「vpc」って書かれてるんだけど、あれは何？
 
-AI ASSISTANT:
+AIアシスタント:
   **VPC = Virtual Private Cloud**。要するに、セキュリティ境界で囲まれた、自分専用の独立したクラウド基盤の区画だよ。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   かなりわかってきた。こういう図を見るときに、気をつけるべき赤信号ってある？
 
-AI ASSISTANT:
+AIアシスタント:
   あるよ。注意すべき**アーキテクチャ上の赤信号**はこんな感じ。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   不正検知と監査のサービスが分かれてるのはいいね。でも、API → payment processor → db でキューが入ってないように見える。これってまずい？
 
-AI ASSISTANT:
+AIアシスタント:
   **うん、それは状況によっては問題になりうる。** 具体的にはこういう理由。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   ピーク時はだいたい1分あたり500〜1000件の決済がある。なら絶対キューが必要だね、笑
 
-AI ASSISTANT:
+AIアシスタント:
   **そう、500〜1000件/分は完全にキュー案件。** その量だと、同期直結のやり方はすぐに問題を起こすよ。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   完璧。話を変えるけど、このアーキテクチャに加えたい変更って、実際どう文書化すればいい？ チーム向けにさ
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。**アーキテクチャ変更を提案する**ときに合意を取りやすい書き方はこんな感じ。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ADRの形式いいね、すごくわかりやすい。最後に、こういう図を実際に描くのにおすすめのツールはある？
 
-AI ASSISTANT:
+AIアシスタント:
   **用途別のおすすめツールはこんな感じ。**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いや、大丈夫。ラフはExcalidrawでやって、そのあとdiagrams.netで整えるつもり。すごく助かった、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   いい流れだね。スピード重視でExcalidraw、そのあとADR用にdiagrams.netで仕上げるのはまさに適切なやり方だよ。
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   あ、もうひとつ質問。誰かの図を見てて違和感があるとき、失礼にならずにどうフィードバックすればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   **いい質問だね。** 技術的なフィードバックは技術でもある。関係を悪くせずにアーキテクチャを指摘する方法はこんな感じ。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   それはすごくいいアドバイスだね。特に「ここが気になる」という言い方は使えそう。絶対使うよ
 
-AI ASSISTANT:
+AIアシスタント:
   伝わってよかった。「ここが気になる」という言い方は**かなり強力**だよ。守りに入った会話を、協力的な問題解決に変えるのを何度も見てきた。
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ありがたい！ よし、スタンドアップに行かなきゃだけど、まさに欲しかった内容だった
 
-AI ASSISTANT:
+AIアシスタント:
   ちょうどいいね。スタンドアップ、うまくやってきて。
 
 ---

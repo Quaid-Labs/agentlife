@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ねえ、レシピアプリにソーシャル機能を追加するのを手伝ってくれる？ フォロー、コメント、レシピへのいいねみたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！ まずはデータベーススキーマから始めよう。今使っている SQLite データベースに追加する感じでいい？ follows、comments、likes 用のテーブルが必要になる。先にスキーマを起こそうか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   うん、それでいい。派手なのはいらないから、シンプルにして
 
-AI ASSISTANT:
+AIアシスタント:
   データベースに追加する基本スキーマはこんな感じ:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うん、いい感じ。じゃあルートはどうする？ 新しく social.js を作るべき？ それとも既存の routes に足す？
 
-AI ASSISTANT:
+AIアシスタント:
   きれいに分けるなら、新しく `routes/social.js` を作るのがいいと思う。スターターはこんな感じ:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   うん、それ追加して。あと、何か auth チェックの middleware も入れたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   その判断は正しい。auth を前提にした残りのルートはこんな感じ:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   別にまだ入れてないｗ いつも認証なしで試してた。JWT とか追加したほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   それなら JWT が向いてる。シンプルな auth middleware はこんな感じ:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   いいね。これらのルートってどうテストするの？ jest のテストを書けばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、social ルート用のテストセットアップはこんな感じ:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   じゃあテスト回したら、こう出た: "TypeError: Cannot read properties of undefined (reading 'id')"
 
-AI ASSISTANT:
+AIアシスタント:
   たぶん `req.user` が undefined なんだろう。JWT middleware が実行されてないのかも。ルートに middleware を追加した？ こんな感じになってるはず:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   それで直ったけど、今度は "SQLITE_CONSTRAINT: UNIQUE constraint failed: follows.follower_id, follows.following_id" が出る
 
-AI ASSISTANT:
+AIアシスタント:
   それは同じユーザーを二回フォローしようとしてるからだね。テストが複数回走っているか、クリーンアップしてないのかもしれない。これを追加して、テスト間でリセットしよう:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいね、それで動いた。じゃあ、ある人が誰をフォローしてるかの一覧を取るには？ GET ルートが必要だよね
 
-AI ASSISTANT:
+AIアシスタント:
   フォロー中の一覧を取得するルートはこんな感じ:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いや、公開でいいよ。じゃあレシピのコメントといいねはどう取る？
 
-AI ASSISTANT:
+AIアシスタント:
   コメントといいねを取得するルートはこんな感じ:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。これらの外部キーにインデックス追加したほうがいい？ データが増えたら遅くなりそう
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん、いい考えだ。これらのインデックスを追加しよう:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   追加した。よし最後に、フォローしてる人のレシピを表示するにはどうする？ フィードみたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   フォロー中ユーザーのレシピを表示するフィードルートはこんな感じ:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   うん、自分のレシピもフィードに含めたほうがよさそう
 
-AI ASSISTANT:
+AIアシスタント:
   フィードに自分のレシピも含めるように更新した:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   完璧。ちょっと試してくる
 
-AI ASSISTANT:
+AIアシスタント:
   了解。問題があったら教えて。試している間に、こんなテストケースも追加できるよ:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
-  テスト通った！ かなりいい感じだね。今のところは大丈夫。ありがと D
+マヤ:
+  テスト通った！ かなりいい感じだね。今のところは大丈夫。ありがと ディー
 
-AI ASSISTANT:
+AIアシスタント:
   いい進み具合だね！ これでフォロー、コメント、いいね、フィードのソーシャル層はできた。次に広げるなら、新しいコメントやいいねの通知を追加したり、レシピの共有を可能にするのもいいよ。残りのアプリも楽しんで！
 
 ---

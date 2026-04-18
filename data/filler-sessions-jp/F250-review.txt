@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   Google Sheets から CSV を書き出すにはどうすればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   ファイル → ダウンロード → カンマ区切り値（.csv）です。既定のフォルダにダウンロードされます。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   1つのタブだけ出力できる？ それとも全体をまとめて取るの？
 
-AI ASSISTANT:
+AIアシスタント:
   アクティブなタブだけです。特定のタブを書き出したいなら、そのタブを先にクリックしてから、ファイル → ダウンロード → CSV を選んでください。
 
 ---

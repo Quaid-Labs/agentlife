@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   ねえ、全部の database クエリを別モジュールに分けてくれる？ routes.js がごちゃごちゃしてきてるんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   うん、分けましょう。`db/queries.js` にレシピのクエリを全部切り出します。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   update と delete も入れてね
 
-AI ASSISTANT:
+AIアシスタント:
   追加しました:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   いいね。queries モジュールのテストも書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。テストスイートはこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   実行したらこのエラーが出るんだけど:
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、テストでは DB を mock する必要があります。テストセットアップを更新してください:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   完璧、全部 pass した。ありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ かなり読みやすくなりました。database ロジックは切り離されて、テストもしやすくなったし、routes は HTTP だけを扱うようになりました。他に query method を追加したくなったら言ってください。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いや、今はこれで大丈夫。ちょっと休憩してランニングしてくる lol
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね、楽しんでください！ リファクタは solid です。全部 test 済みで、準備万端です。
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   ねえ、クッキーでバターの代わりに何を使える？ ちょうど切らしちゃって笑
 
-AI ASSISTANT:
+AIアシスタント:
   ココナッツオイル（同量）、植物油（量の3/4）、または低脂肪ならアップルソースが使えるよ。食感はココナッツオイルが一番近い！
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   完璧、ありがとう。ココナッツオイルで試してみる
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ 混ぜる前に、溶かして少し冷ましておくといいよ。クッキー、きっとうまくいくはず。
 
 ---

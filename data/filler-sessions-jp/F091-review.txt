@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   ねえ、kubernetes をエンジニアじゃなくて PM 向けにわかりやすく説明してほしいんだ。バックエンドチームがいつも話してるけど、正直何もわからなくて lol
 
-AI ASSISTANT:
+AIアシスタント:
   Kubernetes は、Docker コンテナを管理する賢いマネージャーみたいなものです。Docker がアプリをパッケージ化するのは知ってるよね。Kubernetes は、どのサーバーで動かすかを自動で決めて、落ちたものを再起動して、アクセス集中もさばいてくれます。オートスケール、ロードバランシング、ヘルス監視が一つになったシステムだと思えばいいです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   なるほど。じゃあ、普通のサーバーにロードバランサーを付けるだけじゃだめなの？ 何が実際のメリットなの？
 
-AI ASSISTANT:
+AIアシスタント:
   普通のサーバーだと手作業が必要です。誰かが SSH で入ってデプロイして、ロードバランサーを設定して、ヘルスを監視しないといけません。Kubernetes はそれを全部自動化します。チームは「このアプリを 5 個コピーで動かして」と設定ファイルに書くだけで、あとは K8s が処理します。しかもクラウド非依存なので、AWS でも Google Cloud でも自前サーバーでも同じ構成で動かせます。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   わかった。じゃあ、使うなら PM として何を気にすべき？ どんな質問をしたらいい？
 
-AI ASSISTANT:
+AIアシスタント:
   こういう点を聞くといいです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   すごく助かる。明日のスプリント計画ミーティング用に質問をいくつか作ってくれる？ 新しい検索機能のデプロイについて話すんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **Sprint Planning Questions - Search Feature Deployment**
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。あと一つ、みんなが「namespace」って言ってたけど、うなずいたものの意味が全然わかってないんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   Namespace は、Kubernetes の中で物事を整理するためのフォルダみたいなものです。たとえば、こんな感じです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、それはわかった。ステージングの namespace が本番に影響するリスクってある？ リソース的にさ
 
-AI ASSISTANT:
+AIアシスタント:
   はい、同じクラスタ上にあるならありえます。ステージングが CPU やメモリを食い尽くして、本番を枯らす理屈上の可能性があります。いいチームは resource quotas でこれを防ぎます。namespace ごとにハード上限を設けるんです。たとえば「staging はクラスタ資源の最大 20% まで」といった具合です。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   それ、うちにも絶対必要そう。質問リストに入れておくわ
 
-AI ASSISTANT:
+AIアシスタント:
   いい判断です。こう聞けばいいですよ: 「ステージングのテストが誤って顧客体験に影響しないようにしたいのですが、resource quotas は設定されていますか？」
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   正直この会話、めちゃくちゃ助かった。明日の会議に行くのがだいぶ怖くなくなった lol
 
-AI ASSISTANT:
+AIアシスタント:
   大丈夫です。こういう質問をしている時点で、かなり上位の PM です。Kubernetes は本当に複雑なので、設定方法まで知る必要はありません。大事なのは、トレードオフとリスクを理解することです。今やっているのはまさにそれです。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
-  助かった。今夜この質問を見直すよ。ありがとう、D... って David だっけ lol。ありがとう、アシスタント
+マヤ:
+  助かった。今夜この質問を見直すよ。ありがとう、ディー... って デイビッド だっけ lol。ありがとう、アシスタント
 
-AI ASSISTANT:
+AIアシスタント:
   はは、気にしないで！ 明日の成功を祈ってるよ。会議の場にいる人の半分よりは、かなり知ってる感じで話せるはず。またわからないことが出てきたら言ってください。
 
 ---

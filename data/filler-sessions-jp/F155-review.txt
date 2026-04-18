@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   ねえ、食材の代替候補を提案する機能を追加するの手伝ってくれる？ たとえば、バターミルクがない人にヨーグルトとかを提案する感じ
 
-AI ASSISTANT:
+AIアシスタント:
   うん、手伝えるよ。シンプルな固定マッピング（butter → oil, buttermilk → yogurt）を想定してる？ それとももっと凝ったもの？ どこに表示したい？ レシピ詳細ページ？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   今は固定でいいかな笑。うん、レシピ詳細ページで、各材料の横にクリックできる小さなアイコンを付ける感じ？
 
-AI ASSISTANT:
+AIアシスタント:
   いいね。代替候補テーブルとエンドポイントを追加しよう。スキーマはこんな感じ：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   お願い！ butter, eggs, buttermilk みたいな定番を入れて
 
-AI ASSISTANT:
+AIアシスタント:
   シードデータはこれ：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、今流してる... よし完了。じゃあ API でどうやってこれを表示させるの？
 
-AI ASSISTANT:
+AIアシスタント:
   レシピ用 router にこのルートを追加して：
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うーん、空配列が返ってくる。材料は `2 cups buttermilk` みたいなのに、テーブルは `buttermilk` だけなんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、じゃあ曖昧一致が必要だね。こうしてみて：
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   完璧、動いた！ じゃあこれをフロントエンドでどう見せる？ React を使ってるんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   代替候補を取得して popover で表示する state を追加しよう：
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   いいね、アイコンは何を使えばいいかな笑
 
-AI ASSISTANT:
+AIアシスタント:
   swap/exchange 系のアイコンがいいかな - `⇄` か `🔄` みたいなやつ。アイコンライブラリを使ってるなら、`ArrowsRightLeftIcon` (heroicons) か `SwapHoriz` (material) を試してみて。材料リストがごちゃつかないよう、控えめにするといいよ。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   heroicons を使ってる。これなんだけど、クリックしても popover が出ない
 
-AI ASSISTANT:
+AIアシスタント:
   どの材料の popover を開いているか追跡する state が必要だね：
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね、動いたけど popover がコンテナの端で切れてる
 
-AI ASSISTANT:
+AIアシスタント:
   popover に `z-10` を付けて、親要素が `overflow-visible` になってるか確認して：
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   完璧！ もう一つ - ユーザーが自分で代替案を送信できるようにできる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。POST エンドポイントを追加しよう：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、でも正直スパムや変なデータが心配なんだ。モデレーションを入れるべき？
 
-AI ASSISTANT:
+AIアシスタント:
   いい判断だね。`status` カラムを追加しよう：
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   賢い。最後にひとつだけ - これのテストってどう書くの？
 
-AI ASSISTANT:
+AIアシスタント:
   基本的な Jest テストはこんな感じ：
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   了解、ありがとう！ いくつかテストを書いてからデプロイするね
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ `ingredient_substitutions.ingredient` に index を追加するのを忘れないでね。`LIKE` クエリをしてるから、速くなるよ。
 
 ---

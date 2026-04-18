@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   ねえ、新しい payment service の監視とアラート戦略ドキュメントを書きたいんだけど、正直どこから始めればいいのか全然わからない、笑
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん手伝えるよ。まずは基本から始めよう。その payment service は何をするもの？ 本番で何が起きると一番まずいと考えてる？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   checkout flow、refund、Stripe からの webhook events を処理してる。いちばん怖いのは…… payments が黙って失敗して、顧客がそれに気づかないことだね
 
-AI ASSISTANT:
+AIアシスタント:
   それは重大な懸念だね。そこを軸にドキュメントを組もう。次の項目をカバーするべきだよ:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   うん、そうだね。metrics では成功率と latency は絶対必要……他には？ individual な Stripe API calls まで追うべき？ それとも全体フローだけでいい？
 
-AI ASSISTANT:
+AIアシスタント:
   両方追うべきだね。入れるならこんな感じかな:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   完璧。じゃあ alert threshold は…… 2am に誰かを起こすべきタイミングと、営業時間中に Slack で十分なタイミングはどう分ける？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問。こんなフレームワークを使うといいよ:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   PagerDuty はあるけど、ローテーションが今かなりゆるいんだよね。そこも締めたほうがいいかも
 
-AI ASSISTANT:
+AIアシスタント:
   うん、絶対にこの strategy doc に escalation chain を書いたほうがいい。たとえばこんな感じ:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   それ、ぜひお願いしたい
 
-AI ASSISTANT:
+AIアシスタント:
   ではドラフトだよ:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   すごくいいけど、alert のテストについても入れるべきかな？ 去年の四半期に、alert の設定ミスがあって誰も気づかなかったことがあったんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。追加セクションを入れよう:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね。ひとつだけ - SLO についてはどこかで触れるべき？ それとも別扱い？
 
-AI ASSISTANT:
+AIアシスタント:
   いい着眼点だね。SLO は alert threshold に直接つながる。ここを追加しよう:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   うん、それでいい。これでかなり固まったと思う。マネージャーに送るよ。ありがとう、これがなかったら 3 時間はかかってたと思う
 
-AI ASSISTANT:
+AIアシスタント:
   助けになってよかった。ひとつだけ tip を言うと、送るときは冒頭に 1 段落の executive summary を足すといいよ。たとえばこんな感じ:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   なるほど、いいね。あと待って - revenue per minute のやつ、具体的なしきい値は必要？ それとも `$0 for 10 min` で十分？
 
-AI ASSISTANT:
+AIアシスタント:
   `$0` のしきい値なら完全停止は拾えるけど、`revenue drop` のアラートも欲しいかもしれないね:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ピーク時は 1 時間に 200 件くらい transaction を処理してるから、うん、それは入れる価値あるね。追加しておく
 
-AI ASSISTANT:
+AIアシスタント:
   完璧。1 時間 200 件なら、その 50% drop threshold はちょうどいいと思う。通常のばらつきでは鳴りにくく、問題はちゃんと拾えるはず。
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   いや、たぶんこれで全部。ほんとにありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。最後にひとつだけ - この doc はチームが実際に見つけられる場所に置いてね。チーム wiki からリンクして、Slack チャンネルにピン留めして、dashboard URLs を PagerDuty runbooks に追加するといいよ。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   はは、そうだね。うちの docs はめちゃくちゃだから。そうするよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ それと、これを実装したら 2 週間以内に最初の alert drill をやってみて。実際の incident で監視が壊れてるとわかるほど最悪なことはないから。大丈夫、いけるよ！
 
 ================================================================================

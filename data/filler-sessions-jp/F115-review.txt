@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   来月のチーム offsite のアジェンダを作るのを手伝ってくれる？ こういうのを計画するの、初めてなんだよね lol
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。offsite のアジェンダ作りを手伝います。最初にいくつか確認したいです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   8 人で、丸 1 日。Q2 の roadmap planning をしたいのがメインだけど、ちゃんと楽しい時間にもしたい。あんまり私のこと嫌いになってほしくないし lol
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。戦略的な作業とチームビルディングのミックスですね。こんな構成がいいでしょう:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   いいね！ roadmap planning の部分をもっと具体的にしたい。私が一方的に話すだけにならないように、どういう構成にすればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。より参加型の roadmap session はこんな構成にできます:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   ううん、付箋でやればいいかな。initiative の deep dive はその後でどうする？ Q2 に向けて 4 つくらい主要な案があるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   4 つの initiative と 8 人なら、その形式はぴったりです。deep dive では、各ペアにこの 1-pager template を渡すのがおすすめです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   いいね。payment flexibility stuff、better analytics dashboard、外部ツールとの integration、onboarding flow の改善。正直、どれが通るかはまだわからない
 
-AI ASSISTANT:
+AIアシスタント:
   どれも良さそうです。deep-dive session では、各 initiative にこの 1-pager template を使わせるといいでしょう:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   うん、それ助かる。各 initiative の詳しい話もできる。payment flexibility は、要するに customers が一括じゃなくて分割で払えるようにすることなんだ
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。続けて、analytics dashboard、integrations、onboarding improvements についても教えてください。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~39
 
-MAYA:
+マヤ:
   analytics は customers に利用状況と spend パターンを見せるやつ。integrations は Salesforce と HubSpot みたいなものにつなぐ。onboarding は time to first value を減らしたい。今は新規顧客が benefit を実感するまで時間がかかりすぎる
 
-AI ASSISTANT:
+AIアシスタント:
   完璧です。チーム向けの initiative description はこうなります:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   平均で 2〜3 週間かかってて、正直ちょっと恥ずかしい lol。理想は 1 週間未満にしたい
 
-AI ASSISTANT:
+AIアシスタント:
   いい目標ですね。説明を更新します:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   正直、Austin だし天気も良さそうだから、みんなで hike に行くとかでいいかなとも思ってた。activity を予約するより安いし
 
-AI ASSISTANT:
+AIアシスタント:
   それはいい選択です。安上がりだし、自然に会話が生まれるし、歩くペースを各自で調整できるので体力差にも対応しやすいです。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   そうだね、Barton Creek かな。これまでの内容を全部入れた full agenda doc を作ってくれる？ 明日までに team に送りたい
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。こちらが complete offsite agenda です:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   これで完璧、ありがとう！ もう一つだけ。initiative を事前に割り振るべき？ それとも当日好きに選ばせる？
 
-AI ASSISTANT:
+AIアシスタント:
   当日に選ばせる方がいいです。理由はこうです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   うん、その方がいいね。よし、これで大丈夫そう。手伝ってくれてありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ offsite、うまくいくといいですね。生産的で楽しいものになりそうです。近づいてきたら、また必要なことがあれば手伝います。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
+マヤ:
   ちょっと待って、もう一つ。retro の部分は私が進行するべき？ それとも誰か別の人に頼んだ方がいい？ マネージャーだからちょっと変になりそうで
 
-AI ASSISTANT:
+AIアシスタント:
   いい感覚です。retro は他の人に進行してもらうのがいいです。マネージャーが話を仕切ると、改善点について本音が出にくくなることがあります。
 
 ---
@@ -169,21 +169,21 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
-  たぶん D かな。話をまとめるのうまいし、みんなも彼のこと好きだから。頼んでみる
+マヤ:
+  たぶん ディー かな。話をまとめるのうまいし、みんなも彼のこと好きだから。頼んでみる
 
-AI ASSISTANT:
-  David はいい選択です。1〜2 週間前に声をかけておけば準備できます。簡単な retro フォーマットを渡してもいいし、自由にやってもらってもいいです。
+AIアシスタント:
+  デイビッド はいい選択です。1〜2 週間前に声をかけておけば準備できます。簡単な retro フォーマットを渡してもいいし、自由にやってもらってもいいです。
 
 ---
 
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   完璧、また助けてくれてありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   いつでも！ いい offsite にしてください 🙂
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   ねえ、インフラを k8s に移行するためのコスト分析ドキュメントを作るのを手伝ってくれる？ 来週エンジニアリードに説明する必要があるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。まずは現在の構成から見ていこう。今は何を使ってる？ EC2 インスタンス、コンテナサービス、それとも別のもの？ それと、サービスやアプリはだいたい何個ある？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   いまは EC2 で、ステージングと本番合わせて 12 台くらい。API サービス、ワーカー、Redis キャッシュが混在してる。月額はたぶん 2800 ドルくらい
 
-AI ASSISTANT:
+AIアシスタント:
   了解。コスト分析では、次を比較するべきだね:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   まず構成があると助かる。そこから埋めていきたい
 
-AI ASSISTANT:
+AIアシスタント:
   こんな構成でどうかな:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいね、それで十分。セクション 2 から埋め始めてもらえる？ 必要なら正確なインスタンスタイプは渡せるよ
 
-AI ASSISTANT:
+AIアシスタント:
   プレースホルダー付きでセクション 2 を下書きするね。詳細はあとで埋められるようにしておく:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   本番は API が 3 台の t3.large、ワーカーが 2 台の t3.medium、Redis が 1 台の t3.small。ステージングは全部 t3.small で、合計 6 台くらい
 
-AI ASSISTANT:
+AIアシスタント:
   完璧。セクション 2 を更新するね:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   あ、ALB の料金と EBS ボリュームも忘れてた。ALB が 2 つあって、EBS は全体でたぶん 500GB くらいある
 
-AI ASSISTANT:
+AIアシスタント:
   そのほうがずっと整合的だね。更新した:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   あー、RDS の Postgres と ElastiCache の Redis もあるんだ。あれで月 400 ドルと 300 ドルくらい。これも入れるべき？ それとも計算から外す？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。RDS と ElastiCache は移行分析からは**除外**したほうがいい。K8s にしてもそれらは基本そのまま使うから。マネージド DB は K8s の置き換え対象じゃない。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   なるほど、そっちのほうが自然だね。じゃあ EKS はざっくりいくらになる？
 
-AI ASSISTANT:
+AIアシスタント:
   EKS の内訳はこんな感じ:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   でもなんで k8s にすると、必要なインスタンスが少なくて小さくなるの？ 節約の仕組みを知りたい
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。節約のポイントは**bin packing** だよ。K8s なら、専用インスタンスを分ける代わりに、複数のサービスを同じノードで動かせる。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   あー、そういうことか。そこが要点なんだね。よし、セクション 4 にいこう
 
-AI ASSISTANT:
+AIアシスタント:
   **Section 4: Cost Comparison**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   うん、節約は主目的じゃないんだよね。むしろスケーラビリティと、インスタンス管理を減らせることのほうが大きい。非コスト面の利点も箇条書きで足してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   セクション 4 に追加した:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   まずリスクを入れよう。みんなそこを一番突っ込んでくるからね lol
 
-AI ASSISTANT:
+AIアシスタント:
   **Section 6: Risks & Mitigation**
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   うん、完璧。ちゃんと検討してる感じが出るね。最後に、推奨セクションはどう書けばいい？ 進めるべきか、それとも待つべきか、どっちを勧めればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   チームの余力と優先順位次第だね。バランスの取れた提案はこんな感じ:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、最高。文書全体をまとめてくれる？ それをレビューしたい
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。完成版のドキュメントはこちら:
 
 ---

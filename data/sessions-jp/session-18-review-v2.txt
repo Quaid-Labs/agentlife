@@ -7,9 +7,9 @@ SECTION 1: セッションブリーフ
 ================================================================================
 
 Session: 18 (Track 2: Project A — レシピ-app, Phase 3 final)
-Goal: Add authentication. David wants to use the app — needs user accounts
-  and dietary profiles. Cross-reference: David is vegetarian (session 1).
-  David suggests FoodData Central API (conflicts with Edamam from session 12).
+Goal: Add authentication. デイビッド wants to use the app — needs user accounts
+  and dietary profiles. Cross-reference: デイビッド is vegetarian (session 1).
+  デイビッド suggests FoodData Central API (conflicts with Edamam from session 12).
   YouTube script idea briefly mentioned. Mom's A1C update planted.
 Turn Count: 18 (long session — auth is complex, multiple files to show in
   full, plus cross-refs and tangents)
@@ -20,18 +20,18 @@ CORE LEARNING OBJECTIVES:
   - config/auth.js created: JWT configuration, PBKDF2 password hashing
     settings, session limits
   - src/middleware/auth.js created: requireAuth middleware, requireRole
-    placeholder, JWT verification with Bearer t了解ens
+    placeholder, JWT verification with Bearer tokens
   - server.js updated: hashPassword, verifyPassword, register/login/me
-    routes using config/auth.js settings and jsonwebt了解en library
+    routes using config/auth.js settings and jsonwebtoken library
   - database.js updated: users table with dietary_preferences, owner_id
     foreign key on レシピs
   - tests/auth.test.js created: comprehensive 291-line test suite covering
-    registration, password hashing, レシピ ownership, t了解en generation
+    registration, password hashing, レシピ ownership, token generation
   - INTENTIONAL BUG: No ownership authorization — any logged-in user can
     edit/delete any レシピ (authentication without authorization)
-  - David suggests FoodData Central API (USDA, free) — conflicts with
+  - デイビッド suggests FoodData Central API (USDA, free) — conflicts with
     Edamam from session 12 (agent-retrieved knowledge)
-  - David is vegetarian → user dietary profiles feature
+  - デイビッド is vegetarian → user dietary profiles feature
   - YouTube script idea briefly floated
   - Mom's A1C 7.1 — planted casually in a tangent
 
@@ -44,12 +44,12 @@ CRITICAL CONSTRAINT — 開示しないこと:
   - Resolution to moving disagreement (session 17 established it)
 
 CROSS-REFERENCES:
-  - Session 1: David is vegetarian — motivation for dietary profiles
-  - Session 12: Agent found Edamam API — David now suggests FoodData
+  - Session 1: デイビッド is vegetarian — motivation for dietary profiles
+  - Session 12: Agent found Edamam API — デイビッド now suggests FoodData
     Central as an alternative. Tests: who suggested what?
-  - Session 16: Auth queued ("D wants to use it too"), GraphQL schema
+  - Session 16: Auth queued ("ディー wants to use it too"), GraphQL schema
   - Session 4: Mom's diabetes — A1C update (8.2 → 7.1)
-  - Session 17: David and Maya's relationship context
+  - Session 17: デイビッド and マヤの relationship context
 
 GIT STATE:
   Before: commit 7cc628c (session 16 — バグ bash, rate limiter, sharing
@@ -63,7 +63,7 @@ GIT STATE:
   Package version bumped to 0.6.0
 
 MESSAGE PLAN (18 turns total):
-  1. Normal     — Opens: "D wants to 実は use it. needs accounts"
+  1. Normal     — Opens: "ディー wants to 実は use it. needs accounts"
   2. Quick      — React to agent's plan
   3. Normal     — User profiles with dietary preferences
   4. Code       — Agent shows config/auth.js (full 33 lines)
@@ -71,14 +71,14 @@ MESSAGE PLAN (18 turns total):
   6. Code       — Agent shows src/middleware/auth.js (full 70 lines)
   7. Quick      — Feedback on middleware
   8. Code       — Agent shows database.js changes (users table + owner_id)
-  9. Normal     — David vegetarian profile setup
+  9. Normal     — デイビッド vegetarian profile setup
   10. Quick     — React
   11. Normal    — FoodData vs Edamam discussion
   12. Quick     — Settle the API question
   13. Normal    — YouTube tangent + mom A1C update
   14. Code      — Agent shows server.js auth routes (full 102 new lines)
   15. Code      — Agent shows tests/auth.test.js (full 291 lines)
-  16. Quick     — Maya notices the authz バグ
+  16. Quick     — マヤ notices the authz バグ
   17. Code      — Agent shows package.json + .env.example updates
   18. Quick     — Exit
 
@@ -100,20 +100,20 @@ SESSION METADATA:
 TURN 1 (Auth Motivation)
 TAG: normal | TOKENS: 42/50 | GENERATION TIME: 7.3s
 
-MAYA:
-  やあ so D 実は wants to use the レシピ app now. he saw the sharing
+マヤ:
+  やあ so ディー 実は wants to use the レシピ app now. he saw the sharing
   thing and was みたいに "can i add my own レシピs?"
 
   so we need accounts. login, registration, the whole thing. nothing
   insane — ただ basic auth so we can tell who's who
 
-AI ASSISTANT:
-  Nice — David wanting to use it is a いい sign! If he's adding his
+AIアシスタント:
+  Nice — デイビッド wanting to use it is a いい sign! If he's adding his
   own レシピs, we definitely need user accounts.
 
   I'll set up:
   - Registration + login with password hashing
-  - JWT t了解ens for session management
+  - JWT tokens for session management
   - An auth middleware for protected routes
   - User profiles (so each person can set their preferences)
 
@@ -121,7 +121,7 @@ AI ASSISTANT:
   module for the JWT verification, and wire the routes into server.js.
   Want me to add it to both the REST and GraphQL endpoints?
 
-ANALYSIS: David's interest motivates auth. Maya wants "basic auth" —
+ANALYSIS: デイビッドの interest motivates auth. マヤ wants "basic auth" —
 personality trait: scope control. Agent proposes a clean plan with
 separated concerns (config, middleware, routes). The "saw the sharing
 thing" connects back to session 16.
@@ -131,18 +131,18 @@ thing" connects back to session 16.
 TURN 2 (React)
 TAG: quick | TOKENS: 14/50 | GENERATION TIME: 5.0s
 
-MAYA:
+マヤ:
   うん both. and keep it simple — no oauth, no third party stuff.
   ただ username and password
 
-  D would complicate this. i know him
+  ディー would complicate this. i know him
 
-AI ASSISTANT:
-  Ha, keeping it out of David's engineering hands. Got it — simple
+AIアシスタント:
+  Ha, keeping it out of デイビッドの engineering hands. Got it — simple
   username/password auth, no overengineering. Let me start with the
   config file.
 
-ANALYSIS: Maya preemptively scopes down. Humor about David as an
+ANALYSIS: マヤ preemptively scopes down. Humor about デイビッド as an
 engineer who'd overcomplicate things. Quick exchange.
 
 ---
@@ -150,30 +150,30 @@ engineer who'd overcomplicate things. Quick exchange.
 TURN 3 (Dietary Profiles)
 TAG: normal | TOKENS: 46/50 | GENERATION TIME: 6.7s
 
-MAYA:
-  oh and user profiles need a dietary preferences field. みたいに D can
+マヤ:
+  oh and user profiles need a dietary preferences field. みたいに ディー can
   set his as vegetarian so the app knows. and then when he browses
   レシピs it could filter by his preferences automatically
 
   that way he doesn't have to manually filter every time. the app
   ただ knows what he eats
 
-AI ASSISTANT:
-  Smart — dietary preferences stored per user. When David logs in, the
+AIアシスタント:
+  Smart — dietary preferences stored per user. When デイビッド logs in, the
   app already knows he's vegetarian and can prioritize or filter レシピs
   accordingly.
 
   I'll add a `dietary_preferences` column to the users table — stored
-  as a JSON array so people can have multiple restrictions. David would
+  as a JSON array so people can have multiple restrictions. デイビッド would
   be `["vegetarian"]`, and if your mom ever uses it, she'd be
   `["diabetic-friendly", "low-sugar"]`.
 
   Should profile updates be a mutation too? So users can change their
   preferences?
 
-ANALYSIS: CROSS-REFERENCE — David is vegetarian (session 1). Maya
-says "D can set his as vegetarian" without re-explaining. The agent
-should recall David's vegetarianism. Agent correctly extends to Linda
+ANALYSIS: CROSS-REFERENCE — デイビッド is vegetarian (session 1). マヤ
+says "ディー can set his as vegetarian" without re-explaining. The agent
+should recall デイビッドの vegetarianism. Agent correctly extends to リンダ
 as a potential user — connecting to the diabetes arc (session 4).
 
 ---
@@ -181,7 +181,7 @@ as a potential user — connecting to the diabetes arc (session 4).
 TURN 4 (Agent Shows config/auth.js — Full File)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 12.1s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's `config/auth.js` — all the auth settings in one place:
 
   ```javascript
@@ -198,7 +198,7 @@ AI ASSISTANT:
    */
 
   module.exports = {
-    // ---- JSON Web T了解en ----
+    // ---- JSON Web Token ----
     jwt: {
       secret: process.env.JWT_SECRET || 'レシピ-app-dev-secret-change-me',
       expiresIn: '24h',
@@ -235,16 +235,16 @@ production.
 TURN 5 (Feedback on Config)
 TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.1s
 
-MAYA:
+マヤ:
   nice — keeping the settings separate makes sense. 10000 iterations
   is fine for a レシピ app, it's not a bank lol
 
-  what's the middleware lo了解 みたいに?
+  what's the middleware look みたいに?
 
-AI ASSISTANT:
+AIアシスタント:
   Exactly, proportional security. Here's the auth middleware.
 
-ANALYSIS: Maya's practical security stance — proportional to the app's
+ANALYSIS: マヤの practical security stance — proportional to the app's
 importance. Asks about middleware next. Clean handoff.
 
 ---
@@ -252,7 +252,7 @@ importance. Asks about middleware next. Clean handoff.
 TURN 6 (Agent Shows src/middleware/auth.js — Full File)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 14.8s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's `src/middleware/auth.js` — the JWT verification middleware:
 
   ```javascript
@@ -272,14 +272,14 @@ AI ASSISTANT:
    *   router.delete('/admin/users/:id', requireAuth, requireRole('admin'), adminController.deleteUser);
    */
 
-  const jwt = require('jsonwebt了解en');
+  const jwt = require('jsonwebtoken');
   const authConfig = require('../../config/auth');
 
   /**
    * Verify the JWT from the Authorization header and attach the decoded
    * user payload to req.user.
    *
-   * Expects: Authorization: Bearer <t了解en>
+   * Expects: Authorization: Bearer <token>
    */
   function requireAuth(req, res, next) {
     const header = req.headers.authorization;
@@ -287,19 +287,19 @@ AI ASSISTANT:
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const t了解en = header.slice(7); // strip "Bearer "
+    const token = header.slice(7); // strip "Bearer "
 
     try {
-      const decoded = jwt.verify(t了解en, authConfig.jwt.secret, {
+      const decoded = jwt.verify(token, authConfig.jwt.secret, {
         algorithms: [authConfig.jwt.algorithm],
       });
       req.user = decoded; // { id, email, role, iat, exp }
       next();
     } catch (err) {
-      if (err.name === 'T了解enExpiredError') {
-        return res.status(401).json({ error: 'T了解en expired' });
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Token expired' });
       }
-      return res.status(401).json({ error: 'Invalid t了解en' });
+      return res.status(401).json({ error: 'Invalid token' });
     }
   }
 
@@ -328,15 +328,15 @@ AI ASSISTANT:
   module.exports = { requireAuth, requireRole };
   ```
 
-  70 lines. Uses the real `jsonwebt了解en` library — not hand-rolled
+  70 lines. Uses the real `jsonwebtoken` library — not hand-rolled
   HMAC. `requireAuth` verifies the JWT, attaches the decoded payload
-  to `req.user`, and handles both expired and invalid t了解ens separately.
+  to `req.user`, and handles both expired and invalid tokens separately.
   There's a `requireRole` for future admin routes. And I left a note
   about the missing ownership check — we'll get to that.
 
-ANALYSIS: Full src/middleware/auth.js shown. Uses jsonwebt了解en (real
+ANALYSIS: Full src/middleware/auth.js shown. Uses jsonwebtoken (real
 library, not the hand-rolled HMAC from some tutorials). Separate error
-handling for expired vs invalid t了解ens. The NOTE comment about missing
+handling for expired vs invalid tokens. The NOTE comment about missing
 requireOwnership is the planted authz バグ — documented in the code
 itself.
 
@@ -345,18 +345,18 @@ itself.
 TURN 7 (Feedback on Middleware)
 TAG: quick | TOKENS: 20/50 | GENERATION TIME: 5.3s
 
-MAYA:
+マヤ:
   that's clean. i みたいに the separate expired vs invalid errors — saves
   deバグging time later
 
   what about the database side?
 
-AI ASSISTANT:
-  Thanks! Yeah, knowing whether a t了解en is expired vs tampered is
+AIアシスタント:
+  Thanks! Yeah, knowing whether a token is expired vs tampered is
   important for client-side error handling. Let me show you the
   database changes.
 
-ANALYSIS: Maya appreciates the error handling distinction. Practical
+ANALYSIS: マヤ appreciates the error handling distinction. Practical
 concern — deバグging. Asks about database next.
 
 ---
@@ -364,7 +364,7 @@ concern — deバグging. Asks about database next.
 TURN 8 (Agent Shows Database Changes)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 11.5s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's what changed in `database.js` — the users table and owner_id
   on レシピs:
 
@@ -390,7 +390,7 @@ AI ASSISTANT:
   ```
 
   That's +15 lines to database.js. The `dietary_preferences` column
-  defaults to `'[]'` — empty JSON array. David would register with
+  defaults to `'[]'` — empty JSON array. デイビッド would register with
   `["vegetarian"]`, your mom with `["diabetic-friendly", "low-sodium"]`.
   The `owner_id` foreign key means レシピs are linked to their creator,
   but existing レシピs get NULL (legacy/public).
@@ -402,11 +402,11 @@ NULL semantics for legacy レシピs.
 
 ---
 
-TURN 9 (David Vegetarian Profile)
+TURN 9 (デイビッド Vegetarian Profile)
 TAG: normal | TOKENS: 45/50 | GENERATION TIME: 6.9s
 
-MAYA:
-  perfect. so D would register with dietary_preferences set to
+マヤ:
+  perfect. so ディー would register with dietary_preferences set to
   vegetarian. and then when he queries レシピs it could automatically
   filter?
 
@@ -415,32 +415,32 @@ MAYA:
 
   実は that second one is probably fine for now
 
-AI ASSISTANT:
+AIアシスタント:
   Yeah, for now the profile stores the preferences and the client
   reads them and applies the filter. The `レシピs(diet: ["vegetarian"])`
-  query already works — the client ただ needs to pull David's
+  query already works — the client ただ needs to pull デイビッドの
   preferences and pass them.
 
   Later you could add a `myRecipes` query that auto-filters based on
   the logged-in user's preferences. But keeping it client-driven for
   now is simpler and more flexible.
 
-ANALYSIS: Maya works through the filtering UX. Decides client-driven
+ANALYSIS: マヤ works through the filtering UX. Decides client-driven
 is better than server-driven auto-filtering. Product instinct: keep it
-flexible. David as the concrete use case for vegetarian filtering.
+flexible. デイビッド as the concrete use case for vegetarian filtering.
 
 ---
 
 TURN 10 (React)
 TAG: quick | TOKENS: 12/50 | GENERATION TIME: 4.9s
 
-MAYA:
-  うん client-driven. keeps it flexible. D can turn it off when he
+マヤ:
+  うん client-driven. keeps it flexible. ディー can turn it off when he
   wants to see everything
 
   いい
 
-AI ASSISTANT:
+AIアシスタント:
   Exactly — he might want to browse all レシピs and ただ know which
   ones aren't vegetarian. Preferences as a default, not a wall.
 
@@ -452,16 +452,16 @@ ANALYSIS: Brief confirmation. "Preferences as a default, not a wall"
 TURN 11 (FoodData vs Edamam — API Conflict)
 TAG: normal | TOKENS: 49/50 | GENERATION TIME: 7.5s
 
-MAYA:
-  oh and D mentioned something about FoodData Central — the USDA one.
+マヤ:
+  oh and ディー mentioned something about FoodData Central — the USDA one.
   says it's free. is that better than what you found before?
 
-  he lo了解ed it up last night and was みたいに "why are you using a paid
+  he looked it up last night and was みたいに "why are you using a paid
   API when the government has one for free"
 
-  typical D move
+  typical ディー move
 
-AI ASSISTANT:
+AIアシスタント:
   Ha, classic engineer move — "but there's a free option."
 
   So FoodData Central is the USDA's nutrition database. It IS free and
@@ -472,42 +472,42 @@ AI ASSISTANT:
   allergen info). It's paid for high volume but has a free tier.
 
   Honestly, tやあ complement each other:
-  - **FoodData Central** (David's suggestion): Raw nutrition data per
+  - **FoodData Central** (デイビッドの suggestion): Raw nutrition data per
     ingredient. Great for calorie/macro tracking.
   - **Edamam** (what I found): Dietary label classification for whole
     レシピs. Better for your "safe for mom" filtering use case.
 
   For what you're building, Edamam is still the better fit for dietary
-  labels. But if David wants to add nutrition facts per ingredient,
+  labels. But if デイビッド wants to add nutrition facts per ingredient,
   FoodData is perfect for that.
 
   You could use both.
 
-ANALYSIS: SPEAKER ATTRIBUTION TEST. David suggests FoodData Central.
-Agent found Edamam in session 12. Maya's question forces the agent to
+ANALYSIS: SPEAKER ATTRIBUTION TEST. デイビッド suggests FoodData Central.
+Agent found Edamam in session 12. マヤの question forces the agent to
 distinguish between: (1) agent-retrieved knowledge (Edamam), and
-(2) user-attributed information (David suggesting FoodData). The agent
-correctly attributes both and explains the tradeoffs. "Typical D move"
-= David's personality (engineer, optimization mindset).
+(2) user-attributed information (デイビッド suggesting FoodData). The agent
+correctly attributes both and explains the tradeoffs. "Typical ディー move"
+= デイビッドの personality (engineer, optimization mindset).
 
 ---
 
 TURN 12 (Settle API Question)
 TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.5s
 
-MAYA:
+マヤ:
   using both is overkill right now. keep edamam for the dietary stuff
-  — that's what matters for mom. we can add FoodData later if D wants
+  — that's what matters for mom. we can add FoodData later if ディー wants
   calorie tracking
 
   one thing at a time
 
-AI ASSISTANT:
+AIアシスタント:
   Agreed — Edamam stays for dietary labels, FoodData is a future option
   for nutrition facts. I'll leave the stub as-is pointing to Edamam.
 
-ANALYSIS: Maya makes a clear product decision: Edamam for now, FoodData
-deferred. Her priority is mom's dietary needs over David's calorie
+ANALYSIS: マヤ makes a clear product decision: Edamam for now, FoodData
+deferred. Her priority is mom's dietary needs over デイビッドの calorie
 tracking. "One thing at a time" = consistent personality.
 
 ---
@@ -515,17 +515,17 @@ tracking. "One thing at a time" = consistent personality.
 TURN 13 (YouTube Tangent + Mom A1C Update)
 TAG: normal | TOKENS: 48/50 | GENERATION TIME: 7.2s
 
-MAYA:
+マヤ:
   been thinking about doing a video about building this app. みたいに a dev
   diary thing for youtube. たぶん later
 
   ところで — mom's A1C is down to 7.1 btw. the meal plans are 実は
   working. she texted me a photo of something she made from the レシピs
-  i sent and it lo了解ed 実は いい? i was shocked lol
+  i sent and it looked 実は いい? i was shocked lol
 
   了解 sorry tangent. back to code
 
-AI ASSISTANT:
+AIアシスタント:
   Oh that's awesome! 7.1 from 8.2 is serious progress — she's almost
   at her target of under 7. The meal planning effort is ほんとうに paying
   off.
@@ -542,7 +542,7 @@ ANALYSIS: TWO THINGS HERE:
 2. Mom's A1C update: 8.2 → 7.1. CRITICAL FACT — this is the current
    value at session 18's point in the timeline. It gets to 6.8 by
    session 20. Agent correctly recalls original A1C (8.2) and target
-   (under 7) from session 4. Maya mentions the meal plans working —
+   (under 7) from session 4. マヤ mentions the meal plans working —
    connecting to session 4's meal planning idea.
 
 ---
@@ -550,13 +550,13 @@ ANALYSIS: TWO THINGS HERE:
 TURN 14 (Agent Shows Server Auth Routes — Full Implementation)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 16.2s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's the auth integration in `server.js`. First the new imports
   at the top:
 
   ```javascript
   const crypto = require('crypto');
-  const jwt = require('jsonwebt了解en');
+  const jwt = require('jsonwebtoken');
   const { requireAuth } = require('./src/middleware/auth');
   const authConfig = require('./config/auth');
   ```
@@ -616,13 +616,13 @@ AI ASSISTANT:
     const user = db.prepare('SELECT id, username, email, display_name, dietary_preferences, created_at FROM users WHERE id = ?')
       .get(result.lastInsertRowid);
 
-    const t了解en = jwt.sign(
+    const token = jwt.sign(
       { userId: user.id, username: user.username },
       authConfig.jwt.secret,
       { expiresIn: authConfig.jwt.expiresIn, algorithm: authConfig.jwt.algorithm }
     );
 
-    res.status(201).json({ user, t了解en });
+    res.status(201).json({ user, token });
   });
 
   // Login
@@ -637,14 +637,14 @@ AI ASSISTANT:
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const t了解en = jwt.sign(
+    const token = jwt.sign(
       { userId: user.id, username: user.username },
       authConfig.jwt.secret,
       { expiresIn: authConfig.jwt.expiresIn, algorithm: authConfig.jwt.algorithm }
     );
 
     res.json({
-      t了解en,
+      token,
       user: {
         id: user.id,
         username: user.username,
@@ -664,10 +664,10 @@ AI ASSISTANT:
   });
   ```
 
-  Registration accepts `dietary_preferences` so David can set
+  Registration accepts `dietary_preferences` so デイビッド can set
   `["vegetarian"]` on signup. Login returns a JWT signed with the
   config settings. The `/me` endpoint uses the `requireAuth` middleware
-  from `src/middleware/auth.js` to verify the t了解en first.
+  from `src/middleware/auth.js` to verify the token first.
 
   Note: there's no `PUT /api/auth/profile` yet — profile updates go
   through GraphQL mutations for now.
@@ -684,20 +684,20 @@ No abbreviated code — every route fully expanded.
 TURN 15 (Agent Shows tests/auth.test.js — Full File)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 18.5s
 
-AI ASSISTANT:
+AIアシスタント:
   And here's the full test suite — `tests/auth.test.js`:
 
   ```javascript
   /**
    * Authentication Tests — introduced session 18
    *
-   * Tests user registration, login, JWT t了解en generation, password hashing,
+   * Tests user registration, login, JWT token generation, password hashing,
    * and the requireAuth middleware. Uses the in-memory test database from setup.js.
    */
 
   const crypto = require('crypto');
   const {
-    initializeDatabase, resetDatabase, closeDatabase, getDb, createTestUser, getTestT了解en,
+    initializeDatabase, resetDatabase, closeDatabase, getDb, createTestUser, getTestToken,
   } = require('./setup');
 
   let db;
@@ -758,13 +758,13 @@ AI ASSISTANT:
       const passwordHash = hashPassword('securepassword123');
       db.prepare(
         'INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)'
-      ).run('maya', 'maya@example.com', passwordHash, 'Maya Chen');
+      ).run('maya', 'maya@example.com', passwordHash, 'マヤ・チェン');
 
       const user = db.prepare('SELECT * FROM users WHERE username = ?').get('maya');
       expect(user).not.toBeNull();
       expect(user.username).toBe('maya');
       expect(user.email).toBe('maya@example.com');
-      expect(user.display_name).toBe('Maya Chen');
+      expect(user.display_name).toBe('マヤ・チェン');
       // Password should be hashed, not stored in plain text
       expect(user.password_hash).not.toBe('securepassword123');
       expect(user.password_hash).toContain(':'); // hash:salt format
@@ -916,24 +916,24 @@ AI ASSISTANT:
   });
 
   // ---------------------------------------------------------------------------
-  // Test T了解en Generation
+  // Test Token Generation
   // ---------------------------------------------------------------------------
 
-  describe('Test T了解en Generation', () => {
-    it('should generate a valid JWT-みたいに t了解en', () => {
-      const t了解en = getTestT了解en(1, 'maya');
+  describe('Test Token Generation', () => {
+    it('should generate a valid JWT-みたいに token', () => {
+      const token = getTestToken(1, 'maya');
 
-      expect(t了解en).toBeDefined();
-      expect(typeof t了解en).toBe('string');
+      expect(token).toBeDefined();
+      expect(typeof token).toBe('string');
 
       // JWT format: header.payload.signature
-      const parts = t了解en.split('.');
+      const parts = token.split('.');
       expect(parts).toHaveLength(3);
     });
 
     it('should encode the correct user info in the payload', () => {
-      const t了解en = getTestT了解en(42, 'testuser');
-      const [, payloadB64] = t了解en.split('.');
+      const token = getTestToken(42, 'testuser');
+      const [, payloadB64] = token.split('.');
       const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
 
       expect(payload.userId).toBe(42);
@@ -943,11 +943,11 @@ AI ASSISTANT:
       expect(payload.exp).toBeGreaterThan(payload.iat);
     });
 
-    it('should generate different t了解ens for different users', () => {
-      const t了解en1 = getTestT了解en(1, 'maya');
-      const t了解en2 = getTestT了解en(2, 'alex');
+    it('should generate different tokens for different users', () => {
+      const token1 = getTestToken(1, 'maya');
+      const token2 = getTestToken(2, 'alex');
 
-      expect(t了解en1).not.toBe(t了解en2);
+      expect(token1).not.toBe(token2);
     });
   });
 
@@ -983,7 +983,7 @@ AI ASSISTANT:
 
   291 lines. Five test sections: User Registration (6 tests),
   Password Hashing (5 tests), Recipe Ownership (4 tests including the
-  known auth gap バグ), Test T了解en Generation (3 tests), and User
+  known auth gap バグ), Test Token Generation (3 tests), and User
   Queries (3 tests). That's 21 tests total for auth.
 
   The ownership test at line ~200 explicitly documents the バグ — user 2
@@ -993,25 +993,25 @@ AI ASSISTANT:
 ANALYSIS: Full 291-line test suite shown. Tests mirror the app's auth
 logic with local helper functions. The "known auth gap" test is the
 planted バグ — documented in both the test comment and the test name.
-Tests use createTestUser and getTestT了解en from setup.js. Coverage is
+Tests use createTestUser and getTestToken from setup.js. Coverage is
 thorough: registration constraints, password hashing properties,
-ownership semantics, t了解en format, and query helpers.
+ownership semantics, token format, and query helpers.
 
 ---
 
 TURN 16 (Authz Bug Discussion)
 TAG: quick | TOKENS: 32/50 | GENERATION TIME: 5.7s
 
-MAYA:
-  oh wait — so if D logs in he could delete MY レシピs? that's not
+マヤ:
+  oh wait — so if ディー logs in he could delete MY レシピs? that's not
   すばらしい
 
   but it's ただ us two using it right now so... add a TODO and we'll
   fix it. not blocking
 
-  honestly knowing D he'd delete my レシピs ただ to be funny
+  honestly knowing ディー he'd delete my レシピs ただ to be funny
 
-AI ASSISTANT:
+AIアシスタント:
   Ha, relationship-destroying レシピ deletion. The middleware has a
   comment about the missing `requireOwnership` — it's a known gap.
   I'll make もちろん the TODOs are clear: "verify req.user.id matches
@@ -1020,8 +1020,8 @@ AI ASSISTANT:
   Since it's ただ you two for now, it's low risk. But definitely fix
   before sharing with anyone else.
 
-ANALYSIS: Maya catches the authz バグ. Decides it's not blocking — ただ
-her and David using the app. Humor about David's personality. The
+ANALYSIS: マヤ catches the authz バグ. Decides it's not blocking — ただ
+her and デイビッド using the app. Humor about デイビッドの personality. The
 middleware already has the NOTE comment about missing ownership check.
 The バグ persists intentionally in the codebase.
 
@@ -1030,7 +1030,7 @@ The バグ persists intentionally in the codebase.
 TURN 17 (Agent Shows Package + Env Updates)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 8.4s
 
-AI ASSISTANT:
+AIアシスタント:
   Last two files. Updated `package.json`:
 
   ```json
@@ -1050,7 +1050,7 @@ AI ASSISTANT:
       "better-sqlite3": "^9.4.3",
       "express": "^4.18.2",
       "graphql": "^16.8.1",
-      "jsonwebt了解en": "^9.0.2"
+      "jsonwebtoken": "^9.0.2"
     },
     "devDependencies": {
       "jest": "^29.7.0"
@@ -1059,7 +1059,7 @@ AI ASSISTANT:
   ```
 
   Version bumped from 0.5.1 to 0.6.0 — auth is a significant new
-  feature. Added `jsonwebt了解en` as a dependency (^9.0.2).
+  feature. Added `jsonwebtoken` as a dependency (^9.0.2).
 
   And `.env.example` now has the JWT secret uncommented:
 
@@ -1082,7 +1082,7 @@ AI ASSISTANT:
   Total: 7 files changed, 516 insertions, 6 deletions.
 
 ANALYSIS: Package.json shows version bump (0.5.1 → 0.6.0) and new
-jsonwebt了解en dependency. .env.example uncomments JWT_SECRET — was
+jsonwebtoken dependency. .env.example uncomments JWT_SECRET — was
 previously commented out as "added later." All 7 files accounted for:
 config/auth.js (33), src/middleware/auth.js (70), tests/auth.test.js
 (291), database.js (+15), server.js (+102), package.json (+7),
@@ -1094,7 +1094,7 @@ git diff --stat.
 TURN 18 (Exit)
 TAG: quick | TOKENS: 14/50 | GENERATION TIME: 4.6s
 
-MAYA:
+マヤ:
   うん definitely before mom gets an account lol. she'd be confused
   enough without mystery レシピ deletions
 
@@ -1102,14 +1102,14 @@ MAYA:
 
   later!
 
-AI ASSISTANT:
-  Committed! Auth is live — you and David can register, login, and
+AIアシスタント:
+  Committed! Auth is live — you and デイビッド can register, login, and
   save dietary preferences. Version bumped to 0.6.0.
 
   The app is 32 files and growing. Talk later!
 
 ANALYSIS: Quick exit. Mom as a future user motivates the authz fix.
-"This is getting real" — Maya recognizing the app's growth. Agent
+"This is getting real" — マヤ recognizing the app's growth. Agent
 confirms version bump (0.6.0 matches package.json). "32 files" —
 project size at commit 88b409c.
 
@@ -1126,26 +1126,26 @@ CONSTRAINT 1: No Forbidden Facts Leaked
   - No birthday dinner outcome
   - No moving resolution
 
-CONSTRAINT 2: David Vegetarian Cross-Reference
+CONSTRAINT 2: デイビッド Vegetarian Cross-Reference
   STATUS: PASS
   Location: Turn 3, 9
-  Evidence: "D can set his as vegetarian" (Turn 3) and dietary_preferences
-    discussion around David's vegetarianism.
-  Note: Maya does NOT re-explain David being vegetarian. She ただ says
+  Evidence: "ディー can set his as vegetarian" (Turn 3) and dietary_preferences
+    discussion around デイビッドの vegetarianism.
+  Note: マヤ does NOT re-explain デイビッド being vegetarian. She ただ says
     "his" dietary preference is vegetarian. The agent should recall
     this from session 1.
-  Session 1 origin: "david's vegetarian" (Turn 3)
+  Session 1 origin: "デイビッド's vegetarian" (Turn 3)
   Gap: 17 sessions between first mention and this callback.
 
 CONSTRAINT 3: Speaker Attribution (FoodData vs Edamam)
   STATUS: PASS
   Location: Turn 11
   Evidence:
-  - David suggested FoodData Central: "D mentioned something about
+  - デイビッド suggested FoodData Central: "ディー mentioned something about
     FoodData Central"
   - Agent found Edamam: Recalled from session 12 research
   Note: The agent correctly distinguishes WHO suggested WHAT. This is
-    a speaker attribution test — David suggests FoodData, the agent
+    a speaker attribution test — デイビッド suggests FoodData, the agent
     found Edamam. Both are named with correct provenance.
 
 CONSTRAINT 4: Authz Bug Properly Planted
@@ -1154,7 +1154,7 @@ CONSTRAINT 4: Authz Bug Properly Planted
     Turn 15 (test documents the バグ), Turn 16 (discussion)
   Evidence: "NOTE: requireOwnership() is NOT implemented" in
     src/middleware/auth.js. "known auth gap" test in auth.test.js.
-    Agent flags the issue, Maya acknowledges it.
+    Agent flags the issue, マヤ acknowledges it.
   Note: Authentication is present (requireAuth middleware). Authorization
     is missing (no owner check). This distinction is deliberate.
 
@@ -1188,26 +1188,26 @@ CONSTRAINT 7: Code Matches Git History
   All code shown in transcript matches actual committed files exactly.
   Every file shown in full — no abbreviated code blocks.
 
-CONSTRAINT 8: Maya T了解en Limits
+CONSTRAINT 8: マヤ Token Limits
   STATUS: PASS
-  All Maya messages checked:
+  All マヤ messages checked:
   Turn 1: 42, Turn 2: 14, Turn 3: 46, Turn 5: 18, Turn 7: 20,
   Turn 9: 45, Turn 10: 12, Turn 11: 49, Turn 12: 22, Turn 13: 48,
   Turn 16: 32, Turn 18: 14
-  All under the 50-t了解en hard limit.
+  All under the 50-token hard limit.
 
 CONSTRAINT 9: Single Goodbye Cycle
   STATUS: PASS
   Pattern: Turn 18 only. Clean single exit.
 
 OVERALL LEAKAGE ASSESSMENT: CLEAN
-  David's vegetarianism correctly cross-referenced from session 1
+  デイビッドの vegetarianism correctly cross-referenced from session 1
   Speaker attribution tested (FoodData vs Edamam)
   Authz バグ intentionally planted (middleware, tests, discussion)
   A1C timeline consistent
   YouTube idea scoped as brief tangent
   All code matches git history — full files, no abbreviations
-  T了解en limits respected
+  Token limits respected
 
 ================================================================================
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
@@ -1219,39 +1219,39 @@ EVALUATION FRAMEWORK:
     agent-retrieved vs user-attributed knowledge
 
 QUERY 1: "Why were user dietary profiles added to the レシピ app?"
-  Ground Truth: David wanted to use the app and he's vegetarian. Maya
-    wanted the app to know David's dietary preference so it could filter
-    レシピs for him automatically. The feature was motivated by David's
+  Ground Truth: デイビッド wanted to use the app and he's vegetarian. マヤ
+    wanted the app to know デイビッドの dietary preference so it could filter
+    レシピs for him automatically. The feature was motivated by デイビッドの
     specific use case — he's been vegetarian since at least session 1.
   Evidence Sessions: 1, 16, 18
   Supporting Evidence:
-    - Session 1: "david's vegetarian"
-    - Session 16, Turn 14: "D wants to use it too"
-    - Session 18, Turn 3: "D can set his as vegetarian"
+    - Session 1: "デイビッド's vegetarian"
+    - Session 16, Turn 14: "ディー wants to use it too"
+    - Session 18, Turn 3: "ディー can set his as vegetarian"
   Query Type: cross_reference
-  Recall Difficulty: Hard (connects David's vegetarianism from session 1
+  Recall Difficulty: Hard (connects デイビッドの vegetarianism from session 1
     to a project feature in session 18 — 17-session gap. The motivation
     chain is: session 1 fact → session 16 request → session 18 implementation)
 
 QUERY 2: "Who suggested the FoodData Central API?"
-  Ground Truth: David suggested FoodData Central (the USDA nutrition
+  Ground Truth: デイビッド suggested FoodData Central (the USDA nutrition
     database). He said it was free and questioned why tやあ'd use a paid
     API. This conflicts with the Edamam API that the AGENT found in
     session 12.
   Evidence Sessions: 12, 18
   Supporting Evidence:
     - Session 12: Agent found Edamam API during research
-    - Session 18, Turn 11: "D mentioned something about FoodData Central"
+    - Session 18, Turn 11: "ディー mentioned something about FoodData Central"
   Query Type: speaker_attribution
-  Recall Difficulty: Hard (must correctly attribute: David = FoodData,
+  Recall Difficulty: Hard (must correctly attribute: デイビッド = FoodData,
     Agent = Edamam. Tests whether the system tracks WHO provided
     information — user vs user's partner vs agent's own research)
 
 QUERY 3: "What API did the AI agent find for the レシピ app, and what
   alternative was suggested?"
   Ground Truth: The agent found the Edamam API (session 12) for dietary
-    label filtering. David later suggested FoodData Central (USDA, free)
-    as an alternative (session 18). Maya decided to keep Edamam for
+    label filtering. デイビッド later suggested FoodData Central (USDA, free)
+    as an alternative (session 18). マヤ decided to keep Edamam for
     dietary labels and potentially add FoodData later for nutrition facts.
   Evidence Sessions: 12, 18
   Supporting Evidence:
@@ -1262,24 +1262,24 @@ QUERY 3: "What API did the AI agent find for the レシピ app, and what
     output from user-attributed suggestions. Must name both APIs
     with correct provenance.)
 
-QUERY 4: "What dietary constraints would David's レシピ app profile have?"
-  Ground Truth: David is vegetarian. His profile would have
+QUERY 4: "What dietary constraints would デイビッドの レシピ app profile have?"
+  Ground Truth: デイビッド is vegetarian. His profile would have
     dietary_preferences set to ["vegetarian"]. This was established in
-    session 1 when Maya first mentioned David's vegetarianism, and
+    session 1 when マヤ first mentioned デイビッドの vegetarianism, and
     directly motivated the user profile feature in session 18.
   Evidence Sessions: 1, 18
   Supporting Evidence:
-    - Session 1: "david's vegetarian"
-    - Session 18, Turn 3: "D can set his as vegetarian"
+    - Session 1: "デイビッド's vegetarian"
+    - Session 18, Turn 3: "ディー can set his as vegetarian"
   Query Type: inference
   Recall Difficulty: Medium (requires connecting personal fact to
-    project feature — David's vegetarianism → his app profile)
+    project feature — デイビッドの vegetarianism → his app profile)
 
 QUERY 5: "What authentication exists in the レシピ app, and what's
   the security gap?"
   Ground Truth: The app has authentication (user registration, login,
-    JWT t了解ens via jsonwebt了解en library, PBKDF2 password hashing with
-    config-driven settings, Bearer t了解en middleware in
+    JWT tokens via jsonwebtoken library, PBKDF2 password hashing with
+    config-driven settings, Bearer token middleware in
     src/middleware/auth.js) but is missing authorization. Any logged-in
     user can edit or delete any レシピ — there's no ownership check.
     The auth verifies WHO you are but doesn't check if you OWN the
@@ -1292,15 +1292,15 @@ QUERY 5: "What authentication exists in the レシピ app, and what's
     - Turn 6: src/middleware/auth.js with NOTE about missing ownership
     - Turn 14: server.js auth routes
     - Turn 15: tests/auth.test.js documents the バグ
-    - Turn 16: Maya acknowledges it, decides not blocking
+    - Turn 16: マヤ acknowledges it, decides not blocking
   Query Type: project_state
   Recall Difficulty: Medium (specific technical detail, clearly discussed.
     Must distinguish authentication from authorization.)
 
-QUERY 6: "What is Linda's latest A1C reading?"
+QUERY 6: "What is リンダの latest A1C reading?"
   Ground Truth: 7.1 (as of session 18). Originally 8.2 at diagnosis
-    (session 4). Target is under 7. The meal plans Maya and Rachel
-    put together are working — Linda is co了解ing from them regularly.
+    (session 4). Target is under 7. The meal plans マヤ and レイチェル
+    put together are working — リンダ is cooking from them regularly.
   Evidence Sessions: 4, 18
   Supporting Evidence:
     - Session 4, Turn 4: "A1C was みたいに 8.2"
@@ -1309,8 +1309,8 @@ QUERY 6: "What is Linda's latest A1C reading?"
   Recall Difficulty: Medium (specific number, must return 7.1 not 8.2.
     Tests whether system tracks numerical progression.)
 
-QUERY 7: "Has Maya mentioned any content creation plans?"
-  Ground Truth: Yes — Maya briefly mentioned wanting to do a YouTube
+QUERY 7: "Has マヤ mentioned any content creation plans?"
+  Ground Truth: Yes — マヤ briefly mentioned wanting to do a YouTube
     dev diary video about building the レシピ app. She said "たぶん
     later" — it's an idea, not a commitment. The story angle would be
     building an app for her mom because of a health situation.
@@ -1323,10 +1323,10 @@ QUERY 7: "Has Maya mentioned any content creation plans?"
     tangential mentions are captured alongside main session content)
 
 QUERY DISTRIBUTION ANALYSIS:
-  Cross-reference: Query 1 (David vegetarian → dietary profiles)
+  Cross-reference: Query 1 (デイビッド vegetarian → dietary profiles)
   Speaker attribution: Query 2 (who suggested FoodData?)
   Agent-retrieved: Query 3 (Edamam vs FoodData provenance)
-  Inference: Query 4 (David's dietary profile)
+  Inference: Query 4 (デイビッドの dietary profile)
   Project state: Query 5 (auth vs authz バグ)
   Factual recall: Queries 6, 7 (A1C, YouTube idea)
   Complexity: 1 Easy, 3 Medium, 3 Hard
@@ -1388,7 +1388,7 @@ CHANGES FROM V1 REVIEW:
    V2: Bug documented in three places matching the actual commit:
    - src/middleware/auth.js NOTE comment (requireOwnership not implemented)
    - tests/auth.test.js "known auth gap" test (user 2 deletes user 1's レシピ)
-   - Turn 16 discussion (Maya acknowledges, defers fix)
+   - Turn 16 discussion (マヤ acknowledges, defers fix)
 
 8. EVAL QUERY 5 UPDATED
    V1: Referenced "auth.js" and "server.js" + "resolvers.js"
@@ -1398,9 +1398,9 @@ CHANGES FROM V1 REVIEW:
 CHANGES FROM SPEC SESSION SCHEDULE:
 
 1. BRIEF CREATED FROM SCRATCH
-   Spec outline: "Recipe app. Add authentication. 'David wants to use it
-     too.' Cross-ref: David is vegetarian (mentioned once in session 1 or 2).
-     [T2-D] David suggests FoodData — conflicts with prior research."
+   Spec outline: "Recipe app. Add authentication. 'デイビッド wants to use it
+     too.' Cross-ref: デイビッド is vegetarian (mentioned once in session 1 or 2).
+     [T2-D] デイビッド suggests FoodData — conflicts with prior research."
    Full session created with auth implementation, dietary profiles,
    FoodData vs Edamam discussion, YouTube tangent, and A1C update.
 
@@ -1418,16 +1418,16 @@ CHANGES FROM SPEC SESSION SCHEDULE:
    Spec: Not explicitly called out as "intentional バグ"
    Transcript: Bug documented in src/middleware/auth.js (NOTE comment),
    tests/auth.test.js ("known auth gap" test), and discussed in
-   Turn 16. Agent flags the issue, Maya acknowledges it.
+   Turn 16. Agent flags the issue, マヤ acknowledges it.
    Rationale: The distinction between authentication and authorization
    is a specific technical concept the system should capture. The バグ
    is documented in code, tests, and conversation — three evidence
    points for evaluation.
 
 4. FOODDATA VS EDAMAM ATTRIBUTION
-   Spec: "David suggests FoodData — conflicts with prior research"
-   Transcript: Full discussion with clear attribution — David suggests
-   FoodData, agent recalls finding Edamam. Maya makes a product decision
+   Spec: "デイビッド suggests FoodData — conflicts with prior research"
+   Transcript: Full discussion with clear attribution — デイビッド suggests
+   FoodData, agent recalls finding Edamam. マヤ makes a product decision
    (keep Edamam for dietary labels, defer FoodData).
    Rationale: Speaker attribution across sessions is one of the hardest
    memory tasks. WHO said WHAT must be tracked correctly. This is
@@ -1467,8 +1467,8 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 VALIDATION SUMMARY:
   Auth implementation matches git history across 7 files
   All code blocks show complete file contents — no abbreviations
-  David's vegetarianism correctly cross-referenced (17-session gap)
-  Speaker attribution tested (FoodData=David, Edamam=Agent)
+  デイビッドの vegetarianism correctly cross-referenced (17-session gap)
+  Speaker attribution tested (FoodData=デイビッド, Edamam=Agent)
   Authz バグ intentionally planted in code, tests, and discussion
   A1C progression timeline consistent (8.2 → 7.1)
   YouTube tangent planted as brief seed

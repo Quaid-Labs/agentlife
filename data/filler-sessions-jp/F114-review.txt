@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   あー、Q1 の self-assessment を書かなきゃいけないのに何も思いつかない。構成を手伝ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。まず、今四半期の一番大きな成果は何でしたか？ どんな project や launch を出しましたか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
-  2 月に新しい onboarding flow を出して、activation rate を 34% から 41% に上げた。あと mobile checkout redesign もやったけど、あれは D の team とのコラボ要素が大きかった
+マヤ:
+  2 月に新しい onboarding flow を出して、activation rate を 34% から 41% に上げた。あと mobile checkout redesign もやったけど、あれは ディー の team とのコラボ要素が大きかった
 
-AI ASSISTANT:
+AIアシスタント:
   それは十分大きな成果です。onboarding flow では、あなた自身の役割は何でしたか？ PRD を担当した、experiment を回した、eng を調整した、などですか？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   うん、PRD は全部書いたし、user testing を 3 回回したし、design と prototype も一緒にやった。eng はキックオフ後はかなり自律的だったけどね
 
-AI ASSISTANT:
+AIアシスタント:
   完璧です。onboarding セクションはこう書けます:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   それでいいけど、ARR の話は少し弱めたい。finance の予測であって、自分の成果という感じじゃないし
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。こんな表現はどうでしょう: 「Impact: Day 1 activation を 34% から 41%（+7pp）に上げ、Q1 revenue targets に貢献した」
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
-  完璧。じゃあ mobile checkout の件は？ それは D が eng coordination の大半をやったから、全部自分の手柄にはできない気がする
+マヤ:
+  完璧。じゃあ mobile checkout の件は？ それは デイビッド が eng coordination の大半をやったから、全部自分の手柄にはできない気がする
 
-AI ASSISTANT:
+AIアシスタント:
   問題ないです。コラボとして書きましょう。そこであなたが実際に担当したことは何でしたか？
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   competitive analysis をやって、eng が反対してたのに Apple Pay integration を押し進めたし、launch 後の retro も回した
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。こんな感じはどうでしょう:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   それでいい。よし、難しい方にいくか... improvement areas だね。何か書かなきゃいけないのはわかるけど、悪く見えないやつが思いつかない
 
-AI ASSISTANT:
+AIアシスタント:
   いま伸ばしたいスキルや、フィードバックをもらった領域を考えてみてください。安全に書ける、改善したい点で何かありますか？
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   正直、stakeholder update がもっと上手くなるべきって言われてる。ship はできるけど、進めている間にみんなにちゃんと共有するのが苦手なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   それはかなり良い項目です。自己認識があるし、改善もできます。こんな書き方はどうですか:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   うん、それ好き。strategy 面をもっとやりたいって入れるのはどうかな。正直、他人のアイデアを実行してるだけに感じることもあるし
 
-AI ASSISTANT:
+AIアシスタント:
   self-assessment では少し難しいですね。leadership を批判しているように読まれるかもしれません。代わりに development goal として書くのはどうでしょう？
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~33
 
-MAYA:
+マヤ:
   そうだね、その方がいい。最後は Q2 の goal だ。new dashboard を出す予定で、recommendation engine も推したいんだけど、承認されるかはわからない
 
-AI ASSISTANT:
+AIアシスタント:
   両方書いていいですが、recommendation engine は exploratory として扱うといいです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   完璧。全部まとめて、コピペできる形にしてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが complete Q1 self-assessment です:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   ありがとう、かなり楽になった lol。思ってたより全然つらくなかった
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。しっかりした材料がありましたね。activation 数字は特に強いです。レビュー、うまくいくといいです。
 
 ---

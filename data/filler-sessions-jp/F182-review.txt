@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   レシピアプリで prep_time を -15 分みたいな値にできてしまうのに気づいたんだ。そこを防ぐバリデーションを追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   負の調理時間を防ぐためのバリデーションをレシピアプリに追加します。データベース制約、API バリデーション、テストを含む包括的な修正を入れます：
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いいね！ 更新エンドポイントのほうはどう？ 同じバリデーションを追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。PATCH/PUT エンドポイントにも同じバリデーションを追加します：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   いいね。で、これを試してたら prep_time を "30" みたいな文字列で送っても通っちゃうんだ。そこも対応したほうがいいかな？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。そのとおりで、有効な文字列なら数値に変換するべきです。更新したバリデーションヘルパーはこちらです：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   なるほど。もう一つ、prep_time: 999999 みたいに送ってきたらどうする？ 上限は設けたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   いい視点です。妥当な上限を追加しましょう。1440 分（24 時間）を最大値にするのがよさそうです：
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   テストを回したら、更新ルートのテストでこんなエラーが出たんだ: "TypeError: Cannot read property 'changes' of undefined"
 
-AI ASSISTANT:
+AIアシスタント:
   それはたぶん `db.run()` が期待した結果オブジェクトを返していないのが原因です。データベースモジュールを確認して、問題を直しましょう：
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   ああ、それで直った！ すべてのテストが通ったよ。ところで、クライアント側のバリデーションも追加すべきかな、それとも API バリデーションだけに頼る？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんクライアント側のバリデーションも追加しましょう。ラウンドトリップなしで即座にフィードバックできます。バリデーション付きの React フォームコンポーネントはこちらです：
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
+マヤ:
   これはすごくいい！ ちょっと質問なんだけど、入力欄の HTML5 の `min`/`max` って、負の数を入力するのを防げる？ それとも JS のバリデーションもまだ必要？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問です。HTML5 の `min`/`max` は役に立ちますが、それだけでは不十分です。ユーザーは簡単に回避できます：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   なるほど！ じゃあ最後に、DB のシードスクリプトにもバリデーションを追加したほうがいいよね。うちのシードデータに変な時間があるのに気づいたんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。適切なバリデーションでシードスクリプトを整えましょう：
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   もう一つの境界ケースなんだけど、API リクエストで prep_time: null や prep_time: undefined が送られてきたらどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。null/undefined を明示的に扱うようにしましょう。こちらが、それらを包括的に処理するよう更新したルートです：
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   最高！ じゃあ、やったことを手短にまとめてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。今回入れたバリデーション改善の全体まとめはこちらです：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   完璧、ありがとう！ 今日中にデプロイするよ
 
-AI ASSISTANT:
+AIアシスタント:
   素晴らしいですね。デプロイ前の簡単なチェックリストで、準備が整っているか確認しましょう：
 
 ---

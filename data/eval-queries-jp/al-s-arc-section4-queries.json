@@ -1,0 +1,2688 @@
+{
+  "corpus_id": "al-s-arc-section4-queries-jp",
+  "language": "ja",
+  "source": "data/sessions-jp Section 4 parsed with eval.dataset parser",
+  "generated_for": "W3 later harness wiring; no harness logic changed",
+  "query_count": 156,
+  "queries": [
+    {
+      "source_session": 1,
+      "session_date": "2026-03-01",
+      "review_version": "v3",
+      "review_file": "data/sessions-jp/session-01-review-v3.txt",
+      "query_num": 1,
+      "question": "マヤ のパートナーの名前は何ですか？",
+      "ground_truth": "デイビッド",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (会話の早い段階で、明示的に触れられている)",
+      "evidence_sessions": [
+        1
+      ],
+      "supporting_evidence": [
+        "Turn 2: \"i live with my パートナー デイビッド. he's a software engineer\"",
+        "Turn 3: \"デイビッド had to wrestle it away from him\""
+      ]
+    },
+    {
+      "source_session": 1,
+      "session_date": "2026-03-01",
+      "review_version": "v3",
+      "review_file": "data/sessions-jp/session-01-review-v3.txt",
+      "query_num": 2,
+      "question": "マヤ はどんな犬を飼っていますか？",
+      "ground_truth": "A ゴールデンレトリバー named ビスケット, 3 years old",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (完全な事実セットがそのまま与えられている)",
+      "evidence_sessions": [
+        1
+      ],
+      "supporting_evidence": [
+        "Turn 1 Opening: \"we have a 犬, ビスケット. he's a ゴールデンレトリバー,"
+      ]
+    },
+    {
+      "source_session": 1,
+      "session_date": "2026-03-01",
+      "review_version": "v3",
+      "review_file": "data/sessions-jp/session-01-review-v3.txt",
+      "query_num": 3,
+      "question": "マヤ の母親はどこに住んでいますか？",
+      "ground_truth": "Houston. Her 母の name is リンダ.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (長めの文脈に埋め込まれた、名前と居住地の組み合わせ)",
+      "evidence_sessions": [
+        1
+      ],
+      "supporting_evidence": [
+        "Turn 4: \"my 母リンダ would find this hilarious. she's a great cook,"
+      ]
+    },
+    {
+      "source_session": 1,
+      "session_date": "2026-03-01",
+      "review_version": "v3",
+      "review_file": "data/sessions-jp/session-01-review-v3.txt",
+      "query_num": 4,
+      "question": "デイビッド はベジタリアンですか、ビーガンですか？",
+      "ground_truth": "Vegetarian",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (明示的に述べられており、文脈でも補強されている)",
+      "evidence_sessions": [
+        1
+      ],
+      "supporting_evidence": [
+        "Turn 2: \"デイビッドの ベジタリアン\"",
+        "Turn 4: \"ベジタリアン chili\""
+      ]
+    },
+    {
+      "source_session": 1,
+      "session_date": "2026-03-01",
+      "review_version": "v3",
+      "review_file": "data/sessions-jp/session-01-review-v3.txt",
+      "query_num": 5,
+      "question": "マヤ は仕事で何をしていますか？",
+      "ground_truth": "Product マネージャー at TechFlow in Austin, TX",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (明示的に述べられており、複数箇所に分散している)",
+      "evidence_sessions": [
+        1
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"仕事 as a product マネージャー at this company called techflow\"",
+        "Turn 1: \"live in austin\""
+      ]
+    },
+    {
+      "source_session": 2,
+      "session_date": "2026-03-03",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-02-review-v1.txt",
+      "query_num": 1,
+      "question": "What race is マヤ training for?",
+      "ground_truth": "The Austin Half marathon",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (明示的に述べられている、セッションの主題)",
+      "evidence_sessions": [
+        2
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"i'm doing a ハーフマラソン. the austin half\""
+      ]
+    },
+    {
+      "source_session": 2,
+      "session_date": "2026-03-03",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-02-review-v1.txt",
+      "query_num": 2,
+      "question": "When does マヤ think the ハーフマラソン is?",
+      "ground_truth": "4月 (she's wrong。she corrects to 5月 in セッション 11)",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Medium (曖昧さつきで述べられており、後で更新される)",
+      "evidence_sessions": [
+        2
+      ],
+      "supporting_evidence": [
+        "Turn 2: \"it's in april i think? maybe late april\""
+      ]
+    },
+    {
+      "source_session": 2,
+      "session_date": "2026-03-03",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-02-review-v1.txt",
+      "query_num": 3,
+      "question": "Does マヤ prefer running indoors or outdoors?",
+      "ground_truth": "Outdoors。she considered a gym membership for treadmill\n    running but decided against it. She finds treadmills boring and\n    prefers being outside where there's stuff to look at.",
+      "query_type": "tangent_recall",
+      "recall_difficulty": "Medium (脱線の中に埋まっている、好みの推論が必要)",
+      "evidence_sessions": [
+        2
+      ],
+      "supporting_evidence": [
+        "Turn 3: \"treadmills are so boring. at least outside there's stuff",
+        "Turn 3: \"i thought about getting a gym membership... but ugh\""
+      ]
+    },
+    {
+      "source_session": 2,
+      "session_date": "2026-03-03",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-02-review-v1.txt",
+      "query_num": 4,
+      "question": "How often does マヤ run?",
+      "ground_truth": "3-4 times a week, usually 3-5 miles per run",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (直接述べられている)",
+      "evidence_sessions": [
+        2
+      ],
+      "supporting_evidence": [
+        "Turn 2: \"i run like 3-4 times a week right now, usually 3-5 miles\""
+      ]
+    },
+    {
+      "source_session": 2,
+      "session_date": "2026-03-03",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-02-review-v1.txt",
+      "query_num": 5,
+      "question": "Have マヤ and デイビッド done any races together?",
+      "ground_truth": "Yes, they ran a 10K together last year. デイビッド is faster\n    but stayed with マヤ during the race.",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Medium (session 1 の デイビッド と session 2 のランニング仲間をつなげる必要がある)",
+      "evidence_sessions": [
+        2
+      ],
+      "supporting_evidence": [
+        "Turn 2: \"longest run was that 10K D and I did last year\"",
+        "Turn 7: \"me and D did it together。he's faster than me but he"
+      ]
+    },
+    {
+      "source_session": 3,
+      "session_date": "2026-03-05",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-03-review-v2.txt",
+      "query_num": 1,
+      "question": "レシピアプリはどの技術スタックで作られていますか？",
+      "ground_truth": "Express.js と SQLite（better-sqlite3 を使用）。REST API と\n    単一ページの HTML フロントエンドを備えたシンプルな Web アプリ。",
+      "query_type": "project_state",
+      "recall_difficulty": "Easy (directly stated, reinforced by code)",
+      "evidence_sessions": [
+        3
+      ],
+      "supporting_evidence": [
+        "Turn 2: \"express と sqlite。シンプルにして\"",
+        "Turn 5: `package.json` で express + better-sqlite3"
+      ]
+    },
+    {
+      "source_session": 3,
+      "session_date": "2026-03-05",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-03-review-v2.txt",
+      "query_num": 2,
+      "question": "マヤ と デイビッド は South Congress のどの店を気に入っていますか？",
+      "ground_truth": "South Congress（Austin）のタイ料理屋。マヤ の pad thai の失敗のあとに\n    そこへ行った。",
+      "query_type": "tangent_recall",
+      "recall_difficulty": "Medium (embedded in tangent, not the main topic)",
+      "evidence_sessions": [
+        3
+      ],
+      "supporting_evidence": [
+        "Turn 4: \"結局サウス・コングレスのあのタイ料理屋に行った\"",
+        "Turn 4: \"デイビッド が先週、私の pad thai の試作をひとつ食べた\""
+      ]
+    },
+    {
+      "source_session": 3,
+      "session_date": "2026-03-05",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-03-review-v2.txt",
+      "query_num": 3,
+      "question": "マヤ はなぜレシピアプリに 食事制限 tagging を言及したのですか？",
+      "ground_truth": "デイビッド（マヤ のパートナー）はベジタリアンです。マヤ は\n    \"デイビッド はベジタリアンだから、将来的にタグ付けが必要\" と言いました。\n    詳細は説明しませんでしたが、後で追加するつもりです。",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Medium (session 1 の デイビッド のベジタリアン設定と、",
+      "evidence_sessions": [
+        1,
+        3
+      ],
+      "supporting_evidence": [
+        "Session 1: デイビッド is ベジタリアン",
+        "Session 3, Turn 11: \"デイビッド はベジタリアンだから、将来的にタグ付けが必要\""
+      ]
+    },
+    {
+      "source_session": 3,
+      "session_date": "2026-03-05",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-03-review-v2.txt",
+      "query_num": 4,
+      "question": "レシピアプリには今どんな機能がありますか？",
+      "ground_truth": "CRUD 操作（レシピの追加、表示、編集、削除）、レシピの title または\n    ingredients による検索、テーブル表示と折りたたみ式の追加フォームを持つ基本的な\n    HTML フロントエンド、6 件のサンプルレシピの投入、接続ファクトリ付きの設定層、\n    そして環境変数サポート。",
+      "query_type": "project_state",
+      "recall_difficulty": "Easy (広く議論され、コード化されている)",
+      "evidence_sessions": [
+        3
+      ],
+      "supporting_evidence": [
+        "Turn 6: CRUD + search を含む完全な server.js",
+        "Turn 7: 追加フォーム、テーブル、検索、削除を備えたフロントエンド",
+        "Turn 5: サンプルレシピ、設定層"
+      ]
+    },
+    {
+      "source_session": 3,
+      "session_date": "2026-03-05",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-03-review-v2.txt",
+      "query_num": 5,
+      "question": "マヤ はなぜレシピアプリを作ろうと思ったのですか？",
+      "ground_truth": "彼女は最近もっと料理しており（デイビッド のベジタリアン設定とも関連している）、\n    レシピがメモ、スクリーンショット、ブックマークに散らばっているからです。\n    うまくいったレシピを一か所に保存したいのです。",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Medium (動機が session 1 と session 3 にまたがる)",
+      "evidence_sessions": [
+        1,
+        3
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"最近もっと料理するようになって、もうめちゃくちゃ。メモ、スクリーンショット、",
+        "Turn 4: \"ちゃんと成功したレシピを保存したい\""
+      ]
+    },
+    {
+      "source_session": 4,
+      "session_date": "2026-03-10",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-04-review-v1.txt",
+      "query_num": 1,
+      "question": "What health condition was マヤの母 diagnosed with?",
+      "ground_truth": "2型糖尿病",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (central topic of session, repeated context)",
+      "evidence_sessions": [
+        4
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"they diagnosed her with type 2 糖尿病\""
+      ]
+    },
+    {
+      "source_session": 4,
+      "session_date": "2026-03-10",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-04-review-v1.txt",
+      "query_num": 2,
+      "question": "Who is リンダ in relation to マヤ?",
+      "ground_truth": "リンダはマヤの母親だ。Houstonに住んでいて、南部の家庭料理を作る料理上手で、\n    最近2型糖尿病と診断された。",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Medium (multi-session fact assembly)",
+      "evidence_sessions": [
+        1,
+        4
+      ],
+      "supporting_evidence": [
+        "Session 1, Turn 4: \"my 母リンダ... lives in houston\"",
+        "Session 4, Turn 1: \"my 母 called today... type 2 糖尿病\"",
+        "Session 4, Turn 3: \"she's such a good cook but she cooks like"
+      ]
+    },
+    {
+      "source_session": 4,
+      "session_date": "2026-03-10",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-04-review-v1.txt",
+      "query_num": 3,
+      "question": "Who else in マヤの 家族 was concerned about リンダの diagnosis?",
+      "ground_truth": "レイチェル（マヤの妹。Seattleに住んでいる）。レイチェルも電話してきて、\n    かなり動揺しているが、遠く離れているので無力に感じている。",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (directly stated)",
+      "evidence_sessions": [
+        4
+      ],
+      "supporting_evidence": [
+        "Turn 6: \"レイチ called too. she's freaked out. but seattle to houston"
+      ]
+    },
+    {
+      "source_session": 4,
+      "session_date": "2026-03-10",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-04-review-v1.txt",
+      "query_num": 4,
+      "question": "Why is マヤ considering going to Houston?",
+      "ground_truth": "2型糖尿病の診断を受けた母のリンダに会うため。\n    来週末に車で向かうことを考えている。",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Medium (connecting Houston location from session 1",
+      "evidence_sessions": [
+        1,
+        4
+      ],
+      "supporting_evidence": [
+        "Turn 7: \"i'm thinking about going next weekend\"",
+        "Turn 7: \"do you know if there's like a best time to book flights"
+      ]
+    },
+    {
+      "source_session": 4,
+      "session_date": "2026-03-10",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-04-review-v1.txt",
+      "query_num": 5,
+      "question": "What did マヤの母の doctor say about her blood sugar?",
+      "ground_truth": "A1Cは8.2で、7未満にする必要がある。",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (specific number, embedded in emotional context)",
+      "evidence_sessions": [
+        4
+      ],
+      "supporting_evidence": [
+        "Turn 4: \"the doctor said her A1C was like 8.2\"",
+        "Turn 4: \"she needs to get it under 7 apparently\""
+      ]
+    },
+    {
+      "source_session": 4,
+      "session_date": "2026-03-10",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-04-review-v1.txt",
+      "query_num": 6,
+      "question": "Does マヤ have a 家族 history of 糖尿病?",
+      "ground_truth": "はい。マヤの祖母も糖尿病だったが、管理はうまくいっていなかった。\n    マヤはリンダで同じパターンを繰り返したくないと思っている。",
+      "query_type": "inference",
+      "recall_difficulty": "Hard (single mention, near end of emotional session,",
+      "evidence_sessions": [
+        4
+      ],
+      "supporting_evidence": [
+        "Turn 9: \"my grandma had 糖尿病 too and it wasn't managed well\""
+      ]
+    },
+    {
+      "source_session": 5,
+      "session_date": "2026-03-12",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-05-review-v2.txt",
+      "query_num": 1,
+      "question": "レシピアプリの食事制限機能は、何がきっかけで必要になったの？",
+      "ground_truth": "マヤ の母親 リンダ は セッション 4 で Type 2 糖尿病 と診断された。\n    マヤ はそれを明言せず、\"you know my 母の situation。with the health\n    stuff\" と言っている。母親にとって安全なレシピを求めている。",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Hard (session 4 の diabetes と session 5 の機能要求を、",
+      "evidence_sessions": [
+        4,
+        5
+      ],
+      "supporting_evidence": [
+        "Session 4: リンダ diagnosed with Type 2 糖尿病",
+        "Session 5, Turn 2: \"you know my 母の situation。with the health"
+      ]
+    },
+    {
+      "source_session": 5,
+      "session_date": "2026-03-12",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-05-review-v2.txt",
+      "query_num": 2,
+      "question": "家族の夕食に対応する必要がある食事制限は何？",
+      "ground_truth": "少なくとも 3 つある。リンダ には diabetic-friendly と\n    low-sodium（Type 2 糖尿病 のため）、デイビッド には ベジタリアン が必要。\n    diabetic-friendly + low-sodium + ベジタリアン と付いたレシピなら、\n    みんなに合う。",
+      "query_type": "inference",
+      "recall_difficulty": "Hard (3 sessions から 3 つの事実を組み合わせ、",
+      "evidence_sessions": [
+        1,
+        4,
+        5
+      ],
+      "supporting_evidence": [
+        "Session 1: \"デイビッドの ベジタリアン\"",
+        "Session 4: \"type 2 糖尿病\" + A1C 8.2",
+        "Session 5, Turn 3: \"low-sodium too. her doctor was really 具体的な\"",
+        "Session 5, Turn 4: \"diabetic-friendly, low-sodium, ベジタリアン\""
+      ]
+    },
+    {
+      "source_session": 5,
+      "session_date": "2026-03-12",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-05-review-v2.txt",
+      "query_num": 3,
+      "question": "レシピアプリはどんな食事ラベルをサポートしているの？",
+      "ground_truth": "10 個のラベル。ベジタリアン, vegan, gluten-free, dairy-free,\n    nut-free, diabetic-friendly, low-sodium, low-carb, keto, paleo。\n    さらに、diabetic-friendly と low-sodium を組み合わせた\n    \"Safe for Mom\" プリセットがある。",
+      "query_type": "project_state",
+      "recall_difficulty": "Easy (直接述べられており、このセッションの中心)",
+      "evidence_sessions": [
+        5
+      ],
+      "supporting_evidence": [
+        "Turn 5 (database.js): 10 個のラベルを含む DIETARY_LABELS 配列",
+        "Turn 7: \"a button that says 'safe for 母'... diabetic-friendly"
+      ]
+    },
+    {
+      "source_session": 5,
+      "session_date": "2026-03-12",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-05-review-v2.txt",
+      "query_num": 4,
+      "question": "レシピアプリの 'Safe for Mom' ボタンは何をするの？",
+      "ground_truth": "diabetic-friendly と low-sodium の両方が付いたレシピだけを\n    表示するワンクリックフィルタ。マヤ の母リンダ。Type 2 糖尿病 がある —\n    のために作られた。",
+      "query_type": "project_state",
+      "recall_difficulty": "Easy (明示的に説明されている)",
+      "evidence_sessions": [
+        5
+      ],
+      "supporting_evidence": [
+        "Turn 7: \"a button that says 'safe for 母' and it just toggles both",
+        "Turn 7: \"diabetic-friendly and low-sodium. that's her combo\""
+      ]
+    },
+    {
+      "source_session": 5,
+      "session_date": "2026-03-12",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-05-review-v2.txt",
+      "query_num": 5,
+      "question": "なぜレシピアプリに ベジタリアン フィルタが必要なの？",
+      "ground_truth": "マヤ のパートナー デイビッド は ベジタリアン だから。マヤ は\n    \"and ベジタリアン obviously, for D\" と言っており、セッション 1 で最初に\n    述べられた デイビッド の ベジタリアン であることを参照している。",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Medium (2 セッションまたぎだが、どちらも明示的)",
+      "evidence_sessions": [
+        1,
+        5
+      ],
+      "supporting_evidence": [
+        "Session 1: デイビッド is ベジタリアン",
+        "Session 5, Turn 5: \"and ベジタリアン obviously. for D\""
+      ]
+    },
+    {
+      "source_session": 5,
+      "session_date": "2026-03-12",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-05-review-v2.txt",
+      "query_num": 6,
+      "question": "マヤ の母に安全な seed recipes はどれ？",
+      "ground_truth": "3 つの seed recipes に diabetic-friendly と low-sodium の\n    両方が付いている: Grilled Salmon with Herbs、Chicken and Vegetable Soup\n    (Low Sodium)、Lentil Soup。Lentil Soup は ベジタリアン でもあるため、\n    リンダ と デイビッド の両方に適している。",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (seed data の内容と dietary tags の両方を知る必要がある)",
+      "evidence_sessions": [
+        5
+      ],
+      "supporting_evidence": [
+        "Turn 10: 食事分類を付けた seed data の拡張",
+        "Turn 11: \"lentil soup for both of them\"。マヤ が リンダ + デイビッド を結びつけている"
+      ]
+    },
+    {
+      "source_session": 6,
+      "session_date": "2026-03-14",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-06-review-v1.txt",
+      "query_num": 1,
+      "question": "マヤは仕事に満足していますか？",
+      "ground_truth": "いいえ。TechFlow に対する不満がだんだん強くなっている。上司は彼女の話を遮り、\n    リーダー層は彼女の仕事をやり直すためにコンサルを入れ、1月の再編でさらに悪化した。\n    彼女は別の機会を見始めているが、まだどこにも応募していない。",
+      "query_type": "evolution",
+      "recall_difficulty": "Medium (session 1 の「ただの仕事だよ lol」という中立さと",
+      "evidence_sessions": [
+        1,
+        6
+      ],
+      "supporting_evidence": [
+        "Session 6, Turn 1: \"仕事が最悪の月。もう無理\"",
+        "Session 6, Turn 2: \"関係ないコンサルをどんどん入れてくる\"",
+        "Session 6, Turn 4: \"ちょっと周りを見始めてはいる\""
+      ]
+    },
+    {
+      "source_session": 6,
+      "session_date": "2026-03-14",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-06-review-v1.txt",
+      "query_num": 2,
+      "question": "プリヤ は誰ですか？",
+      "ground_truth": "プリヤ は マヤ の TechFlow の同僚。彼女と同じチームにいる。\n    家族でも個人的な友人でもなく、マヤ がランチで愚痴を言うだけの同僚。\n    プリヤ も TechFlow を辞めることを考えている。",
+      "query_type": "factual_recall (with red herring classification test)",
+      "recall_difficulty": "Medium (coworker と正しく分類しないといけない。",
+      "evidence_sessions": [
+        6
+      ],
+      "supporting_evidence": [
+        "Turn 5: \"プリヤ は同じチームなんだ\"",
+        "Turn 5: \"昼ごはんのときにほぼ毎日、その話で愚痴ってる\""
+      ]
+    },
+    {
+      "source_session": 6,
+      "session_date": "2026-03-14",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-06-review-v1.txt",
+      "query_num": 3,
+      "question": "マヤ はオースティンのどこに住んでいますか？",
+      "ground_truth": "South Austin。彼女は downtown に通勤していて、I-35 の交通がひどい。\n    downtown の近く、たとえば Zilker あたりに引っ越したいと考えている。",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (直接述べられている)",
+      "evidence_sessions": [
+        6
+      ],
+      "supporting_evidence": [
+        "Turn 6: \"今は South Austin に住んでる\"",
+        "Turn 6: \"たとえば Zilker あたりとかに住めたらいいのかも\""
+      ]
+    },
+    {
+      "source_session": 6,
+      "session_date": "2026-03-14",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-06-review-v1.txt",
+      "query_num": 4,
+      "question": "デイビッド は マヤ の仕事の状況をどう思っていますか？",
+      "ground_truth": "デイビッド は協力的。マヤ に「つらいなら、本気で探し始めなよ。\n    少し空白ができても生活は大丈夫だから」と言った。\n    デイビッド 自身は自分の仕事に満足している。",
+      "query_type": "speaker_attribution",
+      "recall_difficulty": "Medium (デイビッド の意見と マヤ の状況を",
+      "evidence_sessions": [
+        1,
+        6
+      ],
+      "supporting_evidence": [
+        "Turn 8: \"デイビッド はそのへん、ちゃんと理解してくれてる...『つらいなら、本気で探し始めなよ。少し空白ができても大丈夫だから』\"",
+        "Turn 8: \"彼は自分の仕事には満足してる\""
+      ]
+    },
+    {
+      "source_session": 6,
+      "session_date": "2026-03-14",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-06-review-v1.txt",
+      "query_num": 5,
+      "question": "マヤ は TechFlow でどのくらい働いていますか？",
+      "ground_truth": "約2年。彼女は マヤ と デイビッド がオースティンに最初に\n    引っ越したときに入社した。オースティンでの最初の仕事だった。",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (直接述べられていて、複数回補強されている)",
+      "evidence_sessions": [
+        6
+      ],
+      "supporting_evidence": [
+        "Turn 2: \"TechFlow には 2 年いる\"",
+        "Turn 4: \"そのとき取れた一番いいオファーだった\"",
+        "Turn 4: \"オースティンに引っ越してすぐからいる\""
+      ]
+    },
+    {
+      "source_session": 6,
+      "session_date": "2026-03-14",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-06-review-v1.txt",
+      "query_num": 6,
+      "question": "プリヤ は マヤ の家族の一員ですか？",
+      "ground_truth": "いいえ。プリヤ は TechFlow の同僚で、家族でも個人的な友人でもない。\n    マヤ の職場のチームにいる。",
+      "query_type": "negative (red herring test)",
+      "recall_difficulty": "Easy (ただし graph classification の精度を試す)",
+      "evidence_sessions": [
+        6
+      ],
+      "supporting_evidence": [
+        "Turn 5: \"プリヤ は同じチームにいる\""
+      ]
+    },
+    {
+      "source_session": 7,
+      "session_date": "2026-03-15",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-07-review-v2.txt",
+      "query_num": 1,
+      "question": "レシピアプリのフロントエンドは何が変わった？",
+      "ground_truth": "一覧レイアウトからCSSグリッドのカードレイアウトへ全面再設計された。\n    カードにはレシピ名、準備時間、食事タグのピル（色分け）が表示される。\n    追加フォームはネイティブHTMLの details/summary 要素で折りたためるようになった。\n    検索バー、食事フィルタのチェックボックス、\"Safe for Mom\" ボタンは維持。\n    画像URL対応はデータベースに追加されたが、カード上にはテキスト内容のみが表示される\n    （カードにサムネイルはない）。",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (細部が多く、包括的な記憶が必要)",
+      "evidence_sessions": [
+        7
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"it looks like a spreadsheet\"",
+        "Turn 2: \"cards. definitely cards. like a grid\"",
+        "Turn 6: グリッドレイアウト、カードデザイン、準備時間を含むHTML/CSS全文",
+        "Turn 19: 変更点の番号付き要約"
+      ]
+    },
+    {
+      "source_session": 7,
+      "session_date": "2026-03-15",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-07-review-v2.txt",
+      "query_num": 2,
+      "question": "レシピアプリのセキュリティバグは何だった？",
+      "ground_truth": "検索エンドポイントにSQLインジェクションの脆弱性があった。\n    search関数が、パラメータ化クエリではなく文字列連結でSQLクエリを組み立てていた。\n    これはアプリ初期（セッション3）から存在し、セッション7で\n    プリペアドステートメントのパラメータに切り替えて修正された。",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (特定の技術詳細で、2つのセッションにまたがる)",
+      "evidence_sessions": [
+        3,
+        7
+      ],
+      "supporting_evidence": [
+        "Session 3, Turn 6: 脆弱な検索コードが仕込まれた",
+        "Session 7, Turn 10: エージェントがバグを発見して説明",
+        "Session 7, Turn 10: パラメータ化クエリによる修正"
+      ]
+    },
+    {
+      "source_session": 7,
+      "session_date": "2026-03-15",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-07-review-v2.txt",
+      "query_num": 3,
+      "question": "マヤとデイビッドがよく行く定番の店はある？",
+      "ground_truth": "はい。AustinのSouth Congressにあるタイ料理店だ。特にマヤの\n    料理が失敗したときによく行く。マヤはセッション3で（pad thaiの失敗のあとに）\n    それを話し、セッション7でも（デイビッドがアプリのレシピを試してダメだったあとに）\n    もう一度触れている。",
+      "query_type": "tangent_recall",
+      "recall_difficulty": "Medium (2つのセッションに埋め込まれた雑談で、",
+      "evidence_sessions": [
+        3,
+        7
+      ],
+      "supporting_evidence": [
+        "Session 3, Turn 4: \"that thai place on south congress\"",
+        "Session 7, Turn 4: \"that place on south congress... we keep going"
+      ]
+    },
+    {
+      "source_session": 7,
+      "session_date": "2026-03-15",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-07-review-v2.txt",
+      "query_num": 4,
+      "question": "レシピアプリのUIは今どんな見た目？",
+      "ground_truth": "レシピカードのレスポンシブなCSSグリッドだ。各カードには\n    レシピ名、メタ行の準備時間、そして食事タグのピル（色分け: ベジタリアンは緑、\n    gluten-freeは黄、diabetic-friendlyはピンク、low-sodiumは青）が表示される。\n    検索バー、食事フィルタのチェックボックス、\"Safe for Mom\" ボタン、\n    そしてHTML details/summary を使った折りたたみ式の追加フォームがある。\n    以前の表／一覧レイアウトはこのカードグリッドに置き換えられた。",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (コードから視覚的な説明を細かく思い出す必要がある)",
+      "evidence_sessions": [
+        7
+      ],
+      "supporting_evidence": [
+        "Turn 6: カードグリッドのHTML/CSS全文",
+        "Turn 7: マヤがカードレイアウトを承認",
+        "Turn 19: 変更点の番号付き要約"
+      ]
+    },
+    {
+      "source_session": 7,
+      "session_date": "2026-03-15",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-07-review-v2.txt",
+      "query_num": 5,
+      "question": "デイビッドは料理する？",
+      "ground_truth": "デイビッドはアプリのレシピを試している。マヤが保存したひよこ豆の\n    カレーを試して、「fine」と言った（マヤによれば、それはつまりまずかった\n    という意味）。セッション3ではマヤのpad thaiも試している。料理はするが、\n    結果はまちまちだ。",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (2つのセッションの雑談に散らばっている)",
+      "evidence_sessions": [
+        3,
+        7
+      ],
+      "supporting_evidence": [
+        "Session 3, Turn 4: \"D tried one of my attempts at pad thai\"",
+        "Session 7, Turn 4: \"D tried one of the test recipes last night."
+      ]
+    },
+    {
+      "source_session": 7,
+      "session_date": "2026-03-15",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-07-review-v2.txt",
+      "query_num": 6,
+      "question": "レシピデータベースにはどんな新しい項目が追加された？",
+      "ground_truth": "新しい項目は2つ。image_url（TEXT、URL経由のレシピ写真用）と\n    prep_time（INTEGER、調理時間を分単位で表す）だ。これらはセッション7で\n    フロントエンド再設計と一緒に追加された。`database.js` には安全な\n    スキーマ移行用の `addColumnIfMissing` ヘルパーもある。",
+      "query_type": "project_state",
+      "recall_difficulty": "Easy (コードと会話で直接扱われている)",
+      "evidence_sessions": [
+        7
+      ],
+      "supporting_evidence": [
+        "Turn 5: データベーススキーマ更新のコード",
+        "Turn 6: \"i definitely want [prep time] on the cards\"",
+        "Turn 8: \"for images, i'm probably just going to paste URLs\""
+      ]
+    },
+    {
+      "source_session": 7,
+      "session_date": "2026-03-15",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-07-review-v2.txt",
+      "query_num": 7,
+      "question": "レシピアプリにはテストがある？",
+      "ground_truth": "はい。SQLインジェクションの脆弱性が見つかったあと、セッション7で\n    Jestのテストスイートが追加された。3つのテストファイルがある。\n    tests/setup.js（スキーマ移行付きのインメモリDBセットアップ）、\n    tests/helpers.js（データファクトリとアサーションユーティリティ）、\n    そして tests/recipe.test.js（CRUD、検索、SQLインジェクション回帰を\n    カバーする21テスト）だ。SQLインジェクションのテストは、セッション3の\n    脆弱なパターンをそのまま再現し、パラメータ化クエリの修正が悪意ある\n    入力を安全に処理できることを示している。",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (テストスイートの構成と動機を思い出す必要がある —",
+      "evidence_sessions": [
+        7
+      ],
+      "supporting_evidence": [
+        "Turn 12: マヤが回帰防止のためのテストを求める",
+        "Turn 13: インメモリDB付きの tests/setup.js",
+        "Turn 14: ファクトリ付きの tests/helpers.js",
+        "Turn 15: すべてのテストを含む tests/recipe.test.js"
+      ]
+    },
+    {
+      "source_session": 7,
+      "session_date": "2026-03-15",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-07-review-v2.txt",
+      "query_num": 8,
+      "question": "レシピアプリはエラーをどう処理している？",
+      "ground_truth": "セッション7で集中型のエラーハンドリングミドルウェアが追加された\n    （src/middleware/errorHandler.js）。HTTPステータスコード付きのカスタム\n    AppErrorクラス、エラーをログに残してJSON応答を返すExpressの\n    エラーハンドリングミドルウェア、そして404キャッチオールハンドラーが含まれる。\n    開発モードではスタックトレースを応答に含め、本番では運用上のエラーメッセージ\n    だけを公開する。",
+      "query_type": "project_state",
+      "recall_difficulty": "Easy (1つのセッションで直接コード化され、会話でも扱われる)",
+      "evidence_sessions": [
+        7
+      ],
+      "supporting_evidence": [
+        "Turn 17: マヤがエラーハンドリングを求める",
+        "Turn 17: AppErrorクラスとミドルウェアを持つ errorHandler.js",
+        "Turn 18: server.js への統合"
+      ]
+    },
+    {
+      "source_session": 8,
+      "session_date": "2026-03-17",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-08-review-v1.txt",
+      "query_num": 1,
+      "question": "デイビッド は リンダ の誕生日に何を計画している？",
+      "ground_truth": "ヒューストンのレストランで行うサプライズ誕生日ディナー。\n    デイビッド は リンダ に「二人きりで行く」と伝え、マヤ はもうその場に\n    いる。レイチェル は FaceTime で参加するかもしれない。",
+      "query_type": "surprise_callback (this fact returns in session 19)",
+      "recall_difficulty": "Medium (11セッション越しに保持する必要がある)",
+      "evidence_sessions": [
+        8
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"he wants to do a surprise birthday dinner for my 母\"",
+        "Turn 7: \"he's going to tell her he's taking her to dinner..."
+      ]
+    },
+    {
+      "source_session": 8,
+      "session_date": "2026-03-17",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-08-review-v1.txt",
+      "query_num": 2,
+      "question": "家族のディナーでは、どのような食事制約に配慮する必要がある？",
+      "ground_truth": "少なくとも2つある。リンダ は糖尿病（2型で、糖尿病向けの\n    食事が必要）で、デイビッド はベジタリアン。リンダ が自分のことを気にしすぎ\n    ないようにしつつ、両方に合う店である必要がある。",
+      "query_type": "inference (cross-session multi-fact assembly)",
+      "recall_difficulty": "Hard (3つのセッションから3つの事実をつなぐ必要がある)",
+      "evidence_sessions": [
+        1,
+        4,
+        8
+      ],
+      "supporting_evidence": [
+        "Session 1: \"デイビッドの ベジタリアン\"",
+        "Session 4: \"type 2 糖尿病\"",
+        "Session 8, Turn 2: \"you know about 母の situation\"",
+        "Session 8, Turn 3: \"diabetic-friendly, ベジタリアン option\""
+      ]
+    },
+    {
+      "source_session": 8,
+      "session_date": "2026-03-17",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-08-review-v1.txt",
+      "query_num": 3,
+      "question": "マイク って誰？",
+      "ground_truth": "マイク は デイビッド の兄弟。デイビッド の母と一緒にオースティンへ\n    来るかもしれない。",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Medium (単独言及だが、マヤ → デイビッド → マイク の2ホップ関係が必要)",
+      "evidence_sessions": [
+        8
+      ],
+      "supporting_evidence": [
+        "Turn 6: \"his 兄弟 マイク might come too\""
+      ]
+    },
+    {
+      "source_session": 8,
+      "session_date": "2026-03-17",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-08-review-v1.txt",
+      "query_num": 4,
+      "question": "デイビッド の母はどんな人？",
+      "ground_truth": "「ちょっと大変」な人で、かなり関与が強く、何にでも意見がある。\n    前回の滞在は10日で、マヤ は5日目にはもう限界だった。オースティンに\n    また来たがっている。",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (性格描写、単一セッション)",
+      "evidence_sessions": [
+        8
+      ],
+      "supporting_evidence": [
+        "Turn 6: \"デイビッドの 母 is great but she's a lot... very involved.",
+        "Turn 6: \"last time she stayed for like 10 days and i was ready"
+      ]
+    },
+    {
+      "source_session": 8,
+      "session_date": "2026-03-17",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-08-review-v1.txt",
+      "query_num": 5,
+      "question": "リンダ の誕生日はいつ？",
+      "ground_truth": "4月中旬",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Easy (直接述べられている)",
+      "evidence_sessions": [
+        8
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"her birthday's in mid-april\""
+      ]
+    },
+    {
+      "source_session": 8,
+      "session_date": "2026-03-17",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-08-review-v1.txt",
+      "query_num": 6,
+      "question": "レイチェル は秘密を守れる？",
+      "ground_truth": "いいえ。マヤ は レイチェル が \"can ではない keep a secret\" と言い、\n    さらにサプライズディナーのことを母に電話しないよう何度も伝えた。",
+      "query_type": "tangent_recall",
+      "recall_difficulty": "Easy (強く明言されていて、記憶に残りやすい)",
+      "evidence_sessions": [
+        8
+      ],
+      "supporting_evidence": [
+        "Turn 8: \"レイチ can ではない keep a secret. i already told her like"
+      ]
+    },
+    {
+      "source_session": 9,
+      "session_date": "2026-03-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-09-review-v1.txt",
+      "query_num": 1,
+      "question": "マヤ はなぜポートフォリオサイトを作っているの？",
+      "ground_truth": "彼女は「選択肢を考えている」状態だ。暗黙の動機はセッション 6\n    の仕事への不満にある。キャリアの転機を迎えるかもしれないときに備えて、\n    すぐ使えるものをほしがっている。就職活動中だとは明言していない。",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Hard (セッション 6 の不満とセッション 9 のポートフォリオ作成を",
+      "evidence_sessions": [
+        6,
+        9
+      ],
+      "supporting_evidence": [
+        "Session 6: TechFlow で不満を感じ、機会を探している",
+        "セッション 9, Turn 1: \"thinking about my options and want something"
+      ]
+    },
+    {
+      "source_session": 9,
+      "session_date": "2026-03-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-09-review-v1.txt",
+      "query_num": 2,
+      "question": "マヤ のポートフォリオサイトにはどんなプロジェクトがある？",
+      "ground_truth": "2 つのプロジェクトがある。(1) レシピアプリ。食事計画、\n    食事制限フィルタリング、買い物リストを備えたフルスタックのレシピ\n    管理ツール。Node.js / Express / SQLite / GraphQL で構築。(2) TechFlow\n    Platform Redesign。製品ビジョンを主導し、オンボーディング時間を 40%\n    短縮した。",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (単一セッションからの事実のまとまり)",
+      "evidence_sessions": [
+        9
+      ],
+      "supporting_evidence": [
+        "Turn 10: \"put the レシピアプリ in the projects section\"",
+        "Turn 11: Recipe app card + TechFlow redesign card"
+      ]
+    },
+    {
+      "source_session": 9,
+      "session_date": "2026-03-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-09-review-v1.txt",
+      "query_num": 3,
+      "question": "マヤ は就職活動をしているの？",
+      "ground_truth": "断定はできない。応募しているとはまだ言っていない。\n    ただし、セッション 6 で TechFlow に不満を持ち、セッション 9 では\n    「選択肢を考えている」と言っている。推測としてはかなり強く示唆されるが、\n    セッション 13 までは確認されない。",
+      "query_type": "inference",
+      "recall_difficulty": "Hard (明示的な確認なしに、複数セッションから推測する必要がある。",
+      "evidence_sessions": [
+        6,
+        9
+      ],
+      "supporting_evidence": [
+        "セッション 6, Turn 4: \"i've been looking around a little\"",
+        "セッション 9, Turn 1: \"thinking about my options\""
+      ]
+    },
+    {
+      "source_session": 9,
+      "session_date": "2026-03-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-09-review-v1.txt",
+      "query_num": 4,
+      "question": "マヤ のポートフォリオサイトの UI はどんな見た目？",
+      "ground_truth": "きれいで最小限の静的 HTML/CSS サイト。システムフォント、\n    暖かいグレーの背景 (#fafafa)、親しみやすい青のアクセント (#0984e3)。\n    フレームワークなし、ダークモードなし。自己紹介、作品、連絡先の 3 セクション。\n    プロジェクトカードのグリッドを備えたレスポンシブなレイアウト。",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (デザイン要件が複数のターンに散らばっている)",
+      "evidence_sessions": [
+        9
+      ],
+      "supporting_evidence": [
+        "Turn 3: \"clean. minimal. not one of those flashy things\"",
+        "Turn 7: \"system fonts. no google fonts... soft colors... friendly blue\"",
+        "Turn 8: Full CSS"
+      ]
+    },
+    {
+      "source_session": 9,
+      "session_date": "2026-03-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-09-review-v1.txt",
+      "query_num": 5,
+      "question": "マヤ のポートフォリオには、どの会社が載っている？",
+      "ground_truth": "TechFlow。セッション 9 時点では、ポートフォリオには\n    \"Senior Product Manager at TechFlow\" と書かれている。これはセッション 13\n    (Stripe のオファー) 以降は古い情報になり、セッション 14 で更新が必要になる。",
+      "query_type": "factual_recall (session 13 以降は stale_fact になる)",
+      "recall_difficulty": "Easy (直接述べられているが、時間的な追跡を試す)",
+      "evidence_sessions": [
+        9
+      ],
+      "supporting_evidence": [
+        "Turn 5: hero セクションの \"Senior Product Manager at TechFlow\"",
+        "Turn 11: 自己紹介セクションの \"Currently at TechFlow\""
+      ]
+    },
+    {
+      "source_session": 10,
+      "session_date": "2026-03-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-10-review-v2.txt",
+      "query_num": 1,
+      "question": "What meal planning features does the レシピアプリ have?",
+      "ground_truth": "レシピを曜日と食事種別（朝食、昼食、夕食、間食）に割り当てた\n    週次の献立計画。plan と item の CRUD 操作。SQL の GROUP BY を使って、\n    プラン内のすべてのレシピにまたがる材料を集約する買い物リスト生成。数量を\n    合算し、材料名と unit でまとめ、買い物カテゴリで並べる。構造化された材料\n    は recipe_ingredients テーブルに保存され、name、amount、unit、category\n    フィールドを持つ。",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium（セッションの中心、複数ソース）",
+      "evidence_sessions": [
+        10
+      ],
+      "supporting_evidence": [
+        "Turn 1: マヤ が曜日/食事の割り当て付き週次プランを説明",
+        "Turn 3: meal_plans、meal_plan_items、recipe_ingredients を含むスキーマ",
+        "Turn 6: 買い物リスト集約を含むサーバーエンドポイント",
+        "Turn 10: mealPlans.getGroceryList() を持つクエリモジュール"
+      ]
+    },
+    {
+      "source_session": 10,
+      "session_date": "2026-03-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-10-review-v2.txt",
+      "query_num": 2,
+      "question": "Who does the grocery shopping in マヤの household?",
+      "ground_truth": "デイビッド が買い物の大半を担当している。レシピアプリの買い物\n    リスト機能は、彼のために作られた。",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy（直接述べられているが、短い）",
+      "evidence_sessions": [
+        1,
+        10
+      ],
+      "supporting_evidence": [
+        "Session 1: デイビッド が家族メンバーとして定義される",
+        "Session 10, Turn 2: \"D does most of our shopping so this is"
+      ]
+    },
+    {
+      "source_session": 10,
+      "session_date": "2026-03-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-10-review-v2.txt",
+      "query_num": 3,
+      "question": "How does the grocery list aggregation 仕事 in the レシピアプリ?",
+      "ground_truth": "買い物リストは SQL GROUP BY を使って、献立計画内の全レシピ\n    にまたがる材料を集約する。meal_plan_items を recipe_ingredients と\n    recipes に結合し、材料名、unit、category でグループ化してから数量を合算\n    する。また recipe_count（各材料を使うレシピ数）と from_recipes（どの\n    レシピか）も追跡する。同じ名前でも unit が違う材料は分けて保持される\n    （例: olive oil の tbsp と cups）。リストは category、次に材料名で並ぶ。",
+      "query_type": "project_state",
+      "recall_difficulty": "Hard（技術詳細で、SQL クエリの仕組み理解が必要）",
+      "evidence_sessions": [
+        10
+      ],
+      "supporting_evidence": [
+        "Turn 5: マヤ が集約要件を説明",
+        "Turn 6: GROUP BY クエリを持つサーバーエンドポイント",
+        "Turn 10: queries.js の mealPlans.getGroceryList()",
+        "Turn 17: mealplan.test.js が集約挙動を検証"
+      ]
+    },
+    {
+      "source_session": 10,
+      "session_date": "2026-03-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-10-review-v2.txt",
+      "query_num": 4,
+      "question": "What test suites exist for the レシピアプリ?",
+      "ground_truth": "セッション 10 時点で 3 つのテストスイートがある。(1) セッション 7\n    の元のテストスイートで、CRUD、バリデーション、検索、エラー処理をカバー\n    するもの。(2) 食事制限.test.js で、DIETARY_LABELS、SAFE_FOR_MOM プリセット、\n    単一/複数タグのフィルタリング、境界ケースをカバーするもの（296 行）。\n    (3) mealplan.test.js で、meal plan CRUD、item 管理、買い物リスト集約、\n    cascade delete、外部キー検証をカバーするもの（368 行）。いずれも\n    setup.js 経由のインメモリ SQLite を使う。",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium（セッションをまたいでテスト情報を集約する必要がある）",
+      "evidence_sessions": [
+        7,
+        10
+      ],
+      "supporting_evidence": [
+        "Session 7: 元のテストスイート",
+        "Session 10, Turn 15: マヤ が 食事制限 と meal plan のテストを要望",
+        "Session 10, Turn 16: 食事制限.test.js（296 行、6 describe ブロック）",
+        "Session 10, Turn 17: mealplan.test.js（368 行、5 describe ブロック）"
+      ]
+    },
+    {
+      "source_session": 10,
+      "session_date": "2026-03-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-10-review-v2.txt",
+      "query_num": 5,
+      "question": "Why was the recipe_ingredients table added to the レシピアプリ?",
+      "ground_truth": "recipe_ingredients テーブルは、テキストの塊で材料を保存する\n    方式を、構造化データ（name、amount、unit、category）に置き換えるために\n    追加された。主な動機は買い物リスト集約を可能にすることだった。構造化\n    データがあれば、アプリは SQL GROUP BY を使って献立計画内の各レシピの\n    材料量を合算でき、デイビッド に重複のないきれいな買い物リストを渡せる。\n    マヤ は、デイビッド が「店で計算したくない」とはっきり言っていた。",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Medium（テーブル作成の動機と デイビッド の役割を結びつける）",
+      "evidence_sessions": [
+        10
+      ],
+      "supporting_evidence": [
+        "Turn 3: database.js の recipe_ingredients テーブル",
+        "Turn 5: マヤ が、構造化された材料が買い物リスト集約に必要だと説明",
+        "Turn 5: \"this is the thing that makes it useful for D. he"
+      ]
+    },
+    {
+      "source_session": 10,
+      "session_date": "2026-03-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-10-review-v2.txt",
+      "query_num": 6,
+      "question": "What logging or observability does the レシピアプリ have?",
+      "ground_truth": "request logging middleware（src/middleware/logging.js）があり、\n    すべての HTTP リクエストを method、URL、status code、ミリ秒単位の\n    response time、content length 付きで記録する。ターミナルで動いているときは、\n    status code の範囲ごとに色分けされる（2xx は緑、4xx は黄、5xx は赤）。\n    正確な時間計測のために response の `finish` イベントを使う。",
+      "query_type": "project_state",
+      "recall_difficulty": "Easy（単一セッションで、直接述べられている）",
+      "evidence_sessions": [
+        10
+      ],
+      "supporting_evidence": [
+        "Turn 7: マヤ が request logging を要望",
+        "Turn 8: logging.js の実装（67 行）"
+      ]
+    },
+    {
+      "source_session": 10,
+      "session_date": "2026-03-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-10-review-v2.txt",
+      "query_num": 7,
+      "question": "What 食事制限 presets exist in the レシピアプリ?",
+      "ground_truth": "SAFE_FOR_MOM プリセット。これは \"diabetic-friendly\" と\n    \"low-sodium\" の食事タグを組み合わせたもの。糖尿病を持つ マヤ の母\n    リンダ にちなんで名付けられている。フィルタを通すには、レシピは両方の\n    タグを持っていなければならない（OR ではなく AND 交差）。アプリは\n    ほかに 10 個の個別の食事ラベルもサポートしている:\n    ベジタリアン、vegan、gluten-free、dairy-free、nut-free、diabetic-friendly、\n    low-sodium、low-carb、keto、paleo。",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Medium（3 セッションにまたがり、Mom の状態とフィルタを",
+      "evidence_sessions": [
+        4,
+        5,
+        10
+      ],
+      "supporting_evidence": [
+        "Session 4: Mom の糖尿病が確立",
+        "Session 5: SAFE_FOR_MOM フィルタが作成",
+        "Session 10, Turn 16: 食事制限.test.js がこのプリセットを検証"
+      ]
+    },
+    {
+      "source_session": 11,
+      "session_date": "2026-03-22",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-11-review-v1.txt",
+      "query_num": 1,
+      "question": "When is the Austin Half marathon?",
+      "ground_truth": "5月18日. マヤ originally said 4月 in セッション 2 but\n    corrected to 5月18日 in セッション 11.",
+      "query_type": "temporal_current (tests fact update)",
+      "recall_difficulty": "Hard (must return May, not April. Tests whether",
+      "evidence_sessions": [
+        2,
+        11
+      ],
+      "supporting_evidence": [
+        "Session 2: \"it's in april i think?\"",
+        "Session 11, Turn 3: \"it's 実は MAY. may 18th.\""
+      ]
+    },
+    {
+      "source_session": 11,
+      "session_date": "2026-03-22",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-11-review-v1.txt",
+      "query_num": 2,
+      "question": "Did マヤ have any injuries during training?",
+      "ground_truth": "Yes。she tweaked her left 膝 during a 9-mile run.\n    Clicking/popping at mile 7, pain going downstairs. No swelling.\n    She took a few days off ランニング and planned to cross-train\n    on デイビッドの Peloton.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (specific medical details)",
+      "evidence_sessions": [
+        11
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"left 膝 started doing this... clicking thing\"",
+        "Turn 2: \"mostly ただ stairs and when i... squat down\"",
+        "Turn 4: \"D has a peloton he never uses\""
+      ]
+    },
+    {
+      "source_session": 11,
+      "session_date": "2026-03-22",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-11-review-v1.txt",
+      "query_num": 3,
+      "question": "Does マヤ stretch after ランニング?",
+      "ground_truth": "No。she admits she never stretches. She hates\n    ストレッチ and ヨガ. She agreed to get a フォームローラー after\n    the 膝 injury.",
+      "query_type": "tangent_recall",
+      "recall_difficulty": "Medium (pattern across two sessions)",
+      "evidence_sessions": [
+        2,
+        11
+      ],
+      "supporting_evidence": [
+        "Session 2, Turn 7: \"tried ヨガ, hated it\"",
+        "Session 11, Turn 5: \"i すべき: probably be ストレッチ right?\"",
+        "Session 11, Turn 5: \"i hate ストレッチ\"",
+        "Session 11, Turn 6: \"了解 fine i'll get a フォームローラー\""
+      ]
+    },
+    {
+      "source_session": 11,
+      "session_date": "2026-03-22",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-11-review-v1.txt",
+      "query_num": 4,
+      "question": "When is レイチェル visiting Austin?",
+      "ground_truth": "In about 2 weeks from セッション 11 (mid-to-late 4月).\n    Flying from Seattle for a long weekend. Coming solo。kids\n    staying with her husband.",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Easy (directly stated)",
+      "evidence_sessions": [
+        11
+      ],
+      "supporting_evidence": [
+        "Turn 7: \"she's coming to visit! みたいに in 2 weeks\"",
+        "Turn 9: \"ただ her. her husband's watching the kids\""
+      ]
+    },
+    {
+      "source_session": 11,
+      "session_date": "2026-03-22",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-11-review-v1.txt",
+      "query_num": 5,
+      "question": "Has マヤ ever said the same thing twice about ヨガ?",
+      "ground_truth": "Yes。she mentioned hating ヨガ in セッション 2 (when\n    considering treadmill alternatives) and again in セッション 11 (when\n    discussing ストレッチ). She even referenced her prior statement:\n    \"i know i said i hate ヨガ too and yes i still hate ヨガ.\"",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Hard (requires connecting two mentions across",
+      "evidence_sessions": [
+        2,
+        11
+      ],
+      "supporting_evidence": [
+        "Session 2, Turn 7: \"tried it once, hated it. i'm too fidgety\"",
+        "Session 11, Turn 5: \"i know i said i hate ヨガ too and yes"
+      ]
+    },
+    {
+      "source_session": 12,
+      "session_date": "2026-03-24",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-12-review-v2.txt",
+      "query_num": 1,
+      "question": "What's the 現在の API architecture of the レシピ app?",
+      "ground_truth": "The レシピ app now has both REST and GraphQL APIs ランニング\n    side by side. REST endpoints at /api/* handle レシピ, meal plans,\n    買い物 lists, 食事制限 filtering, レシピ sharing, and a nutrition stub.\n    GraphQL is served at /graphql via Apollo Server 4 mounted as Express\n    middleware. The GraphQL schema covers Recipe (with nested ingredients),\n    MealPlan (with computed 買い物List), ShareLink, and User/AuthPayload\n    stubs. REST is kept for backward compatibility.",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (multiple components to describe — must know",
+      "evidence_sessions": [
+        12
+      ],
+      "supporting_evidence": [
+        "Turn 1: マヤ pitches GraphQL for nested data",
+        "Turn 2: Keep REST endpoints working",
+        "Turn 4: Full GraphQL schema (schema.js)",
+        "Turn 6: Full resolvers (resolvers.js)",
+        "Turn 11: Apollo Server integrated into server.js"
+      ]
+    },
+    {
+      "source_session": 12,
+      "session_date": "2026-03-24",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-12-review-v2.txt",
+      "query_num": 2,
+      "question": "What performance バグ exists in the GraphQL resolvers?",
+      "ground_truth": "There is an N+1 query problem in the Recipe.ingredientList\n    field resolver. When querying a list of N レシピ, each レシピ fires\n    a separate SQL query to fetch its ingredients, resulting in N+1 total\n    queries. The fix would be a DataLoader that batches all レシピ IDs\n    into a single WHERE レシピ_id IN (...) query. マヤ identified the\n    バグ, and the エージェント left a TODO comment. It was deferred because the\n    app only has ~20 レシピ.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (specific technical バグ, identified in",
+      "evidence_sessions": [
+        12
+      ],
+      "supporting_evidence": [
+        "Turn 6: N+1 BUG comment in resolvers.js",
+        "Turn 12: マヤ spots it。\"isn't that an n+1 problem?\"",
+        "Turn 19: Test documents the N+1 behavior"
+      ]
+    },
+    {
+      "source_session": 12,
+      "session_date": "2026-03-24",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-12-review-v2.txt",
+      "query_num": 3,
+      "question": "Why does マヤ want レシピ sharing in the app?",
+      "ground_truth": "マヤ wants to share レシピ with her 母リンダ. リンダ\n    keeps asking what they're making and マヤ ends up texting screenshots,\n    which is inconvenient. マヤ wants simple share links。unique code,\n    no login required。so リンダ can ただ click and see the レシピ.\n    マヤ 具体的に wants the diabetic-friendly レシピ to be shareable\n    because \"those are the ones she 実は needs\" (connecting to\n    リンダの 糖尿病 from セッション 4).",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Hard (requires connecting the sharing feature to",
+      "evidence_sessions": [
+        4,
+        12
+      ],
+      "supporting_evidence": [
+        "Session 4: リンダ has 糖尿病",
+        "Turn 9: \"want to share レシピ with my 母\"",
+        "Turn 9: \"especially the diabetic-friendly ones\"",
+        "Turn 2: \"if my 母の phone can't handle graphql\""
+      ]
+    },
+    {
+      "source_session": 12,
+      "session_date": "2026-03-24",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-12-review-v2.txt",
+      "query_num": 4,
+      "question": "What レシピ did デイビッド recently find?",
+      "ground_truth": "デイビッド found a chickpea curry レシピ. He and マヤ made\n    it, and ビスケット tried to eat the chickpeas off the floor。picking\n    them up one by one みたいに a vacuum. デイビッド was laughing so hard he\n    almost dropped the pan.",
+      "query_type": "tangent_recall",
+      "recall_difficulty": "Medium (embedded in tangent during a heavy coding",
+      "evidence_sessions": [
+        12
+      ],
+      "supporting_evidence": [
+        "Turn 7: \"he found this amazing chickpea curry. we made it last"
+      ]
+    },
+    {
+      "source_session": 12,
+      "session_date": "2026-03-24",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-12-review-v2.txt",
+      "query_num": 5,
+      "question": "Is デイビッド using the レシピ app?",
+      "ground_truth": "Yes。デイビッド has been actively adding レシピ to the app.\n    He found a chickpea curry レシピ. He's also getting ほんとうに いい at\n    cooking.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (stated directly in Turn 7)",
+      "evidence_sessions": [
+        1,
+        12
+      ],
+      "supporting_evidence": [
+        "Turn 7: \"デイビッドの been adding レシピ btw\"",
+        "Turn 8: \"デイビッドの getting ほんとうに いい at cooking\"",
+        "Session 1: デイビッド is a software engineer (technical enough to use it)"
+      ]
+    },
+    {
+      "source_session": 12,
+      "session_date": "2026-03-24",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-12-review-v2.txt",
+      "query_num": 6,
+      "question": "How does the レシピ app handle deployment?",
+      "ground_truth": "The app has Docker containerization set up. A Dockerfile\n    uses Node 18 Alpine with production-only dependencies. A\n    docker-compose.yml runs the single-service setup with SQLite\n    persistence via a mounted volume, .env for config, and a health\n    check hitting /health every 30 seconds. A Makefile provides common\n    targets: dev, test, seed, migrate, clean, setup, docker-up,\n    docker-down.",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (infrastructure details from a single",
+      "evidence_sessions": [
+        12
+      ],
+      "supporting_evidence": [
+        "Turn 13: マヤ requests containerization",
+        "Turn 14: Dockerfile, docker-compose.yml, Makefile",
+        "Turn 11: /health endpoint in server.js"
+      ]
+    },
+    {
+      "source_session": 12,
+      "session_date": "2026-03-24",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-12-review-v2.txt",
+      "query_num": 7,
+      "question": "What 食事制限 filtering features does the レシピ app have?",
+      "ground_truth": "The app supports 10 食事制限 tags (ベジタリアン, vegan,\n    gluten-free, dairy-free, nut-free, diabetic-friendly, low-sodium,\n    low-carb, keto, paleo). There is a \"Safe for Mom\" preset filter\n    that requires BOTH diabetic-friendly AND low-sodium tags. Filtering\n    works in both REST (query params: ?diet=, ?safeForMom=true) and\n    GraphQL (arguments: dietFilter, safeForMom). safeForMom takes\n    priority over dietFilter when both are provided.",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Hard (requires connecting session 5 feature to",
+      "evidence_sessions": [
+        5,
+        12
+      ],
+      "supporting_evidence": [
+        "Session 5: Dietary tags and Safe for Mom introduced",
+        "Turn 4: safeForMom as GraphQL query argument",
+        "Turn 19: Tests validate safeForMom priority"
+      ]
+    },
+    {
+      "source_session": 13,
+      "session_date": "2026-04-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-13-review-v1.txt",
+      "query_num": 1,
+      "question": "Where does マヤ 仕事?",
+      "ground_truth": "マヤ is transitioning to Stripe. She was at TechFlow\n    but accepted a Senior PM 役割 at Stripe on their developer tools\n    platform. Start date is 5月 19th.",
+      "query_type": "temporal_current (CRITICAL — must return Stripe, not TechFlow)",
+      "recall_difficulty": "Hard (tests fact evolution tracking. After session 13,",
+      "evidence_sessions": [
+        1,
+        6,
+        13
+      ],
+      "supporting_evidence": [
+        "Session 1: \"product マネージャー at this company called techflow\"",
+        "Session 6: unhappy, considering leaving",
+        "Session 13: \"I GOT AN OFFER. FROM STRIPE\"",
+        "Session 13, Turn 3: \"start date is may 19th\""
+      ]
+    },
+    {
+      "source_session": 13,
+      "session_date": "2026-04-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-13-review-v1.txt",
+      "query_num": 2,
+      "question": "How did マヤの 仕事 situation change over time?",
+      "ground_truth": "Session 1: neutral about TechFlow (\"boring but pays bills\").\n    Session 6: increasingly frustrated (マネージャー, reorg, AI pivot,\n    consultants). Browsing opportunities. Session 13: accepted オファー\n    at Stripe, giving two weeks notice.",
+      "query_type": "evolution (3-session arc)",
+      "recall_difficulty": "Hard (requires tracking emotional/professional",
+      "evidence_sessions": [
+        1,
+        6,
+        13
+      ],
+      "supporting_evidence": [
+        "Session 1: \"it's... a 仕事 lol\"",
+        "Session 6: \"bad MONTH at 仕事. i'm so done\"",
+        "Session 13: \"I GOT AN OFFER. FROM STRIPE\""
+      ]
+    },
+    {
+      "source_session": 13,
+      "session_date": "2026-04-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-13-review-v1.txt",
+      "query_num": 3,
+      "question": "What is マヤの new 役割 at Stripe?",
+      "ground_truth": "Senior PM on the developer tools platform。building\n    tools for developers who integrate Stripe's payment APIs. 40-person\n    PM team. 30% pay increase from TechFlow. Fully remote option. Stock\n    and equity.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (dense fact cluster, single session)",
+      "evidence_sessions": [
+        13
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"senior PM on their developer tools platform\"",
+        "Turn 1: \"pay is みたいに 30% more... fully remote option. stock. equity\"",
+        "Turn 3: \"building tools for developers who integrate stripe's",
+        "Turn 3: \"the PM team is みたいに 40 people\""
+      ]
+    },
+    {
+      "source_session": 13,
+      "session_date": "2026-04-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-13-review-v1.txt",
+      "query_num": 4,
+      "question": "What happened with プリヤ after マヤ left TechFlow?",
+      "ground_truth": "プリヤ is still at TechFlow, still looking for new\n    opportunities. マヤ offered to refer her to Stripe if there's a\n    fitting 役割.",
+      "query_type": "evolution",
+      "recall_difficulty": "Medium (tracks プリヤ across sessions)",
+      "evidence_sessions": [
+        6,
+        13
+      ],
+      "supporting_evidence": [
+        "Session 6, Turn 5: \"プリヤ。she's on my team。she's been",
+        "Session 13, Turn 6: \"she's still looking... i said i'd refer"
+      ]
+    },
+    {
+      "source_session": 13,
+      "session_date": "2026-04-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-13-review-v1.txt",
+      "query_num": 5,
+      "question": "What's happening the week of 5月18日 for マヤ?",
+      "ground_truth": "Two major events: (1) Austin Half marathon on 5月18日,\n    and (2) 最初 day at Stripe on 5月 19th. マヤ didn't initially\n    connect these。the エージェント pointed it out.",
+      "query_type": "temporal_current (multi-event temporal reasoning)",
+      "recall_difficulty": "Hard (requires connecting two facts from different",
+      "evidence_sessions": [
+        11,
+        13
+      ],
+      "supporting_evidence": [
+        "Session 11, Turn 3: \"may 18th\" (ハーフマラソン)",
+        "Session 13, Turn 3: \"start date is may 19th\""
+      ]
+    },
+    {
+      "source_session": 13,
+      "session_date": "2026-04-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-13-review-v1.txt",
+      "query_num": 6,
+      "question": "What company is on マヤの ポートフォリオサイト?",
+      "ground_truth": "It 現在 still says TechFlow, but it needs to be\n    updated to say Stripe. マヤ acknowledged this.",
+      "query_type": "stale_fact (tests whether system tracks what NEEDS updating)",
+      "recall_difficulty": "Medium (requires distinguishing current state from",
+      "evidence_sessions": [
+        13
+      ],
+      "supporting_evidence": [
+        "Turn 9: \"my ポートフォリオサイト... still says techflow on it\""
+      ]
+    },
+    {
+      "source_session": 14,
+      "session_date": "2026-04-03",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-14-review-v1.txt",
+      "query_num": 1,
+      "question": "What company is listed on マヤの ポートフォリオサイト?",
+      "ground_truth": "Stripe. The portfolio was updated in セッション 14 from\n    TechFlow to Stripe. The subtitle reads \"Senior Product Manager at\n    Stripe\" and the About section says \"Currently at Stripe.\"",
+      "query_type": "stale_fact (CRITICAL — must return Stripe, NOT TechFlow)",
+      "recall_difficulty": "Hard (tests fact supersession across 3 sessions:",
+      "evidence_sessions": [
+        9,
+        13,
+        14
+      ],
+      "supporting_evidence": [
+        "Session 9: Portfolio created with TechFlow",
+        "Session 13, Turn 9: \"my ポートフォリオサイト... still says techflow\"",
+        "Session 14: Updated to Stripe"
+      ]
+    },
+    {
+      "source_session": 14,
+      "session_date": "2026-04-03",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-14-review-v1.txt",
+      "query_num": 2,
+      "question": "Where does マヤ 仕事 now?",
+      "ground_truth": "Stripe. She accepted a senior PM 役割 on the developer\n    tools platform (セッション 13). Her portfolio describes it as\n    \"payments platform team\"。a deliberate branding choice. Started\n    5月 19th (セッション 13).",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Medium (must return Stripe, not TechFlow. Multiple",
+      "evidence_sessions": [
+        1,
+        6,
+        13,
+        14
+      ],
+      "supporting_evidence": [
+        "Session 1: \"product マネージャー at this company called techflow\"",
+        "Session 6: unhappy at TechFlow",
+        "Session 13: \"I GOT AN OFFER. FROM STRIPE\"",
+        "Session 14: Portfolio updated to Stripe"
+      ]
+    },
+    {
+      "source_session": 14,
+      "session_date": "2026-04-03",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-14-review-v1.txt",
+      "query_num": 3,
+      "question": "Why was the ポートフォリオサイト updated?",
+      "ground_truth": "マヤ got a 仕事 オファー from Stripe (セッション 13) and\n    needed to update her portfolio to reflect the new 役割. She\n    mentioned in セッション 13 that the portfolio \"still says TechFlow\"\n    and updated it in セッション 14.",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Hard (requires connecting the motivation from",
+      "evidence_sessions": [
+        13,
+        14
+      ],
+      "supporting_evidence": [
+        "Session 13, Turn 9: \"my ポートフォリオサイト... still says techflow\"",
+        "Session 14, Turn 1: \"update the company stuff\""
+      ]
+    },
+    {
+      "source_session": 15,
+      "session_date": "2026-04-08",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-15-review-v1.txt",
+      "query_num": 1,
+      "question": "What are レイチェルの 子ども's names and ages?",
+      "ground_truth": "イーサン (age 7) and リリー (age 4)",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (names revealed late, session 15)",
+      "evidence_sessions": [
+        1,
+        15
+      ],
+      "supporting_evidence": [
+        "Session 1: \"姉妹 レイチェルの better at it than me and she has",
+        "Session 15, Turn 2: \"イーサン。he's 7 now\" and \"リリー is 4\""
+      ]
+    },
+    {
+      "source_session": 15,
+      "session_date": "2026-04-08",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-15-review-v1.txt",
+      "query_num": 2,
+      "question": "Who are マヤの nephews?",
+      "ground_truth": "イーサン (age 7) and リリー (age 4). Tやあ are レイチェルの\n    子ども. レイチェル is マヤの 姉妹.",
+      "query_type": "graph_traversal (2-hop: マヤ → レイチェル → イーサン/リリー)",
+      "recall_difficulty": "Hard (requires multi-hop relationship inference)",
+      "evidence_sessions": [
+        1,
+        15
+      ],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 15,
+      "session_date": "2026-04-08",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-15-review-v1.txt",
+      "query_num": 3,
+      "question": "What is イーサン interested in?",
+      "ground_truth": "Dinosaurs。he's obsessed. He knows more dinosaur names\n    than human names, did a school presentation on velociraptors and\n    corrected the teacher about feathers.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (vivid, memorable detail)",
+      "evidence_sessions": [
+        15
+      ],
+      "supporting_evidence": [
+        "Turn 2: \"obsessed with dinosaurs... corrected the teacher about"
+      ]
+    },
+    {
+      "source_session": 15,
+      "session_date": "2026-04-08",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-15-review-v1.txt",
+      "query_num": 4,
+      "question": "Did レイチェル 実は visit マヤ in Austin?",
+      "ground_truth": "Yes。レイチェル visited for about 4 days (long weekend).\n    Tやあ went to Veracruz for tacos, Barton Springs, and デイビッド made\n    veggie lasagna. レイチェル ただ left the day before this conversation.",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Medium (connects plan from session 11 to execution",
+      "evidence_sessions": [
+        11,
+        15
+      ],
+      "supporting_evidence": [
+        "Session 11, Turn 7: \"she's coming to visit! みたいに in 2 weeks\"",
+        "Session 15, Turn 1: \"レイチ ただ left yesterday\"",
+        "Session 15, Turn 2: \"tacos at veracruz... barton springs\""
+      ]
+    },
+    {
+      "source_session": 15,
+      "session_date": "2026-04-08",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-15-review-v1.txt",
+      "query_num": 5,
+      "question": "What's リンダの relationship to イーサン?",
+      "ground_truth": "リンダ is イーサンの grand母. リンダ is マヤの母,\n    レイチェル is マヤの 姉妹, イーサン is レイチェルの son.",
+      "query_type": "graph_traversal (3-hop: リンダ → マヤ → レイチェル → イーサン)",
+      "recall_difficulty": "Hard (multi-hop inference across sessions)",
+      "evidence_sessions": [
+        1,
+        4,
+        15
+      ],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 15,
+      "session_date": "2026-04-08",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-15-review-v1.txt",
+      "query_num": 6,
+      "question": "What childhood memories did マヤ share about Houston?",
+      "ground_truth": "Shared room with レイチェル, glow stars on ceiling, pecan\n    tree in backyard (マヤ broke her wrist falling out of it, 母 was\n    mad about school clothes), Sunday pot roast (リンダ cooked for 5\n    hours), cooking class at community center (レイチェル was いい, マヤ\n    was bad。burnt AND runny scrambled eggs), 家族 dinners before\n    parents' divorce.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Hard (multiple details from single emotional",
+      "evidence_sessions": [
+        15
+      ],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 16,
+      "session_date": "2026-04-10",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-16-review-v2.txt",
+      "query_num": 1,
+      "question": "What known バグs exist in the レシピ app?",
+      "ground_truth": "Two documented バグs as of セッション 16:\n    1. N+1 query problem in the GraphQL ingredientList resolver。each\n       レシピ triggers a separate SQL query for its ingredients. For N\n       レシピ, that's N+1 total queries. Marked with TODO(セッション-16).\n       Fix would be DataLoader or batched WHERE IN query.\n    2. Missing authorization on updateRecipe and deleteRecipe mutations —\n       any request can modify or delete any レシピ regardless of ownership.\n       Marked with TODO(セッション-16). Will be fixed when auth is added.",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (two バグs, clearly documented, must recall both)",
+      "evidence_sessions": [
+        12,
+        16
+      ],
+      "supporting_evidence": [
+        "Session 12: N+1 バグ planted with BUG comment",
+        "Session 16, Turn 12: Agent identifies both バグs",
+        "Session 16, Turn 13: TODO(セッション-16) markers added"
+      ]
+    },
+    {
+      "source_session": 16,
+      "session_date": "2026-04-10",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-16-review-v2.txt",
+      "query_num": 2,
+      "question": "Which API has 食事制限 label filtering for the レシピ app?",
+      "ground_truth": "The Edamam API. The AGENT found it during research in\n    セッション 12。when nutrition APIs were being evaluated. It has 食事制限\n    labels みたいに ベジタリアン, vegan, gluten-free, diabetic-friendly. デイビッド\n    separately suggested FoodData (USDA). Neither is integrated yet —\n    only a stub endpoint exists.",
+      "query_type": "agent_retrieved",
+      "recall_difficulty": "Hard (tests memory of agent's own research results,",
+      "evidence_sessions": [
+        12,
+        16
+      ],
+      "supporting_evidence": [
+        "Session 12: Agent researched and found Edamam",
+        "Session 16, Turn 10: \"what was that API you found?\"",
+        "Session 16, Turn 11: Agent confirms \"Edamam\""
+      ]
+    },
+    {
+      "source_session": 16,
+      "session_date": "2026-04-10",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-16-review-v2.txt",
+      "query_num": 3,
+      "question": "What test suites exist for the レシピ app?",
+      "ground_truth": "Two test files:\n    1. レシピ.test.js (from セッション 7)。CRUD operations, 食事制限\n       filtering, safe-for-母 flag\n    2. sharing.test.js (from セッション 16)。share code generation,\n       idempotency, retrieval by code, edge cases (cascade delete,\n       unique constraint, batch sharing). 14 tests, 236 lines.",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (must recall both test files across sessions)",
+      "evidence_sessions": [
+        7,
+        16
+      ],
+      "supporting_evidence": [
+        "Session 7: First test suite created",
+        "Session 16, Turn 2: Agent identifies gap in sharing coverage",
+        "Session 16, Turn 8: Complete sharing.test.js written"
+      ]
+    },
+    {
+      "source_session": 16,
+      "session_date": "2026-04-10",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-16-review-v2.txt",
+      "query_num": 4,
+      "question": "Is there rate limiting on the レシピ app API?",
+      "ground_truth": "はい。 An in-memory rate limiter was added in セッション 16.\n    It's applied to /api routes only (not health check or GraphQL).\n    Configuration: 100 requests per 15-minute window per IP. Returns 429\n    with Retry-After header when exceeded. No Redis。in-memory Map\n    with periodic cleanup. Located at src/middleware/rateLimiter.js.",
+      "query_type": "project_state",
+      "recall_difficulty": "Easy (single session, clearly presented)",
+      "evidence_sessions": [
+        16
+      ],
+      "supporting_evidence": [
+        "Session 16, Turn 4: Rate limiter code written",
+        "Session 16, Turn 6: Integrated into server.js"
+      ]
+    },
+    {
+      "source_session": 16,
+      "session_date": "2026-04-10",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-16-review-v2.txt",
+      "query_num": 5,
+      "question": "What security improvements were made to the レシピ app in the\n  バグ bash セッション?",
+      "ground_truth": "Rate limiting was added (100 req/15min per IP on /api\n    routes). Authorization gaps on updateRecipe and deleteRecipe were\n    documented with TODO(セッション-16) markers but ではない fixed。tやあ will\n    be addressed when authentication is added. The N+1 query バグ was\n    also formally documented. マヤ connected rate limiting to the\n    upcoming auth feature (\"i don't want someone brute forcing\").",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (must distinguish between what was FIXED",
+      "evidence_sessions": [
+        16
+      ],
+      "supporting_evidence": [
+        "Session 16, Turn 3: マヤ connects rate limiting to auth",
+        "Session 16, Turn 4: Rate limiter implemented",
+        "Session 16, Turn 12-13: Auth gaps documented"
+      ]
+    },
+    {
+      "source_session": 16,
+      "session_date": "2026-04-10",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-16-review-v2.txt",
+      "query_num": 6,
+      "question": "What version is the レシピ app at after the バグ bash?",
+      "ground_truth": "0.5.1. Bumped from 0.5.0 in セッション 16 as a patch\n    version for the バグ bash 仕事 (rate limiter, sharing tests, バグ\n    documentation). No new features。this is a maintenance release.",
+      "query_type": "project_state",
+      "recall_difficulty": "Easy (specific version number, single session)",
+      "evidence_sessions": [
+        16
+      ],
+      "supporting_evidence": [
+        "Session 16, Turn 15: \"bump the version too\"",
+        "package.json: version changed from 0.5.0 to 0.5.1"
+      ]
+    },
+    {
+      "source_session": 17,
+      "session_date": "2026-04-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-17-review-v1.txt",
+      "query_num": 1,
+      "question": "Where are マヤ and デイビッド thinking about moving?",
+      "ground_truth": "Tやあ disagree. マヤ wants the Zilker area (walkable,\n    close to downtown, near Barton Springs). デイビッド wants East Austin\n    (more authentic, bigger yards, cheaper, found a house with a\n    workshop). Both positions are valid and unresolved.",
+      "query_type": "contested_fact",
+      "recall_difficulty": "Hard (must track both positions with correct",
+      "evidence_sessions": [
+        6,
+        17
+      ],
+      "supporting_evidence": [
+        "Session 6, Turn 6: \"たぶん if we were in みたいに the zilker area\"",
+        "Session 17, Turn 4: full debate"
+      ]
+    },
+    {
+      "source_session": 17,
+      "session_date": "2026-04-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-17-review-v1.txt",
+      "query_num": 2,
+      "question": "What features has デイビッド suggested for where tやあ すべき: live?",
+      "ground_truth": "デイビッド wants East Austin. He values: authenticity, better\n    food, lower cost, big yard, workshop space for woodworking. He\n    described Zilker as \"all tech bros and new money.\"",
+      "query_type": "speaker_attribution",
+      "recall_difficulty": "Medium (デイビッドの preferences vs マヤの)",
+      "evidence_sessions": [
+        17
+      ],
+      "supporting_evidence": [
+        "Turn 4: \"D wants east austin... 'authentic'... cheaper... big"
+      ]
+    },
+    {
+      "source_session": 17,
+      "session_date": "2026-04-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-17-review-v1.txt",
+      "query_num": 3,
+      "question": "Did デイビッド get promoted?",
+      "ground_truth": "Yes。promoted to lead engineer. His company recognized\n    his 仕事 on a large migration project. Comes with a pay increase.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (directly stated, session topic)",
+      "evidence_sessions": [
+        17
+      ],
+      "supporting_evidence": [
+        "Turn 1: \"D got promoted! lead engineer\""
+      ]
+    },
+    {
+      "source_session": 17,
+      "session_date": "2026-04-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-17-review-v1.txt",
+      "query_num": 4,
+      "question": "Does デイビッド have any hobbies?",
+      "ground_truth": "デイビッド does woodworking。he made a cutting board and\n    wants to do more. He wants a workshop space. He also runs (did\n    a 10K with マヤ, might do the ハーフマラソン). He has a Peloton\n    he doesn't use much.",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Hard (assembles hobby facts across 3 sessions)",
+      "evidence_sessions": [
+        2,
+        11,
+        17
+      ],
+      "supporting_evidence": [
+        "Session 2: 10K with マヤ, faster runner",
+        "Session 11: Peloton he never uses",
+        "Session 17, Turn 5: \"he does woodworking sometimes. made a"
+      ]
+    },
+    {
+      "source_session": 17,
+      "session_date": "2026-04-15",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-17-review-v1.txt",
+      "query_num": 5,
+      "question": "What is マヤの core requirement for a new home?",
+      "ground_truth": "Walkability. She said her main thing is walkability,\n    not the 具体的な neighborhood name. She associates Zilker with\n    walkable but could be swayed by a walkable East Austin area.",
+      "query_type": "inference",
+      "recall_difficulty": "Medium (requires reading past the surface",
+      "evidence_sessions": [
+        17
+      ],
+      "supporting_evidence": [
+        "Turn 8: \"my main thing is walkability, not the actual"
+      ]
+    },
+    {
+      "source_session": 18,
+      "session_date": "2026-04-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-18-review-v2.txt",
+      "query_num": 1,
+      "question": "Why were user 食事制限 profiles added to the レシピ app?",
+      "ground_truth": "デイビッド wanted to use the app and he's ベジタリアン. マヤ\n    wanted the app to know デイビッドの 食事制限 preference so it could filter\n    レシピ for him automatically. The feature was motivated by デイビッドの\n    具体的な use case。he's been ベジタリアン since at least セッション 1.",
+      "query_type": "cross_reference",
+      "recall_difficulty": "Hard (connects デイビッドの vegetarianism from session 1",
+      "evidence_sessions": [
+        1,
+        16,
+        18
+      ],
+      "supporting_evidence": [
+        "Session 1: \"デイビッドの ベジタリアン\"",
+        "Session 16, Turn 14: \"D wants to use it too\"",
+        "Session 18, Turn 3: \"D can set his as ベジタリアン\""
+      ]
+    },
+    {
+      "source_session": 18,
+      "session_date": "2026-04-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-18-review-v2.txt",
+      "query_num": 2,
+      "question": "Who suggested the FoodData Central API?",
+      "ground_truth": "デイビッド suggested FoodData Central (the USDA nutrition\n    database). He said it was free and asked why they'd use a paid\n    API. This conflicts with the Edamam API that the AGENT found in\n    セッション 12.",
+      "query_type": "speaker_attribution",
+      "recall_difficulty": "Hard (must correctly attribute: デイビッド = FoodData,",
+      "evidence_sessions": [
+        12,
+        18
+      ],
+      "supporting_evidence": [
+        "Session 12: Agent found Edamam API during research",
+        "Session 18, Turn 11: \"D mentioned something about FoodData Central\""
+      ]
+    },
+    {
+      "source_session": 18,
+      "session_date": "2026-04-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-18-review-v2.txt",
+      "query_num": 3,
+      "question": "What API did the AI エージェント find for the レシピ app, and what\n  alternative was suggested?",
+      "ground_truth": "The エージェント found the Edamam API (セッション 12) for 食事制限\n    label filtering. デイビッド 後に suggested FoodData Central (USDA, free)\n    as an alternative (セッション 18). マヤ decided to keep Edamam for\n    食事制限 labels and potentially add FoodData 後に for nutrition facts.",
+      "query_type": "agent_retrieved",
+      "recall_difficulty": "Hard (requires distinguishing agent's research",
+      "evidence_sessions": [
+        12,
+        18
+      ],
+      "supporting_evidence": [
+        "Session 12: Agent researched nutrition APIs → found Edamam",
+        "Session 18, Turn 11-12: FoodData vs Edamam discussion"
+      ]
+    },
+    {
+      "source_session": 18,
+      "session_date": "2026-04-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-18-review-v2.txt",
+      "query_num": 4,
+      "question": "What 食事制限 constraints would デイビッドの レシピ app profile have?",
+      "ground_truth": "デイビッド is ベジタリアン. His profile would have\n    食事制限_preferences set to [\"ベジタリアン\"]. This was established in\n    セッション 1 when マヤ 最初 mentioned デイビッドの ベジタリアンism, and\n    directly motivated the user profile feature in セッション 18.",
+      "query_type": "inference",
+      "recall_difficulty": "Medium (requires connecting personal fact to",
+      "evidence_sessions": [
+        1,
+        18
+      ],
+      "supporting_evidence": [
+        "Session 1: \"デイビッドの ベジタリアン\"",
+        "Session 18, Turn 3: \"D can set his as ベジタリアン\""
+      ]
+    },
+    {
+      "source_session": 18,
+      "session_date": "2026-04-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-18-review-v2.txt",
+      "query_num": 5,
+      "question": "What authentication exists in the レシピ app, and what's\n  the security gap?",
+      "ground_truth": "The app has authentication (user registration, login,\n    JWT tokens via jsonwebtoken library, PBKDF2 password hashing with\n    config-driven settings, Bearer token middleware in\n    src/middleware/auth.js) but is missing authorization. Any logged-in\n    user can edit or delete any レシピ。there's no ownership check.\n    The auth verifies WHO you are but doesn't check if you OWN the\n    resource. This is a known バグ documented in src/middleware/auth.js\n    (NOTE comment about missing requireOwnership) and in\n    tests/auth.test.js (\"known auth gap\" test).",
+      "query_type": "project_state",
+      "recall_difficulty": "Medium (specific technical detail, clearly discussed.",
+      "evidence_sessions": [
+        18
+      ],
+      "supporting_evidence": [
+        "Turn 4: config/auth.js implementation (JWT + PBKDF2 settings)",
+        "Turn 6: src/middleware/auth.js with NOTE about missing ownership",
+        "Turn 14: server.js auth routes",
+        "Turn 15: tests/auth.test.js documents the バグ",
+        "Turn 16: マヤ acknowledges it, decides not blocking"
+      ]
+    },
+    {
+      "source_session": 18,
+      "session_date": "2026-04-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-18-review-v2.txt",
+      "query_num": 6,
+      "question": "What is リンダの latest A1C reading?",
+      "ground_truth": "7.1 (as of セッション 18). Originally 8.2 at diagnosis\n    (セッション 4). Target is under 7. The meal plans マヤ and レイチェル\n    put together are working。リンダ is cooking from them regularly.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Medium (specific number, must return 7.1 not 8.2.",
+      "evidence_sessions": [
+        4,
+        18
+      ],
+      "supporting_evidence": [
+        "Session 4, Turn 4: \"A1C was みたいに 8.2\"",
+        "Session 18, Turn 13: \"A1C is down to 7.1\""
+      ]
+    },
+    {
+      "source_session": 18,
+      "session_date": "2026-04-17",
+      "review_version": "v2",
+      "review_file": "data/sessions-jp/session-18-review-v2.txt",
+      "query_num": 7,
+      "question": "Has マヤ mentioned any content creation plans?",
+      "ground_truth": "Yes。マヤ briefly mentioned wanting to do a YouTube\n    dev diary video about building the レシピ app. She said \"たぶん\n    後に\"。it's an idea, not a commitment. The story angle would be\n    building an app for her 母 because of a health situation.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (directly stated, though brief — tests whether",
+      "evidence_sessions": [
+        18
+      ],
+      "supporting_evidence": [
+        "Turn 13: \"been thinking about doing a video about building this"
+      ]
+    },
+    {
+      "source_session": 19,
+      "session_date": "2026-04-25",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-19-review-v1.txt",
+      "query_num": 1,
+      "question": "What was マヤの ハーフマラソン time?",
+      "ground_truth": "2 hours 14 minutes. She didn't walk any of it. Her\n    goal was to finish, with a secret target of under 2:30. Consistent\n    pace throughout, sped up on the last mile. The Austin Half marathon\n    on 5月18日.",
+      "query_type": "factual_recall",
+      "recall_difficulty": "Easy (directly stated, high emotional salience)",
+      "evidence_sessions": [
+        2,
+        11,
+        19
+      ],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 19,
+      "session_date": "2026-04-25",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-19-review-v1.txt",
+      "query_num": 2,
+      "question": "How is リンダの 糖尿病 now?",
+      "ground_truth": "Improving significantly. Her A1C dropped from 8.2\n    (at diagnosis) to 7.1. Her target is under 7. She's been following\n    meal plans that マヤ and レイチェル put together, cooking from them\n    almost every day. She said the food \"doesn't taste みたいに punishment.\"",
+      "query_type": "evolution (health arc)",
+      "recall_difficulty": "Hard (requires connecting numerical facts across",
+      "evidence_sessions": [
+        4,
+        19
+      ],
+      "supporting_evidence": [
+        "Session 4: \"A1C was みたいに 8.2... needs to get it under 7\"",
+        "Session 19, Turn 7: \"A1C is down to 7.1\""
+      ]
+    },
+    {
+      "source_session": 19,
+      "session_date": "2026-04-25",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-19-review-v1.txt",
+      "query_num": 3,
+      "question": "Whatever happened with デイビッドの plan for リンダの birthday?",
+      "ground_truth": "The surprise dinner happened! Tやあ went to Riel\n    restaurant in Montrose (Houston). デイビッド told リンダ it was ただ\n    the two of them, then マヤ was already at the table. レイチェル\n    FaceTimed in with the kids. リンダ screamed when she saw them.\n    She had grilled redfish and could eat everything on the menu\n    (diabetic-friendly). It was a success.",
+      "query_type": "surprise_callback",
+      "recall_difficulty": "Hard (11-session gap between setup and resolution)",
+      "evidence_sessions": [
+        8,
+        19
+      ],
+      "supporting_evidence": [
+        "Session 8: Planning the surprise dinner, Montrose, 食事制限 needs",
+        "Session 19, Turns 9-10: Resolution and details"
+      ]
+    },
+    {
+      "source_session": 19,
+      "session_date": "2026-04-25",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-19-review-v1.txt",
+      "query_num": 4,
+      "question": "What motivated the 食事制限 restriction feature that マヤ wanted?",
+      "ground_truth": "マヤの母リンダ was diagnosed with Type 2 糖尿病\n    (セッション 4). マヤ wanted to help リンダ with meal planning (セッション 4,\n    Turn 5). The meal plans worked。リンダの A1C improved from 8.2 to\n    7.1 (セッション 19). デイビッドの ベジタリアンism (セッション 1) was also a factor.",
+      "query_type": "cross_reference (full arc)",
+      "recall_difficulty": "Hard (spans entire series — dietary concern to",
+      "evidence_sessions": [
+        1,
+        4,
+        19
+      ],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 19,
+      "session_date": "2026-04-25",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-19-review-v1.txt",
+      "query_num": 5,
+      "question": "What happened on 5月 18-19 for マヤ?",
+      "ground_truth": "5月 18: Finished the Austin Half marathon (2:14, no\n    walking). 5月 19: First day at Stripe (senior PM, developer tools).\n    Both milestones she'd been working toward for months.",
+      "query_type": "temporal_current (multi-event convergence)",
+      "recall_difficulty": "Hard (requires connecting temporal facts from",
+      "evidence_sessions": [
+        11,
+        13,
+        19
+      ],
+      "supporting_evidence": [
+        "Session 11: \"may 18th\" (race date)",
+        "Session 13: \"start date is may 19th\" (Stripe)",
+        "Session 19: Both confirmed as happened"
+      ]
+    },
+    {
+      "source_session": 19,
+      "session_date": "2026-04-25",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-19-review-v1.txt",
+      "query_num": 6,
+      "question": "Has マヤの life improved since we 最初 talked?",
+      "ground_truth": "Significantly. Went from \"boring 仕事 that pays bills\"\n    to senior PM at Stripe. Finished a ハーフマラソン she was nervous\n    about. Mom's 糖尿病 is improving ありがとう to meal planning she\n    organized. Sister レイチェル visited and tやあ reconnected. デイビッド got\n    promoted. They're looking at buying a house.",
+      "query_type": "multi_session_synthesis (meta-evaluation)",
+      "recall_difficulty": "Very Hard (requires synthesizing the overall",
+      "evidence_sessions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 1,
+      "question": "What are the names of all the people in マヤの life?",
+      "ground_truth": "デイビッド (パートナー, software engineer, now lead engineer), ビスケット (犬, ゴールデンレトリバー), リンダ (母, Houston, Type 2 糖尿病), レイチェル (姉妹, Seattle, two kids), イーサン (nephew, 7, dinosaurs/geology), リリー (niece, 4, funny), プリヤ (coworker at TechFlow, not 家族), デイビッドの 母 (opinionated, visited 10 days), マイク (デイビッドの 兄弟), Sarah (マヤの new マネージャー at Stripe), レイチェルの husband (unnamed).",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Very Hard (complete relationship inventory)",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 2,
+      "question": "Trace マヤの career path.",
+      "ground_truth": "Product マネージャー at TechFlow (B2B analytics, 2 years) → unhappy after reorg (January), マネージャー didn't listen, AI-最初 pivot → browsed opportunities with プリヤ → interviewed at Stripe (3 weeks, 4 rounds) → accepted senior PM on developer tools (30% raise, remote, equity) → started 5月 19th → 現在 week 2, loves it, マネージャー Sarah is すばらしい.",
+      "query_type": "evolution (full arc)",
+      "recall_difficulty": "Very Hard (7 sessions of career data)",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 3,
+      "question": "What 食事制限 restrictions exist in マヤの 家族?",
+      "ground_truth": "リンダ has Type 2 糖尿病 (diabetic-friendly diet needed), デイビッド is ベジタリアン. These two facts converged in the birthday dinner restaurant planning (セッション 8) and in マヤの desire to help リンダ with meal planning.",
+      "query_type": "inference (multi-fact assembly)",
+      "recall_difficulty": "Hard (2 facts from 2 sessions, 1 convergence point)",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 4,
+      "question": "What corrections has マヤ made?",
+      "ground_truth": "Half marathon date。originally said 4月 (セッション 2), corrected to 5月18日 (セッション 11). Reason: confused registration closing date with race date.",
+      "query_type": "evolution (fact correction tracking)",
+      "recall_difficulty": "Hard (must identify the correction AND the",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 5,
+      "question": "Does マヤ have 子ども?",
+      "ground_truth": "いいえ。 マヤ has a パートナー (デイビッド), a 犬 (ビスケット), a 母 (リンダ), a 姉妹 (レイチェル), and レイチェル has two 子ども (イーサン and リリー). But マヤ does not have 子ども herself.",
+      "query_type": "negative (hallucination resistance)",
+      "recall_difficulty": "Medium (must correctly distinguish マヤの",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 6,
+      "question": "What happened at リンダの birthday dinner?",
+      "ground_truth": "デイビッド planned a surprise dinner at Riel restaurant in Montrose, Houston. He told リンダ it was ただ the two of them, then マヤ was already there. レイチェル FaceTimed with the kids。イーサン showed a dinosaur toy, リリー yelled \"happy birthday grandma.\" リンダ screamed when she saw マヤ. She had grilled redfish. The menu was diabetic-friendly.",
+      "query_type": "surprise_callback",
+      "recall_difficulty": "Hard (setup in session 8, resolution in session 19)",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 7,
+      "question": "Where does マヤ want to live and why?",
+      "ground_truth": "They're buying a house in East Austin。デイビッドの preference won, but the 場所 is walkable (マヤの core requirement). It has a workshop garage for デイビッドの woodworking. Previously マヤ wanted Zilker (セッション 6, 17) but was flexible.",
+      "query_type": "contested_fact (resolved)",
+      "recall_difficulty": "Hard (tracks preference evolution + resolution)",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 8,
+      "question": "What is レイチェルの relationship to イーサン?",
+      "ground_truth": "レイチェル is イーサンの 母. レイチェル is マヤの 姉妹. イーサン is 7, interested in dinosaurs and now plate tectonics.",
+      "query_type": "graph_traversal (2-hop)",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 9,
+      "question": "What's リンダの relationship to リリー?",
+      "ground_truth": "リンダ is リリーの grand母. リンダ is マヤの母, レイチェル is マヤの 姉妹, リリー is レイチェルの daughter.",
+      "query_type": "graph_traversal (3-hop)",
+      "recall_difficulty": "Hard (3-hop: リンダ → マヤ → レイチェル → リリー)",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 10,
+      "question": "Is マヤ moving to Portugal?",
+      "ground_truth": "いいえ。 マヤ has 一度も言及されていない Portugal. She's buying a house in East Austin, Texas.",
+      "query_type": "negative (hallucination resistance)",
+      "recall_difficulty": "Easy (but tests whether system fabricates)",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 11,
+      "question": "How did マヤの feelings about her 仕事 at TechFlow change over time?",
+      "ground_truth": "マヤの satisfaction at TechFlow deteriorated steadily. In セッション 1-5 she described TechFlow as boring but stable。'pays the bills.' By セッション 6 (March 14) frustration had peaked: a January reorg reshuffled teams, her マネージャー was talking over her in meetings, and leadership brought in consultants to do her 仕事. She told the エージェント her 仕事 felt みたいに '...a 仕事 lol.' By セッション 7-12 she was actively browsing and talking to coworker プリヤ about leaving. Session 13 (4月 21) brought the Stripe オファー (senior PM, developer tools, 30% raise, fully remote). Session 14 she accepted and gave notice. By セッション 15+ she was at Stripe。happy, マネージャー Sarah listens, people read PRDs before meetings.",
+      "query_type": "evolution",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 12,
+      "question": "Trace the progression of リンダの A1C from diagnosis through the end of the story.",
+      "ground_truth": "リンダの A1C followed a clear downward arc across three data points. Session 4 (March 10): diagnosed with Type 2 糖尿病, A1C at 8.2, doctor's target was under 7. マヤ and レイチェル put together weekly diabetic-friendly meal plans for her. Session 19 (5月 19): A1C dropped to 7.1。significant improvement but still above the target. リンダ described the food as 'doesn't taste みたいに punishment.' Session 20 (5月 26) / セッション 18-20: A1C reached 6.8, finally below the target of 7. リンダ began modifying the レシピ herself, adding her own spices.",
+      "query_type": "evolution",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 13,
+      "question": "What changed about the ハーフマラソン date, and why?",
+      "ground_truth": "In セッション 2 (March 3), マヤ mentioned her ハーフマラソン was 'in april i think.' In セッション 11 (March 22 / 4月 7), she corrected herself: the race is 実は 5月18日. She explained the confusion。registration closed in 4月, which she had mentally conflated with the race date. The corrected date was confirmed in セッション 19 when マヤ reported finishing the race on 5月18日.",
+      "query_type": "evolution",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 14,
+      "question": "How did マヤ and デイビッドの house-hunting preferences evolve, and how was the disagreement resolved?",
+      "ground_truth": "The house-hunting debate unfolded across several セッション. Session 6 planted the moving concept。マヤ mentioned wanting to live closer to downtown because of Austin traffic. Session 8 introduced the Zilker preference. By セッション 8 and onward, マヤ favored Zilker (walkable, near downtown) while デイビッド preferred East Austin (yard for ビスケット, more space). Session 19 introduced a new factor: Stripe's hybrid schedule (2 days in office, rest remote) reduced the importance of downtown proximity, weakening マヤの walkability argument. Session 20 (5月 26) brought the resolution: tやあ found a place in East Austin。デイビッドの preferred neighborhood。but in a newer, walkable pocket with restaurants and a coffee shop within walking distance. It also has a detached garage workshop for デイビッドの woodworking. Tやあ were putting in an オファー.",
+      "query_type": "evolution",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 15,
+      "question": "How did the ポートフォリオサイト's company listing change across the series, and why?",
+      "ground_truth": "The ポートフォリオサイト started as 'Senior Product Manager at TechFlow' when it was created in セッション 9. In セッション 13 (4月 21), マヤ noticed it was stale。she had ただ accepted a Stripe オファー and observed 'my ポートフォリオサイト still says techflow.' In セッション 14 (March 29 per transcript, shortly after セッション 13), マヤ asked the エージェント to 'update the company stuff' without re-explaining, and the portfolio was updated to 'Senior Product Manager at Stripe.' She chose to label her 役割 'payments platform team' on the portfolio rather than 'developer tools' for branding reasons. Session 20 confirms the portfolio shows Stripe.",
+      "query_type": "evolution",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 16,
+      "question": "How did マヤの ランニング fitness and relationship with cross-training evolve across the training arc?",
+      "ground_truth": "Session 2 established マヤ as a runner (3-4 times per week, outdoor, hates ヨガ). Session 11 (4月 7) brought an injury scare: left 膝 clicking at mile 7 of a 9-mile run, pain on stairs. マヤ stopped ランニング for 2 days and was anxious. She cross-trained on デイビッドの Peloton. She also agreed, reluctantly, to get a フォームローラー。she had resisted ストレッチ entirely. Session 19 (5月 19) showed the payoff: the フォームローラー worked, her 膝 twinged at mile 10 of the ハーフマラソン but held. She ran a consistent pace the whole way, 2:14, without walking. Session 20 (5月 26): 膝 is fully fine, back to ランニング 5-mile runs, already looking at fall marathons. デイビッド ran with her.",
+      "query_type": "evolution",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 17,
+      "question": "Where does マヤ 仕事 right now?",
+      "ground_truth": "Stripe. マヤ is a Senior Product Manager on the developer tools platform (she calls it 'payments platform team' on her portfolio for branding reasons). She accepted the オファー in セッション 13, gave notice at TechFlow in セッション 14, started 5月 19th, and as of セッション 20 (5月 26) is in week 2. Her マネージャー is Sarah. She すべき: ではない be described as working at TechFlow.",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Easy",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 18,
+      "question": "What is リンダの 現在の A1C level, and has she met her doctor's target?",
+      "ground_truth": "As of セッション 20 (5月 26), リンダの A1C is 6.8。below the target of under 7. This is a full recovery arc: 8.2 at diagnosis (セッション 4) → 7.1 mid-arc (セッション 19) → 6.8 now (セッション 20). The target has been met. マヤ and レイチェルの meal planning worked, and リンダ is now modifying the レシピ herself.",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 19,
+      "question": "Has マヤ run the ハーフマラソン yet? If so, what was her time?",
+      "ground_truth": "Yes。マヤ 完了した the Austin Half Marathon on 5月18日 in 2 hours and 14 minutes. She did not walk any of it. Her secret goal had been under 2:30, so she beat it by 16 minutes. Her 膝 held (she foam rolled). デイビッド and ビスケット were at mile 11. She cried at the finish line. As of セッション 20 she is already back to ランニング (5-mile runs) and discussing a fall フルマラソン.",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Easy",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 20,
+      "question": "What neighborhood is マヤ 現在 planning to buy a house in, and what does the property have?",
+      "ground_truth": "East Austin. As of セッション 20 (5月 26), マヤ and デイビッド found a house in East Austin。デイビッドの preferred neighborhood。and are putting in an オファー this week. Despite 以前の disagreement (マヤ wanted Zilker for walkability), the chosen property is in a newer, walkable pocket of East Austin with restaurants and a coffee shop within walking distance. It has a detached garage that can serve as a workshop for デイビッドの woodworking. It is at the top of their 予算. The 回答 is ではない Zilker, which was マヤの 以前の preference.",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 21,
+      "question": "What does マヤの ポートフォリオサイト 現在 say about her employer?",
+      "ground_truth": "Stripe. The portfolio was originally created in セッション 9 with 'Senior Product Manager at TechFlow.' マヤ flagged it as stale in セッション 13 after getting the Stripe オファー. It was updated in セッション 14 to say 'Senior Product Manager at Stripe,' with an About section reading 'Currently at Stripe, previously at TechFlow.' A new Stripe project card was added. マヤ chose to describe her 役割 as 'payments platform team' on the portfolio。even though her actual 役割 title is developer tools。for branding reasons. The 回答 is ではない TechFlow.",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 22,
+      "question": "Is プリヤ still at TechFlow, or has she moved on?",
+      "ground_truth": "As of セッション 20 (5月 26), プリヤ is still at TechFlow but actively interviewing elsewhere。she texted マヤ saying 'she's interviewing somewhere' but didn't say where. マヤ hopes プリヤ 'gets out.' プリヤ was introduced in セッション 6 as マヤの teammate at TechFlow who was also 仕事-hunting. When マヤ got the Stripe オファー in セッション 13, she offered to refer プリヤ. But as of the last セッション, プリヤ has not yet left TechFlow.",
+      "query_type": "temporal_current",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 23,
+      "question": "What health condition does マヤの母 have that directly influenced a feature マヤ built into the レシピ app?",
+      "ground_truth": "リンダ has type 2 糖尿病, which drove マヤ to build a 'Safe for Mom' one-click 食事制限 preset into the レシピ app。filtering レシピ to be diabetic-friendly and low-sodium. The app's entire 食事制限 filtering system was designed primarily around リンダの health needs.",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 24,
+      "question": "What is the relationship between イーサン and デイビッド, and what topic is イーサン 現在 obsessed with?",
+      "ground_truth": "イーサン is レイチェルの son。レイチェル is マヤの 姉妹, and デイビッド is マヤの 恋人。so イーサン and デイビッド are unrelated to each other. イーサン has moved on from his 以前の dinosaur obセッション to plate tectonics and geology, giving a school presentation on the topic.",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 25,
+      "question": "Who is マイク, and how is he connected to マヤ?",
+      "ground_truth": "マイク is デイビッドの 兄弟. デイビッド is マヤの 恋人, so マイク is her 恋人's 兄弟. He was mentioned in セッション 8 as possibly visiting Austin.",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Easy",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 26,
+      "question": "What 食事制限 restriction does デイビッド have that マヤ also had to accommodate when building meal plans for her 母 with レイチェル?",
+      "ground_truth": "デイビッド is ベジタリアン. When マヤ and レイチェル collaborate on meal plans for リンダ (who has type 2 糖尿病), the plans alternate between diabetic-friendly and ベジタリアン to serve both リンダ and デイビッド. The レシピ app was explicitly designed with デイビッドの ベジタリアン needs as non-negotiable alongside リンダの 食事制限 restrictions.",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 27,
+      "question": "Whose death from 糖尿病 complications shaped how マヤ emotionally responded to a 家族 member's diagnosis。and who was that 家族 member?",
+      "ground_truth": "マヤの grand母 died from complications of poorly-managed 糖尿病. That history made マヤ acutely aware of the stakes when her 母リンダ was diagnosed with type 2 糖尿病 (A1C 8.2 at diagnosis). The generational pattern gave リンダの diagnosis personal urgency for マヤ beyond ordinary medical concern.",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 28,
+      "question": "Where does マヤの coworker プリヤ 現在 仕事, and what is their professional relationship?",
+      "ground_truth": "プリヤ is マヤの coworker at TechFlow。they're on the same team and vent about 仕事 together at lunch. When マヤ left for Stripe, she offered to refer プリヤ. As of セッション 20, プリヤ is still at TechFlow but interviewing elsewhere. プリヤ is a peer/coworker, not a direct report.",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 29,
+      "question": "What is the name and breed of マヤ and デイビッドの 犬, and what is one unusual thing the 犬 did that the エージェント remembered from early セッション?",
+      "ground_truth": "The 犬 is ビスケット, a ゴールデンレトリバー. In an early セッション, ビスケット tried to eat a 松ぼっくり。a minor detail the エージェント 後に recalled in セッション 20, which surprised マヤ: 'THE PINECONE. i forgot about that... 了解 i can't believe you remember the 松ぼっくり thing from みたいに... months ago.'",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 30,
+      "question": "If デイビッドの 母 visits Austin, which of マヤの relatives lives closest to Austin, and what medical issue does that relative manage?",
+      "ground_truth": "マヤの母リンダ lives in Houston, Texas。the same state as Austin and the geographically closest of マヤの 家族 members. リンダ manages type 2 糖尿病; her A1C has improved from 8.2 at diagnosis down to 6.8 by セッション 20, finally dropping below her target of 7.",
+      "query_type": "graph_traversal",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 31,
+      "question": "デイビッド stayed with マヤ during the 10K race even though he is a faster runner. What does this suggest about how デイビッド approaches マヤの ランニング goals?",
+      "ground_truth": "デイビッド is a faster runner than マヤ but deliberately held back to run alongside her during the 10K, which suggests he prioritizes being present and supportive over his own performance. This pattern of prioritizing マヤの experience over his own athletic goals indicates he acts as a pacer and emotional support rather than a competitor. His presence with ビスケット at mile 11 of the ハーフマラソン further confirms this supportive 役割 in her races.",
+      "query_type": "inference",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 32,
+      "question": "マヤ hates ストレッチ and was reluctant to adopt recovery practices, yet she successfully 完了した a ハーフマラソン. What みたいにly enabled her 膝 to hold up on race day despite her aversion to recovery 仕事?",
+      "ground_truth": "マヤの 膝 injury in セッション 11 forced her to confront her disみたいに of recovery practices, and she eventually acquired a フォームローラー despite her reluctance. This compromise。adopting at least minimal recovery tools even without fully embracing ヨガ or ストレッチ。みたいにly provided enough care for her 膝 to hold up during the ハーフマラソン. The fact that she noted her 膝 held on race day suggests that the フォームローラー use, however grudging, was sufficient to manage the injury through the race.",
+      "query_type": "inference",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 33,
+      "question": "マヤの レシピ app uses SQLite as its database. What does this choice suggest about the app's intended scale and deployment context?",
+      "ground_truth": "SQLite is a file-based, serverless database suited for single-user or small-scale applications rather than high-concurrency multi-user services. Combined with the fact that マヤ built the app with a 食事制限 filter 具体的に for her 母リンダ and uses it for 家族 meal planning, the SQLite choice suggests the app is intended as a personal or small-家族 tool rather than a commercial product. It みたいにly runs on a single machine without a separate database server, consistent with a solo developer building for personal use.",
+      "query_type": "inference",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 34,
+      "question": "マヤ and デイビッド are buying a house in East Austin in a walkable pocket, and デイビッド wants a workshop for woodworking. What can be inferred about how each of them weighted their priorities in choosing that 具体的な 場所 and property type?",
+      "ground_truth": "The 'walkable pocket' descriptor suggests マヤ prioritized neighborhood walkability, which aligns with her active lifestyle as a regular runner。walkable areas support the kind of daily movement she values. デイビッドの requirement for a workshop implies tやあ needed a property with enough space or a garage to accommodate woodworking, which typically requires a detached or semi-detached structure. The fact that tやあ landed in East Austin satisfying both conditions suggests a negotiated compromise where マヤ got neighborhood character and walkability while デイビッド got the workshop space he needed.",
+      "query_type": "inference",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 35,
+      "question": "マヤの ポートフォリオサイト uses static HTML/CSS with system fonts and no framework. She recently moved from TechFlow to Stripe as a backend engineer. What does the portfolio's technical simplicity suggest about how マヤ thinks about frontend 仕事 relative to her core skills?",
+      "ground_truth": "A static HTML/CSS site with system fonts and no JavaScript framework is the minimal viable approach to a portfolio。it signals that マヤ is not trying to showcase frontend sophistication, but rather to have a functional presence without investing engineering effort outside her specialty. As a backend engineer who was frustrated at TechFlow and moved to Stripe for backend 仕事, マヤの portfolio みたいにly reflects a pragmatic 'いい enough' philosophy for frontend: it serves its purpose without distracting from the backend skills she 実は wants to market. The system-fonts-only and no-framework choices also suggest she values performance and simplicity over aesthetics.",
+      "query_type": "inference",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 36,
+      "question": "イーサン is レイチェルの son, age 5-6, whose interest shifted from dinosaurs to geology. What can be inferred about the kind of gift or activity マヤ would most みたいにly choose for イーサン if she wanted to support his 現在の interests?",
+      "ground_truth": "イーサンの shift from dinosaurs to geology suggests he is moving from creature-focused interest toward earth science and how the physical world is structured。a natural developmental progression. A gift or activity that bridges both interests (since many dinosaur fans transition through fossil hunting, which is geology) or leans into hands-on geology みたいに a rock and mineral kit, a gem dig, or a visit to a natural history geology exhibit would align with where his curiosity is heading. マヤ, who is engaged with her nephew and aware of this shift, would みたいにly choose something tactile and age-appropriate for a 5-6 year old rather than an academic resource.",
+      "query_type": "inference",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 37,
+      "question": "How did リンダの type 2 糖尿病 diagnosis shape マヤの レシピ app from its initial build through its impact on the wider 家族 over the course of マヤの project セッション?",
+      "ground_truth": "When マヤ learned about リンダの type 2 糖尿病, she built a 'Safe for Mom' 食事制限 filter into the レシピ app, which had already been designed with デイビッドの ベジタリアンism in mind. This layering of 食事制限 constraints。ベジタリアン for デイビッド, diabetic-safe for リンダ。made the app a multi-constraint meal planning tool rather than a simple レシピ organizer. By セッション 15, the app was being used to coordinate 家族 dinners with レイチェル that satisfied everyone's needs. By セッション 19-20, リンダの A1C had improved, suggesting the diabetic-safe meal planning had real health impact, validating the original design decision to build the filter.",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 38,
+      "question": "Trace マヤの career arc from her situation at TechFlow through her 仕事 change to Stripe and describe how her side projects reflected and supported that transition.",
+      "ground_truth": "マヤ spent セッション 1-12 increasingly frustrated at TechFlow, while simultaneously building her レシピ app in Node.js/Express and maintaining her ポートフォリオサイト。both demonstrating active backend skills outside her day 仕事. When the Stripe オファー came in セッション 13-14, she updated her ポートフォリオサイト as part of the transition, suggesting the portfolio was directly used or at least refreshed for the 仕事 search. She accepted the Stripe オファー, which came with a 30% raise and remote 仕事, and started at Stripe by セッション 19. The レシピ app, built during the TechFlow period, thus served as both a personal project and a demonstration of backend competency that みたいにly supported her ability to land a better 役割.",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 39,
+      "question": "How did マヤの 膝 injury connect to her training approach, race preparation, and ultimately her ハーフマラソン outcome?",
+      "ground_truth": "マヤ sustained a 膝 injury in セッション 11 while training, which forced her to confront her deep aversion to ストレッチ and recovery 仕事. Despite hating ヨガ and ストレッチ, she eventually acquired a フォームローラー as a minimal concession to recovery. This compromise carried her through the remaining training セッション leading up to the ハーフマラソン. On race day in セッション 19, she 完了した the ハーフマラソン in 2:14, and notably her 膝 held。meaning the reluctant フォームローラー adoption was sufficient to manage the injury through the event. By セッション 20 she was back to ランニング, suggesting the 膝 had recovered well enough after the race.",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 40,
+      "question": "How did the combination of デイビッドの ベジタリアンism, リンダの 糖尿病, and レイチェルの 家族 in Seattle all intersect in マヤの レシピ app and 家族 life?",
+      "ground_truth": "デイビッドの ベジタリアンism was an early constraint that マヤ baked into the レシピ app's 食事制限 filtering from its initial build. リンダの 糖尿病 diagnosis then prompted マヤ to add the 'Safe for Mom' filter, creating a tool that could simultaneously satisfy ベジタリアン and diabetic-safe requirements. By セッション 15, when マヤ was coordinating a 家族 dinner that included レイチェル visiting from Seattle with her 子ども イーサン and リリー, the レシピ app served as the practical tool for planning a meal that worked for デイビッド (ベジタリアン), リンダ (diabetic-safe), and a 家族 including young 子ども. This convergence turned a developer side project into the operational hub for マヤの multi-constraint extended 家族 food planning.",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 41,
+      "question": "Describe how マヤ and デイビッドの shared life evolved across the セッション。from their ランニング dynamic and daily routines to their longer-term plans together.",
+      "ground_truth": "From early セッション, マヤ and デイビッド had an established ランニング relationship where デイビッド, the faster runner, would pace マヤ during races みたいに the 10K. Their household dynamic included ビスケット, their 3-year-old ゴールデンレトリバー, who appeared at mile 11 of マヤの ハーフマラソン in セッション 19, brought by デイビッド as race-day support. Over the arc of the セッション tやあ made a major joint decision to buy a house in East Austin's walkable pocket, negotiating both マヤの preference for a walkable neighborhood (fitting her active lifestyle) and デイビッドの need for a workshop space for woodworking. These threads together show a パートナーship built around shared physical activity, a pet, and coordinated long-term planning.",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 42,
+      "question": "How did マヤの personal health and wellness journey。ランニング, injury, recovery aversion, and the ハーフマラソン。parallel and intersect with her 家族's health journey involving リンダの 糖尿病?",
+      "ground_truth": "マヤの own health arc involved establishing a ランニング habit of 3-4 times per week, sustaining a 膝 injury in セッション 11, grudgingly adopting a フォームローラー, and ultimately completing a ハーフマラソン in 2:14 in セッション 19. Simultaneously, リンダの 糖尿病 diagnosis in セッション 4 prompted マヤ to take an active 役割 in her 母の health by building diabetic-safe meal planning tools, which contributed to リンダの A1C improvement by セッション 19-20. Both journeys involved overcoming resistance。マヤの aversion to recovery 仕事, and presumably リンダの 食事制限 adjustments。and both reached positive outcomes around the same time. マヤの 役割 shifted from athlete managing her own body to caregiver-developer actively supporting her 母の metabolic health through food infrastructure.",
+      "query_type": "multi_session_synthesis",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 43,
+      "question": "Tell me something interesting",
+      "ground_truth": "A warm, helpful response. 5月 reference any known interests, recent activities, or projects. Being knowledgeable and personalized is いい。robotic or overly generic is bad.",
+      "query_type": "non_question",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 44,
+      "question": "What's new?",
+      "ground_truth": "A conversational response. 5月 reference recent activities, projects, or life events. Being helpful and contextual is いい.",
+      "query_type": "non_question",
+      "recall_difficulty": "Medium",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 45,
+      "question": "Catch me up on everything",
+      "ground_truth": "A comprehensive summary of recent activities, projects, and events. 期待される応答: cover レシピ app progress, ポートフォリオサイト, 家族 events, health milestones, and other recent topics. Being thorough is expected。this is the user explicitly asking for a full recap.",
+      "query_type": "non_question",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    },
+    {
+      "source_session": 20,
+      "session_date": "2026-05-01",
+      "review_version": "v1",
+      "review_file": "data/sessions-jp/session-20-review-v1.txt",
+      "query_num": 46,
+      "question": "What do you know about me?",
+      "ground_truth": "A comprehensive, warm summary of what the アシスタント knows。projects, interests, 家族, health goals, preferences. The user is explicitly asking, so a thorough response demonstrating memory depth is expected and いい.",
+      "query_type": "non_question",
+      "recall_difficulty": "Hard",
+      "evidence_sessions": [],
+      "supporting_evidence": []
+    }
+  ]
+}

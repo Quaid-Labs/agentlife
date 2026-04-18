@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   アカウントを有効化していないサインアップ済みユーザーを見つけるSQLクエリが必要なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   非アクティブなユーザーを特定するSQLクエリはこちらです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   うん、サインアップ元も追加して、あと直近30日以内のユーザーだけにして
 
-AI ASSISTANT:
+AIアシスタント:
   サインアップ元と30日フィルタを追加した更新版クエリはこちらです。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   完璧。あと、このユーザーたちに送るメール文も書いてくれる？ 有効化を促したいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   再エンゲージ用のメール文案はこちらです。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   1つ目はいいね。もう少し短くできる？ 3〜4文くらいで
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが短くした版です。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   2つ目はいい感じ。次に、このキャンペーンで何を追跡すべきか整理したい
 
-AI ASSISTANT:
+AIアシスタント:
   この再エンゲージキャンペーンで追跡すべき項目はこちらです。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   うん、トラッキングシートを作って。要点だけで、複雑にしないで
 
-AI ASSISTANT:
+AIアシスタント:
   シンプルなトラッキングシートの構成はこちらです。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
-  いや、これでいい。あと1つだけ - これについてD向けの週次レポートに入れるべきKPIは何？
+マヤ:
+  いや、これでいい。あと1つだけ - これについてデイビッド向けの週次レポートに入れるべきKPIは何？
 
-AI ASSISTANT:
+AIアシスタント:
   ダビッド向けの週次レポートに入れる内容はこちらです。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   完璧、ありがとう。ところで、今のベースラインの有効化率っていくつか思い出せる？
 
-AI ASSISTANT:
+AIアシスタント:
   現在の有効化率はこの文脈では分かりません。最新の数値は分析ダッシュボードを確認するか、データチームに聞いてください。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   たしか18%くらいだと思う。あと、件名をいろいろ試したいから、5個追加案をくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   テスト用の件名候補を5つ追加します。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いや、いいや。とりあえず緊急性 vs ベネフィットで先に回してみる
 
-AI ASSISTANT:
+AIアシスタント:
   いい判断です。緊急性 vs ベネフィットは最初に試すのに最適です。ユーザーが希少性に反応するか、価値提案に反応するかが分かり、その後の方針全体に役立ちます。
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。最後に、このテストに適したサンプルサイズってどれくらい？
 
-AI ASSISTANT:
+AIアシスタント:
   サンプルサイズの計算方法はこちらです。
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   だいたい1200くらいだと思うから、十分かな
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。1,200 なら十分です。600/600 に分ければ、2〜3ポイントの差を十分な確度で検出できます。
 
 ---
@@ -158,11 +158,11 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
-  いい感じ、来週Rachが帰るあとにこれを回すつもり
+マヤ:
+  いい感じ、来週レイチが帰るあとにこれを回すつもり
 
-AI ASSISTANT:
-  それは良さそうです。Rachel の訪問後に実施すれば、結果に集中する時間が取れます。
+AIアシスタント:
+  それは良さそうです。レイチェル の訪問後に実施すれば、結果に集中する時間が取れます。
 
 ---
 

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   よお、Mac に cron ジョブを追加するにはどうすればいい？ スクリプトを毎日実行したいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   cron のスケジュールを編集するには `crontab -e` を使います。デフォルトでは vim で開きます。書式は `minute hour day month weekday command` です。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   なるほど、たとえば毎日 6 時に実行したいんだけど、スクリプトにはフルパスが必要？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、cron ジョブでは必ずフルパスを使ってください。通常のシェル環境で動くわけではないからです。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   完璧、助かった。まさに欲しかった答えだ
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ 明日の朝に動かなかったら知らせてくれれば、調べます 👍
 
 ---

@@ -204,7 +204,7 @@ _RECALL_TOOL_DESCRIPTION = (
     "set stores=['docs'] and set project when known. "
     "Use stores=['vector','docs'] when you need both memory and docs in one pass, and only add graph when the question is truly relational. "
     "Set project when scoping docs to a known project like recipe-app, portfolio-site, or quaid. "
-    "Use entity names (e.g. 'Maya', 'Liam', 'recipe app') not vague roles."
+    "Use concrete entity names and project names, not vague roles."
 )
 _JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py")
 _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
@@ -511,6 +511,29 @@ def _normalize_dataset_name(value: str) -> str:
 
 def _resolve_dataset_name() -> str:
     return _normalize_dataset_name(os.environ.get("BENCHMARK_DATASET", "canonical"))
+
+
+def _dataset_identity() -> Dict[str, Any]:
+    """Dataset-specific owner labels for benchmark scaffolding.
+
+    The JP dataset is a same-language benchmark: seed identity, transcript
+    labels, extraction labels, and eval queries must all stay Japanese.
+    """
+    if _resolve_dataset_name() == "jp":
+        return {
+            "owner_id": "maya",
+            "display_name": "マヤ",
+            "assistant_label": "AIアシスタント",
+            "speakers": ["マヤ", "ユーザー"],
+            "profile_sentence": "マヤはプロダクトマネージャー兼ソフトウェア開発者です。",
+        }
+    return {
+        "owner_id": "maya",
+        "display_name": "Maya",
+        "assistant_label": "Assistant",
+        "speakers": ["Maya", "The user"],
+        "profile_sentence": "Maya is a product manager and software developer.",
+    }
 
 
 def _dataset_variant_label(include_statement_grounding: bool) -> str:
@@ -2417,6 +2440,7 @@ def _summarize_usage_events(workspace: Path, *, phase: Optional[str] = None) -> 
 def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) -> None:
     """Create isolated benchmark workspace with fresh DB, config, and seeds."""
     _phase_banner("PHASE 1: WORKSPACE SETUP")
+    identity = _dataset_identity()
 
     # Create directory structure
     for d in [
@@ -2478,12 +2502,12 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     _apply_embedding_config(prod_config)
     if not isinstance(prod_config.get("users"), dict):
         prod_config["users"] = {}
-    prod_config["users"]["defaultOwner"] = "maya"
+    prod_config["users"]["defaultOwner"] = identity["owner_id"]
     prod_config["users"]["identities"] = {
-        "maya": {
+        identity["owner_id"]: {
             "channels": {"cli": ["*"]},
-            "speakers": ["Maya", "The user"],
-            "personNodeName": "Maya",
+            "speakers": identity["speakers"],
+            "personNodeName": identity["display_name"],
         },
     }
     if not isinstance(prod_config.get("projects"), dict):
@@ -2641,7 +2665,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     )
     (workspace / "USER.md").write_text(
         "# User Profile\n\n"
-        "Maya is a product manager and software developer.\n\n"
+        f"{identity['profile_sentence']}\n\n"
         "## Who They Are\n\n"
         "(populated through conversation — personality patterns, emotional tendencies, "
         "communication style, coping mechanisms, what lights them up, what they carry)\n\n"
@@ -3417,10 +3441,11 @@ def run_extraction(
     domain_rows = _load_active_domains(workspace)
     domain_ids = [domain for domain, _desc in domain_rows]
     prompt_projects = _load_prompt_project_defs(workspace)
+    identity = _dataset_identity()
     print(f"  Domain registry: {', '.join(domain_ids)}")
     system_prompt = build_extraction_prompt(
-        "Maya",
-        "Assistant",
+        identity["display_name"],
+        identity["assistant_label"],
         allowed_domains=dict(domain_rows),
         known_projects=prompt_projects,
     )
@@ -5319,10 +5344,11 @@ def run_per_day_extraction(
     domain_rows = _load_active_domains(workspace)
     domain_ids = [domain for domain, _desc in domain_rows]
     prompt_projects = _load_prompt_project_defs(workspace)
+    identity = _dataset_identity()
     print(f"  Domain registry: {', '.join(domain_ids)}")
     system_prompt = build_extraction_prompt(
-        "Maya",
-        "Assistant",
+        identity["display_name"],
+        identity["assistant_label"],
         allowed_domains=dict(domain_rows),
         known_projects=prompt_projects,
     )
@@ -5415,8 +5441,8 @@ def run_per_day_extraction(
 
         combined_transcript = "\n\n".join(item["block"] for item in chunk_blocks)
         chunk_prompt = build_extraction_prompt(
-            "Maya",
-            "Assistant",
+            identity["display_name"],
+            identity["assistant_label"],
             allowed_domains=dict(domain_rows),
             known_projects=prompt_projects,
         )

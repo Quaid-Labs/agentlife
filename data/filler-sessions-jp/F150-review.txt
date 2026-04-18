@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   ねえ、アプリに recipe scaling calculator を追加してくれる？ たとえばレシピを2倍にしたら、材料を全部自動で調整してほしいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   できます！必要になるのは:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   うん、やろう。1.5x みたいな fractional scaling もちゃんと扱ってね
 
-AI ASSISTANT:
+AIアシスタント:
   servings を追加する migration はこれです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいけど、`2 1/2 cups` みたいな材料はどうする？ DB には decimal で保存するの、それとも string？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。DB には decimal (2.5) で保存しましょう。入力を parse する関数と、表示用の formatter を追加します:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   いいね。エンドポイントはどう？ `GET /recipes/:id/scale?servings=6` を考えてる
 
-AI ASSISTANT:
+AIアシスタント:
   完璧な route です！実装はこちら:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   でも servings が負の数とかゼロだったらどうなるの lol
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です！validation を追加します:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   完璧。scaling function の tests を書いてくれる？ 特に edge case を見たい
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが test suite です:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   テストを今すぐ走らせて
 
-AI ASSISTANT:
+AIアシスタント:
   ```bash
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   あ、`base_servings` は db schema では underscore が必要だけど、js では camelcase だよね。どこかで変換してる？
 
-AI ASSISTANT:
+AIアシスタント:
   そのとおりです！snake_case を camelCase に変換する必要があります。ヘルパーを追加します:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   じゃあ今テストを再実行して
 
-AI ASSISTANT:
+AIアシスタント:
   ```bash
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、確実に。1.5 cups は UI で "1 1/2 cups" と表示されるべきだよ
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが formatter です:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   1.33 はどうなるの？ 1.33 のままだと見た目が悪いよね
 
-AI ASSISTANT:
+AIアシスタント:
   いい点です。最も近い一般的な分数に丸めます:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、それで十分。response json に `formatted_quantity` フィールドとして入れられる？
 
-AI ASSISTANT:
+AIアシスタント:
   `scaleRecipe` 関数を更新しました:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   完璧。実際の request で試してみる？
 
-AI ASSISTANT:
+AIアシスタント:
   ```bash
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   そうそう、4.5 eggs は呪われてる感じだよね。ingredients に countable flag を追加しようか？
 
-AI ASSISTANT:
+AIアシスタント:
   schema とロジックに追加しました:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   うん、そのへんは後でやろう。ひとまずこれで十分、ありがとう！明日 UI で試してみるよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！変更はすべて `feature/recipe-scaling` ブランチに push しました。endpoint は `/recipes/:id/scale?servings=N` で live しています。
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ねえ、mobile で CSS が壊れてる。recipe card が全部重なってるんだけど lol
 
-AI ASSISTANT:
+AIアシスタント:
   card の style を見ます。スクリーンショットかページ名を教えてもらえますか？ CSS の media query を確認します。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   browse recipes ページだよ。iPhone で起きてて、card が変なふうに積まれて、画像の上にテキストが重なる
 
-AI ASSISTANT:
+AIアシスタント:
   見つけました。`.recipe-card` に mobile 向けの flexbox 制約が足りません。こう直してみてください:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   だいぶ良くなったけど、card の画像がまだ大きすぎる。mobile で全然高さが足りてない感じ
 
-AI ASSISTANT:
+AIアシスタント:
   画像には aspect-ratio の制御が必要です。image style を更新してください:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   完璧！ あと meal type の簡単な filter dropdown も付けてくれる？ breakfast/lunch/dinner みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。browse page の HTML にこれを追加してください:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ちょっと待って、api の db に meal_type まだないんだ。column 追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。migration file `migrations/003_add_meal_type.sql` を作成します:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   実行中... あれ、「SQLITE_ERROR: near "DEFAULT": syntax error」って出た
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、SQLite は `ALTER TABLE` の `DEFAULT` をサポートしていません。代わりにこれを使ってください:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   直った！ ありがと。今 filter を試してる
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ filter がちゃんと動くといいです。recipes が増えても index が速さを保ってくれるはずです。
 
 ---

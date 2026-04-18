@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
+マヤ:
   仕事でこの新機能の PRD を書かないといけないんだけど、正直どう構成すればいいのか全然わからなくて。どんなセクションを入れるべき？
 
-AI ASSISTANT:
+AIアシスタント:
   しっかりした PRD の構成を整理するね。入れるべき内容はこんな感じ：
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   新しい決済最適化のやつなんだ。支払いの段階での離脱を減らしたくて。今は離脱率が 18% くらいで、かなりきつい
 
-AI ASSISTANT:
+AIアシスタント:
   なるほど、それはかなり重めの課題だね。あなたの決済最適化向けに合わせた PRD のたたき台はこんな構成だよ：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね、続けて。これすごく助かる。あと、これを測るためにどんなデータを追う必要があるかも入れてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。PRD を続けるね：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   お願い！ あとリスクについてのセクションも入れてくれる？ 上司がいつもそこを聞いてくるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   了解。次のセクションだよ：
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   それもやって。あと、簡単な競合分析も入れられる？ Shopify と Amazon はかなり洗練された決済フローを持ってるよね
 
-AI ASSISTANT:
+AIアシスタント:
   どうぞ：
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   これはほんと助かる。もうひとつだけ。目標セクションを、ちゃんと測定可能に書くにはどうしたらいい？ 上司が曖昧な目標をすごく嫌うんだ
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。曖昧な目標は PRD を台無しにする。外せない形にするにはこう書くといい：
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね。最後にほんとこれだけ。PRD にモックアップを入れるべき？ それとも Figma にリンクするべき？
 
-AI ASSISTANT:
+AIアシスタント:
   ベストプラクティスはこうだよ：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   うん、すごく助かる。明日からドラフトを書き始めるよ。ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。明日ドラフトを書くときのための簡単なチェックリストをまとめるね：
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   了解！ たぶん先に目標セクションを送ると思う。うちの上司、指標にはかなり厳しいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   なるほど、賢い進め方だね。目標は PRD が一番崩れやすいところだから、穴を突かれないように準備しておこう：
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ほんと、いつもよりかなり準備できてる感じがする。今からその指標を拾ってくるよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいね、それが狙いだよ。分析データベースにアクセスできるなら、その指標を取るための簡単な SQL を置いておくね：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   クエリを実行したよ。数字は良さそう。離脱率は実際には 18% じゃなくて 18.7% だったけど、まあほぼ同じかな。明日の朝にまとめるつもり
 
-AI ASSISTANT:
+AIアシスタント:
   完璧。18.7% のほうがむしろ話を作りやすいね。問題が大きいほど、改善余地も大きいから。明日に向けた一言のヒントを置いておくよ：
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、ありがとう。これで PRD の書き方にかなり自信が持てたよ
 
-AI ASSISTANT:
+AIアシスタント:
   それはよかった。PRD は難しそうに見えるけど、実際は構造化されたストーリーなんだ：
 
 ---

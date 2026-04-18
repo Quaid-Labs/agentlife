@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   ねえ、レシピアプリに履歴機能を追加するのを手伝ってくれる？ レシピをいつ編集したかと、何が変わったかをユーザーが見られるようにしたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ `recipe_versions` テーブルを追加して変更を追跡する必要があります。マイグレーションはこちらです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。毎回保存すべき？ それとも特定のフィールドが変わったときだけ？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問です。title、ingredients、instructions が変わったときだけ保存するのがいいでしょう。更新エンドポイントはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   試してるんだけど、まだ編集されていないレシピを更新すると `TypeError: Cannot read properties of null (reading 'title')` が出る
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、`old` はレシピが存在しないと null かもしれません。チェックを追加しましょう:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   直った、ありがとう！ ユーザーにバージョン履歴をどう見せればいい？ レシピの全バージョンを返す GET エンドポイントみたいな感じで
 
-AI ASSISTANT:
+AIアシスタント:
   こちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。バージョン間の diff を表示したい場合は？ 何が実際に変わったかハイライトする感じ
 
-AI ASSISTANT:
+AIアシスタント:
   diff ライブラリが必要です。`diff` をインストールしてください:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   テストファイルなのに `Cannot find module 'diff'` が出るんだけど、インストールしたのに
 
-AI ASSISTANT:
+AIアシスタント:
   テスト用の dev dependency としてインストールする必要があります:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   あ、`npm install` を間違ったディレクトリでやってた笑。今は動くけど、diff の出力がちょっと読みにくい。オブジェクトがずらっと並ぶだけ
 
-AI ASSISTANT:
+AIアシスタント:
   そうです。`diffWords` と `diffLines` は change オブジェクトの配列を返します。各要素には `value`、`added`、`removed` プロパティがあります。フロントエンド側で描画する必要があります。出力例はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いや、わかった。復元機能を追加できる？ バージョンをクリックしてレシピをその状態に戻す感じ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん、復元エンドポイントを追加しましょう:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   待って、それって復元前に現在のバージョンを保存するよね？ 失いたくないから
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです。復元前に現在の状態をスナップショットするので、いつでも戻せます。復元するたびに新しいバージョンが作成されるので、完全な監査ログになります。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   完璧。これのテストってどう書くの？ たとえば restore エンドポイントの Jest テスト
 
-AI ASSISTANT:
+AIアシスタント:
   こちらがテストです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   これを実行すると `Error: connect ECONNREFUSED 127.0.0.1:3000` が出る
 
-AI ASSISTANT:
+AIアシスタント:
   テストでサーバーを起動していません。どちらかです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   あー、app を import し忘れてた笑。今はテスト通った。`recipe_versions` にインデックスを張るべきかな？ バージョンが増えると遅くなりそう
 
-AI ASSISTANT:
+AIアシスタント:
   その判断は正しいです。こちらのインデックスを追加してください:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   できた。もう1つ - 制限をつけられる？ たとえば各レシピの最新10バージョンだけ残して容量を節約するとか
 
-AI ASSISTANT:
+AIアシスタント:
   はい、新しいバージョンを保存したあとにクリーンアップを追加しましょう:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   待って、それだとバージョン番号が壊れない？ 1〜5を消したら、6が最初のバージョンみたいになるけど番号は6のままだよね
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。バージョン番号はそのままです（6, 7, 8... のように欠番ができます）。連番にしたいなら削除のたびに振り直す必要がありますが、それは高コストで参照も壊します。
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   なるほどね。最後に本当に最後 - バージョンにラベルを付けたいんだけど。たとえば「糖尿病対応前」とか
 
-AI ASSISTANT:
+AIアシスタント:
   `label` 列を追加しましょう:
 
 ---
@@ -191,10 +191,10 @@ AI ASSISTANT:
 TURN 16 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
-  完璧、それがまさに欲しかったやつ。母の糖尿病向けレシピに入れて、何が効いたか追えるようにするよ。ありがとう D
+マヤ:
+  完璧、それがまさに欲しかったやつ。母の糖尿病向けレシピに入れて、何が効いたか追えるようにするよ。ありがとう ディー
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ かなり思いやりのある使い方です。バージョン履歴があれば、どのレシピの調整が実際に役立ったかを追えます。何か問題があれば教えてください！
 
 ---

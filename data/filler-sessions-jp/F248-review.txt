@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   デスクトップでは問題ないのに、モバイルだとレシピカードが全部重なって変なんだ。CSS を見てもらえる？
 
-AI ASSISTANT:
+AIアシスタント:
   モバイルのレイアウトを直します。原因はグリッドか Flexbox の組み方にありそうです。今の CSS を確認して、修正を出します。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   直った！ ありがとう。今度は上の検索バーもモバイルで壊れていて、画面外にはみ出してる
 
-AI ASSISTANT:
+AIアシスタント:
   検索バーには適切なレスポンシブサイズが必要です。修正はこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いい感じ。レシピを取得しているあいだの読み込みスピナーを追加できる？ 今は真っ白なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   読み込みスピナーのコンポーネントを追加します。実装はこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いいね。レシピ詳細ページにも同じ対応をして、それから戻るボタンも追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが、読み込み状態と戻るナビゲーションを追加したレシピ詳細ページです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   材料リストが API から配列じゃなくて JSON 文字列で返ってきてる。バックエンドを直せる？
 
-AI ASSISTANT:
+AIアシスタント:
   SQLite のカラムに JSON がテキストとして保存されています。API エンドポイントの修正はこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   認証ミドルウェアを追加できる？ Passport を入れたんだけど、レシピの作成/編集ルートをどう保護したらいいかわからない
 
-AI ASSISTANT:
+AIアシスタント:
   Passport を使った認証ミドルウェアの設定はこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   レシピを作成しようとすると「req.user が undefined」になる。Passport は設定したのに何かおかしい
 
-AI ASSISTANT:
+AIアシスタント:
   セッションミドルウェアが足りないか、Passport がユーザーをデシリアライズしていない可能性が高いです。完全な設定はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   今は動いてるけど、React アプリから CORS エラーが出てる。localhost:5173 で動かしてる
 
-AI ASSISTANT:
+AIアシスタント:
   CORS ミドルウェアを正しく設定する必要があります。修正はこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   完璧。認証ミドルウェアのテストを書いてくれる？ Jest を使ってる
 
-AI ASSISTANT:
+AIアシスタント:
   認証ミドルウェア用の包括的なテストスイートはこちらです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね。もう1つ - ログインエンドポイントにレート制限を追加できる？ 総当たりが少し心配で
 
-AI ASSISTANT:
+AIアシスタント:
   `express-rate-limit` を使ったレート制限の設定はこちらです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   ありがとう！ 最後にデプロイなんだけど、このアプリの Dockerfile を書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   本番向けのマルチステージビルド Dockerfile はこちらです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   最高、ありがとう！ これを Railway にデプロイするつもり
 
-AI ASSISTANT:
+AIアシスタント:
   いい選択です。Railway 向けの設定はこちらです:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ありがと!! もう1つだけ。自分が作ったレシピだけを表示する「自分のレシピ」ページを追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   絞り込みを入れた「自分のレシピ」ページはこちらです:
 
 ---

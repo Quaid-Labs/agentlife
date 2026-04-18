@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   Google スプレッドシートから CSV を書き出すにはどうするの
 
-AI ASSISTANT:
+AIアシスタント:
   ファイル → ダウンロード → カンマ区切り値（.csv）です。既定のフォルダにダウンロードされます。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   ありがとう！ 数式は残る？ それとも値だけ？
 
-AI ASSISTANT:
+AIアシスタント:
   値だけです。数式は計算結果に変わります。数式を残したいなら、代わりに Excel（.xlsx）でダウンロードしてください。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   それで十分、ちょうど欲しかったやつ
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ CSV はきれいにまとまって、必要な場所へそのまま取り込めるよ。
 
 ---

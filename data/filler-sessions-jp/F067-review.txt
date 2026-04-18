@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   Q2のOKRをレビューして、ちゃんと測定可能か見てくれる？ なんかマネージャーに曖昧だって突っ込まれそうで笑
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。Q2のOKRをレビューします。ただ、まだ会話に見当たりません。貼り付けるか、ドキュメントを共有してもらえますか？ もらえれば、それぞれについて以下を分析します:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   これを下書きした:
 
-AI ASSISTANT:
+AIアシスタント:
   **全体評価: 4/10（マネージャー耐性スコア）**
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
-  あー、うん、たしかにずっと良い。Obj 2 をスケールじゃなくて信頼性寄りにしてくれる？ そこに注力しようって D が言ってたんだ
+マヤ:
+  あー、うん、たしかにずっと良い。Obj 2 をスケールじゃなくて信頼性寄りにしてくれる？ そこに注力しようって デイビッド が言ってたんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **OBJECTIVE 2（改訂版）: 決済インフラの信頼性を強化する**
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   完璧。じゃあ、なぜこれらが重要なのか説明するコンテキスト欄も書いてくれる？ OKRドキュメントに貼る2〜3段落くらいで
 
-AI ASSISTANT:
+AIアシスタント:
   **Context & Strategic Rationale**
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   正直、ちょっとコンサルっぽい笑。もう少し硬すぎない感じにできる？ ちゃんと仕事ではあるけど、普段の文書に近い感じで
 
-AI ASSISTANT:
+AIアシスタント:
   **Context & Strategic Rationale**
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、こっちのほうがいい。最後に、依存関係として何をフラグ立てすべき？ 何がブロック要因になりそう？
 
-AI ASSISTANT:
+AIアシスタント:
   **Dependencies & Risk Factors**
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~34
 
-MAYA:
-  いやもうこれで十分。ドキュメントにコピペするわ。あ、待って。デザイン時間をもらうために rach に送るメールを書いてくれる？ 気楽だけどちゃんと急ぎ感あるやつ
+マヤ:
+  いやもうこれで十分。ドキュメントにコピペするわ。あ、待って。デザイン時間をもらうために レイチ に送るメールを書いてくれる？ 気楽だけどちゃんと急ぎ感あるやつ
 
-AI ASSISTANT:
+AIアシスタント:
   **件名:** Q2のチェックアウト案件でデザイン時間が必要です（ちょっと急ぎ、でもまず話したいです）
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~39
 
-MAYA:
+マヤ:
   笑、「ちょっと急ぎ、でもまず話したいです」完璧。今送る。あともう1つごめん、OKRをトラッカー用スプレッドシートの形式にしてくれる？ そのまま貼れる行だけでいい
 
-AI ASSISTANT:
+AIアシスタント:
   **Q2 OKRトラッカー行**（貼り付け用フォーマット）:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   いいね。進捗率の式って合ってる？ たとえば (current - baseline) / (target - baseline) か、単純に current / target か
 
-AI ASSISTANT:
+AIアシスタント:
   **方向性によりますが、ほとんどの場合は (Current - Baseline) / (Target - Baseline) が正しいです。**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   方向列はあるよ。じゃあ最後に、本当に最後ね、こういうのにストレッチゴール枠を足すべきかな？ それともやりすぎ？
 
-AI ASSISTANT:
+AIアシスタント:
   **正直、今回はストレッチゴールは入れないほうがいいです。**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、それは分かる。じゃあ提出するね、これ以上考えすぎる前に笑。助かった
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。これでOKRはかなり筋が通っていて、最初の草案よりずっと説明しやすくなっています。コンテキスト欄で「なぜ」を説明できて、依存関係も明示されているので四半期中に想定外で止まりにくいです。
 
 ---

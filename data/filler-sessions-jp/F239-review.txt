@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   ねえ、チーム向けの競合分析テンプレートを一緒に作ってくれる？ 他のレシピアプリを見ていて、再利用できるものがほしいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   競合分析の包括的なテンプレートを作ります。レシピアプリのどの競合にも使えるように、チーム向けの構成フレームワークを示します。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   これ完璧。今いちばんの競合のAllrecipes向けに埋めてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **競合分析: Allrecipes**
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   めっちゃ丁寧だね。次はTastyもお願い。そっちのほうが、うちが目指してる雰囲気に近いんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **競合分析: Tasty**
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、NYT Cookingもぜひ。あれが、うちらが考えたいプレミアム路線なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **競合分析: NYT Cooking**
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   これかなり助かる。価格と機能に絞って3つを比較する表を作ってくれる？ PRDで使いたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **競合の価格・機能比較**
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~37
 
-MAYA:
+マヤ:
   すごくいい。あともう一つ - エンジニアリードに、プレミアム機能を作るには何が必要かを説明するメールの下書きを作ってくれる？ 特にレシピボックス機能が、どうも決め手になりそうなんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **メール下書き**
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   いいね、これ送るよ。最後にもう一つ - 明日のPMチームに共有できる1ページの要約を作ってくれる？ 競合分析からの重要な示唆だけでいい
 
-AI ASSISTANT:
+AIアシスタント:
   **競合分析: 重要な示唆**
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   これがまさに欲しかったやつ、ありがとう！ 明日の会議に向けて全部保存しておく
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。これでかなりしっかりした競合分析パッケージになりました。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   あ、待って。1ページ要約にリスクの項目も足せる？ この戦略で何がうまくいかないかを入れたい
 
-AI ASSISTANT:
+AIアシスタント:
   **リスクと軽減策**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   うん、完璧。じゃあ本当に最後の1個だけ - ローンチ後6か月の成功指標は何にすべきかな？
 
-AI ASSISTANT:
+AIアシスタント:
   **6か月の成功指標フレームワーク**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いや、これはいいや。ダッシュボードは自分で作れる。明日の準備にすごく役立ったよ、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。発表用にかなりしっかりしたパッケージになりましたね。
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   またね、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   いつでもどうぞ。残りの日曜を楽しんでください 🙂
 
 ---

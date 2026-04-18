@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   ねえ、レシピアプリにバグを見つけたんだけど……prep_timeに負の数を送れてしまうの。たとえば-30分みたいに。バリデーションでどう直せばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   prep_timeフィールドのバリデーション追加を手伝うよ。データベーススキーマとAPIバリデーションの両方をカバーする包括的な修正はこちら：
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   ありがとう。あ、これってprep_timeを30みたいな文字列で送った場合も対応してる？ 30じゃなくて
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘！ 現在のバリデーションは文字列の型変換をうまく扱っていないね。安全に型変換する改良版はこちら：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね。上限も付けた方がいい？ さすがに10000分も仕込まないでしょ笑
 
-AI ASSISTANT:
+AIアシスタント:
   ぜひ付けた方がいいね。妥当な上限つきのバリデーションはこちら：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   ちょっと待って。フロントエンドは時間を時間単位で送ってたんだ。変換した方がいい？ それともバックエンドを変えるべき？
 
-AI ASSISTANT:
+AIアシスタント:
   これはよくあるAPI設計の判断だね！ バックエンドには分で保存するのをおすすめするよ（より細かく扱えて計算もしやすい）。でも両方の形式を受け付けるのがいい。柔軟な解決策はこちら：
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   うーん、それはちょっと複雑だな。フロントエンド側を分で送るように変えるだけでいい？ その方が簡単そう
 
-AI ASSISTANT:
+AIアシスタント:
   うん、それならかなりシンプルだね！ 分だけを期待するきれいな版はこちら：
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   うん、いい感じ。でもprep_timeがnullかundefinedだったら？ それって許していい？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問！ それはビジネスロジック次第だね。両方の選択肢はこちら：
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   そうだね、任意にするのがよさそう。空文字はどう？ prep_time: "" みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   いいところに気づいたね！ 空文字は特別な扱いが必要だよ。修正はこちら：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。もう一つ——このバリデーション、POSTだけじゃなくてPUTにも入れるべき？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん両方に入れるべきだよ！ 同じミドルウェアを再利用できる。完全なセットアップはこちら：
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   最高。最後の質問——このバリデーションエラーって、返すだけでいい？ それともログにも残す？
 
-AI ASSISTANT:
+AIアシスタント:
   可観測性の観点でいい考えだね。バランスの取れた方針としては、ユーザー向けにはわかりやすいエラーを返しつつ、バリデーション失敗は監視用にログに残すことだよ。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
-  いいね！ よし、これでたぶん全部。テスト回すね、ありがとうD
+マヤ:
+  いいね！ よし、これでたぶん全部。テスト回すね、ありがとうディー
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ 念のため、テストコマンドの参考と確認ポイントを簡単にまとめておくよ：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   テスト通った！ 🎉 これで仕上げる
 
-AI ASSISTANT:
+AIアシスタント:
   完璧！ バリデーションをしっかり固められたね。実装した内容をざっとまとめると：
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ねえ、レシピアプリのオンボーディング指標を考えるのを手伝ってほしいんだけど。実際には何を追えばいいの？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。認証ありのレシピアプリなら、サインアップからアクティベーションまでのファネル全体で指標を追うといい。全体像はこんな感じ。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   うん、ダッシュボード用のSQLを書いてくれる？ うちはPostgresで、usersテーブルにid/created_at/auth_methodがあって、それからrecipe_viewsとsaved_recipesのテーブルがある
 
-AI ASSISTANT:
+AIアシスタント:
   Postgres向けのダッシュボードSQL一式はこんな感じだよ。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   これ最高だね。各指標の目安はどれくらいがいいんだろう？ たとえば、リテンション率はどのあたりを目標にすべき？
 
-AI ASSISTANT:
+AIアシスタント:
   これはコンシューマー向けアプリの標準や、特にレシピ／コンテンツ系アプリを踏まえた現実的な目安だよ。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   うん、まずは認証方法からいこう。そこでどんな実験をやる？
 
-AI ASSISTANT:
+AIアシスタント:
   認証方法の最適化に向けた実験計画はこんな感じだよ。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
+マヤ:
   いや、これで完璧。ひとつだけなんだけど、リテンション差が本当に効果なのか、それともGoogleユーザーとメールユーザーがそもそも違う人たちだからなのか、どうやって確かめればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。典型的な選択バイアスの問題だよ。因果関係と相関を切り分ける方法はこう。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   なるほど、わかった。話を変えるけど、こういうアプリならコホート分析は週次でやるべき？ それとも月次？
 
-AI ASSISTANT:
+AIアシスタント:
   **コホートは週次、報告は月次。** 理由はこうだよ。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   うん、週次でいいね。じゃあ最後に、この指標はPostgresで追うべき？ それともMixpanelとかAmplitudeに移したほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   **最初はPostgresで始めて、つらくなったらイベントツールに移す。** ざっくり分けるとこう。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   うん、完璧。じゃあまずSQLダッシュボードを実装して、様子を見るよ。ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   いいね。進めやすいように、簡単な実装チェックリストを置いておくよ。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   あ、ちょっと待って。eventsテーブルは月ごとにパーティションを切るべき？ それともそのまま大きくしていけばいい？ recipe_viewedイベントがかなり多くなりそうなんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   **月ごとにパーティションを切るべき、100%。** recipe_viewedがイベント量の大半を占めるから、6か月もしないうちにパーティションを切らなかったことを後悔するよ。設定はこんな感じ。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   了解。もうひとつだけ。eventsテーブルはusersを外部キーで参照すべき？ それともuser_idをintで持つだけでいい？
 
-AI ASSISTANT:
+AIアシスタント:
   **外部キーはいらない。** `user_id` はFK制約なしの整数で持てばいい。理由はこう。
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   完璧、納得した。よし、これで実装を始められそう。いろいろありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。実装チェックリストをまとめておくね。
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   やるよ、助かる！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。最後にひとつ。最初の認証実験を回して結果が出たら、簡単な振り返りを書いておくといいよ。箇条書きだけでも十分で、こんな内容を残しておくといい。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   はは、わかった。じゃあSQLを書きに行くよ、またあとで。
 
-AI ASSISTANT:
+AIアシスタント:
   いいね。データがたまったら、そのパーティションインデックスは必ずテストしてね。リテンションクエリで `EXPLAIN ANALYZE` を実行して、Postgresがちゃんとパーティションプルーニングを使っているか確認すること。クエリプランでは「Partitions scanned: 1」みたいな表示になって、全パーティションを走査していないはずだよ。
 
 ---

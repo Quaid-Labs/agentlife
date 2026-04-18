@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   ねえ、このエラーの意味を教えて: SQLITE_CONSTRAINT: UNIQUE constraint failed: recipes.user_id, recipes.title
 
-AI ASSISTANT:
+AIアシスタント:
   これは、すでにデータベースに存在している `user_id` と `title` の組み合わせでレシピを挿入しようとしている、という意味です。UNIQUE制約があって、おそらく複合ユニークインデックスによって、同じユーザーの同じタイトルのレシピが重複しないようになっています。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   作成時にね。ユーザーが保存ボタンをダブルクリックし続けるんだよね、笑
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、あるあるですね。フロントエンドで重複送信を防ぎつつ、バックエンドでもきちんと処理する必要があります。2段構えの対策として、これが堅いです。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いいね、それで動く。今度はこれのテストを書かなきゃ。Jest と SQLite を一緒に使ったことがないんだ
 
-AI ASSISTANT:
+AIアシスタント:
   SQLite を使ったレシピ用エンドポイントのテストスイート完全版はこちらです。ポイントは、各テストごとに新しいインメモリデータベースを用意することです。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   "Cannot find module '../app'" って出るんだよね。Express のセットアップは app.js じゃなくて server.js にあるんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   それなら簡単です。読み込みパスを更新して、Express アプリをちゃんとエクスポートしているか確認すればいいです。必要な修正はこれです。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   テストは通ったけど、今度は更新ルートでタイムアウトが出る。デッドロックかな？
 
-AI ASSISTANT:
+AIアシスタント:
   それは SQLite の書き込み競合でよくあるやつです。SQLite は一度に書き込みできるのが1件だけで、トランザクションの扱いが適切でなかったり、接続が残っていたりするとタイムアウトが起きます。直し方はこうです。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   WAL モードで少しよくなったけど、高負荷だとまだたまにタイムアウトする。今は 50 同時ユーザーで k6 テストを回してる
 
-AI ASSISTANT:
+AIアシスタント:
   高い同時負荷では、コネクションプーリングと並行処理の改善が必要です。SQLite は高い書き込み並行性には向いていませんが、単一ライター前提の設計なので、今ある構成をできるだけ最適化するしかありません。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   うん、今は SQLite にこだわりたいだけなんだ。副業の小さいプロジェクトだし。とはいえ、かなりよくなったよ、ありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   その判断は全然ありです。SQLite はサイドプロジェクトにぴったりで、運用の手間がずっと少ないです。今の構成からもう少し性能を引き出すための、手軽な改善点をいくつか挙げます。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いい感じ。最後に、レート制限は入れたほうがいい？ create エンドポイントをユーザーが連打するのが心配で
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、特に認証系や作成系のエンドポイントにはレート制限を入れるべきです。`express-rate-limit` を使った、しっかりした構成はこちらです。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   完璧。Railway にデプロイするつもりなんだけど、本番向けに何か変える必要ある？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、Railway 本番向けにはいくつか重要な変更があります。配備前のチェックリストはこちらです。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   ちなみに、パスワードには bcrypt が必要？ それとも crypto.createHash でのハッシュで十分？
 
-AI ASSISTANT:
+AIアシスタント:
   **bcrypt** か argon2 を使うべきです。`crypto.createHash()` は速すぎます。そこが問題なんです。パスワードハッシュは、総当たり攻撃に耐えられるよう、意図的に遅くする必要があります。
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   なるほど。最後の質問。フロントエンドは Vercel に置く予定なんだけど、CORS は追加したほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   はい。フロントエンドが別ドメイン（Vercel）、API が別ドメイン（Railway）なら、CORS は必須です。入れていないと、ブラウザがリクエストをブロックします。
 
 ---
@@ -147,11 +147,11 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
-  ありがと！ これで出して、D の反応を見てみるわ、笑
+マヤ:
+  ありがと！ これで出して、ディー の反応を見てみるわ、笑
 
-AI ASSISTANT:
-  いいですね。かなりしっかりした API になっています。レート制限、適切な認証、コネクションプーリング、CORS まで揃っていますから、David もきっと驚くはずです。
+AIアシスタント:
+  いいですね。かなりしっかりした API になっています。レート制限、適切な認証、コネクションプーリング、CORS まで揃っていますから、デイビッド もきっと驚くはずです。
 
 ---
 

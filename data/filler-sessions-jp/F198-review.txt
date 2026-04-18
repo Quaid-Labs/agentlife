@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   BTCいまいくらくらい？
 
-AI ASSISTANT:
+AIアシスタント:
   ビットコインは今だいたい 63,400 ドルくらいです。今週はかなり値動きが激しいですね。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   えっ、思ったより安いかと思ってた。ありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。数日前に約 58k まで下がったあと、また戻してきました。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   いいね。あとで少し買うかも笑
 
-AI ASSISTANT:
+AIアシスタント:
   買うなら悪くないタイミングかも。ただ、最近もまだ毎日 ±5% くらい動いています。
 
 ---

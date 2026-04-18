@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   recipe app 用に CI ツールの vendor evaluation matrix を作るのを手伝ってほしい。github actions、circleci、buildkite を比べたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。比較表を作ります。どんな criteria が一番大事ですか？ たとえば pricing、build speed、setup のしやすさ、stack との integration、support などです。ほかに必要なものはありますか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
-  うん、docker support と graphql compatibility も追加して。あと D は debug のしやすさをすごく気にするんだよね。先週 circleci の issue に 3 時間も使ってたし
+マヤ:
+  うん、docker support と graphql compatibility も追加して。あと デイビッド は debug のしやすさをすごく気にするんだよね。先週 circleci の issue に 3 時間も使ってたし
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。下書き matrix はこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いいね、埋めて。今は github actions を使ってるから、migration effort も考慮してね
 
-AI ASSISTANT:
+AIアシスタント:
   埋めた matrix はこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
-  うん、1〜5 のスコアで、David の debug の痛点みたいなものを入れる notes 列も追加して
+マヤ:
+  うん、1〜5 のスコアで、デイビッド の debug の痛点みたいなものを入れる notes 列も追加して
 
-AI ASSISTANT:
+AIアシスタント:
   scoring（5 が最高、1 が最低）を入れて更新しました:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   うーん、スコアを見ると github actions に留まるべきに見える。でも debug の件はかなり大きいから、debug をもっと高く重み付けして再計算してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   debugging を「Critical」に重み付けし直して再計算しました:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
-  それだと納得感ある lol。D と Rach に、なぜ buildkite に変えるべきかを説明する短いメールも書いてくれる？ カジュアルでいい
+マヤ:
+  それだと納得感ある lol。デイビッド と レイチ に、なぜ buildkite に変えるべきかを説明する短いメールも書いてくれる？ カジュアルでいい
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが draft です:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   完璧。あと、移行が実際には何を伴うのかも section に追加してくれる？ 何が必要か知りたい
 
-AI ASSISTANT:
+AIアシスタント:
   migration section を追加しました:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   正直、月 75 ドルってのを見たらコスト面で少し迷ってきた。bootstrapped だから。GHA は残しつつ、より良い logging を足すハイブリッド案も入れてくれない？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。`Option C` を入れるならこんな感じです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   うん、それで。あと、"we should switch" じゃなくて "help me decide" って感じにして。正直まだ決めきれてないから lol
 
-AI ASSISTANT:
+AIアシスタント:
   メールを修正しました:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   かなり良くなった。じゃあ最後に、今後の vendor decision 用に参考にできる simple decision framework doc を作ってくれる？ どんな質問をすればいいかみたいな
 
-AI ASSISTANT:
+AIアシスタント:
   再利用できる framework を作成しました:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   いいね。これを `vendor-evaluation-framework.md` として docs repo に保存して
 
-AI ASSISTANT:
+AIアシスタント:
   ファイルを直接 repo に保存することはできませんが、こうしてください:
 
 ---
@@ -147,32 +147,32 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
-  ああそうか lol、自分でコピペするよ。ありがと！ これから D と Rach にこのメールを送る
+マヤ:
+  ああそうか lol、自分でコピペするよ。ありがと！ これから デイビッド と レイチ にこのメールを送る
 
-AI ASSISTANT:
-  いいですね！ 反応が楽しみです。David が debug 体験を理由に Buildkite を押すのか、それともコストが勝つのか気になります。うまくいくといいですね。
+AIアシスタント:
+  いいですね！ 反応が楽しみです。デイビッド が debug 体験を理由に Buildkite を押すのか、それともコストが勝つのか気になります。うまくいくといいですね。
 
 ---
 
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
-  どうなるかね。あと全然関係ないけど、Rach がいつ来るか思い出させてくれる？ なんかもうすぐな気がしてて、その前に膝の件をどうにかしたいんだよね
+マヤ:
+  どうなるかね。あと全然関係ないけど、レイチ がいつ来るか思い出させてくれる？ なんかもうすぐな気がしてて、その前に膝の件をどうにかしたいんだよね
 
-AI ASSISTANT:
-  Rachel の訪問は近いですが、会話の中では正確な日付は見当たりません。確認用のカジュアルなメッセージを書きましょうか？
+AIアシスタント:
+  レイチェル の訪問は近いですが、会話の中では正確な日付は見当たりません。確認用のカジュアルなメッセージを書きましょうか？
 
 ---
 
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
-  うん、まだ気になってる。水曜に PT の予約もあるんだけど、ちょっと不安なんだよね。あと Rach にいつ来るか聞く casual text も書いてくれる？
+マヤ:
+  うん、まだ気になってる。水曜に PT の予約もあるんだけど、ちょっと不安なんだよね。あと レイチ にいつ来るか聞く casual text も書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   カジュアルな text はこうです:
 
 ---

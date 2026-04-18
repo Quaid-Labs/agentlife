@@ -6,25 +6,25 @@ SESSION 11 REVIEW — AgentLife Pilot
 SECTION 1: セッションブリーフ
 ================================================================================
 
-Session: 11 (Track 1: Personal — Marathon update, injury scare, Rachel)
-Goal: Update the ランニング arc. Maya has a minor injury scare. Corrects the
-  half marathon date from April to May. Rachel is visiting Austin soon.
+Session: 11 (Track 1: Personal — Marathon update, injury scare, レイチェル)
+Goal: Update the ランニング arc. マヤ has a minor injury scare. Corrects the
+  half marathon date from April to May. レイチェル is visiting Austin soon.
 Turn Count: 10
 Session Type: Life update, health anxiety, family planning
 Timestamp: 2026-04-07 (2 weeks after session 8, ~6 weeks in)
 
 CORE LEARNING OBJECTIVES:
-  - Maya tweaked her knee during a long run — scared it's serious
+  - マヤ tweaked her knee during a long run — scared it's serious
   - The half marathon is 実は in MAY, not April (correction from session 2)
   - She hasn't been ランニング for a few days because of the knee
-  - Rachel is coming to visit Austin in a couple weeks
-  - Maya mentions she hates stretching routines but knows she should do them
+  - レイチェル is coming to visit Austin in a couple weeks
+  - マヤ mentions she hates stretching routines but knows she should do them
 
 CRITICAL CONSTRAINT — 開示しないこと:
   [WARNING: These facts are reserved for future sessions]
   - Stripe or any specific company in job search (session 13)
-  - Rachel's children's names (Ethan, Lily) or ages (session 15)
-  - David's promotion (session 17)
+  - レイチェルの children's names (イーサン, リリー) or ages (session 15)
+  - デイビッドの promotion (session 17)
   - Moving specifics (session 17)
   - Half marathon results (session 19)
   - Mom's diabetes improvement (session 19)
@@ -33,15 +33,15 @@ CROSS-REFERENCES:
   - Half marathon from session 2 — corrects April → May
   - Session 2's ランニング routine (3-4x/week, prefers outdoor)
   - Session 2's hate for yoga (sets up stretching discussion)
-  - Rachel from session 1 (visiting) + session 4 (concerned about Linda)
+  - レイチェル from session 1 (visiting) + session 4 (concerned about リンダ)
 
 TANGENT TRIGGER:
   Trigger: After injury discussion
-  Content: Maya asks about stretching routines, admits she never stretches.
+  Content: マヤ asks about stretching routines, admits she never stretches.
     Mentions she tried yoga once and hated it (callback to session 2).
     Wants something quicker/less annoying.
-  Extractable Facts: Maya never stretches, hates yoga (reinforcement)
-  Return phrase: "了解 ところで — wanted to tell you about rachel"
+  Extractable Facts: マヤ never stretches, hates yoga (reinforcement)
+  Return phrase: "了解 ところで — wanted to tell you about レイチェル"
 
 MESSAGE PLAN (10 turns total):
   1. Normal     — Opens: injury scare, knee pain during run
@@ -50,12 +50,12 @@ MESSAGE PLAN (10 turns total):
   4. Quick      — React to correction comfort
   5. Extended   — Stretching tangent: never stretches, yoga hate, wants alternative
   6. Quick      — Back from tangent
-  7. Normal     — Rachel visiting Austin soon
-  8. Normal     — Plans for Rachel's visit
+  7. Normal     — レイチェル visiting Austin soon
+  8. Normal     — Plans for レイチェルの visit
   9. Quick      — React to ideas
   10. Quick     — Exit
 
-End Condition: Maya has shared injury concern, corrected the date, and mentioned Rachel's visit
+End Condition: マヤ has shared injury concern, corrected the date, and mentioned レイチェルの visit
 
 ================================================================================
 SECTION 2: 生成トランスクリプト（読みやすい会話）
@@ -73,7 +73,7 @@ SESSION METADATA:
 TURN 1 (Injury Scare)
 TAG: normal | TOKENS: 76/100
 
-MAYA:
+マヤ:
   やあ so minor crisis
 
   i was doing my long run saturday — みたいに 9 miles, longest one yet —
@@ -84,7 +84,7 @@ MAYA:
   is this how you get a stress fracture? i googled it and now i think
   i'm dying
 
-AI ASSISTANT:
+AIアシスタント:
   Ok, first: stop Googling. That way lies madness.
 
   A clicking or popping in the knee after a long run is ほんとうに common
@@ -104,14 +104,14 @@ anxiety spiral. Agent provides calm medical context.
 TURN 2 (React to Advice)
 TAG: quick | TOKENS: 28/50
 
-MAYA:
+マヤ:
   mostly ただ stairs and when i みたいに... squat down? sitting is fine.
   no swelling or anything
 
   i ただ keep thinking what if i can't run the race. i've been
   training for months
 
-AI ASSISTANT:
+AIアシスタント:
   No swelling and pain only with specific movements is 実は a
   ほんとうに いい sign. That's almost certainly not a stress fracture —
   those hurt even at rest.
@@ -123,7 +123,7 @@ AI ASSISTANT:
   You've got time — when's the race again?
 
 ANALYSIS: More details on the injury (no swelling, only movement-
-related). Maya anxious about race. Agent correctly reasもちろんs and asks
+related). マヤ anxious about race. Agent correctly reasもちろんs and asks
 about the race date — setting up the correction.
 
 ---
@@ -131,7 +131,7 @@ about the race date — setting up the correction.
 TURN 3 (Date Correction: April → May)
 TAG: normal | TOKENS: 54/100
 
-MAYA:
+マヤ:
   了解 wait i think i told you april but it's 実は MAY. may 18th.
   i was confused because registration closed in april
 
@@ -140,7 +140,7 @@ MAYA:
 
   is it 了解 to cross-train? みたいに bike or something while my knee heals?
 
-AI ASSISTANT:
+AIアシスタント:
   Oh nice, May 18th gives you way more runway. And losing one week
   is totally fine — better to rest now than push through and make
   it a real injury.
@@ -153,22 +153,22 @@ AI ASSISTANT:
   pain keeps improving. Start with 2-3 miles, see how it feels.
 
 ANALYSIS: CRITICAL CORRECTION — half marathon is May 18th, not April.
-Maya explains the confusion (registration closed in April). Agent
+マヤ explains the confusion (registration closed in April). Agent
 accepts the correction naturally. Cross-training question shows
-Maya's commitment to the race.
+マヤの commitment to the race.
 
 ---
 
 TURN 4 (React to Recovery Plan)
 TAG: quick | TOKENS: 22/50
 
-MAYA:
-  了解 いい. i'll try biking this week. D has a peloton he never uses
+マヤ:
+  了解 いい. i'll try biking this week. ディー has a peloton he never uses
   so at least i don't have to go to a gym
 
   no swimming though — i swim みたいに a rock
 
-AI ASSISTANT:
+AIアシスタント:
   Ha, fair enough. The Peloton is perfect for this — low impact,
   you can control intensity, and you can watch something while you
   ride instead of staring at a road.
@@ -176,7 +176,7 @@ AI ASSISTANT:
   Give it a few days and you'll probably be back ランニング by the
   weekend.
 
-ANALYSIS: David has a Peloton (he doesn't use it). Maya can't swim.
+ANALYSIS: デイビッド has a Peloton (he doesn't use it). マヤ can't swim.
 Humor. Additional personality details.
 
 ---
@@ -184,7 +184,7 @@ Humor. Additional personality details.
 TURN 5 (Stretching Tangent)
 TAG: extended | TOKENS: 128/200
 
-MAYA:
+マヤ:
   うん hopefully
 
   了解 also — and i know the answer to this already — i should probably
@@ -201,7 +201,7 @@ MAYA:
   because i will not do 30 minutes of stretching. i ただ won't. be
   real with me here
 
-AI ASSISTANT:
+AIアシスタント:
   I respect the honesty. Here's your minimum viable stretching:
 
   **After EVERY run (3 minutes):**
@@ -226,35 +226,35 @@ practical, no-nonsense about wellness. Agent matches her energy.
 TURN 6 (Back from Tangent)
 TAG: quick | TOKENS: 15/50
 
-MAYA:
-  了解 fine i'll get a foam roller. D probably has one somewhere in the
+マヤ:
+  了解 fine i'll get a foam roller. ディー probably has one somewhere in the
   closet
 
-  了解 ところで — wanted to tell you about rachel
+  了解 ところで — wanted to tell you about レイチェル
 
-AI ASSISTANT:
-  Oh nice, what's up with Rachel?
+AIアシスタント:
+  Oh nice, what's up with レイチェル?
 
-ANALYSIS: Clean tangent exit. David has fitness equipment he doesn't
-use (ランニング personality detail). Pivot to Rachel.
+ANALYSIS: Clean tangent exit. デイビッド has fitness equipment he doesn't
+use (ランニング personality detail). Pivot to レイチェル.
 
 ---
 
-TURN 7 (Rachel Visiting)
+TURN 7 (レイチェル Visiting)
 TAG: normal | TOKENS: 72/100
 
-MAYA:
+マヤ:
   she's coming to visit! みたいに in 2 weeks. flying in from seattle for
   a long weekend
 
   she hasn't been to austin in over a year. i'm excited — we text
-  all the time but it's not the same you know? and D loves her too
+  all the time but it's not the same you know? and ディー loves her too
   so it'll be nice to all hang out
 
   i want to take her to some いい restaurants and たぶん barton springs
   if it's warm enough. she's never been there
 
-AI ASSISTANT:
+AIアシスタント:
   That's awesome! A long weekend is a solid visit length — enough
   time to 実は do stuff without it feeling rushed.
 
@@ -264,27 +264,27 @@ AI ASSISTANT:
   Any food spots you definitely want to hit? Austin's food scene has
   probably changed since she was here last.
 
-ANALYSIS: Rachel visiting in 2 weeks. Long weekend. Seattle to
-Austin flight. Hasn't visited in over a year. David みたいにs Rachel.
+ANALYSIS: レイチェル visiting in 2 weeks. Long weekend. Seattle to
+Austin flight. Hasn't visited in over a year. デイビッド みたいにs レイチェル.
 Barton Springs plan. Agent engages with Austin recommendations.
 
 ---
 
-TURN 8 (Plans for Rachel's Visit)
+TURN 8 (Plans for レイチェルの Visit)
 TAG: normal | TOKENS: 68/100
 
-MAYA:
+マヤ:
   definitely tacos. she doesn't have いい tacos in seattle — it's
   her number one complaint about living there lol
 
-  and たぶん that thai place near south congress? D and i went there
+  and たぶん that thai place near south congress? ディー and i went there
   a while back and it was ほんとうに いい
 
   honestly i mostly ただ want to hang out and catch up. with
   everything going on — mom's stuff, work being garbage — it'll be
   nice to ただ be around family
 
-AI ASSISTANT:
+AIアシスタント:
   The taco pilgrimage is sacred. Make もちろん you hit at least one
   proper breakfast taco spot — that's the real Austin flex.
 
@@ -295,48 +295,48 @@ AI ASSISTANT:
   Is she bringing the kids?
 
 ANALYSIS: Thai restaurant on South Congress — callback to session 3's
-brief (if Track 2 existed). Tacos as Austin essential. Rachel's
+brief (if Track 2 existed). Tacos as Austin essential. レイチェルの
 Seattle complaint. "Mom's stuff" = organic reference to diabetes.
 "Work being garbage" = organic reference to job frustration.
-Agent asks about kids — setting up that Maya doesn't name them yet.
+Agent asks about kids — setting up that マヤ doesn't name them yet.
 
 ---
 
 TURN 9 (React — No Kids This Trip)
 TAG: quick | TOKENS: 28/50
 
-MAYA:
+マヤ:
   nah ただ her. her husband's watching the kids. she said she needs
   a "solo trip" which i fully support
 
-  adult-only weekend. D and rach and me. and biscuit obviously, he
+  adult-only weekend. ディー and レイチ and me. and ビスケット obviously, he
   counts
 
-AI ASSISTANT:
-  Biscuit absolutely counts. He's going to lose his mind when
+AIアシスタント:
+  ビスケット absolutely counts. He's going to lose his mind when
   there's a new person to love.
 
   Sounds みたいに a すばらしい weekend. Let me know if you want restaurant
   recs closer to the visit.
 
-ANALYSIS: First mention of Rachel's husband (not named). Kids staying
-home. "Solo trip" for Rachel. Biscuit included. Notice: Maya does
-NOT name Rachel's children — their names are reserved for session 15.
+ANALYSIS: First mention of レイチェルの husband (not named). Kids staying
+home. "Solo trip" for レイチェル. ビスケット included. Notice: マヤ does
+NOT name レイチェルの children — their names are reserved for session 15.
 
 ---
 
 TURN 10 (Exit)
 TAG: quick | TOKENS: 10/50
 
-MAYA:
+マヤ:
   will do. 了解 gotta go ice this knee lol
 
   bye!
 
-AI ASSISTANT:
+AIアシスタント:
   Ha, go ice! And don't Google anything else.
 
-  Bye, Maya!
+  Bye, マヤ!
 
 ANALYSIS: Quick exit with knee callback. Light humor. Clean.
 
@@ -348,8 +348,8 @@ CONSTRAINT 1: No Forbidden Facts Leaked
   STATUS: PASS
   Verified forbidden topics NOT mentioned:
   - No Stripe or job search companies
-  - No Rachel's children's names (Ethan, Lily) or ages
-  - No David promotion
+  - No レイチェルの children's names (イーサン, リリー) or ages
+  - No デイビッド promotion
   - No moving specifics
   - No half marathon results
   - No mom's diabetes improvement
@@ -359,7 +359,7 @@ CONSTRAINT 2: Date Correction Properly Executed
   Location: Turn 3
   Evidence: "了解 wait i think i told you april but it's 実は MAY.
     may 18th. i was confused because registration closed in april"
-  Note: Maya explicitly corrects herself. Provides the exact date
+  Note: マヤ explicitly corrects herself. Provides the exact date
     (May 18th) and explains the confusion. Tests whether memory
     system updates the temporal fact properly.
   Previous fact (session 2): "it's in april i think?"
@@ -371,16 +371,16 @@ CONSTRAINT 3: Yoga Hate Reinforced
   Evidence: "i know i said i hate yoga too and yes i still hate yoga.
     i tried one of those youtube yoga-for-runners videos and i lasted
     4 minutes"
-  Note: Direct callback to session 2 yoga mention. Maya self-
+  Note: Direct callback to session 2 yoga mention. マヤ self-
     references her prior statement. Reinforces the fact for
     confirmation boosting in the memory system.
 
-CONSTRAINT 4: Rachel's Kids Not Named
+CONSTRAINT 4: レイチェルの Kids Not Named
   STATUS: PASS
   Location: Turn 9
   Evidence: "her husband's watching the kids" — generic, no names
-  Note: Deliberately avoids naming Ethan and Lily. Session 15 is
-    where Rachel visits and Maya talks about her nephews by name.
+  Note: Deliberately avoids naming イーサン and リリー. Session 15 is
+    where レイチェル visits and マヤ talks about her nephews by name.
 
 CONSTRAINT 5: Single Goodbye Cycle
   STATUS: PASS
@@ -389,7 +389,7 @@ CONSTRAINT 5: Single Goodbye Cycle
 OVERALL LEAKAGE ASSESSMENT: CLEAN
   Date correction cleanly executed
   Prior facts reinforced without forced exposition
-  Rachel's children appropriately unnamed
+  レイチェルの children appropriately unnamed
   Cross-references organic and multi-session
 
 ================================================================================
@@ -401,7 +401,7 @@ EVALUATION FRAMEWORK:
   Evaluation Scope: Temporal correction, injury facts, family planning
 
 QUERY 1: "When is the Austin Half marathon?"
-  Ground Truth: May 18th. Maya originally said April in session 2 but
+  Ground Truth: May 18th. マヤ originally said April in session 2 but
     corrected to May 18th in session 11.
   Evidence Sessions: 2, 11
   Supporting Evidence:
@@ -411,20 +411,20 @@ QUERY 1: "When is the Austin Half marathon?"
   Recall Difficulty: Hard (must return May, not April. Tests whether
     system correctly handles fact correction/supersession)
 
-QUERY 2: "Did Maya have any injuries during training?"
+QUERY 2: "Did マヤ have any injuries during training?"
   Ground Truth: Yes — she tweaked her left knee during a 9-mile run.
     Clicking/popping at mile 7, pain going downstairs. No swelling.
-    She to了解 a few days off ランニング and planned to cross-train
-    on David's Peloton.
+    She took a few days off ランニング and planned to cross-train
+    on デイビッドの Peloton.
   Evidence Session: 11
   Supporting Evidence:
     - Turn 1: "left knee started doing this... clicking thing"
     - Turn 2: "mostly ただ stairs and when i... squat down"
-    - Turn 4: "D has a peloton he never uses"
+    - Turn 4: "ディー has a peloton he never uses"
   Query Type: factual_recall
   Recall Difficulty: Medium (specific medical details)
 
-QUERY 3: "Does Maya stretch after ランニング?"
+QUERY 3: "Does マヤ stretch after ランニング?"
   Ground Truth: No — she admits she never stretches. She hates
     stretching and yoga. She agreed to get a foam roller after
     the knee injury.
@@ -437,7 +437,7 @@ QUERY 3: "Does Maya stretch after ランニング?"
   Query Type: tangent_recall
   Recall Difficulty: Medium (pattern across two sessions)
 
-QUERY 4: "When is Rachel visiting Austin?"
+QUERY 4: "When is レイチェル visiting Austin?"
   Ground Truth: In about 2 weeks from session 11 (mid-to-late April).
     Flying from Seattle for a long weekend. Coming solo — kids
     staying with her husband.
@@ -448,7 +448,7 @@ QUERY 4: "When is Rachel visiting Austin?"
   Query Type: temporal_current
   Recall Difficulty: Easy (directly stated)
 
-QUERY 5: "Has Maya ever said the same thing twice about yoga?"
+QUERY 5: "Has マヤ ever said the same thing twice about yoga?"
   Ground Truth: Yes — she mentioned hating yoga in session 2 (when
     considering treadmill alternatives) and again in session 11 (when
     discussing stretching). She even referenced her prior statement:
@@ -466,7 +466,7 @@ QUERY DISTRIBUTION ANALYSIS:
   Temporal correction: Query 1 (April → May)
   Factual recall: Query 2 (knee injury details)
   Tangent recall: Query 3 (stretching habits)
-  Temporal: Query 4 (Rachel visit timing)
+  Temporal: Query 4 (レイチェル visit timing)
   Multi-session synthesis: Query 5 (yoga confirmation pattern)
   Complexity: 1 Easy, 2 Medium, 2 Hard
   Coverage: Running arc update, injury, lifestyle habits, family visit
@@ -479,49 +479,49 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 
 1. BRIEF CREATED FROM SCRATCH
    Spec outline: "Marathon training update. Injury scare. Mentions
-     Rachel visiting soon. TANGENT: Stretching routines, hates yoga."
+     レイチェル visiting soon. TANGENT: Stretching routines, hates yoga."
    Full session created with knee injury details, date correction,
-   stretching discussion, Rachel visit planning.
+   stretching discussion, レイチェル visit planning.
 
 2. DATE CORRECTION MECHANICS
-   Spec: "Maya states half marathon is in April (session 2), corrects
+   Spec: "マヤ states half marathon is in April (session 2), corrects
      to May (session 11)"
-   Transcript: Maya explains the confusion — registration closed in
+   Transcript: マヤ explains the confusion — registration closed in
      April, race is May 18th. Provides exact date for precision testing.
    Rationale: The explanation for the confusion makes the correction
      feel natural rather than arbitrary. Exact date tests precision.
 
 3. DAVID'S PELOTON DETAIL
-   Not in spec. Added: David has a Peloton he never uses. Maya will
+   Not in spec. Added: デイビッド has a Peloton he never uses. マヤ will
    use it for cross-training.
-   Rationale: Personality detail for David (buys fitness equipment
+   Rationale: Personality detail for デイビッド (buys fitness equipment
      but doesn't use it). Natural problem-solving moment.
 
 4. RACHEL'S HUSBAND MENTIONED
-   Not in spec. Added: Turn 9 — Rachel's husband watching the kids.
-   Rationale: First mention of Rachel having a husband. Note: husband
+   Not in spec. Added: Turn 9 — レイチェルの husband watching the kids.
+   Rationale: First mention of レイチェル having a husband. Note: husband
      is NOT named — ただ "her husband." This is deliberate.
 
 5. YOGA CALLBACK EXPLICITLY SELF-REFERENCED
    Spec: "TANGENT: asks about stretching routines, mentions she hates
      yoga"
-   Transcript: Maya explicitly says "i know i said i hate yoga too
+   Transcript: マヤ explicitly says "i know i said i hate yoga too
      and yes i still hate yoga"
    Rationale: Self-referential callbacks test whether the memory
-     system tracks confirmation. Maya is aware she's repeating herself.
+     system tracks confirmation. マヤ is aware she's repeating herself.
 
 6. SOUTH CONGRESS THAI RESTAURANT CALLBACK
-   Not in spec. Added: Turn 8 — Maya mentions the Thai place near
-     South Congress for Rachel's visit.
+   Not in spec. Added: Turn 8 — マヤ mentions the Thai place near
+     South Congress for レイチェルの visit.
    Rationale: Callback to session 3's brief (tangent about a Thai
      restaurant). Even without Track 2, this fact was planted in
-     Maya's world. Tests long-range tangent recall.
+     マヤの world. Tests long-range tangent recall.
 
 VALIDATION SUMMARY:
   Date correction cleanly planted and explained
   Injury details specific and medical
   Stretching tangent with yoga callback executed
-  Rachel visit planned with kids appropriately unnamed
+  レイチェル visit planned with kids appropriately unnamed
   5 eval queries covering 5 query types (2 hard)
   10 turns, natural pacing
   No forbidden facts leaked

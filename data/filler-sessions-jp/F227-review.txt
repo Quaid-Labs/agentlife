@@ -26,21 +26,21 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   ねえ、`jest` で非同期関数のテストってどう書けばいいの？　ログインエンドポイントをテストしようとしてるんだけど、毎回タイムアウトしちゃう
 
-AI ASSISTANT:
-  こんにちは、Maya。Jest の非同期テストでは `async/await` を使うか、Promise を返す必要があります。タイムアウトが出るのは、非同期処理が終わる前に Jest が先に終わってしまっているのが原因です。ログインエンドポイントを正しくテストする方法はこちらです:
+AIアシスタント:
+  こんにちは、マヤ。Jest の非同期テストでは `async/await` を使うか、Promise を返す必要があります。タイムアウトが出るのは、非同期処理が終わる前に Jest が先に終わってしまっているのが原因です。ログインエンドポイントを正しくテストする方法はこちらです:
 
 ---
 
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   `"db.run" のところで "cannot read property 'run' of undefined" って出る。DB のセットアップは非同期版じゃなくて better-sqlite3 を使ってるんだ`
 
-AI ASSISTANT:
+AIアシスタント:
   なるほど、それが原因です。`better-sqlite3` は非同期ではなく同期です。同期と非同期の書き方が混ざっています。修正版はこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   そうなんだけど、まだ開発用の DB を見に行ってる。テスト実行時にアプリをテスト用 DB に切り替えるにはどうしたらいい？
 
-AI ASSISTANT:
+AIアシスタント:
   環境に応じた DB 初期化を設定する必要があります。構成はこんな感じです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   いい感じ、そこは動いた。でも今度は保護されたルートをテストしてると "jwt must be provided" って出る。テストのリクエストに認証をどう付ければいい？
 
-AI ASSISTANT:
+AIアシスタント:
   テスト内で有効な JWT を生成して、`Authorization` ヘッダーに含めればいいです。方法はこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   いいね。最後に、パスワードがちゃんとハッシュされてるかどうやってテストするの？　平文のまま保存されてないか確認したくて笑
 
-AI ASSISTANT:
+AIアシスタント:
   いい視点ですね。サインアップの流れでパスワードのハッシュ化をテストする方法はこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ありがとう。ちなみに `beforeAll` と `beforeEach` の違いって何？　なんとなくで使ってたんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   そこはよく混同されますね。違いはこんな感じです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   わかった。あと一つ、テストでユーザーを削除しようとすると "SQLITE_CONSTRAINT: FOREIGN KEY constraint failed" ってエラーが出る
 
-AI ASSISTANT:
+AIアシスタント:
   それは SQLite の外部キー制約です。レシピがまだ紐づいているユーザーを削除しようとしています。対処法はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   あー、SQLite はデフォルトで外部キーが無効なんだね。他にも知っておいたほうがいいことってある？
 
-AI ASSISTANT:
+AIアシスタント:
   あります。SQLite にはいくつか注意点があります。レシピアプリで特に重要なのはこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   え、`fts5` って何？ レシピ検索に便利そう
 
-AI ASSISTANT:
+AIアシスタント:
   `FTS5` は Full-Text Search の略です。SQLite の内蔵検索エンジンで、`LIKE '%keyword%'` よりずっとレシピ検索に向いています。使い方はこちらです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   すごい。じゃあ最後に、`fts` を使った検索エンドポイントのテストってどうするの？
 
-AI ASSISTANT:
+AIアシスタント:
   `FTS` 検索のテストはこちらです。通常のデータに加えて、`FTS` テーブルも一緒にシードする必要があります:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   ありがとう、すごく助かった。今週末には認証を入れるつもり。マラソン前にね。ちなみに Zilker の家の内見はうまくいったよ。たぶん申し込むかも
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。Zilker は走るのにもいい場所ですし、トレイルにもすぐ行けます。申し込みとマラソン、うまくいくことを願っています。
 
 ---

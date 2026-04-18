@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   レシピアプリに画像アップロードを追加する必要があるんだ。ユーザーが料理の写真をアップできるようにしたい。Express ではどう扱うのが一番いい？
 
-AI ASSISTANT:
+AIアシスタント:
   Express でレシピ画像アップロードを扱うなら、multipart/form-data を処理するために **multer** を使って、ファイルはローカルに保存するのがおすすめです（あとで S3 も統合できます）。完全なセットアップはこちらです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいね！ ひとつだけ、スキーマのマイグレーションを更新する必要ある？ それとも既存のテーブルを直接 alter していい？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問です！ テーブルを直接 alter するより、**ちゃんとしたマイグレーションを作る**べきです。理由とやり方はこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   了解。じゃあ、そのアップロードエンドポイントのテストはどう書けばいい？ ファイルアップロードをテストしたことなくて笑
 
-AI ASSISTANT:
+AIアシスタント:
   ファイルアップロードのテストは、**supertest** ならかなり簡単です！ 完全なテストスイートはこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   完璧。ところで、画像はリポジトリに入れるべき？ それとも uploads/ を gitignore する？
 
-AI ASSISTANT:
+AIアシスタント:
   **絶対に `uploads/` は gitignore してください**。ユーザーがアップロードしたファイルをリポジトリに入れるべきではありません。設定はこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   納得。もう一つ、レシピを削除するときはどうする？ 画像ファイルも一緒に消す必要あるよね？
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ データベースのレコードとファイルの両方を削除する必要があります。堅牢な実装はこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   それは助かる。クローンジョブみたいなのでクリーンアップを回すべきかな？
 
-AI ASSISTANT:
+AIアシスタント:
   いい発想です！ デプロイ形態によって選択肢はあります:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   完璧。最後にもう一つだけ、フロントエンドで画像をどう表示する？ 単純にパスを img src に入れるだけ？
 
-AI ASSISTANT:
+AIアシスタント:
   ほぼそれで合っています！ でも本番向けにするためのベストプラクティスがいくつかあります:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   最高、ありがとう！！ 明日試してみる。日曜に Austin half があるから、寝ないと笑
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ ハーフマラソン、頑張ってください！ 🏃‍♀️
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   ちょっとだけもう一つ。アップロードルートには auth ミドルウェアを追加したほうがいい？ 変な人にアップロードされたくないし
 
-AI ASSISTANT:
+AIアシスタント:
   **もちろんです！** アップロードには絶対に auth が必要です。完全な auth セットアップはこちらです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   ありがたい！！ これで必要なものは全部そろった。ランのあとに明日まとめて実装するよ💪
 
-AI ASSISTANT:
+AIアシスタント:
   いけます！ 🚀 走ったあとに効率よく片付けられるよう、**最終実装チェックリスト**を置いておきます:
 
 ---

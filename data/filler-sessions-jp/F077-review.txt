@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   先週の障害のポストモーテムを書くのを手伝ってくれる？ 支払い処理が45分くらい落ちてたやつ
 
-AI ASSISTANT:
+AIアシスタント:
   包括的なポストモーテム作成をお手伝いします。Stripe の標準フォーマットに沿って、構造化されたインシデントレポートを作成しましょう:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、そのまま続けて。アクションアイテムも入れて、監視の抜けもちゃんとカバーしてね
 
-AI ASSISTANT:
+AIアシスタント:
   **ACTION ITEMS**
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   顧客向けの連絡と見積もり売上影響も入れて。あと、悪化させたリトライの嵐についても触れるべきだと思う
 
-AI ASSISTANT:
+AIアシスタント:
   **CUSTOMER COMMUNICATION**
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   いいんだけど、うまくいった点のセクションも追加できる？ 反応はかなり早かったし、ロールバック戦略は機能したから
 
-AI ASSISTANT:
+AIアシスタント:
   **WHAT WENT WELL**
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   完璧。これ全体を Google Doc に貼れるようなアウトラインにしてくれる？ ちゃんとした見出しつきで
 
-AI ASSISTANT:
+AIアシスタント:
   **INCIDENT POST-MORTEM: PAYMENT PROCESSING OUTAGE**
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   最高。もう一つだけ、これが起きた理由を説明するために VP に送るメールも下書きしてくれる？ 短めで。役員は長文読まないから笑
 
-AI ASSISTANT:
+AIアシスタント:
   **Subject: Post-Mortem: April 17 Payment Outage (45min, $444K impact)**
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   いや、そのままで完璧。あ、待って - これ、去年のインフラ案件を優先していれば防げたってことは書かないほうがいいよね？
 
-AI ASSISTANT:
+AIアシスタント:
   正直、このメールには入れないほうがいいです。理由はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   そうだね、正しい。じゃあ1対1で話すときに取っておくよ。最後にもう一個だけ約束するけど、#engineering-all にポストモーテム完成を知らせる Slack メッセージを書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **Option 1 (Straightforward):**
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
-  Option 1 でいい。うちは「楽しい Slack」みたいな会社じゃないしね笑。よし、これでいいよ、ありがとう D！
+マヤ:
+  Option 1 でいい。うちは「楽しい Slack」みたいな会社じゃないしね笑。よし、これでいいよ、ありがとう ディー！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ ポストモーテムをまとめる手伝いができてよかったです。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   あ、そうだ。$444k ってそのまま書くより、多くは goodwill credits であって失われた売上ではないって、メールでわかりやすく分けたほうがいいかな？
 
-AI ASSISTANT:
+AIアシスタント:
   はい、絶対にそうです。役員向けのコミュニケーションでは重要な違いです。修正版の影響セクションはこちらです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   うん、その変更を反映したメール全文にして
 
-AI ASSISTANT:
+AIアシスタント:
   **Subject: Post-Mortem: April 17 Payment Outage (45min, $444K impact)**
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   完璧。じゃあ本当に終わり。これ送って、4:30 の前にコーヒーでも取ってくる
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ これで全部そろっています:
 
 ---

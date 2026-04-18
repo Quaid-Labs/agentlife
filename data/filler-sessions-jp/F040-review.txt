@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   div を中央に配置するにはどうするの笑
 
-AI ASSISTANT:
+AIアシスタント:
   定番ですね！ 単一要素なら、いちばん簡単なのはこれです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   え、それだとコンテナ内の中身全部が中央になるよね？ コンテナ自体を中央にしたい場合は？
 
-AI ASSISTANT:
+AIアシスタント:
   そう、その場合はコンテナ自体をこうします。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   ああ、なるほど。縦方向は？
 
-AI ASSISTANT:
+AIアシスタント:
   縦方向の中央揃えは少し難しくて、状況によります。親が flex ならこうです。
 
 ---

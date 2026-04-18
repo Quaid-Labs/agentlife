@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   レシピ画像のファイルアップロードで助けがほしい。Express + SQLite を使ってるんだけど、いちばんいい扱い方はどれ？
 
-AI ASSISTANT:
+AIアシスタント:
   レシピ画像のファイルアップロードを整えましょう。いちばんよい方法は、multipart/form-data の処理に **multer** を使い、ファイルはローカルに保存しつつ（あとで S3 に移せるようにして）、SQLite にはファイルパスを保存するやり方です。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね、コントローラを見せて。あと画像はリサイズしたほうがいい？ それともそのまま保存する？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんリサイズしたほうがいいです。ユーザーは 10MB ものスマホ写真を上げるかもしれません。自動リサイズに `sharp` を使ったコントローラはこんな感じです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   なるほど。でも uploads/recipes がまだ存在しない。手動で作るべき？ それともコードで作るべき？
 
-AI ASSISTANT:
+AIアシスタント:
   コードで作りましょう。起動時スクリプトを追加して、ディレクトリが自動的に存在するようにします。設定はこんな感じです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   テストはどうする？ アップロードの流れは試したいけど、実ファイルがあちこちに増えるのは嫌なんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   テストでは `multer.memoryStorage()` を使えば、ファイルシステムへの書き込みを避けられます。完全なテストスイートはこうです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   テストを実行するとこれが出る: Error: ENOENT: no such file or directory, open 'uploads/recipes/resized-recipe-1234.jpg'
 
-AI ASSISTANT:
+AIアシスタント:
   テストが、保存先ディレクトリができる前に走っています。テストのセットアップで初期化する必要があります。修正はこうです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね、動いた。でもあとで S3 に切り替えたくなったら、全部書き直しになる？
 
-AI ASSISTANT:
+AIアシスタント:
   それを今のうちに抽象化しておけば大丈夫です。ストレージ用のインターフェースを作っておけば、あとで実装を差し替えられます。きれいなやり方はこうです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   完璧。最後に、画像アップロードが失敗したけど、レシピはすでに DB に作成されていた場合はどう扱えばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   いい着眼点です。典型的な原子性の問題ですね。両方を同時に確定するか、どちらも確定しないかのどちらかにする必要があります。適切な扱い方はこうです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   おお、賢い。ところで、タイトルの最大長みたいにレシピ項目のバリデーションも入れたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。アップロードの前にバリデーション用ミドルウェアを追加しましょう。`express-validator` を使った完全なバリデーション設定はこうです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね。もう一つだけ。アップロード前にフロントエンドで画像のプレビューを表示するにはどうしたらいい？
 
-AI ASSISTANT:
+AIアシスタント:
   アップロード前にローカルの object URL を作るために File API を使います。プレビュー付きの完全な React コンポーネントはこんな感じです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ありがとう、完璧！ これ試してみる。ところで今週末 Zilker で走るんだけど、もし近くにいたら笑
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ Zilker はこの時期すごくきれいです。ラン、がんばってください!
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   ありがとう！ もう一つだけ。アップロードエンドポイントにレート制限を入れるべき？ ストレージが埋まるのが心配で
 
-AI ASSISTANT:
+AIアシスタント:
   ぜひ入れましょう。ファイルアップロードはコストが高いです（帯域、保存容量、処理）。アップロード専用のレート制限はこうです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   最高、まさに欲しかったやつ。今日はこれを全部実装する。ほんと助かった、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。これでアップロード基盤はかなり堅くなりました。今日まとめて進めるなら、実装順はこんな感じです:
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   ねえ、食事制限フィルタでビーガンを検索するとベジタリアンのレシピが返ってくるんだけど……卵とかチーズが入ったやつまで混ざるの、笑
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん、直せます！ 問題は、フィルタロジックが「ビーガン」と「ベジタリアン」を同じものとして扱っているか、レシピ内のどこかに「ビーガン」という単語があれば通してしまっていて、ビーガン要件を厳密に判定していないことだと思います。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   なるほど、たしかに。既存データを移すためのマイグレーションスクリプトを見せてもらえる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ 既存のカンマ区切りの dietary_tags カラムのデータを、正しいリレーショナル構造に移すマイグレーションスクリプトはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   実行してる…… "SQLITE_ERROR: no such column: dietary_tags" ってエラーになった。たぶんそのカラム自体なくて、タグは `tags` っていう JSON フィールドに入ってた
 
-AI ASSISTANT:
+AIアシスタント:
   なるほど、JSON カラム向けに修正しますね:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   入れ子になってる - `{ "dietary": ["vegan"], "cuisine": ["italian", "comfort"], "difficulty": "easy" }` - 更新版のスクリプトを実行してるよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね、その形式はスクリプトで対応済みです。実行している間に、マイグレーションが正しく動いたかと、ビーガン/ベジタリアンのフィルタが正確になったかを確認するテストスイートを置いておきます:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   マイグレーションは成功！ "Migrated: 147 tag associations" って出た。テストは通ってるけど、大文字の VEGAN のケースだけ失敗してて、結果が 0 件になる
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です！ ルート側でクエリパラメータを小文字化する必要があります。修正はこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   完璧、今は全テストが通った。あと一つ - 新しいレシピを作るとき、食事制限タグの追加はどう扱えばいい？ 今の POST は recipes テーブルに挿入するだけなんだ
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問です！ 食事制限タグを扱うように更新した POST エンドポイントはこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   いいね！ もう一つだけ - 誰かがレシピをビーガンとベジタリアンの両方に誤ってタグ付けしないように、バリデーションを追加できる？ それはおかしいよね
 
-AI ASSISTANT:
+AIアシスタント:
   いい考えです！ 矛盾する食事制限タグを防ぐためのバリデーションロジックはこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   最高！ これを試してみる。ちなみに、このバリデーションロジックのテストも追加したほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ 食事制限バリデーション用の包括的なテストスイートはこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   いい感じ、18/18 で通った。これをデプロイするよ、ほんと助かった！
 
-AI ASSISTANT:
+AIアシスタント:
   無事にリリースできてよかったです！ 直した内容を簡単にまとめると:
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ストライプの docs で idempotent をよく見るんだけど、あれって何のこと？笑
 
-AI ASSISTANT:
+AIアシスタント:
   同じ操作を何回やっても、結果が同じまま安全に実行できるという意味です。たとえば支払いリクエストが失敗して再試行しても、顧客に二重請求されない、みたいなことです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   ああ、つまり安全のための仕組みみたいなものか。なるほど、サンキュー
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ API ではすごく重要で、重複請求や二重投稿を防ぎます。Stripe は idempotency key でその大半を処理しています。
 
 ---

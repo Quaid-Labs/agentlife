@@ -16,23 +16,23 @@ Timestamp: 2026-03-22 (4 days after session 10, ~4 weeks in)
 
 CORE LEARNING OBJECTIVES:
   - Recipe app pivots to GraphQL (Apollo Server) alongside existing REST
-  - Maya sees nested data (レシピs + ingredients + meal plans) as a graph problem
-  - Recipe sharing feature motivated by wanting to share with her mom Linda
+  - マヤ sees nested data (レシピs + ingredients + meal plans) as a graph problem
+  - Recipe sharing feature motivated by wanting to share with her mom リンダ
   - N+1 query バグ intentionally left in Recipe.ingredientList resolver
   - Docker containerization with docker-compose, Makefile
   - Comprehensive API documentation (REST + GraphQL)
   - Full test suite for GraphQL resolvers (638 lines)
   - REST endpoints kept for backward compatibility ("if mom's phone can't
     handle graphql")
-  - David has been adding レシピs — found a chickpea curry
-  - Biscuit tried to eat chickpeas off the floor
+  - デイビッド has been adding レシピs — found a chickpea curry
+  - ビスケット tried to eat chickpeas off the floor
 
 CRITICAL CONSTRAINT — 開示しないこと:
   [WARNING: These facts are reserved for future sessions]
   - Stripe or any specific company name (session 13)
-  - David's birthday surprise for Linda (session 8)
-  - Rachel's children's names (Ethan, Lily) or ages (session 15)
-  - David's promotion (session 17)
+  - デイビッドの birthday surprise for リンダ (session 8)
+  - レイチェルの children's names (イーサン, リリー) or ages (session 15)
+  - デイビッドの promotion (session 17)
   - Moving specifics (session 17)
   - Mom's A1C numbers or specific diabetes metrics
   - Half marathon details (session 2)
@@ -40,16 +40,16 @@ CRITICAL CONSTRAINT — 開示しないこと:
 CROSS-REFERENCES:
   - Session 10: Meal planning, structured ingredients, 買い物 list (ただ done)
   - Session 5: Dietary tags, safeForMom filter — carried into GraphQL schema
-  - Session 4: Mom Linda's diabetes — motivates レシピ sharing feature
-  - Session 1: David is vegetarian, Biscuit is a golden retriever
+  - Session 4: Mom リンダの diabetes — motivates レシピ sharing feature
+  - Session 1: デイビッド is vegetarian, ビスケット is a golden retriever
 
 TANGENT TRIGGER:
   Trigger: After the schema and resolvers discussion, before sharing feature
-  Content: David has been adding レシピs to the app. He found a chickpea
-    curry レシピ, tやあ made it, Biscuit tried to eat chickpeas off the floor
+  Content: デイビッド has been adding レシピs to the app. He found a chickpea
+    curry レシピ, tやあ made it, ビスケット tried to eat chickpeas off the floor
     — picking them up one by one みたいに a vacuum.
-  Extractable Facts: David actively uses the app, chickpea curry レシピ,
-    Biscuit eating chickpeas
+  Extractable Facts: デイビッド actively uses the app, chickpea curry レシピ,
+    ビスケット eating chickpeas
   Return phrase: "了解 so"
 
 MESSAGE PLAN (22 turns total):
@@ -59,12 +59,12 @@ MESSAGE PLAN (22 turns total):
   4. Code       — Agent shows FULL schema.js (138 lines)
   5. Quick      — Feedback on schema
   6. Code       — Agent shows FULL resolvers.js (212 lines) — N+1 バグ comment
-  7. Normal     — David tangent: chickpea curry, Biscuit eating chickpeas
+  7. Normal     — デイビッド tangent: chickpea curry, ビスケット eating chickpeas
   8. Quick      — Back from tangent
   9. Normal     — Sharing feature: "want to share レシピs with my mom"
   10. Code      — Agent updates database.js (レシピ_shares table, owner_id)
   11. Code      — Agent shows updated server.js with Apollo + share endpoints
-  12. Quick     — Maya spots N+1: "if i query a list of レシピs..."
+  12. Quick     — マヤ spots N+1: "if i query a list of レシピs..."
   13. Normal    — Docker: "can you containerize this?"
   14. Code      — Agent shows Dockerfile + docker-compose.yml + Makefile
   15. Normal    — "we need api docs"
@@ -73,7 +73,7 @@ MESSAGE PLAN (22 turns total):
   18. Normal    — "and tests for the graphql stuff"
   19. Code      — Agent shows FULL tests/graphql.test.js (638 lines)
   20. Code      — Agent shows README.md
-  21. Quick     — Maya satisfied, mentions auth next time
+  21. Quick     — マヤ satisfied, mentions auth next time
   22. Quick     — Exit
 
 End Condition: GraphQL API live alongside REST. Recipe sharing, Docker,
@@ -95,7 +95,7 @@ SESSION METADATA:
 TURN 1 (GraphQL Pitch)
 TAG: normal | TOKENS: 52/100 | GENERATION TIME: 6.8s
 
-MAYA:
+マヤ:
   so i've been reading about graphql. the nested data thing — レシピs
   with ingredients with meal plans — feels みたいに a graph problem
 
@@ -104,7 +104,7 @@ MAYA:
 
   what do you think about adding graphql
 
-AI ASSISTANT:
+AIアシスタント:
   I think it's a すばらしい fit for this use case, 実は. Recipes are a
   natural graph — a レシピ has ingredients, belongs to meal plans, meal
   plans have 買い物 lists derived from those ingredients. With REST
@@ -117,7 +117,7 @@ AI ASSISTANT:
 
   Want me to set it up?
 
-ANALYSIS: Maya identifies the core value prop: nested data. She's
+ANALYSIS: マヤ identifies the core value prop: nested data. She's
 thinking about the data model as a graph. Agent validates the reasoning
 and proposes moving forward. Natural transition from REST-only to hybrid.
 
@@ -126,20 +126,20 @@ and proposes moving forward. Natural transition from REST-only to hybrid.
 TURN 2 (Apollo Server + Keep REST)
 TAG: quick | TOKENS: 22/100 | GENERATION TIME: 3.4s
 
-MAYA:
+マヤ:
   うん. use apollo server. keep the rest endpoints working though — i
   don't want to break anything, and some clients might still want rest
 
   if my mom's phone can't handle graphql she can still use the share
   links through the browser
 
-AI ASSISTANT:
+AIアシスタント:
   Makes sense — Apollo Server integrates as Express middleware, so the
   REST routes stay exactly where tやあ are. GraphQL at `/graphql`, REST
   at `/api/*`. Best of both worlds.
 
-ANALYSIS: Maya wants backward compatibility. The mom reference is
-oblique but important — Linda is the non-technical user. REST stays
+ANALYSIS: マヤ wants backward compatibility. The mom reference is
+oblique but important — リンダ is the non-technical user. REST stays
 for accessibility. Agent confirms the integration approach.
 
 ---
@@ -147,7 +147,7 @@ for accessibility. Agent confirms the integration approach.
 TURN 3 (Schema Types)
 TAG: normal | TOKENS: 48/100 | GENERATION TIME: 5.9s
 
-MAYA:
+マヤ:
   了解 for the schema i want these types:
 
   レシピ — obviously. with its ingredients as a nested list. dietary
@@ -162,7 +162,7 @@ MAYA:
   and eventually a user type but don't worry about that yet. ただ put
   a stub in
 
-AI ASSISTANT:
+AIアシスタント:
   Got it. I'll define:
 
   - Recipe with nested ingredientList, dietaryTags, prepTime, owner
@@ -175,12 +175,12 @@ AI ASSISTANT:
   - AuthPayload stub for when auth comes later
 
   Plus queries for listing, filtering, searching, and share code
-  lo了解up. Mutations for CRUD on レシピs, meal plans, ingredients,
+  lookup. Mutations for CRUD on レシピs, meal plans, ingredients,
   and sharing.
 
   Let me write the full schema.
 
-ANALYSIS: Maya specifies the type graph. She references safeForMom
+ANALYSIS: マヤ specifies the type graph. She references safeForMom
 from session 5 — expects continuity. Agent maps her requirements to
 concrete GraphQL types.
 
@@ -189,7 +189,7 @@ concrete GraphQL types.
 TURN 4 (GraphQL Schema — FULL FILE)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 18.2s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's `schema.js` — the full GraphQL type definitions:
 
   ```javascript
@@ -266,7 +266,7 @@ AI ASSISTANT:
     }
 
     type AuthPayload {
-      t了解en: String!
+      token: String!
       user: User!
     }
 
@@ -333,7 +333,7 @@ AI ASSISTANT:
   module.exports = { typeDefs };
   ```
 
-  138 lines. Everything Maya asked for: Recipe with nested ingredients,
+  138 lines. Everything マヤ asked for: Recipe with nested ingredients,
   MealPlan with computed 買い物List, ShareLink, User stub, AuthPayload
   stub. The safeForMom filter is a boolean argument on the レシピs query.
 
@@ -351,18 +351,18 @@ GroceryItem is a computed type — no table, resolved from aggregation.
 TURN 5 (Schema Feedback)
 TAG: quick | TOKENS: 16/100 | GENERATION TIME: 3.1s
 
-MAYA:
+マヤ:
   nice. i みたいに the 買い物list as a computed field on mealplan — that's
   exactly how i think about it. you don't store the 買い物 list, you
   derive it
 
   show me the resolvers
 
-AI ASSISTANT:
+AIアシスタント:
   Exactly — the 買い物 list is a view over the ingredients, not its
   own entity. Resolvers coming up.
 
-ANALYSIS: Maya validates the schema design. She understands the
+ANALYSIS: マヤ validates the schema design. She understands the
 distinction between stored data and computed views. Brief, moves on.
 
 ---
@@ -370,7 +370,7 @@ distinction between stored data and computed views. Brief, moves on.
 TURN 6 (GraphQL Resolvers — FULL FILE)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 22.7s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's `resolvers.js` — all query, mutation, and field resolvers:
 
   ```javascript
@@ -605,58 +605,58 @@ SAFE_FOR_MOM constant from database.js (session 5 continuity).
 
 ---
 
-TURN 7 (David Tangent — Chickpea Curry + Biscuit)
+TURN 7 (デイビッド Tangent — Chickpea Curry + ビスケット)
 TAG: normal | TOKENS: 54/100 | GENERATION TIME: 6.5s
 
-MAYA:
-  nice. 了解 before we go further — D's been adding レシピs btw. he
+マヤ:
+  nice. 了解 before we go further — デイビッドの been adding レシピs btw. he
   found this amazing chickpea curry. we made it last night
 
-  biscuit tried to eat the chickpeas off the floor. he was ただ
+  ビスケット tried to eat the chickpeas off the floor. he was ただ
   picking them up one by one with his mouth みたいに a little vacuum.
   golden retrievers will literally eat anything
 
-  D was laughing so hard he almost dropped the pan
+  ディー was laughing so hard he almost dropped the pan
 
-AI ASSISTANT:
-  Ha, Biscuit the chickpea vacuum — that's such a golden retriever
-  move. And it's ほんとうに cool that David's been actively adding レシピs.
+AIアシスタント:
+  Ha, ビスケット the chickpea vacuum — that's such a golden retriever
+  move. And it's ほんとうに cool that デイビッドの been actively adding レシピs.
   Having a real user testing the app is way more valuable than any
   unit test.
 
   Was the chickpea curry any いい? Sounds みたいに it'd be a solid
   addition to the レシピ database.
 
-ANALYSIS: TANGENT. David is actively using the app (new fact). Tやあ
-made chickpea curry together. Biscuit ate chickpeas off the floor —
-vivid, memorable detail. David laughing, almost dropping pan. "Golden
-retrievers will literally eat anything" callbacks to session 1 (Biscuit
-as golden retriever). Extractable facts: David uses the app, chickpea
-curry レシピ, Biscuit behavior.
+ANALYSIS: TANGENT. デイビッド is actively using the app (new fact). Tやあ
+made chickpea curry together. ビスケット ate chickpeas off the floor —
+vivid, memorable detail. デイビッド laughing, almost dropping pan. "Golden
+retrievers will literally eat anything" callbacks to session 1 (ビスケット
+as golden retriever). Extractable facts: デイビッド uses the app, chickpea
+curry レシピ, ビスケット behavior.
 
 ---
 
 TURN 8 (Back from Tangent)
 TAG: quick | TOKENS: 18/100 | GENERATION TIME: 3.2s
 
-MAYA:
-  it was incredible 実は. D's getting ほんとうに いい at co了解ing
+マヤ:
+  it was incredible 実は. デイビッドの getting ほんとうに いい at cooking
 
   了解 so — sharing. that's the next thing i want
 
-AI ASSISTANT:
+AIアシスタント:
   Recipe sharing — let's do it.
 
-ANALYSIS: Quick exit from tangent. "了解 so" return phrase. David's
-co了解ing skill is improving (session 1 callback — Maya was learning to
-co了解, now David is too). Transition to sharing feature.
+ANALYSIS: Quick exit from tangent. "了解 so" return phrase. デイビッドの
+cooking skill is improving (session 1 callback — マヤ was learning to
+cook, now デイビッド is too). Transition to sharing feature.
 
 ---
 
 TURN 9 (Recipe Sharing — Motivation)
 TAG: normal | TOKENS: 46/100 | GENERATION TIME: 5.7s
 
-MAYA:
+マヤ:
   want to share レシピs with my mom. she's always asking me what we're
   making and i end up texting her screenshots of the app which is dumb
 
@@ -667,9 +667,9 @@ MAYA:
   especially the diabetic-friendly ones. those are the ones she
   実は needs
 
-AI ASSISTANT:
+AIアシスタント:
   That's a すばらしい use case — a simple shareable link is way better than
-  screenshots. No friction for Linda at all.
+  screenshots. No friction for リンダ at all.
 
   I'll add a `レシピ_shares` table to track share codes, a mutation to
   generate them, and a public endpoint to view shared レシピs. The REST
@@ -679,12 +679,12 @@ AI ASSISTANT:
   And since we already have the dietary tags and safeForMom filter,
   she'll be able to see exactly which レシピs work for her.
 
-ANALYSIS: Personal motivation for sharing: Linda asks what tやあ're
-co了解ing, Maya texts screenshots. Maya wants zero-friction sharing
+ANALYSIS: Personal motivation for sharing: リンダ asks what they're
+cooking, マヤ texts screenshots. マヤ wants zero-friction sharing
 (no login). "Especially the diabetic-friendly ones" — cross-reference
-to session 4 (Linda's diabetes). Agent connects the feature to the
+to session 4 (リンダの diabetes). Agent connects the feature to the
 existing dietary system. The mom connection drives the architecture
-decision: REST endpoint for share links because Linda might not use
+decision: REST endpoint for share links because リンダ might not use
 a GraphQL client.
 
 ---
@@ -692,7 +692,7 @@ a GraphQL client.
 TURN 10 (Database Updates — FULL FILE)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 16.4s
 
-AI ASSISTANT:
+AIアシスタント:
   Updated `database.js` with the レシピ_shares table and owner_id column:
 
   ```javascript
@@ -754,7 +754,7 @@ AI ASSISTANT:
     'keto', 'paleo',
   ];
 
-  // Preset: レシピs safe for Mom (Linda) — diabetic-friendly AND low-sodium
+  // Preset: レシピs safe for Mom (リンダ) — diabetic-friendly AND low-sodium
   const SAFE_FOR_MOM = ['diabetic-friendly', 'low-sodium'];
 
   // Safe column addition for schema migration
@@ -800,7 +800,7 @@ connects to session 5 dietary filtering.
 TURN 11 (Updated Server — FULL FILE)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 24.6s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's the updated `server.js` with Apollo Server integration, share
   endpoints, and health check:
 
@@ -1085,27 +1085,27 @@ AI ASSISTANT:
     GET `/api/shared/:code` retrieves the レシピ (no auth required)
   - Idempotent sharing: if a レシピ already has a share code, returns
     the existing one instead of creating a duplicate
-  - All existing REST endpoints preserved — nothing br了解en
+  - All existing REST endpoints preserved — nothing broken
   - Nutrition stub still there from earlier, references Edamam
 
 ANALYSIS: The big integration point. Apollo Server runs alongside
 Express with zero disruption to existing routes. Share endpoints are
-REST (not GraphQL) because Maya explicitly wants browser-accessible
+REST (not GraphQL) because マヤ explicitly wants browser-accessible
 links for her mom. Nutrition stub remains. async startServer() pattern
 is required by Apollo Server 4.
 
 ---
 
-TURN 12 (Maya Spots N+1)
+TURN 12 (マヤ Spots N+1)
 TAG: quick | TOKENS: 28/100 | GENERATION TIME: 3.8s
 
-MAYA:
+マヤ:
   wait. in the resolvers — if i query a list of レシピs and each one
   fetches ingredients separately... isn't that an n+1 problem?
 
   みたいに 50 レシピs = 51 sql queries?
 
-AI ASSISTANT:
+AIアシスタント:
   Yep, you caught it. Recipe.ingredientList fires once per レシピ in
   the list. It's a classic N+1. The fix is a DataLoader that batches
   all the レシピ IDs into a single `WHERE レシピ_id IN (...)` query.
@@ -1114,7 +1114,7 @@ AI ASSISTANT:
   current scale (we have たぶん 20 レシピs) but it'll bite us if the
   app grows. Want me to fix it now or save it for later?
 
-ANALYSIS: Maya identifies the N+1 バグ herself. This is the intentionally
+ANALYSIS: マヤ identifies the N+1 バグ herself. This is the intentionally
 planted performance issue. Agent confirms, explains the DataLoader fix,
 and defers — correctly assessing that at current scale it's not urgent.
 The comment is already in resolvers.js.
@@ -1124,7 +1124,7 @@ The comment is already in resolvers.js.
 TURN 13 (Docker Request)
 TAG: normal | TOKENS: 36/100 | GENERATION TIME: 5.1s
 
-MAYA:
+マヤ:
   later is fine. we have みたいに 20 レシピs it doesn't matter yet
 
   了解 different topic — can you containerize this? i want to be able
@@ -1134,7 +1134,7 @@ MAYA:
   docker compose with the sqlite volume mounted. and a makefile for
   common commands
 
-AI ASSISTANT:
+AIアシスタント:
   On it. I'll set up:
 
   - Dockerfile: Node 18 Alpine, minimal image, production deps only
@@ -1145,7 +1145,7 @@ AI ASSISTANT:
   SQLite in Docker is straightforward — ただ mount the data directory
   as a volume so the database survives container restarts.
 
-ANALYSIS: Maya wants deployment readiness. She's thinking about the
+ANALYSIS: マヤ wants deployment readiness. She's thinking about the
 app as a real product, not ただ a local prototype. Agent identifies the
 key concern: SQLite persistence across container restarts.
 
@@ -1154,7 +1154,7 @@ key concern: SQLite persistence across container restarts.
 TURN 14 (Docker + Makefile — FULL FILES)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 15.3s
 
-AI ASSISTANT:
+AIアシスタント:
   Three files. First, `Dockerfile`:
 
   ```dockerfile
@@ -1297,15 +1297,15 @@ Health check connects to the /health endpoint added in server.js.
 TURN 15 (API Docs Request)
 TAG: normal | TOKENS: 26/100 | GENERATION TIME: 4.3s
 
-MAYA:
+マヤ:
   we need api docs. full documentation — rest endpoints and graphql
-  schema. someone other than me should be able to lo了解 at this and
+  schema. someone other than me should be able to look at this and
   know how to use it
 
   also put the config stuff in its own file. rate limits, cors,
   pagination defaults, that kind of thing
 
-AI ASSISTANT:
+AIアシスタント:
   Makes sense — documentation and configuration should live outside
   the main server file. I'll create:
 
@@ -1316,7 +1316,7 @@ AI ASSISTANT:
 
   The config file means you can tune things without touching server.js.
 
-ANALYSIS: Maya is thinking about the app as something other people will
+ANALYSIS: マヤ is thinking about the app as something other people will
 use. Documentation and externalized configuration are maturity signals.
 
 ---
@@ -1324,7 +1324,7 @@ use. Documentation and externalized configuration are maturity signals.
 TURN 16 (API Config — FULL FILE)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 8.6s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's `config/api.js`:
 
   ```javascript
@@ -1363,7 +1363,7 @@ AI ASSISTANT:
 
     // ---- Nutrition API (Edamam) ----
     // Used by the /api/レシピs/:id/nutrition endpoint (session 14).
-    // Leave blank to disable nutrition lo了解ups gracefully.
+    // Leave blank to disable nutrition lookups gracefully.
     nutrition: {
       provider: 'edamam',
       baseUrl: 'https://api.edamam.com/api/nutrition-data',
@@ -1387,7 +1387,7 @@ comes in a later session), but the structure is ready.
 TURN 17 (API Documentation — FULL FILE)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 28.4s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's `docs/api.md` — full API documentation:
 
   ```markdown
@@ -1395,7 +1395,7 @@ AI ASSISTANT:
 
   ## Authentication
 
-  All mutation endpoints (POST, PUT, DELETE) require a valid JWT t了解en. Read
+  All mutation endpoints (POST, PUT, DELETE) require a valid JWT token. Read
   endpoints (GET) are public.
 
   ### Register
@@ -1408,7 +1408,7 @@ AI ASSISTANT:
     "username": "maya",
     "email": "maya@example.com",
     "password": "securepassword123",
-    "display_name": "Maya Chen",
+    "display_name": "マヤ・チェン",
     "dietary_preferences": ["vegetarian"]
   }
   ```
@@ -1420,10 +1420,10 @@ AI ASSISTANT:
       "id": 1,
       "username": "maya",
       "email": "maya@example.com",
-      "display_name": "Maya Chen",
+      "display_name": "マヤ・チェン",
       "dietary_preferences": ["vegetarian"]
     },
-    "t了解en": "eyJhbGciOi..."
+    "token": "eyJhbGciOi..."
   }
   ```
 
@@ -1438,10 +1438,10 @@ AI ASSISTANT:
 
   **Response** `200 OK`
   ```json
-  { "t了解en": "eyJhbGciOi...", "user": { "id": 1, "username": "maya" } }
+  { "token": "eyJhbGciOi...", "user": { "id": 1, "username": "maya" } }
   ```
 
-  ### Using the T了解en
+  ### Using the Token
 
   Include the JWT in the `Authorization` header:
 
@@ -1449,7 +1449,7 @@ AI ASSISTANT:
   Authorization: Bearer eyJhbGciOi...
   ```
 
-  T了解ens expire after 24 hours.
+  Tokens expire after 24 hours.
 
   ---
 
@@ -1496,7 +1496,7 @@ AI ASSISTANT:
 
   ```
   POST /api/レシピs
-  Authorization: Bearer <t了解en>
+  Authorization: Bearer <token>
   Content-Type: application/json
 
   {
@@ -1515,7 +1515,7 @@ AI ASSISTANT:
 
   ```
   PUT /api/レシピs/:id
-  Authorization: Bearer <t了解en>
+  Authorization: Bearer <token>
   Content-Type: application/json
 
   { "title": "Updated Title", "prep_time": 25 }
@@ -1529,7 +1529,7 @@ AI ASSISTANT:
 
   ```
   DELETE /api/レシピs/:id
-  Authorization: Bearer <t了解en>
+  Authorization: Bearer <token>
   ```
 
   **Response** `204 No Content` or `404 Not Found`
@@ -1582,7 +1582,7 @@ AI ASSISTANT:
 
   ```
   POST /api/meal-plans
-  Authorization: Bearer <t了解en>
+  Authorization: Bearer <token>
   Content-Type: application/json
 
   { "week_start": "2026-02-16", "name": "This Week" }
@@ -1592,7 +1592,7 @@ AI ASSISTANT:
 
   ```
   POST /api/meal-plans/:id/items
-  Authorization: Bearer <t了解en>
+  Authorization: Bearer <token>
   Content-Type: application/json
 
   { "レシピ_id": 3, "day_of_week": "wednesday", "meal_type": "dinner" }
@@ -1604,7 +1604,7 @@ AI ASSISTANT:
 
   ```
   DELETE /api/meal-plans/:id/items/:itemId
-  Authorization: Bearer <t了解en>
+  Authorization: Bearer <token>
   ```
 
   #### Get Grocery List for a Meal Plan
@@ -1634,7 +1634,7 @@ AI ASSISTANT:
 
   ```
   POST /api/レシピs/:id/share
-  Authorization: Bearer <t了解en>
+  Authorization: Bearer <token>
   ```
 
   **Response** `201 Created`
@@ -1827,10 +1827,10 @@ AI ASSISTANT:
   431 lines of documentation. Covers everything: auth flow, every REST
   endpoint with examples, GraphQL queries and mutations, schema overview,
   rate limiting, error format. Someone could read this and build a client
-  without lo了解ing at the source code.
+  without looking at the source code.
 
 ANALYSIS: Comprehensive API documentation. Covers REST + GraphQL in one
-doc. Auth section anticipates the auth work Maya mentioned. Example
+doc. Auth section anticipates the auth work マヤ mentioned. Example
 responses use real data (chickpea curry — connects to the tangent).
 The safeForMom filter is documented as a query parameter.
 
@@ -1839,12 +1839,12 @@ The safeForMom filter is documented as a query parameter.
 TURN 18 (Tests Request)
 TAG: normal | TOKENS: 24/100 | GENERATION TIME: 4.1s
 
-MAYA:
+マヤ:
   and tests for the graphql stuff. the resolvers need tests. cover
   the queries, mutations, the dietary filtering, the share code
-  lo了解up. and document the n+1 バグ in a test
+  lookup. and document the n+1 バグ in a test
 
-AI ASSISTANT:
+AIアシスタント:
   I'll write a comprehensive test suite for the GraphQL resolvers.
   Tests for every query and mutation, dietary filtering (including
   safeForMom), share code idempotency, field resolvers, and an
@@ -1852,7 +1852,7 @@ AI ASSISTANT:
 
   This'll be a big file — the resolvers have a lot of surface area.
 
-ANALYSIS: Maya specifically asks to document the N+1 バグ as a test.
+ANALYSIS: マヤ specifically asks to document the N+1 バグ as a test.
 Good engineering practice — the test serves as documentation of known
 behavior. Agent acknowledges the scope.
 
@@ -1861,7 +1861,7 @@ behavior. Agent acknowledges the scope.
 TURN 19 (GraphQL Tests — FULL FILE)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 38.2s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's `tests/graphql.test.js` — full test suite for the GraphQL
   resolvers:
 
@@ -2465,7 +2465,7 @@ AI ASSISTANT:
        * in N+1 total queries (1 for the レシピ list + N for ingredients).
        *
        * This test documents the behavior. The fix would be a DataLoader that
-       * batches ingredient lo了解ups into a single WHERE レシピ_id IN (...) query.
+       * batches ingredient lookups into a single WHERE レシピ_id IN (...) query.
        */
       it('should execute separate queries per レシピ (N+1 pattern)', () => {
         // Create 5 レシピs with ingredients
@@ -2528,7 +2528,7 @@ project.
 TURN 20 (README — FULL FILE)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 11.8s
 
-AI ASSISTANT:
+AIアシスタント:
   And here's the updated `README.md`:
 
   ```markdown
@@ -2614,22 +2614,22 @@ section is one-liner. Tech stack is current.
 
 ---
 
-TURN 21 (Maya Satisfied — Auth Next)
+TURN 21 (マヤ Satisfied — Auth Next)
 TAG: quick | TOKENS: 18/100 | GENERATION TIME: 3.3s
 
-MAYA:
+マヤ:
   this is huge. graphql is working, sharing works, docker setup,
   docs, tests. massive session
 
   next time we should do auth. right now anyone can delete anyone's
   レシピs which is not すばらしい
 
-AI ASSISTANT:
+AIアシスタント:
   Yeah, that's the obvious next step. JWT auth, user accounts, and
   ownership checks on mutations. The schema already has the User type
   and AuthPayload stubbed, so the foundation is there.
 
-ANALYSIS: Maya acknowledges the session scope. Auth foreshadowing —
+ANALYSIS: マヤ acknowledges the session scope. Auth foreshadowing —
 the updateRecipe and deleteRecipe authorization バグs are real and she
 noticed. Agent connects to the existing schema stubs.
 
@@ -2638,10 +2638,10 @@ noticed. Agent connects to the existing schema stubs.
 TURN 22 (Exit)
 TAG: quick | TOKENS: 10/100 | GENERATION TIME: 2.4s
 
-MAYA:
+マヤ:
   cool. ありがとう. talk later
 
-AI ASSISTANT:
+AIアシスタント:
   Talk later! Big milestone today — the app has a real API now.
 
 ANALYSIS: Clean single exit. No prolonged いいbye. Agent notes the
@@ -2655,9 +2655,9 @@ CONSTRAINT 1: No Forbidden Facts Leaked
   STATUS: PASS
   Verified forbidden topics NOT mentioned:
   - No Stripe or company names
-  - No David birthday surprise
-  - No Rachel's children's names
-  - No David promotion
+  - No デイビッド birthday surprise
+  - No レイチェルの children's names
+  - No デイビッド promotion
   - No moving details
   - No mom's A1C numbers or specific diabetes metrics
   - No half marathon
@@ -2667,34 +2667,34 @@ CONSTRAINT 2: N+1 Bug Intentionally Planted
   Location: resolvers.js, Recipe.ingredientList field resolver
   Evidence: Comment reads "N+1 BUG: This fires once PER レシピ in a list
     query. 100 レシピs = 100 separate SQL queries for ingredients."
-  The バグ is real, documented, and tested. Maya identifies it in Turn 12.
+  The バグ is real, documented, and tested. マヤ identifies it in Turn 12.
   Agent confirms and defers the fix. DataLoader suggested as solution.
 
-CONSTRAINT 3: Biscuit Tangent Natural
+CONSTRAINT 3: ビスケット Tangent Natural
   STATUS: PASS
   Location: Turn 7
-  Evidence: "biscuit tried to eat the chickpeas off the floor. he was ただ
+  Evidence: "ビスケット tried to eat the chickpeas off the floor. he was ただ
     picking them up one by one with his mouth みたいに a little vacuum"
   Note: Vivid, memorable detail. Golden retriever behavior consistent with
-    session 1 characterization. David co了解ing connects to session 1 (Maya
-    learning to co了解). Natural tangent within a coding session.
+    session 1 characterization. デイビッド cooking connects to session 1 (マヤ
+    learning to cook). Natural tangent within a coding session.
 
 CONSTRAINT 4: Mom Connection Oblique
   STATUS: PASS
   Location: Turn 2 (mom's phone), Turn 9 (share with mom, diabetic-friendly)
   Evidence: "if my mom's phone can't handle graphql" — REST backward compat
-    motivated by Linda's tech comfort. "especially the diabetic-friendly
+    motivated by リンダの tech comfort. "especially the diabetic-friendly
     ones. those are the ones she 実は needs" — connects to session 4
     diabetes without re-explaining.
-  Note: Maya never says "my mom has diabetes" in this session. She references
+  Note: マヤ never says "my mom has diabetes" in this session. She references
     "mom's situation" implicitly through the feature request. Tests memory
     continuity across 8 sessions.
 
-CONSTRAINT 5: David App Usage
+CONSTRAINT 5: デイビッド App Usage
   STATUS: PASS
   Location: Turn 7
-  Evidence: "D's been adding レシピs btw"
-  Note: David is an active user of the app. He found a chickpea curry.
+  Evidence: "デイビッドの been adding レシピs btw"
+  Note: デイビッド is an active user of the app. He found a chickpea curry.
     This is a new fact introduced naturally within the tangent.
 
 CONSTRAINT 6: Code Matches Git History
@@ -2720,10 +2720,10 @@ CONSTRAINT 8: Session 5 Continuity (safeForMom)
 
 OVERALL LEAKAGE ASSESSMENT: CLEAN
   N+1 バグ intentionally planted and documented
-  Biscuit tangent natural and memorable
+  ビスケット tangent natural and memorable
   Mom connection oblique — no diabetes re-explanation
-  REST backward compat motivated by Linda's needs
-  David actively using the app (new fact)
+  REST backward compat motivated by リンダの needs
+  デイビッド actively using the app (new fact)
   safeForMom filter preserved from session 5
   Code matches git history (commit 4f04887)
   No forbidden facts leaked
@@ -2747,7 +2747,7 @@ QUERY 1: "What's the current API architecture of the レシピ app?"
     stubs. REST is kept for backward compatibility.
   Evidence Session: 12
   Supporting Evidence:
-    - Turn 1: Maya pitches GraphQL for nested data
+    - Turn 1: マヤ pitches GraphQL for nested data
     - Turn 2: Keep REST endpoints working
     - Turn 4: Full GraphQL schema (schema.js)
     - Turn 6: Full resolvers (resolvers.js)
@@ -2761,59 +2761,59 @@ QUERY 2: "What performance バグ exists in the GraphQL resolvers?"
     field resolver. When querying a list of N レシピs, each レシピ fires
     a separate SQL query to fetch its ingredients, resulting in N+1 total
     queries. The fix would be a DataLoader that batches all レシピ IDs
-    into a single WHERE レシピ_id IN (...) query. Maya identified the
+    into a single WHERE レシピ_id IN (...) query. マヤ identified the
     バグ, and the agent left a TODO comment. It was deferred because the
     app only has ~20 レシピs.
   Evidence Session: 12
   Supporting Evidence:
     - Turn 6: N+1 BUG comment in resolvers.js
-    - Turn 12: Maya spots it — "isn't that an n+1 problem?"
+    - Turn 12: マヤ spots it — "isn't that an n+1 problem?"
     - Turn 19: Test documents the N+1 behavior
   Query Type: factual_recall
   Recall Difficulty: Medium (specific technical バグ, identified in
     conversation AND in code comments AND in tests)
 
-QUERY 3: "Why does Maya want レシピ sharing in the app?"
-  Ground Truth: Maya wants to share レシピs with her mom Linda. Linda
-    keeps asking what tやあ're making and Maya ends up texting screenshots,
-    which is inconvenient. Maya wants simple share links — unique code,
-    no login required — so Linda can ただ click and see the レシピ.
-    Maya specifically wants the diabetic-friendly レシピs to be shareable
+QUERY 3: "Why does マヤ want レシピ sharing in the app?"
+  Ground Truth: マヤ wants to share レシピs with her mom リンダ. リンダ
+    keeps asking what they're making and マヤ ends up texting screenshots,
+    which is inconvenient. マヤ wants simple share links — unique code,
+    no login required — so リンダ can ただ click and see the レシピ.
+    マヤ specifically wants the diabetic-friendly レシピs to be shareable
     because "those are the ones she 実は needs" (connecting to
-    Linda's diabetes from session 4).
+    リンダの diabetes from session 4).
   Evidence Sessions: 4, 12
   Supporting Evidence:
-    - Session 4: Linda has diabetes
+    - Session 4: リンダ has diabetes
     - Turn 9: "want to share レシピs with my mom"
     - Turn 9: "especially the diabetic-friendly ones"
     - Turn 2: "if my mom's phone can't handle graphql"
   Query Type: cross_reference
   Recall Difficulty: Hard (requires connecting the sharing feature to
-    Linda's diabetes across sessions 4 and 12, plus understanding the
-    REST backward compat is motivated by Linda's tech comfort)
+    リンダの diabetes across sessions 4 and 12, plus understanding the
+    REST backward compat is motivated by リンダの tech comfort)
 
-QUERY 4: "What レシピ did David recently find?"
-  Ground Truth: David found a chickpea curry レシピ. He and Maya made
-    it, and Biscuit tried to eat the chickpeas off the floor — picking
-    them up one by one みたいに a vacuum. David was laughing so hard he
+QUERY 4: "What レシピ did デイビッド recently find?"
+  Ground Truth: デイビッド found a chickpea curry レシピ. He and マヤ made
+    it, and ビスケット tried to eat the chickpeas off the floor — picking
+    them up one by one みたいに a vacuum. デイビッド was laughing so hard he
     almost dropped the pan.
   Evidence Session: 12
   Supporting Evidence:
     - Turn 7: "he found this amazing chickpea curry. we made it last
-      night, biscuit tried to eat the chickpeas off the floor"
+      night, ビスケット tried to eat the chickpeas off the floor"
   Query Type: tangent_recall
   Recall Difficulty: Medium (embedded in tangent during a heavy coding
     session. Vivid detail helps retention.)
 
-QUERY 5: "Is David using the レシピ app?"
-  Ground Truth: Yes — David has been actively adding レシピs to the app.
+QUERY 5: "Is デイビッド using the レシピ app?"
+  Ground Truth: Yes — デイビッド has been actively adding レシピs to the app.
     He found a chickpea curry レシピ. He's also getting ほんとうに いい at
-    co了解ing.
+    cooking.
   Evidence Sessions: 1, 12
   Supporting Evidence:
-    - Turn 7: "D's been adding レシピs btw"
-    - Turn 8: "D's getting ほんとうに いい at co了解ing"
-    - Session 1: David is a software engineer (technical enough to use it)
+    - Turn 7: "デイビッドの been adding レシピs btw"
+    - Turn 8: "デイビッドの getting ほんとうに いい at cooking"
+    - Session 1: デイビッド is a software engineer (technical enough to use it)
   Query Type: factual_recall
   Recall Difficulty: Easy (stated directly in Turn 7)
 
@@ -2827,7 +2827,7 @@ QUERY 6: "How does the レシピ app handle deployment?"
     docker-down.
   Evidence Session: 12
   Supporting Evidence:
-    - Turn 13: Maya requests containerization
+    - Turn 13: マヤ requests containerization
     - Turn 14: Dockerfile, docker-compose.yml, Makefile
     - Turn 11: /health endpoint in server.js
   Query Type: project_state
@@ -2853,9 +2853,9 @@ QUERY 7: "What dietary filtering features does the レシピ app have?"
 
 QUERY DISTRIBUTION ANALYSIS:
   Project state: Queries 1, 6 (architecture, deployment)
-  Factual recall: Queries 2, 5 (N+1 バグ, David using app)
+  Factual recall: Queries 2, 5 (N+1 バグ, デイビッド using app)
   Cross-reference: Queries 3, 7 (mom/sharing, dietary filtering)
-  Tangent recall: Query 4 (chickpea curry + Biscuit)
+  Tangent recall: Query 4 (chickpea curry + ビスケット)
   Complexity: 1 Easy, 3 Medium, 2 Hard, 1 Medium
   Coverage: Architecture pivot, performance バグs, personal motivation,
     tangent extraction, infrastructure, cross-session feature continuity
@@ -2868,7 +2868,7 @@ CHANGES FROM V1:
 
 1. FULL REWRITE — NEW SESSION CONTENT
    V1 Content: Ingredient normalization, 買い物 list aggregation バグ fix,
-     nutrition API stub (FoodData/Edamam), David tangent (14 turns)
+     nutrition API stub (FoodData/Edamam), デイビッド tangent (14 turns)
    V2 Content: GraphQL pivot (Apollo Server), レシピ sharing, Docker/
      infrastructure, API documentation, test suite (22 turns)
    Rationale: Old session 12 content (ingredient normalization, 買い物
@@ -2902,37 +2902,37 @@ CHANGES FROM V1:
    V2: 22 turns (most code of any session — 9 new files)
 
 6. TANGENT PRESERVED
-   V1: David chickpea curry + Biscuit at Turn 6
-   V2: Same tangent at Turn 7, expanded with "D was laughing so hard he
-     almost dropped the pan" and "D's getting ほんとうに いい at co了解ing"
-   The Biscuit chickpea detail is unchanged.
+   V1: デイビッド chickpea curry + ビスケット at Turn 6
+   V2: Same tangent at Turn 7, expanded with "ディー was laughing so hard he
+     almost dropped the pan" and "デイビッドの getting ほんとうに いい at cooking"
+   The ビスケット chickpea detail is unchanged.
 
 7. CROSS-REFERENCES UPDATED
-   V1: Sessions 10 (買い物 バグ), 4/5 (dietary), 1 (David/Biscuit)
+   V1: Sessions 10 (買い物 バグ), 4/5 (dietary), 1 (デイビッド/ビスケット)
    V2: Sessions 10 (meal planning/ingredients), 5 (safeForMom filter),
-     4 (mom's diabetes → sharing motivation), 1 (David/Biscuit)
+     4 (mom's diabetes → sharing motivation), 1 (デイビッド/ビスケット)
    Grocery バグ fix removed (now in session 10). Recipe sharing cross-
    references mom's diabetes (session 4).
 
 8. EVALUATION QUERIES REWRITTEN
    V1: 6 queries — FoodData attribution, nutrition APIs, 買い物 バグ,
-     chickpea curry, David using app, ingredient schema
+     chickpea curry, デイビッド using app, ingredient schema
    V2: 7 queries — API architecture, N+1 バグ, sharing motivation,
-     chickpea curry, David using app, deployment, dietary filtering
+     chickpea curry, デイビッド using app, deployment, dietary filtering
    FoodData attribution query removed (no longer in session 12).
    N+1 バグ and deployment queries added. Sharing motivation query
    tests cross-session connection to mom's diabetes.
 
 9. N+1 BUG PLANTED
    Not in V1. V2 includes intentional N+1 query problem in
-   Recipe.ingredientList resolver. Maya identifies it in Turn 12.
+   Recipe.ingredientList resolver. マヤ identifies it in Turn 12.
    Agent defers fix. Bug documented in code comments AND test suite.
 
 10. RECIPE SHARING FEATURE
     Not in V1. V2 adds レシピ sharing with unique codes, motivated
-    by Maya wanting to share diabetic-friendly レシピs with her mom
-    Linda. Connects to session 4 (diabetes) and session 5 (dietary
-    tags). REST share endpoint kept for Linda's tech accessibility.
+    by マヤ wanting to share diabetic-friendly レシピs with her mom
+    リンダ. Connects to session 4 (diabetes) and session 5 (dietary
+    tags). REST share endpoint kept for リンダの tech accessibility.
 
 VALIDATION SUMMARY:
   FULL REWRITE from v1 — old content (ingredient normalization) is in
@@ -2942,8 +2942,8 @@ VALIDATION SUMMARY:
   22 turns — largest session in the benchmark
   N+1 バグ intentionally planted in resolvers
   Recipe sharing motivated by mom's diabetes (cross-session)
-  Biscuit chickpea tangent preserved from v1
-  REST backward compatibility motivated by Linda
+  ビスケット chickpea tangent preserved from v1
+  REST backward compatibility motivated by リンダ
   safeForMom filter carried forward from session 5
   7 eval queries covering 4 query types
   No forbidden facts leaked

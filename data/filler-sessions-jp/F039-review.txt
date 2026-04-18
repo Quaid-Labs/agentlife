@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   シアトルはどのタイムゾーン？
 
-AI ASSISTANT:
+AIアシスタント:
   シアトルは太平洋時間（PT）です。現在は PST（UTC-8）で、夏時間の間は PDT（UTC-7）に切り替わります。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   じゃあ今はPDTだよね？ もう夏時間始まった？
 
-AI ASSISTANT:
+AIアシスタント:
   はい！ 夏時間は今年3月9日に始まったので、今シアトルは PDT（UTC-7）です。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   なるほど、Stripeチームとの時差を知りたくてさ笑
 
-AI ASSISTANT:
+AIアシスタント:
   なるほど！ もしあなたがオースティン（CDT）にいるなら、今のシアトルは2時間遅れです。
 
 ---

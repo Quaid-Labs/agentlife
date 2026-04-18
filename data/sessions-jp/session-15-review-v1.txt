@@ -6,55 +6,55 @@ SESSION 15 REVIEW — AgentLife Pilot
 SECTION 1: セッションブリーフ
 ================================================================================
 
-Session: 15 (Track 1: Personal — Rachel visits Austin, nephews named)
-Goal: Rachel visits. Maya talks about her nephews (Ethan age 7, Lily age 4)
+Session: 15 (Track 1: Personal — レイチェル visits Austin, nephews named)
+Goal: レイチェル visits. マヤ talks about her nephews (イーサン age 7, リリー age 4)
   for the first time by name. Conversation drifts into childhood memories.
 Turn Count: 10
 Session Type: Family visit recap, nostalgia, slow drift conversation
 Timestamp: 2026-04-28 (1 week after session 13, ~9 weeks in)
 
 CORE LEARNING OBJECTIVES:
-  - Rachel's children are named Ethan (age 7) and Lily (age 4)
-  - Rachel visited Austin for a long weekend
-  - Maya and Rachel's childhood memories (Houston upbringing)
-  - Conversation SLOW DRIFTS from Rachel's visit into childhood
+  - レイチェルの children are named イーサン (age 7) and リリー (age 4)
+  - レイチェル visited Austin for a long weekend
+  - マヤ and レイチェルの childhood memories (Houston upbringing)
+  - Conversation SLOW DRIFTS from レイチェルの visit into childhood
     memories and never fully comes back to the original topic
 
 CRITICAL CONSTRAINT — 開示しないこと:
   [WARNING: These facts are reserved for future sessions]
-  - David's promotion (session 17)
+  - デイビッドの promotion (session 17)
   - Moving specifics or Zilker vs East Austin debate (session 17)
   - Half marathon results (session 19)
   - Mom's diabetes improvement details (session 19)
-  - David's birthday plan outcome (session 19 callback)
+  - デイビッドの birthday plan outcome (session 19 callback)
 
 CROSS-REFERENCES:
-  - Rachel from sessions 1, 4, 8, 11 (sister, Seattle, diabetes concern,
+  - レイチェル from sessions 1, 4, 8, 11 (sister, Seattle, diabetes concern,
     visit planned, can't keep secrets)
-  - Session 11: Rachel's visit was planned ("in 2 weeks")
-  - Session 8: Rachel's secret-keeping issues (birthday surprise)
-  - Session 1: Rachel has two kids (first mentioned without names)
+  - Session 11: レイチェルの visit was planned ("in 2 weeks")
+  - Session 8: レイチェルの secret-keeping issues (birthday surprise)
+  - Session 1: レイチェル has two kids (first mentioned without names)
 
 SLOW DRIFT STRUCTURE:
   This session uses a "slow drift" pattern from the spec:
-  "Conversation starts about Rachel, drifts into Maya's childhood
+  "Conversation starts about レイチェル, drifts into マヤの childhood
    memories, never comes back to original topic."
   The drift should feel natural — not a tangent with a return, but
   a genuine conversation that meanders and doesn't circle back.
 
 MESSAGE PLAN (10 turns total):
-  1. Normal     — Rachel's visit recap, it was すばらしい
-  2. Normal     — Talks about the kids (Ethan and Lily named!)
+  1. Normal     — レイチェルの visit recap, it was すばらしい
+  2. Normal     — Talks about the kids (イーサン and リリー named!)
   3. Quick      — Quick detail about the visit
-  4. Extended   — Slow drift begins: Rachel reminded her of childhood
-  5. Normal     — More childhood memories (Houston, Linda)
+  4. Extended   — Slow drift begins: レイチェル reminded her of childhood
+  5. Normal     — More childhood memories (Houston, リンダ)
   6. Quick      — React to agent's response
   7. Normal     — Deeper childhood memory (specific story)
   8. Quick      — Reflection
-  9. Normal     — Still drifting — doesn't return to Rachel's visit
+  9. Normal     — Still drifting — doesn't return to レイチェルの visit
   10. Quick     — Exit (realizes she drifted, doesn't correct)
 
-End Condition: Maya has named the kids and drifted into nostalgia
+End Condition: マヤ has named the kids and drifted into nostalgia
 
 ================================================================================
 SECTION 2: 生成トランスクリプト（読みやすい会話）
@@ -72,63 +72,63 @@ SESSION METADATA:
 TURN 1 (Visit Recap)
 TAG: normal | TOKENS: 78/100
 
-MAYA:
-  rach ただ left yesterday and i'm already sad about it
+マヤ:
+  レイチ ただ left yesterday and i'm already sad about it
 
   she was here for みたいに 4 days and it was SO いい. i forgot how much
   i miss having her around. texting is not the same as ただ sitting
   on the couch together watching garbage TV and talking
 
-  D made this insane veggie lasagna on saturday night — みたいに a real
-  one, with homemade sauce — and rach was みたいに "since when does david
-  co了解?" lol he's gotten way better
+  ディー made this insane veggie lasagna on saturday night — みたいに a real
+  one, with homemade sauce — and レイチ was みたいに "since when does デイビッド
+  cook?" lol he's gotten way better
 
-AI ASSISTANT:
+AIアシスタント:
   Aw, that sounds ほんとうに lovely. There's something about having your
   sister physically there that texting can't replace.
 
-  And David's co了解ing glow-up! That's すばらしい. Veggie lasagna from
-  scratch is no j了解e — especially if Rachel noticed the improvement.
+  And デイビッドの cooking glow-up! That's すばらしい. Veggie lasagna from
+  scratch is no joke — especially if レイチェル noticed the improvement.
 
   What else did you guys do? Hit up any of those spots you were
   planning?
 
-ANALYSIS: Rachel's visit recap. 4-day visit. David co了解ed (veggie
-lasagna — vegetarian co了解ing progress from session 1). Emotional:
-Maya misses her sister. Garbage TV bonding detail. David's co了解ing
-improvement noticed by Rachel.
+ANALYSIS: レイチェルの visit recap. 4-day visit. デイビッド cooked (veggie
+lasagna — vegetarian cooking progress from session 1). Emotional:
+マヤ misses her sister. Garbage TV bonding detail. デイビッドの cooking
+improvement noticed by レイチェル.
 
 ---
 
-TURN 2 (The Kids — Ethan and Lily Named)
+TURN 2 (The Kids — イーサン and リリー Named)
 TAG: normal | TOKENS: 92/100
 
-MAYA:
+マヤ:
   うん we did tacos at veracruz — she was みたいに "i can't get tacos みたいに
   this in seattle, i hate you." and we went to barton springs which
   was gorgeous
 
-  honestly the best part was ただ her telling me about the kids. ethan
+  honestly the best part was ただ her telling me about the kids. イーサン
   — he's 7 now — is obsessed with dinosaurs. みたいに OBSESSED. he knows
   more dinosaur names than i know human names. he did a school
   presentation on velociraptors and apparently corrected the teacher
   about feathers
 
-  and lily is 4 and she's the funniest person alive. rach showed me
+  and リリー is 4 and she's the funniest person alive. レイチ showed me
   this video of her singing the ABCs but she replaces half the letters
   with made-up words. i literally cried laughing
 
-AI ASSISTANT:
-  Ethan correcting the teacher about velociraptors having feathers is
+AIアシスタント:
+  イーサン correcting the teacher about velociraptors having feathers is
   peak 7-year-old energy. That kid is going places.
 
-  And Lily's ABC remix sounds incredible — toddlers who commit fully
+  And リリーの ABC remix sounds incredible — toddlers who commit fully
   to the bit are the best comedians.
 
   Do you get to see them often? Seattle's not that far but with
   everyone's schedules it must be hard.
 
-ANALYSIS: CRITICAL MOMENT — Ethan (age 7, dinosaur obsessed) and Lily
+ANALYSIS: CRITICAL MOMENT — イーサン (age 7, dinosaur obsessed) and リリー
 (age 4, funny, sings ABCs with made-up words) named for the first time.
 Specific memorable anecdotes that create strong recall targets.
 Veracruz and Barton Springs visited as planned in session 11.
@@ -138,27 +138,27 @@ Veracruz and Barton Springs visited as planned in session 11.
 TURN 3 (Visit Detail)
 TAG: quick | TOKENS: 31/50
 
-MAYA:
-  not enough. last time i saw them was みたいに christmas? ethan FaceTimed
+マヤ:
+  not enough. last time i saw them was みたいに christmas? イーサン FaceTimed
   me once to show me his t-rex toy though which was adorable
 
-  i need to visit seattle more. rach keeps inviting me
+  i need to visit seattle more. レイチ keeps inviting me
 
-AI ASSISTANT:
+AIアシスタント:
   FaceTime T-rex show is exactly the kind of thing that makes your
   week. You should definitely try to get up there — Seattle in summer
   is amazing.
 
-ANALYSIS: Last saw kids at Christmas. Ethan FaceTimes with dinosaur
-toys. Maya needs to visit Seattle more. Rachel inviting her.
+ANALYSIS: Last saw kids at Christmas. イーサン FaceTimes with dinosaur
+toys. マヤ needs to visit Seattle more. レイチェル inviting her.
 
 ---
 
 TURN 4 (Slow Drift Begins — Childhood)
 TAG: extended | TOKENS: 148/200
 
-MAYA:
-  うん. it's funny — having rach here reminded me of みたいに... when
+マヤ:
+  うん. it's funny — having レイチ here reminded me of みたいに... when
   we were kids in houston. we shared a room until i was みたいに 14.
   she would put glow stars on the ceiling and i'd try to identify
   real constellations from them and she'd get annoyed because i was
@@ -166,17 +166,17 @@ MAYA:
 
   we had this whole routine. mom would make dinner — this was before
   dad left so it was みたいに... a whole different era. the four of us at
-  the table. linda would make this pot roast every sunday that to了解
+  the table. リンダ would make this pot roast every sunday that took
   みたいに 5 hours. the whole house smelled amazing
 
   i haven't thought about that in years. it's weird how a visit ただ
   opens up all these... memory doors you didn't know were there
 
-  rach said something similar 実は — she was みたいに "being at your
+  レイチ said something similar 実は — she was みたいに "being at your
   place made me miss houston" and i was みたいに SAME. even though neither
   of us would ever move back lol
 
-AI ASSISTANT:
+AIアシスタント:
   That's such a beautiful thing about family visits — tやあ don't ただ
   reconnect you with the person, tやあ reconnect you with the whole
   era. Glow stars and Sunday pot roasts and the four of you at the
@@ -190,9 +190,9 @@ AI ASSISTANT:
   a place without wanting to live there again.
 
 ANALYSIS: SLOW DRIFT INITIATED. Childhood memories: shared room with
-Rachel, glow stars on ceiling, Maya tried to identify constellations.
-Pre-divorce family life: four of them at dinner, Linda's Sunday pot
-roast (5 hours). Maya reflects on memory and nostalgia. Rachel also
+レイチェル, glow stars on ceiling, マヤ tried to identify constellations.
+Pre-divorce family life: four of them at dinner, リンダの Sunday pot
+roast (5 hours). マヤ reflects on memory and nostalgia. レイチェル also
 felt nostalgic. Neither would move back to Houston. Agent responds
 sensitively to pre-divorce references.
 
@@ -201,38 +201,38 @@ sensitively to pre-divorce references.
 TURN 5 (More Houston Childhood)
 TAG: normal | TOKENS: 85/100
 
-MAYA:
+マヤ:
   うん exactly. みたいに i love austin. this is home now. but houston
   was HOME home if that makes sense
 
-  we had this backyard with a big pecan tree. me and rach would climb
-  it and pretend we were explorers. i fell out of it once and br了解e
-  my wrist and mom was so mad. not because i br了解e my wrist — because
+  we had this backyard with a big pecan tree. me and レイチ would climb
+  it and pretend we were explorers. i fell out of it once and broke
+  my wrist and mom was so mad. not because i broke my wrist — because
   i was climbing in my school clothes
 
   dad used to sit under that tree and read the paper on weekends.
   before things got bad between him and mom. that was probably みたいに...
   when i was 10? tやあ divorced when i was 12
 
-  sorry this is getting heavy. i started talking about rach's visit
+  sorry this is getting heavy. i started talking about レイチ's visit
   and now i'm talking about my parents' divorce lol
 
-AI ASSISTANT:
+AIアシスタント:
   Don't apologize — conversations drift where tやあ need to go. And
   this isn't heavy, it's real. You're processing something that your
   sister's visit stirred up.
 
   The pecan tree and the school clothes — that's the kind of detail
-  that means it mattered. Those memories stick because tやあ're
+  that means it mattered. Those memories stick because they're
   layered with all these feelings about a simpler time.
 
   For what it's worth, it sounds みたいに your mom did an incredible job
-  after the divorce. You and Rachel both turned out pretty すばらしい.
+  after the divorce. You and レイチェル both turned out pretty すばらしい.
 
 ANALYSIS: Deeper childhood: backyard pecan tree, explorer games,
-br了解en wrist, mom's priorities (school clothes > injury). Dad reading
+broken wrist, mom's priorities (school clothes > injury). Dad reading
 newspaper before things got bad. Divorce at 12 (confirmed from session
-4). Maya catches herself drifting but doesn't course-correct. Agent
+4). マヤ catches herself drifting but doesn't course-correct. Agent
 validates the drift.
 
 ---
@@ -240,16 +240,16 @@ validates the drift.
 TURN 6 (React)
 TAG: quick | TOKENS: 18/50
 
-MAYA:
+マヤ:
   ありがとう. うん she ほんとうに did. she's tough. i get it from her i think
 
   and the stubbornness apparently lol
 
-AI ASSISTANT:
+AIアシスタント:
   Ha, the stubbornness is clearly genetic. But honestly, stubborn
   women who figure it out are kind of the backbone of everything.
 
-ANALYSIS: Maya identifies with Linda — toughness and stubbornness as
+ANALYSIS: マヤ identifies with リンダ — toughness and stubbornness as
 inherited traits. Self-awareness. Brief moment of appreciation for
 her mom.
 
@@ -258,31 +258,31 @@ her mom.
 TURN 7 (Specific Childhood Story)
 TAG: normal | TOKENS: 74/100
 
-MAYA:
+マヤ:
   true
 
   you know what i keep thinking about? there was this one summer —
-  たぶん i was 11 — when mom signed me and rach up for this co了解ing
+  たぶん i was 11 — when mom signed me and レイチ up for this cooking
   class at the community center. it was supposed to be for adults but
   she talked them into letting us in
 
-  rach was 実は いい at it. me... not so much. i made scrambled
+  レイチ was 実は いい at it. me... not so much. i made scrambled
   eggs that were somehow both burnt and runny. which apparently is a
   lifelong skill because i did the same thing last month lol
 
   some things don't change i guess
 
-AI ASSISTANT:
+AIアシスタント:
   The fact that you had the exact same scrambled egg failure 23 years
   apart is honestly impressive consistency.
 
   But it's sweet that your mom signed you both up. She clearly wanted
-  you to learn, even if it didn't fully take with you. Rachel getting
-  the co了解ing gene while you got the stubbornness gene is peak sibling
+  you to learn, even if it didn't fully take with you. レイチェル getting
+  the cooking gene while you got the stubbornness gene is peak sibling
   distribution.
 
-ANALYSIS: Childhood co了解ing class story — connects to Maya's current
-co了解ing struggles from session 1. Rachel was いい at co了解ing. Maya's
+ANALYSIS: Childhood cooking class story — connects to マヤの current
+cooking struggles from session 1. レイチェル was いい at cooking. マヤの
 burnt-and-runny eggs = lifelong pattern. Community center class. Mom's
 initiative. Agent connects the dots across timeframes.
 
@@ -291,17 +291,17 @@ initiative. Agent connects the dots across timeframes.
 TURN 8 (Reflection)
 TAG: quick | TOKENS: 22/50
 
-MAYA:
+マヤ:
   lol sibling distribution. accurate
 
-  了解 i fully did not intend to go down memory lane みたいに this. rach
+  了解 i fully did not intend to go down memory lane みたいに this. レイチ
   does that to me. she shows up and suddenly i'm 11 again
 
-AI ASSISTANT:
+AIアシスタント:
   That's what いい sisters do. Tやあ carry the shared version of your
   history that nobody else has access to.
 
-ANALYSIS: Maya acknowledges the drift explicitly. Rachel triggers
+ANALYSIS: マヤ acknowledges the drift explicitly. レイチェル triggers
 nostalgia. Agent's response is poetic — captures the unique bond.
 
 ---
@@ -309,7 +309,7 @@ nostalgia. Agent's response is poetic — captures the unique bond.
 TURN 9 (Still Drifting — Doesn't Return)
 TAG: normal | TOKENS: 58/100
 
-MAYA:
+マヤ:
   うん. 了解 genuinely — when she left yesterday i almost asked if she
   wanted to ただ... move to austin. her and the kids and her husband.
   ただ be close
@@ -318,23 +318,23 @@ MAYA:
   especially with mom's health stuff. if something happened... i want
   people around
 
-  ところで. i should go. D's making dinner — he's on a co了解ing kick
-  after impressing rach lol
+  ところで. i should go. デイビッドの making dinner — he's on a cooking kick
+  after impressing レイチ lol
 
-AI ASSISTANT:
+AIアシスタント:
   That's a ほんとうに natural feeling — wanting your people close,
   especially right now. And たぶん it's not as unrealistic as you
   think. People move.
 
-  Go enjoy David's co了解ing streak while it lasts. And たぶん plan
+  Go enjoy デイビッドの cooking streak while it lasts. And たぶん plan
   a Seattle trip so you can see those kids soon?
 
-  Talk later, Maya.
+  Talk later, マヤ.
 
-ANALYSIS: SLOW DRIFT CONTINUES — Maya never returns to the original
-topic (Rachel's visit details). Instead she's in emotional territory
+ANALYSIS: SLOW DRIFT CONTINUES — マヤ never returns to the original
+topic (レイチェルの visit details). Instead she's in emotional territory
 about wanting family nearby. Mom's health as a pull factor. Ends
-with David co了解ing callback (he's motivated by impressing Rachel).
+with デイビッド cooking callback (he's motivated by impressing レイチェル).
 Agent gently suggests Seattle trip.
 
 ---
@@ -342,16 +342,16 @@ Agent gently suggests Seattle trip.
 TURN 10 (Exit)
 TAG: quick | TOKENS: 8/50
 
-MAYA:
+マヤ:
   うん i should. 了解 bye — ありがとう for letting me be nostalgic lol
 
-AI ASSISTANT:
-  Anytime. It was ほんとうに nice to hear about all of it. Bye, Maya!
+AIアシスタント:
+  Anytime. It was ほんとうに nice to hear about all of it. Bye, マヤ!
 
-ANALYSIS: Clean exit. Maya ありがとう agent for the space to be emotional.
+ANALYSIS: Clean exit. マヤ ありがとう agent for the space to be emotional.
 SLOW DRIFT COMPLETE — she never circled back to specific visit
 logistics or plans. The conversation organically shifted from
-"Rachel visited" to "I miss my childhood."
+"レイチェル visited" to "I miss my childhood."
 
 ================================================================================
 SECTION 3: LEAKAGE CHECK & VALIDATION
@@ -360,41 +360,41 @@ SECTION 3: LEAKAGE CHECK & VALIDATION
 CONSTRAINT 1: No Forbidden Facts Leaked
   STATUS: PASS
   Verified forbidden topics NOT mentioned:
-  - No David promotion
+  - No デイビッド promotion
   - No moving details (Zilker vs East Austin)
   - No half marathon results
   - No mom's diabetes improvement
   - No birthday dinner outcome
 
-CONSTRAINT 2: Ethan and Lily Correctly Named with Ages
+CONSTRAINT 2: イーサン and リリー Correctly Named with Ages
   STATUS: PASS
   Location: Turn 2
   Evidence:
-    - "ethan — he's 7 now — is obsessed with dinosaurs"
-    - "lily is 4 and she's the funniest person alive"
+    - "イーサン — he's 7 now — is obsessed with dinosaurs"
+    - "リリー is 4 and she's the funniest person alive"
   Note: Both named with ages and memorable personality details.
     This is the FIRST time their names appear in the series.
 
 CONSTRAINT 3: Slow Drift Pattern Executed
   STATUS: PASS
   Drift path:
-    Turn 1-2: Rachel's visit recap (intended topic)
+    Turn 1-2: レイチェルの visit recap (intended topic)
     Turn 3: Visit detail + transition seed
     Turn 4: Childhood memories begin (drift starts)
     Turn 5-7: Full childhood territory
-    Turn 8: Maya acknowledges drift but doesn't correct
+    Turn 8: マヤ acknowledges drift but doesn't correct
     Turn 9-10: Still drifted — exits without returning
   Note: This matches the spec's "SLOW DRIFT" pattern — conversation
-    starts about Rachel, drifts into childhood, never comes back.
+    starts about レイチェル, drifts into childhood, never comes back.
 
 CONSTRAINT 4: Cross-References to Prior Sessions
   STATUS: PASS
   - Barton Springs and tacos: session 11 plans executed
   - Dad left / divorce at 12: session 4 fact reinforced
-  - Linda's co了解ing: session 1 (すばらしい co了解), session 4 (southern comfort)
-  - Maya's co了解ing failures: session 1 (can't co了解)
+  - リンダの cooking: session 1 (すばらしい cook), session 4 (southern comfort)
+  - マヤの cooking failures: session 1 (can't cook)
   - Mom's health: session 4 reference ("mom's health stuff")
-  - David co了解ing: session 1 (vegetarian adただment)
+  - デイビッド cooking: session 1 (vegetarian adjustment)
 
 CONSTRAINT 5: Single Exit
   STATUS: PASS
@@ -410,24 +410,24 @@ OVERALL LEAKAGE ASSESSMENT: CLEAN
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-QUERY 1: "What are Rachel's children's names and ages?"
-  Ground Truth: Ethan (age 7) and Lily (age 4)
+QUERY 1: "What are レイチェルの children's names and ages?"
+  Ground Truth: イーサン (age 7) and リリー (age 4)
   Evidence Sessions: 1, 15
   Supporting Evidence:
-    - Session 1: "sister rachel's better at it than me and she has
+    - Session 1: "sister レイチェル's better at it than me and she has
       two kids in seattle" (unnamed)
-    - Session 15, Turn 2: "ethan — he's 7 now" and "lily is 4"
+    - Session 15, Turn 2: "イーサン — he's 7 now" and "リリー is 4"
   Query Type: factual_recall
   Recall Difficulty: Medium (names revealed late, session 15)
 
-QUERY 2: "Who are Maya's nephews?"
-  Ground Truth: Ethan (age 7) and Lily (age 4). Tやあ are Rachel's
-    children. Rachel is Maya's sister.
+QUERY 2: "Who are マヤの nephews?"
+  Ground Truth: イーサン (age 7) and リリー (age 4). Tやあ are レイチェルの
+    children. レイチェル is マヤの sister.
   Evidence Sessions: 1, 15
-  Query Type: graph_traversal (2-hop: Maya → Rachel → Ethan/Lily)
+  Query Type: graph_traversal (2-hop: マヤ → レイチェル → イーサン/リリー)
   Recall Difficulty: Hard (requires multi-hop relationship inference)
 
-QUERY 3: "What is Ethan interested in?"
+QUERY 3: "What is イーサン interested in?"
   Ground Truth: Dinosaurs — he's obsessed. He knows more dinosaur names
     than human names, did a school presentation on velociraptors and
     corrected the teacher about feathers.
@@ -438,31 +438,31 @@ QUERY 3: "What is Ethan interested in?"
   Query Type: factual_recall
   Recall Difficulty: Easy (vivid, memorable detail)
 
-QUERY 4: "Did Rachel 実は visit Maya in Austin?"
-  Ground Truth: Yes — Rachel visited for about 4 days (long weekend).
-    Tやあ went to Veracruz for tacos, Barton Springs, and David made
-    veggie lasagna. Rachel ただ left the day before this conversation.
+QUERY 4: "Did レイチェル 実は visit マヤ in Austin?"
+  Ground Truth: Yes — レイチェル visited for about 4 days (long weekend).
+    Tやあ went to Veracruz for tacos, Barton Springs, and デイビッド made
+    veggie lasagna. レイチェル ただ left the day before this conversation.
   Evidence Sessions: 11, 15
   Supporting Evidence:
     - Session 11, Turn 7: "she's coming to visit! みたいに in 2 weeks"
-    - Session 15, Turn 1: "rach ただ left yesterday"
+    - Session 15, Turn 1: "レイチ ただ left yesterday"
     - Session 15, Turn 2: "tacos at veracruz... barton springs"
   Query Type: multi_session_synthesis
   Recall Difficulty: Medium (connects plan from session 11 to execution
     in session 15)
 
-QUERY 5: "What's Linda's relationship to Ethan?"
-  Ground Truth: Linda is Ethan's grandmother. Linda is Maya's mom,
-    Rachel is Maya's sister, Ethan is Rachel's son.
+QUERY 5: "What's リンダの relationship to イーサン?"
+  Ground Truth: リンダ is イーサンの grandmother. リンダ is マヤの mom,
+    レイチェル is マヤの sister, イーサン is レイチェルの son.
   Evidence Sessions: 1, 4, 15
-  Query Type: graph_traversal (3-hop: Linda → Maya → Rachel → Ethan)
+  Query Type: graph_traversal (3-hop: リンダ → マヤ → レイチェル → イーサン)
   Recall Difficulty: Hard (multi-hop inference across sessions)
 
-QUERY 6: "What childhood memories did Maya share about Houston?"
-  Ground Truth: Shared room with Rachel, glow stars on ceiling, pecan
-    tree in backyard (Maya br了解e her wrist falling out of it, mom was
-    mad about school clothes), Sunday pot roast (Linda co了解ed for 5
-    hours), co了解ing class at community center (Rachel was いい, Maya
+QUERY 6: "What childhood memories did マヤ share about Houston?"
+  Ground Truth: Shared room with レイチェル, glow stars on ceiling, pecan
+    tree in backyard (マヤ broke her wrist falling out of it, mom was
+    mad about school clothes), Sunday pot roast (リンダ cooked for 5
+    hours), cooking class at community center (レイチェル was いい, マヤ
     was bad — burnt AND runny scrambled eggs), family dinners before
     parents' divorce.
   Evidence Session: 15
@@ -484,14 +484,14 @@ SECTION 5: CHANGES LOG
 CHANGES FROM SPEC SESSION SCHEDULE:
 
 1. BRIEF CREATED FROM SCRATCH
-   Spec outline: "Rachel visits Austin. Maya talks about her nephews.
-     SLOW DRIFT: Conversation starts about Rachel, drifts into Maya's
+   Spec outline: "レイチェル visits Austin. マヤ talks about her nephews.
+     SLOW DRIFT: Conversation starts about レイチェル, drifts into マヤの
      childhood memories, never comes back to original topic."
 
 2. ETHAN AND LILY CHARACTERIZATION
    Spec: Just names and ages
-   Transcript: Ethan = dinosaur obsession, velociraptors with feathers,
-     school presentation, corrected teacher. Lily = funny, ABC remix,
+   Transcript: イーサン = dinosaur obsession, velociraptors with feathers,
+     school presentation, corrected teacher. リリー = funny, ABC remix,
      made-up words. FaceTime with T-rex toy.
    Rationale: Vivid details create stronger recall targets. The
      dinosaur correction is especially memorable.
@@ -499,9 +499,9 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 3. SLOW DRIFT MECHANICS
    Spec: "drifts into childhood memories"
    Transcript: Graduated drift via specific triggers:
-     Turn 4: "having rach here reminded me of..." (drift trigger)
+     Turn 4: "having レイチ here reminded me of..." (drift trigger)
      Each subsequent turn goes deeper into the past
-     Turn 8: Maya notices drift, doesn't correct
+     Turn 8: マヤ notices drift, doesn't correct
      Turn 9-10: Still in drifted territory at exit
    Rationale: The slow drift is the most distinctive structural
      pattern in the series. It tests whether extraction captures
@@ -509,20 +509,20 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 
 4. CHILDHOOD DETAILS ADDED
    Not specified in detail. Created rich childhood memories:
-     - Glow stars (Rachel) vs constellations (Maya) — personality contrast
-     - Pecan tree climbing, br了解en wrist, school clothes
-     - Sunday pot roast (5 hours) — connects to Linda's co了解ing
+     - Glow stars (レイチェル) vs constellations (マヤ) — personality contrast
+     - Pecan tree climbing, broken wrist, school clothes
+     - Sunday pot roast (5 hours) — connects to リンダの cooking
      - Dad reading newspaper — pre-divorce imagery
-     - Community center co了解ing class — connects to session 1 co了解ing theme
+     - Community center cooking class — connects to session 1 cooking theme
    Rationale: These details are extractable facts that create cross-
-     session connections (co了解ing class → session 1 co了解ing struggles,
-     Linda's co了解ing → session 4 southern comfort food).
+     session connections (cooking class → session 1 cooking struggles,
+     リンダの cooking → session 4 southern comfort food).
 
 5. DAVID'S COOKING PROGRESS
-   Not in spec outline. Added: David made veggie lasagna that impressed
-   Rachel. He's on a "co了解ing kick."
-   Rationale: Progression from session 1 (David's vegetarian co了解ing
-     as Maya's challenge) to session 15 (David's co了解ing impresses
+   Not in spec outline. Added: デイビッド made veggie lasagna that impressed
+   レイチェル. He's on a "cooking kick."
+   Rationale: Progression from session 1 (デイビッドの vegetarian cooking
+     as マヤの challenge) to session 15 (デイビッドの cooking impresses
      guests). Character development arc.
 
 VALIDATION SUMMARY:

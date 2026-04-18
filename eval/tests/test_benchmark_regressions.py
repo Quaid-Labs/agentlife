@@ -6046,6 +6046,30 @@ def test_dataset_variant_jp_resolves_translated_assets_and_fillers(monkeypatch):
     assert rpb._resolve_filler_dir() == rpb._PROJECT_DIR / "data" / "filler-sessions-jp"
     assert rpb._dataset_variant_label(False) == "jp"
     assert rpb._dataset_variant_label(True) == "jp+statement_grounding"
+    assert rpb._dataset_identity()["display_name"] == "マヤ"
+    assert rpb._dataset_identity()["speakers"] == ["マヤ", "ユーザー"]
+
+
+def test_dataset_variant_jp_loads_translated_eval_corpus(monkeypatch):
+    dataset_path = Path(__file__).resolve().parents[1] / "dataset.py"
+    spec = importlib.util.spec_from_file_location("benchmark_dataset_jp", dataset_path)
+    assert spec is not None and spec.loader is not None
+    dataset = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dataset)
+
+    monkeypatch.setenv("BENCHMARK_DATASET", "jp")
+
+    queries = dataset.get_all_eval_queries([])
+    tier5 = dataset.get_tier5_queries()
+
+    assert len(queries) == 268
+    assert len(tier5) == 15
+    assert queries[0]["question"].startswith("マヤ")
+    assert queries[0]["ground_truth"] == "デイビッド"
+    assert "Maya" not in queries[0]["question"]
+    assert "David" not in queries[0]["ground_truth"]
+    with pytest.raises(RuntimeError, match="JP statement-context grounding"):
+        dataset.get_statement_context_queries()
 
 
 def test_judge_non_question_uses_openai_compatible_when_requested(monkeypatch):

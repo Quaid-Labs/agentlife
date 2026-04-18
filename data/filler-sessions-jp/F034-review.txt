@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   ちょっとだけ上司宛てのメールを校正してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。貼ってください。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~35
 
-MAYA:
-  "Hi Sarah, Just wanted to give you a heads up that I'll need to WFH tomorrow for a physical therapy appt. Should be online by 10. Let me know if that's a problem. Thanks, Maya"
+マヤ:
+  "Hi Sarah, Just wanted to give you a heads up that I'll need to WFH tomorrow for a physical therapy appt. Should be online by 10. Let me know if that's a problem. Thanks, マヤ"
 
-AI ASSISTANT:
+AIアシスタント:
   いい感じです。ひとつだけ調整するなら、「Just wanted to give you a heads up」を「Quick heads up」に変えると、少しだけより丁寧で、それでいてカジュアルな印象になります。ほかは完璧です。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   そうだね、いい指摘。PTが何のためかも書いたほうがいい？ それともなし？
 
-AI ASSISTANT:
+AIアシスタント:
   いや、そこまで書かなくて大丈夫です。「physical therapy appointment」だけで十分です。上司に膝やランニングの事情まで伝える必要はありません。伝えたいなら別ですが。
 
 ---

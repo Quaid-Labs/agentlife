@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   レシピの重複排除を追加するのを手伝ってくれる？ 誰かが同じレシピを 2 回貼り付けたら検出したいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！ レシピ内容のハッシュを使えば重複を検出できるよ。タイトル + 材料の組み合わせをハッシュ化する？ それとも手順も含める？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   タイトル + 材料で十分だね。手順は同じ料理でも変わることがあるし
 
-AI ASSISTANT:
+AIアシスタント:
   完璧。追加できる重複排除チェックはこんな感じ：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   うん、マイグレーション見せて
 
-AI ASSISTANT:
+AIアシスタント:
   ```javascript
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。重複があったらどうするべき？ 単に拒否する？ それとも既存のものを見せる？
 
-AI ASSISTANT:
+AIアシスタント:
   既存のレシピを返して、ステータスは 409 Conflict にするのがいい。そうすればクライアント側で「このレシピはすでに存在します」と表示して、リンクも出せる。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   なるほど。ほぼ重複、たとえば材料が 95% 似てるものもチェックしたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   それは一気にコストが上がるね。新しいレシピごとに既存の全件と比較しないといけないから。今は正確なハッシュ一致に絞ろう。インデックスがあるから O(1) だしね。どうしても将来 fuzzy matching が必要なら、定期実行のバックグラウンドジョブとして追加できるよ。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   たしかに笑。大文字小文字を変えたりスペースを足しただけだったらどうなる？
 
-AI ASSISTANT:
+AIアシスタント:
   ハッシュ関数がそこはもう処理しているよ。`.toLowerCase().trim()` を見てみて。材料もアルファベット順に並べ替えるから、順番は関係ない。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   ああ、そこ見逃してた。じゃあ材料に数量がある場合は？ たとえば "2 eggs" と "3 eggs" みたいな
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘だね。今のままだとそれらは別々にハッシュされる。数字を取り除くこともできる：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うーん、たしかに 2 eggs と 12 eggs は全然違うもんね。数量はハッシュに残しておくよ
 
-AI ASSISTANT:
+AIアシスタント:
   それでいいと思う。あとひとつ、既存レシピのハッシュは backfill しておく必要がある：
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   そういえば材料は DB では json text として保存してるんだよね？
 
-AI ASSISTANT:
+AIアシスタント:
   うん。ハッシュ化する前に parse する必要がある：
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   了解。これのテストも書いたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。まずはこんな感じ：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   409 のケースを見せて
 
-AI ASSISTANT:
+AIアシスタント:
   ```javascript
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。ひとつだけ - レシピを更新できるようにしたい場合は？ ハッシュが変わるよね？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。材料を更新すれば、確かにハッシュも変わる。選択肢は 2 つある：
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   なるほど。最後の質問 - これをユーザーに見せるべき？ それとも静かにマージするべき？
 
-AI ASSISTANT:
+AIアシスタント:
   見せよう！ たとえばこんな感じ：
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
-  いいね、それならずっといい。よし、これを実装する準備ができたと思う。ありがとう D!
+マヤ:
+  いいね、それならずっといい。よし、これを実装する準備ができたと思う。ありがとう ディー!
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ 何か問題が出たら知らせて。ハッシュ方式は堅実で高速だし、レシピが何千件あってもちゃんと動くはずだよ。
 
 ---

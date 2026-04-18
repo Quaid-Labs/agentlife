@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   ねえ、レシピを左右に並べて比較する機能を追加するの手伝ってくれる？ 母のために2つのレシピの栄養を比べたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ `/recipes/compare` エンドポイントを追加できます。並べて見せたい情報は何ですか？ 栄養成分だけですか、それとも材料も含めますか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   栄養はもちろん、調理時間と材料もあるといいかも。比較に役立つものなら何でも
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。まずはこんな形で始めましょう:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   そうなんだけど、まだDBに栄養情報がないんだよね笑。先にそれを追加したほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です！ まずは栄養テーブルを追加しましょう:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   いいね。マイグレーション書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらがマイグレーションです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   いい感じ。じゃあ比較エンドポイントを実際にそれに結合するように更新してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   更新しました:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   もし同じIDを2回渡したらどうなる？ 1つのレシピしか返らなそうだけど
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ それはバリデーションするべきですね:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。差分も計算する？ たとえば片方がもう片方よりどれだけタンパク質が多いか、みたいに
 
-AI ASSISTANT:
+AIアシスタント:
   はい！ `differences` オブジェクトを追加できます:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   栄養情報が null だったらどうする？ まだレシピに追加してない場合とか
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。null の場合も処理するようにしましょう:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   うん、そのほうがきれいだね。このエンドポイントのテスト書ける？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ こちらがテストです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   ちょっと待って、`createRecipe` ヘルパーがない。テスト用ユーティリティに追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   はい、テストセットアップにこれを追加してください:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   いいね、今テストを回してる
 
-AI ASSISTANT:
+AIアシスタント:
   通ったか、エラーが出たか教えてください！
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~3
 
-MAYA:
+マヤ:
   失敗してる笑
 
-AI ASSISTANT:
+AIアシスタント:
   `differences` の計算が、`recipes.length` が 2 でないときにも走っています。チェックの内側に移してください:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、それで直った！ テスト通ったよ。正直、これ母さんにかなり役立ちそう
 
-AI ASSISTANT:
+AIアシスタント:
   それはよかったです！ 役に立ちそうで何よりです。糖尿病向けに、どちらのレシピが糖分や炭水化物が少ないかを示す「より適している」指標も追加できます。次にやりますか？
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いや、まだフロントエンドを先に作りたい。でもそのうちそれもかなり良さそう
 
-AI ASSISTANT:
+AIアシスタント:
   それでいいと思います！ エンドポイントはこれで固まりました。フロントエンドは、2カラムの分割画面レイアウトを考えていますか？ それとも別の形ですか？
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   たぶん分割画面かな。栄養成分を縦に並べた2カラム。始めたらまた声かけるよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ UI が必要になったらいつでも声をかけてください。比較用のAPIはもう十分しっかりしています。
 
 ================================================================================

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
-  明日の David との 1:1 の準備を手伝ってくれる？ recipe app の auth 移行について報告したいんだ
+マヤ:
+  明日の デイビッド との 1:1 の準備を手伝ってくれる？ recipe app の auth 移行について報告したいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。今の状況と、特に強調したいことは何ですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   新しい auth システムへの移行がだいたい 60% 完了。先週 token refresh の perf 問題があったけど、今は解消した
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。話すポイントを作りましょうか？ 進捗、perf 問題と解決、完了までのタイムライン、ブロッカーあたりを入れるイメージです。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   うん、それでいい。あと Q3 の人員についても聞きたい。ここまでのペースが続くなら backend をもう 1 人必要になりそう
 
-AI ASSISTANT:
+AIアシスタント:
   ではドラフトはこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
-  いいけど、stripe connect の統合の話も入れてくれる？ それは次のスプリントで出るし、D は絶対聞いてくる
+マヤ:
+  いいけど、stripe connect の統合の話も入れてくれる？ それは次のスプリントで出るし、デイビッド は絶対聞いてくる
 
-AI ASSISTANT:
+AIアシスタント:
   更新しました:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
-  完璧。payout flow を ship する前に Rach に見てもらうよう、短いメールも作れる？
+マヤ:
+  完璧。payout flow を ship する前に レイチ に見てもらうよう、短いメールも作れる？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
-  うん、それでいい。あと一つ、週ごとにどれくらいユーザーを移行できたかのデータを取ってくれる？ D に推移を見せたい
+マヤ:
+  うん、それでいい。あと一つ、週ごとにどれくらいユーザーを移行できたかのデータを取ってくれる？ デイビッド に推移を見せたい
 
-AI ASSISTANT:
+AIアシスタント:
   それなら SQL クエリを書くお手伝いができます。users テーブルの構造を教えてください。auth 移行の状態と移行完了日のフィールド名が必要です。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   テーブルは `users`。フィールドは `id`, `migrated_to_new_auth`（boolean）, `migration_completed_at`（timestamp）, `created_at`
 
-AI ASSISTANT:
+AIアシスタント:
   クエリはこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   いいね、ありがとう。これで明日の準備はできた気がする lol
 
-AI ASSISTANT:
+AIアシスタント:
   ばっちりです！ 進捗の数字、perf 改善、今後のリリース予定、Q3 人員の相談まで揃っています。1:1、うまくいくといいですね！
 
 ---

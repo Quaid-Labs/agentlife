@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
-  新しいキャッシュ層の技術設計書を書かないといけない…Dが今日中に欲しいって言ってるんだけど、どこから始めればいいのか全然わからない笑
+マヤ:
+  新しいキャッシュ層の技術設計書を書かないといけない…デイビッドが今日中に欲しいって言ってるんだけど、どこから始めればいいのか全然わからない笑
 
-AI ASSISTANT:
+AIアシスタント:
   その構成なら手伝えます。まず、何をキャッシュするんですか？ ユーザーデータ、APIレスポンス、DBクエリ？ それと、主な解決したい問題は何ですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   ほとんどは決済プロバイダのAPIレスポンス。遅いし、レート制限にもすぐ当たるんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。まずは簡単なアウトラインから始めましょう:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   平均応答時間は800msくらいで、レート制限は100 req/min。ピーク時にぶつかってて、ユーザーにエラーが見えてる
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。問題定義はこんな感じです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、それでいい。今の構成はバックエンドから直接呼ぶだけで、キャッシュは一切ない。かなり単純
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。現在の状態のセクションはこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   Redisはしっくりくるね。無効化はちょっと迷うけど…TTLベースかな？ 決済データはそんなに頻繁には変わらないし
 
-AI ASSISTANT:
+AIアシスタント:
   TTLでいけます。私ならこう考えます:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うーん、取引ステータスはもっと短くしたほうがいいかな？ 10秒くらい？ 支払い後にみんな何度も更新するし
 
-AI ASSISTANT:
+AIアシスタント:
   いい判断です。更新しました:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   うちはAWSだから、たぶんElastiCacheだよね？ 自前で管理するより楽だし
 
-AI ASSISTANT:
+AIアシスタント:
   賢い選択です。技術アプローチのセクションはこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   サーキットブレーカーの設定ってどんな感じにすればいい？ 使ったことないんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   基本的な設定はこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   うん、いいね。どんなメトリクスを追えばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   **監視とメトリクス**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
-  ううん、それで十分。あとリスクは？ Dはいつもトレードオフを聞いてくる気がする
+マヤ:
+  ううん、それで十分。あとリスクは？ デイビッドはいつもトレードオフを聞いてくる気がする
 
-AI ASSISTANT:
+AIアシスタント:
   **リスクとトレードオフ**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
-  コストの内訳もあると助かるな。Dは絶対そこ聞いてくるし
+マヤ:
+  コストの内訳もあると助かるな。デイビッドは絶対そこ聞いてくるし
 
-AI ASSISTANT:
+AIアシスタント:
   **コスト分析**
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   うん、それはかなり助かる。現実的には2スプリントくらいかな？
 
-AI ASSISTANT:
+AIアシスタント:
   **実装タイムライン**
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
-  正直3スプリント必要かも。うちのデプロイ手順遅いし。でもDには2って言って、あとで調整する感じでいこうかな笑
+マヤ:
+  正直3スプリント必要かも。うちのデプロイ手順遅いし。でもデイビッドには2って言って、あとで調整する感じでいこうかな笑
 
-AI ASSISTANT:
+AIアシスタント:
   いい判断です。もうここまでで:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   それ、めっちゃ助かる。ほんと時間の節約になる
 
-AI ASSISTANT:
+AIアシスタント:
   技術設計書の完成版はこちらです:
 
 ---
@@ -180,8 +180,8 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
-  完璧、ありがとう!! 仕事終わる前にこれDに送るよ
+マヤ:
+  完璧、ありがとう!! 仕事終わる前にこれデイビッドに送るよ
 
 ================================================================================
 END OF FILLER SESSION

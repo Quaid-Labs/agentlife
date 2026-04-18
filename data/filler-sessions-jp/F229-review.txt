@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うちの母からさっき電話があって、先生が数値に満足してるんだって。やっとだよ、笑
 
-AI ASSISTANT:
+AIアシスタント:
   それはいい知らせだね！ お母さんはどう感じてる？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   正直ほっとしてる。コレステロールのことで何か月もずっとストレスだったから
 
-AI ASSISTANT:
+AIアシスタント:
   うん、そうだろうね。ずっと心配していたあとに、いい知らせが来るのはうれしいよね。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   ほんとに。じゃ、昼ごはん食べてくるね、ただ共有したかっただけ
 
-AI ASSISTANT:
+AIアシスタント:
   知らせてくれてありがとう！ 昼ごはん楽しんでね
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
-  recipe API を REST から gRPC に移行する RFC を書くのを手伝ってほしい。月曜に D に出したいんだ
+マヤ:
+  recipe API を REST から gRPC に移行する RFC を書くのを手伝ってほしい。月曜に デイビッド に出したいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。まず基本からいきましょう。何がこの移行を後押ししていますか？ performance、typing、それとも別の理由ですか？ それと、今の規模はどれくらいですか。1 日あたり何リクエストくらい？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   どちらかというと performance かな。今 1 日 50 万リクエストくらいで、response time がつらい。mobile team も payload size についてずっと文句を言ってる
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。ではこれを下書きします。問題の説明と goal から始めましょう。段階的 rollout を含めますか？ それとも一気に移行する想定ですか？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
-  もちろん phased で。D は big bang なんて絶対に通さないと思う。まずは一番重い recipe search endpoint から始めるべきかな？
+マヤ:
+  もちろん phased で。デイビッド は big bang なんて絶対に通さないと思う。まずは一番重い recipe search endpoint から始めるべきかな？
 
-AI ASSISTANT:
+AIアシスタント:
   いい判断です。最初の下書きを作ります:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
-  うん、risk の section も足して。Rach は backward compatibility をいつも聞いてくるから
+マヤ:
+  うん、risk の section も足して。レイチ は backward compatibility をいつも聞いてくるから
 
-AI ASSISTANT:
+AIアシスタント:
   追加しました:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。じゃあ timeline は？ 2 人のエンジニアで phase 1 をやるとしたら、どれくらいかかる？
 
-AI ASSISTANT:
+AIアシスタント:
   phase 1 を 2 人でやるなら、こんな見積もりです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いいね。infrastructure の変更コストも簡単に入れてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   ```markdown
 
 ---
@@ -92,21 +92,21 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   ここまでかなり良さそう。alternatives considered を入れるべき？ graphql とか
 
-AI ASSISTANT:
-  絶対入れた方がいいです。Rach はそこを聞いてくるはずです。こちらが alternatives section です:
+AIアシスタント:
+  絶対入れた方がいいです。レイチ はそこを聞いてくるはずです。こちらが alternatives section です:
 
 ---
 
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   いいね。もう一つ、既存 API docs はどうなる？ swagger に 50 個くらい endpoint があるんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   ```markdown
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
-  最高。D に database changes の話をされたらどうする？ これは api layer だけで、db は変わらないんだよね？
+マヤ:
+  最高。デイビッド に database changes の話をされたらどうする？ これは api layer だけで、db は変わらないんだよね？
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです。DB 変更はゼロです。これは純粋に API/transport layer の話です。Postgres の schema、queries、ORM models は全部そのままです。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
+マヤ:
   うん、その note も入れて。あと、mobile team の反発がちょっと不安なんだよね。うちの母の diabetes 用 dietary 機能ですでに手一杯だし
 
-AI ASSISTANT:
+AIアシスタント:
   追加しました:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   それいいね。team impact と、チームごとの effort estimate も入れてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   ```markdown
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   じゃあ最後の質問。開始前に整理すべき open questions セクションも入れてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   ```markdown
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   ありがとう！ これを全部ひと塊で出してくれたら、Confluence に貼れるんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   ```markdown
 
 ---
@@ -169,11 +169,11 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
-  ほんと助かる。少し整えてから今夜 D に送るよ
+マヤ:
+  ほんと助かる。少し整えてから今夜 デイビッド に送るよ
 
-AI ASSISTANT:
-  問題ありません！ 月曜の発表、うまくいくといいですね。D が technical details について聞いたり、timeline 調整を求めたりしたら、すぐ言ってください。phased approach の方が通しやすいはずです。
+AIアシスタント:
+  問題ありません！ 月曜の発表、うまくいくといいですね。デイビッド が technical details について聞いたり、timeline 調整を求めたりしたら、すぐ言ってください。phased approach の方が通しやすいはずです。
 
 ---
 

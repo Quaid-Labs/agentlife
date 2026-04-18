@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   うわ、新しい `user_id` のマイグレーションを recipes テーブルに追加したらテストが落ちる。外部キー制約のエラーが出てる
 
-AI ASSISTANT:
+AIアシスタント:
   外部キー制約のエラー、デバッグします。こういうのはたいていマイグレーション順が違うか、既存データが新しい制約と衝突しているときに起きます。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   ああ、たしかに。テストでは毎回新しい DB を作ってるけど、マイグレーションの順序が間違ってるのかも？
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ マイグレーション順は重要です。必ず番号順に実行されるようにする必要があります。順序を保証する堅実なテストセットアップはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   え、`PRAGMA foreign_keys = ON` を入れてないのか。しかも migration は `create_users.js` みたいな名前で、番号もつけてない
 
-AI ASSISTANT:
+AIアシスタント:
   それが原因です！ 番号プレフィックスがないと、マイグレーションは任意の順序（実質アルファベット順）で実行される可能性があります。そして `foreign_keys = ON` がないと、SQLite は制約を黙って無視します。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   うん、それ教えて。あと `user_id` が入った今、recipe ルートはどうあるべきかも見せて
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ auth ミドルウェアを含めた、更新後のルートファイル全体はこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   完璧。テスト回してるんだけど、まだエラーが出る。"Cannot find module '../middleware/auth'" だって
 
-AI ASSISTANT:
+AIアシスタント:
   そうですね、認証ミドルウェアを作る必要があります！ 完全な auth ミドルウェアファイルはこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   いいね。テストは通った！ でも実際にアプリで recipe を作ろうとすると変なエラーが出る。"SQLITE_CONSTRAINT: FOREIGN KEY constraint failed" って
 
-AI ASSISTANT:
+AIアシスタント:
   そのエラーは、`users` テーブルに存在しない `user_id` で recipe を挿入しようとしていることを意味します。たいていは、JWT トークンの user ID が DB に存在しないか、DB インスタンスが違う場合に起きます。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~36
 
-MAYA:
+マヤ:
   ああ、テスト用 DB のトークンを使ってた。もう一回ログインしたら動いた。もう一つだけ、ユーザーを削除したときに recipe も全部消えるようにするには？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です！ それは、先ほど示したマイグレーションの外部キー制約にある `ON DELETE CASCADE` ですでに処理されています。なぜ動くのかを説明して、確認用のテストも追加しましょう:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   完璧！ テスト全部通った。明日デプロイする。ありがと！
 
-AI ASSISTANT:
+AIアシスタント:
   最高です！ デプロイ前に、よくある問題を避けるための簡単なチェックリストを置いておきます:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   ちょっと待って、ひとつ問題がある。アカウントを削除してから同じメールで再登録すると、昔の recipe が見えないんだけど、戻ってくるべきじゃない？
 
-AI ASSISTANT:
+AIアシスタント:
   いいえ、それで正しいです！ `ON DELETE CASCADE` でアカウントを削除すると、recipe もデータベースから完全に削除されます。これはアカウント削除の期待どおりの動作です。破壊的な操作です。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
-  うん、ハード削除で問題ない。今は私と D だけだしね笑。警告だけ足しておくよ
+マヤ:
+  うん、ハード削除で問題ない。今は私と ディー だけだしね笑。警告だけ足しておくよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ frontend に足せるシンプルな確認ダイアログはこちらです。React でも vanilla JS でも使えます:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   最高、それで十分。今デプロイする。ほんとに助かった！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ ちゃんと動くようになってよかったです。デプロイ前に最後の sanity check を置いておきます:
 
 ---

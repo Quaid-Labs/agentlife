@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   ねえ、黄身を半熟のままにしたいときって、卵はどれくらい茹でればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   とろっとした黄身の半熟卵なら、水を沸騰させて卵を入れ、6〜7分加熱してね。そのあとすぐ氷水に移して加熱を止めるよ。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   了解、ありがとう。昼ごはんに作るよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ トーストにのせても、少し塩こしょうを振ってもおいしいよ。昼ごはん、楽しんでね！
 
 ---

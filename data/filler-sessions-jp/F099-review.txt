@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   Jest で async 関数のテストってどう書くの？
 
-AI ASSISTANT:
+AIアシスタント:
   async/await を使うか、Promise を return する必要があります。両方の方法はこちらです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   了解。こんなエラーが出るんだけど: "Cannot find module 'sqlite3'"
 
-AI ASSISTANT:
+AIアシスタント:
   sqlite3 を dev dependency として入れる必要があります:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   いや、package.json にはもうあるんだよね。`"sqlite3": "^5.1.6"` って書いてある
 
-AI ASSISTANT:
+AIアシスタント:
   `node_modules` を消して入れ直してみてください:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   それで動いた lol。今度はテスト実行時に "database is locked" が出てる
 
-AI ASSISTANT:
+AIアシスタント:
   テストごとに DB 接続を閉じていない可能性があります。テストファイルにこれを追加してください:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   テストには in-memory db を使った方がいい？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、そっちの方がずっといいです。テスト時の db 接続をこう変えてください:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   完璧。もう一つ、missing recipe のときに route が 404 を返すかどうかをテストしたいんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   Express の route をテストするなら supertest を使います:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
-  ありがとう、D がこれを試すよ
+マヤ:
+  ありがとう、デイビッド がこれを試すよ
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。supertest で使えるように、app が express の app インスタンスを export していることだけ確認してください。つまずいたらまた言ってください。
 
 ---

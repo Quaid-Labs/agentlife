@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   レシピを追加しようとするとこのエラーが出るんだけど：SQLITE_CONSTRAINT: UNIQUE constraint failed: recipes.slug... どういう意味？笑
 
-AI ASSISTANT:
+AIアシスタント:
   このエラーは、データベースにすでに存在する slug を持つレシピを挿入しようとしているという意味です。SQLite が `recipes.slug` カラムに UNIQUE 制約を課しています。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   タイムスタンプ方式がいちばん簡単そうだね。そっちの版を見せてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！ タイムスタンプ方式はこちらです。かなりシンプルで、一意性も保証できます。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、これでいける。でも今度はテストが古い slug 形式を期待してるから失敗してる
 
-AI ASSISTANT:
+AIアシスタント:
   そうですね、テストもタイムスタンプに合わせて更新する必要があります。修正方法はこちらです。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
-  それで直った！ じゃあ今度は、D が Rach とレシピを共有したいらしいんだけど、共有テーブルってどう作ればいい？
+マヤ:
+  それで直った！ じゃあ今度は、デイビッド が レイチ とレシピを共有したいらしいんだけど、共有テーブルってどう作ればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   レシピ共有用のきれいな共有テーブル設計はこちらです。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   なるほど。じゃあ GET レシピのエンドポイントも、アクセス権があるかチェックするように更新する必要ある？
 
-AI ASSISTANT:
+AIアシスタント:
   はい。今のままだと、おそらく誰でも ID さえ分かればどのレシピでも見られます。アクセス制御を入れた GET エンドポイントの更新版はこちらです。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   そういえば、recipes テーブルに updated_at を追加しないといけない？ たぶんなかった気がする
 
-AI ASSISTANT:
+AIアシスタント:
   いいところに気づきました。`updated_at` カラムを追加するマイグレーションはこちらです。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね。マイグレーションを走らせたら動いた。じゃあ共有機能はどうやってテストする？
 
-AI ASSISTANT:
+AIアシスタント:
   共有機能向けの包括的なテストスイートはこちらです。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   完璧、全部のテストが通った！ もう1つだけ - unshare 用のルートを追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。unshare エンドポイントはこちらです。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   すごい！ 最後の質問 - 誰かがレシピを共有したときにメール通知を入れるべきかな？
 
-AI ASSISTANT:
+AIアシスタント:
   いい考えです！ nodemailer を使ったシンプルなメール通知のセットアップはこちらです。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね！ 共有機能についてはもうこれで全部かな。あとでデプロイするつもり
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ デプロイ前の簡単なチェックリストはこちらです。
 
 ---

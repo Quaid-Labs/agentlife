@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   うわ、今日のI-35の渋滞ひどすぎた。職場に着くまで40分くらい足止めされたよ
 
-AI ASSISTANT:
+AIアシスタント:
   それはきつい！ 事故でもあったの？ それともいつもの朝ラッシュ？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   さあ、たぶん分からない。ずっとノロノロだった。もう少し早く出るか、もっとWFH増やすべきかも笑
 
-AI ASSISTANT:
+AIアシスタント:
   正直、WFH のほうがよさそう。マネージャーに週に何日かリモートにできるか相談した？
 
 ---

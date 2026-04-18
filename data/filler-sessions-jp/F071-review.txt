@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   眠れない。頭が全然止まらない。何かいい本ある？ 仕事系はなしで笑
 
-AI ASSISTANT:
+AIアシスタント:
   カズオ・イシグロの「クララとお日さま」はどうでしょう。考えさせられるけど重すぎず、すごく落ち着いたテンポです。もっと軽いものなら、「コンビニ人間」が風変わりで読みやすいですよ。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   あ、コンビニのやつ聞いたことある。どんな話なの？
 
-AI ASSISTANT:
+AIアシスタント:
   東京のコンビニで働く女性の話で、本人はその単純な日常に満足しているのに、周りがずっと「普通」になれと চাপをかけてくるんです。面白いし、妙に落ち着く感じです。200ページくらいなので、一晩か二晩で読めますよ。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   それ今の気分にぴったりかも。Kindleにある？
 
-AI ASSISTANT:
+AIアシスタント:
   あります！ Kindle版も出ていますし、たぶんかなり安いはず。すぐ読み始められると思いますよ。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   いまダウンロード中。ありがと！ これで眠くなってくれるといいんだけど笑
 
-AI ASSISTANT:
+AIアシスタント:
   うまくいくといいですね！ 今夜読んだら、感想もぜひ聞かせてください。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~3
 
-MAYA:
+マヤ:
   そうする。おやすみ！
 
-AI ASSISTANT:
+AIアシスタント:
   おやすみなさい！ よく眠れますように 😊
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
+マヤ:
   ねえ、URLからレシピを取り込む機能を追加するのを手伝ってくれる？ Serious Eats とか NYT Cooking のリンクを貼ったら、レシピを解析してほしいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんできます。レシピサイトの解析には、`recipe-scrapers`（Python）みたいなライブラリを使うか、Nodeで `cheerio` を使ってカスタムパーサを書けます。Expressを使っているなら、`cheerio` + `node-fetch` でいきましょう。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   できれば複数サイト対応にしたい。母が5つくらい違うブログのリンクを送ってくるんだよね笑
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。`cheerio` を使って、schema.org の Recipe マークアップを探しましょう（多くの料理サイトが使っています）。まずはこんな感じです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   了解、今そのパッケージを入れてる…え、node-fetch は必要？ もう fetch は組み込みになってるんじゃなかったっけ？
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ Node 18 以降はネイティブの fetch があります。`node-fetch` は不要です。直接 `fetch` を使いましょう:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   できた。これ、どこにエンドポイントを追加すればいい？ routes/recipes.js でいい？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、`routes/recipes.js` に追加しましょう:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   試してみたんだけど、母が送ってきたリンクでこんなエラーが出る: `SyntaxError: Unexpected token < in JSON at position 0`
 
-AI ASSISTANT:
+AIアシスタント:
   JSON-LD のパースが失敗しています。scriptタグにHTMLコメントか壊れたJSONが入っているんでしょう。エラー処理を追加しましょう:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   Food Network のやつなんだけど、もう一回やってみる…今度は recipeData が null になってる
 
-AI ASSISTANT:
+AIアシスタント:
   Food Network は JSON-LD を使っていないかもしれません。HTMLを直接スクレイプするフォールバックを追加しましょう:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   うわ、動いた！ レシピが返ってきた。じゃあこれをDBにどうやって保存すればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   ルートにDB挿入を追加しましょう。`recipes` テーブルがある前提で:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   え、そんなカラムまだないよ。スキーマは title と description だけなんだ笑
 
-AI ASSISTANT:
+AIアシスタント:
   マイグレーションを追加しましょう:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   マイグレーションは動いた、DBも更新された。もう一回インポートしてみる…保存はできたけど、ingredients がレスポンスで `"[object Object]"` になってる
 
-AI ASSISTANT:
+AIアシスタント:
   挿入時に文字列化していて、読み出し時にパースしていないんです。GETエンドポイントを更新しましょう:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   完璧、それで直った！ じゃあ今度は recipeInstructions が文字列じゃなくて配列のときの扱いもしたい。サイトによって違うんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   スクレイピング後に正規化を追加しましょう:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね、今見てきた形式にはこれで対応できてる。これってテスト書いたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   絶対です。基本のテストセットアップはこちらです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   なるほど、あとで追加するよ。もう1つ - URLが無効だったり、サイトが落ちてたらどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   fetch をもっと丁寧なエラー処理で包みましょう:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   タイムアウトが動かない。「fetch does not support timeout」ってエラーになる
 
-AI ASSISTANT:
+AIアシスタント:
   ネイティブ fetch のタイムアウトには AbortController が必要です:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   動いた！ かなりいい感じだね。母のリンクをいろいろ試して、何が壊れるか見てみる笑
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ 形式の違うサイトをいくつか試してみましょう:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
-  そうする、ありがとうD！ まずはこれをpushして、あとでフロントエンドのフォームも足すかも
+マヤ:
+  そうする、ありがとうディー！ まずはこれをpushして、あとでフロントエンドのフォームも足すかも
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ フロントエンドを作るときは、読み込み中の状態を必ず表示してください（スクレイピングに3〜5秒かかることがあります）。あと、保存前にプレビューを見せて、変な取り込み結果をユーザーが直せるようにするのもいいです。
 
 ---

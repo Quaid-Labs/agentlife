@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   レシピアプリのオンボーディングフローの指標を考えてるんだけど、実際に何を追えばいいかな？
 
-AI ASSISTANT:
+AIアシスタント:
   オンボーディングなら、次の点を重視するといいです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   それいいね。手短に案を作ってくれる？ そんなに凝ってなくて、重要なところだけでいい
 
-AI ASSISTANT:
+AIアシスタント:
   初期のトラッキングプランはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   完璧。どのくらいの完了率を目標にすればいい？ 現実的なラインが全然わからない笑
 
-AI ASSISTANT:
+AIアシスタント:
   消費者向けアプリのオンボーディング完了率のベンチマークは:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   なるほど。こういう計測って初日から気にするべき？ それとも後でもいい？
 
-AI ASSISTANT:
+AIアシスタント:
   できるなら初日から追うべきです。過去データは後から作れません。基本的な計測でも、ファネルの各ステップだけでも、何もないよりずっといいです。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   了解。じゃあ events テーブルの簡単なスキーマを書いてくれる？ postgres で
 
-AI ASSISTANT:
+AIアシスタント:
   ```sql
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。実際のイベント名はどうする？ `onboarding_started` みたいなのでいい？
 
-AI ASSISTANT:
+AIアシスタント:
   きれいな命名規則はこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いい感じ。もう一つ、こういうのって自分宛にアラート送るべき？ それとも週1でダッシュボードを見るだけでいい？
 
-AI ASSISTANT:
+AIアシスタント:
   どっちもですが、まずは軽く始めましょう:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   了解。よし、かなり助かった。これから作り始めるよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ 最後に一つだけ、users テーブルに cohort date を足しておくといいです。たとえば「3月にサインアップしたユーザー」と「4月のユーザー」を簡単に比較できるようになります。後で A/B 分析がかなり楽になります。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   ああ、それいいね。今追加してる。ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ データが流れ始めて分析クエリを書きたくなったら、また声をかけてください。
 
 ---

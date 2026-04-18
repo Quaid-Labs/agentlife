@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   ねえ、ちょっと変わったアイデアなんだけど、レシピアプリにコスト見積もりを追加できる？ 食料品の価格を引いて、レシピ 1 つ作るのにいくらかかるか計算したい
 
-AI ASSISTANT:
+AIアシスタント:
   いい機能だね！ 食料品の価格 API を使うか、ストアデータをスクレイピングできる。まずは静的な価格テーブルで始めて、あとでライブデータにアップグレードする？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、今は静的でいい。とりあえず 20 種類くらいのよく使う材料をハードコードする感じでいいかな。Safeway の値段とかそんなので
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。基本データをシードするマイグレーションはこんな感じ:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。で、実際どうやってレシピのコストを計算するの？ レシピ材料と価格テーブルをどう照合するのか知りたい
 
-AI ASSISTANT:
+AIアシスタント:
   「鶏むね肉 2 枚」みたいな表記は「chicken breast」と完全一致しないから、あいまい一致が必要になる。ざっくりした方法はこんな感じ:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   あれ、recipe_ingredients テーブルってあったっけ？ recipes テーブルに材料を json で持ってるだけだと思ってた
 
-AI ASSISTANT:
+AIアシスタント:
   あ、そうだね、そこは僕の勘違いだった。json なら別の扱いになる:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   ｗ それって数量をパースしないと、かなり不正確じゃない？ たとえば「小麦粉 2 カップ」と「小麦粉 1/4 カップ」でも、両方とも丸ごとの価格を使っちゃうでしょ
 
-AI ASSISTANT:
+AIアシスタント:
   うん、そのとおり。数量をパースしないと駄目だ。こんな感じが必要になる:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うわあ、単位変換って面倒そう。ライブラリあるの？ それとも自分で書く必要ある？
 
-AI ASSISTANT:
+AIアシスタント:
   あるよ、`convert-units`:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   これどんどん複雑になるなｗ ざっくりしたコスト表示だけの MVP にして、「推定値は変動することがあります」みたいな注意書きを入れるのはどう？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、もちろん。シンプルにしよう。動く MVP はこんな感じ:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   完璧。これのエンドポイントにテストを 1 つ追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   ```javascript
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   テスト実行したら、`TypeError: Cannot read property 'ingredients' of null` が costEstimator.js の 4 行目で出た
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、テストデータに olive oil の価格がシードされてない。それにレシピの lookup も失敗してるかもしれない。デバッグしよう:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいよ、テストは通った。もう 1 つ - この価格 lookup をキャッシュできる？ 毎回 ingredient_prices を問い合わせるのは無駄な気がする
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘だね。シンプルなメモリ内キャッシュにしよう:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   いいね。最後にもう 1 つだけ - レシピ詳細ページにコスト見積もりを表示できる？ 材料リストの下に追加するだけでいい
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん、フロントエンドを更新する:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   `Cannot read property 'innerHTML' of null` っていうコンソールエラーが出た - cost-estimate div がまだ存在してない
 
-AI ASSISTANT:
+AIアシスタント:
   おっと、HTML に追加する必要がある:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   完璧、動いた。明日デプロイするよ。ありがと
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ ひとつ注意なんだけど、コスト API 呼び出しが失敗すると、「Loading cost estimate...」のまま止まるよ。エラーハンドリングを追加する？
 
 ---
@@ -169,7 +169,7 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   ああ、それは気づけてよかった。忘れる前に今すぐ入れておくよ
 
 ================================================================================

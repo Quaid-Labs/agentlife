@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   今日はちゃんとランのあとでフォームローラーも使ったよ、責任ある大人みたいに笑。明日も筋肉痛だろうけどまあいいや
 
-AI ASSISTANT:
+AIアシスタント:
   えらい！ ほんとに、あの長めのランの後にフォームローラーをやると全然違いますよね。今日は何マイル走ったんですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   8マイルだけ。大したことないよ。マラソン前だから、週の走行距離を一定に保とうとしてる
 
-AI ASSISTANT:
+AIアシスタント:
   いいペース配分です。平日のランとしては8マイルは十分立派ですよ。4月のマラソンはまだ予定どおり？ それとも日程が変わった？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ちょっと待って、今ほんとに4月28日だよね。マラソンまであと6日しかないんだけど笑。今テーパリング中
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、ほんとにもう目の前じゃないですか。じゃあテーパリングってすごく理にかなってますね。気分はどうですか？
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   不安だけど、まあ大丈夫。トレーニングはやったし。あとは今までやってきたことを信じるしかない
 
-AI ASSISTANT:
+AIアシスタント:
   それで正解です。やるべきことはやったので、あとは健康を保ってしっかり休むだけ。いけますよ
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   ありがと :) 朝ごはん作ってくる。頑張ったしパンケーキにしようかな
 
-AI ASSISTANT:
+AIアシスタント:
   それは当然です。しっかり補給してください！ 残りのテーパリング週も頑張って
 
 ---
@@ -82,7 +82,7 @@ AI ASSISTANT:
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-QUERY 1: "What did Maya mention about i foam rolled after my run today like a ?"
+QUERY 1: "What did マヤ mention about i foam rolled after my run today like a ?"
   Ground Truth: i foam rolled after my run today like a responsible adult
   Evidence Session: F086
   Query Type: cross_reference

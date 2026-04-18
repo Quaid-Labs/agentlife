@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   決済プロダクトのQBRデッキを作りたいんだけど、構成を一緒に考えてくれる？ 来週木曜にVPへ発表なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。決済プロダクト向けの包括的なQBR構成を作ろう。VP向けの発表でよく機能する、こんな枠組みがあるよ。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   うん、いいね。エグゼクティブサマリーのスライドを書いて。取引量は前四半期比34%増、売上は28%増だったけど、3月の認証バグで成功率に影響が出たんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **Q1 2026のハイライト**
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~32
 
-MAYA:
+マヤ:
   完璧。じゃあ課題のスライドも手伝って。認証バグの説明に加えて、リトライロジックの技術的負債と、国際対応のコンプライアンスが足を引っ張っていることも入れたい
 
-AI ASSISTANT:
+AIアシスタント:
   **Q1 2026の課題と学び**
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   すごくいいけど、もっと簡潔にできる？ VPは段落を読む気がないから、箇条書きと数字だけでお願い笑
 
-AI ASSISTANT:
+AIアシスタント:
   **Q1 2026の課題と学び**
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~33
 
-MAYA:
+マヤ:
   うん、こっちのほうがずっといい。じゃあQ2のロードマップスライドを書いて。優先事項は、1) そのバグから来た信頼性改善、2) UK/ドイツの展開、3) エンタープライズ向け機能（かなり重要、4社の見込み客が待ってる）
 
-AI ASSISTANT:
+AIアシスタント:
   **Q2 2026 ロードマップ - 主要優先事項**
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~27
 
-MAYA:
+マヤ:
   いいね。でも、その信頼性改善の売上インパクトも入れてくれる？ あとエンタープライズ向け機能は、どの見込み客がどれを必要としているかも分けてほしい
 
-AI ASSISTANT:
+AIアシスタント:
   **Q2 2026 ロードマップ - 主要優先事項**
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   完璧。あと、「支援してほしいこと」のスライドも書いてくれる？ その2つの役割の人員と、国際決済ゲートウェイ費用の予算が必要で、初期費用＋最初の四半期で約4万5千ドル見込んでる
 
-AI ASSISTANT:
+AIアシスタント:
   **経営陣への依頼事項**
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいけど、リスクのセクションも入れてくれる？ 人員か予算が取れなかったらどうなるか、みたいな
 
-AI ASSISTANT:
+AIアシスタント:
   **経営陣への依頼事項**
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~41
 
-MAYA:
+マヤ:
   いや、それでいい。VPには悪い面も見せる必要があるからね。じゃあ次は顧客インパクトのスライドを書いて。新規ロゴが3件あって、Dataflow Corp、Merchant Solutions Inc、Payfast。NPSは68で、前四半期の61から上がってる
 
-AI ASSISTANT:
+AIアシスタント:
   **顧客インパクトと示唆 - Q1 2026**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   うん、完璧。最後に、木曜前のレビュー用にRebeccaへデッキを送る短いメールを書いてくれる？ くだけすぎず、でも堅すぎないトーンで
 
-AI ASSISTANT:
+AIアシスタント:
   **件名: 木曜のQBRデッキ - ご確認ください**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   完璧、ありがとう。もう1個だけ - 国際展開の売上予測の実数を入れた予備資料スライドも作れる？ 例えばARR 420万ドルにどうやって到達したのか、みたいな
 
-AI ASSISTANT:
+AIアシスタント:
   **付録: 国際売上モデル（UK + ドイツ）**
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   うん、完璧。で、これが最後の最後なんだけど笑 - 冒頭で話すためのトークトラックも書いてくれる？ 四半期の総括を30秒で伝えるオープニングみたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   **QBRトークトラック - 30秒オープニング**
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   1案で決まり。よし、これで大丈夫そう。ちょっと整えてRebeccaに送るよ。すごく助かった
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。まとめるのを手伝えてよかった。デッキは十分にまとまっているし、3月の件について透明性を保ちながら成果も見せられているから、依頼事項のROIが数字で示されている点も含めて、Rebeccaにもよく伝わるはずだよ。
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   ねえ、レシピアプリにちゃんとしたエラー処理を追加するのを手伝ってくれる？ 失敗の種類ごとにカスタムエラーコードを付けたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ カスタムエラークラスとエラーコードを追加しましょう。構成はこんな感じです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   うん、create recipe エンドポイントでどう使うか見せて
 
-AI ASSISTANT:
+AIアシスタント:
   こんなふうに統合できます:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   うん、お願い。あと db のエラーはどうやって個別に扱うの？
 
-AI ASSISTANT:
+AIアシスタント:
   グローバルエラーハンドラはこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   なるほど。get エンドポイントで recipe が見つからない場合はどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   見つからない場合を扱う GET エンドポイントはこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。ingredient の format、たとえば JSON と文字列の違いをバリデーションしたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   いい考えです！ バリデーション用のヘルパーはこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   これ、route で使える？ あと instructions は optional にしていい？
 
-AI ASSISTANT:
+AIアシスタント:
   はい、両方とも大丈夫です！ 更新版の route はこんな感じです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、じゃあこのエラー処理をどうテストする？ エラーのテストを書いたことがあまりなくて。
 
-AI ASSISTANT:
+AIアシスタント:
   Jest でエラーケースをテストする方法はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。db 接続が失敗したらどうする？ それは別で扱うべき？
 
-AI ASSISTANT:
+AIアシスタント:
   はい！ 接続エラー用の処理を追加しましょう:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   db 接続に retry ロジックを入れるべきかな？
 
-AI ASSISTANT:
+AIアシスタント:
   いい考えです！ 再試行用ラッパーはこんな感じです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   正直、変な ingredient を入力されるのが心配なんだ。入力の sanitization はしたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ sanitization はこんな感じです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   rate limiting はどう？ recipe の作成を連打されたくないんだ
 
-AI ASSISTANT:
+AIアシスタント:
   express-rate-limit の設定はこちらです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   了解。最後に一つ - エラーをどこかに記録したほうがいい？ あとでデバッグできるように
 
-AI ASSISTANT:
+AIアシスタント:
   はい！ winston の logger 設定はこちらです:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   完璧。成功したリクエストもログしたほうがいい？ それともエラーだけでいい？
 
-AI ASSISTANT:
+AIアシスタント:
   両方ログするのがよいです！ こちらが morgan middleware です:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   最高、ありがとう！ もう一つ。logger が実際に書き込んでるかどうやってテストするの？
 
-AI ASSISTANT:
+AIアシスタント:
   ログをテストする方法はこちらです:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   いいね、ありがとう！ これでエラー処理はだいたい全部かな。明日実装するよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ 参照用の簡単なチェックリストはこちらです:
 
 ---

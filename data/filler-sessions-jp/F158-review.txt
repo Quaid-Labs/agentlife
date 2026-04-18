@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   ねえ、レシピをまとめてインポートできる機能を追加するのを手伝ってくれる？ CSV か JSON ファイルから取り込みたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ ファイルは API エンドポイント経由でアップロードする想定ですか、それともローカルで動く CLI スクリプトがほしいですか？ それと、今の recipe schema にはどんなフィールドがありますか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   API エンドポイントのほうがいい。今は recipes テーブルに name、ingredients (text)、instructions (text)、prep_time だけある
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。CSV/JSON アップロード用の基本的な Express エンドポイントはこんな感じです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、parseCSV のほうを見せて。Node で CSV パースを使ったことがないんだ
 
-AI ASSISTANT:
+AIアシスタント:
   `csv-parser` ライブラリを使った parseCSV はこんな感じです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いいね、ありがとう。バリデーションはどうする？ db に変なデータが入るのは避けたいんだけど lol
 
-AI ASSISTANT:
+AIアシスタント:
   いい着眼点です！ バリデーション用のヘルパーはこんな感じです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   バッチ全体を拒否するべき？ それとも悪い行だけ飛ばす？ どっちの UX がいいかな
 
-AI ASSISTANT:
+AIアシスタント:
   ケースによります。おすすめは、すべてのバリデーションエラーを集めてユーザーに返し、1 行でも失敗したら何もインポートしないやり方です。そうすればファイルを直して再アップロードできます。さもないと、一部のレシピが黙って飛ばされたことに気づかないかもしれません。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~3
 
-MAYA:
+マヤ:
   うん、見せて
 
-AI ASSISTANT:
+AIアシスタント:
   全行にまたがってエラーを集める方法はこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いいね。同じレシピをアップロードしたときの重複はどうする？ たとえば同じファイルを2回入れたら
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。スキーマで `name` に一意制約を付けるか、挿入前に確認する方法があります:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   2 のほうがいいかな、あれば更新したい。けど `ON CONFLICT` のためにテーブルスキーマを変える必要ある？
 
-AI ASSISTANT:
+AIアシスタント:
   はい、name カラムに UNIQUE 制約が必要です:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いや、データまだ本物ないし、削除して作り直すわ。これ全体をテストするにはどうすればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらがインポートエンドポイントの Jest テストです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   テストを走らせたら "Error: ENOENT: no such file or directory, open 'uploads/...'" って出た。uploads フォルダがないっぽい
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです。multer には uploads ディレクトリが必要です。テストのセットアップか app 初期化にこれを追加してください:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いいね、それで直った。もう一つ。処理後にアップロードしたファイルは削除したほうがいい？ それとも残す？
 
-AI ASSISTANT:
+AIアシスタント:
   ディスク肥大化を避けるために削除しましょう。エンドポイントにこれを追加してください:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   完璧、ありがとう！ これから実際の CSV で試してみる
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ 何か問題が出たら知らせてください。ひとつだけ注意です。CSV のヘッダー名は列名と完全に一致している必要があります（name、ingredients、instructions、prep_time）。一致していないとマッピングがうまくいきません。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   もし CSV の列名が違ったらどうする？ たとえば "recipe_name" が "name" の代わりに入ってるとか
 
-AI ASSISTANT:
+AIアシスタント:
   parseCSV にマッピング層を追加できます:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いいね、それならかなり柔軟だ。とりあえず今は大丈夫そう。あとで frontend につなぐよ
 
-AI ASSISTANT:
+AIアシスタント:
   了解です！ frontend のアップロードフォームを作るときは、form に `enctype="multipart/form-data"` を設定するか、fetch では FormData を使ってください。うまくいくことを祈っています！
 
 ---

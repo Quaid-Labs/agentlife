@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   ねえ、人気レシピのために redis キャッシュを追加するのを手伝ってくれる？ 上位100件の最も閲覧されたレシピをキャッシュしたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！まずプロジェクトに redis を追加しましょう。`npm install redis` を実行したら、キャッシュ middleware を見せます。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   今の route はこれ
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。こちらが Redis キャッシュ層です:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、いいね。それと、上位100件のリストは個別レシピとは別にキャッシュしたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   両方キャッシュしましょう。個別レシピは直接取得用、上位100件リストは別キーにします。こちらが閲覧追跡とリストキャッシュです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ちょっと待って、`popular:recipes` を閲覧のたびに削除したら高くつかない？ それだとリスト再構築がかなり増えるよね
 
-AI ASSISTANT:
+AIアシスタント:
   そのとおりです！もっと良い方法は、定期的に無効化するか、遅延更新にすることです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   うーん、その確率的なやつは変だな lol。TTL を使うことにする。これどうテストするの？ Redis をローカルで動かす必要ある？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、ローカルで Redis を起動する必要があります。`brew install redis` してから `brew services start redis` を実行してください。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   テストを走らせるとこんなエラーが出る:
 
-AI ASSISTANT:
+AIアシスタント:
   `redis-mock` には `connect()` メソッドがありません。client セットアップをラップしてください:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   正直、今の段階では DI はやりすぎに感じるな。とりあえず connect 呼び出しを包んだらテストは通った
 
-AI ASSISTANT:
+AIアシスタント:
   それでいいです！まずはシンプルに保ちましょう。キャッシュヒットは動いていますか？ ロギングを追加して確認できます:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、動いてる。ひとつ聞きたいんだけど、meal plan のやつもキャッシュすべき？ それともレシピだけ？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問です。レシピは強めにキャッシュして構いませんが、meal plan はユーザー固有なので慎重に扱ってください。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   なるほど。じゃあレシピを更新したときは cache を無効化しないとだよね
 
-AI ASSISTANT:
+AIアシスタント:
   そのとおりです。更新系の mutation ごとに無効化してください:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いいね。あと気づいたんだけど、redis が落ちたら app ってそのままクラッシュするの？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、エラー処理をしないとクラッシュします。接続エラー処理と fallback を追加しましょう:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   それならいいね。最後に - production で cache hit rate をどう監視するの？
 
-AI ASSISTANT:
+AIアシスタント:
   ヒットとミスをカウンターで記録して、エンドポイントで公開するか定期的にログ出力します:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
-  完璧。これを出して様子を見るよ。ありがとう D
+マヤ:
+  完璧。これを出して様子を見るよ。ありがとう ディー
 
-AI ASSISTANT:
+AIアシスタント:
   いい仕事です！まずは保守的な TTL で始めて、キャッシュ統計に応じて調整しましょう。デプロイ成功を祈ります！
 
 ---

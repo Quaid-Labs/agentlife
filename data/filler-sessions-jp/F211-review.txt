@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   眠れない笑。何か読むものをおすすめして
 
-AI ASSISTANT:
+AIアシスタント:
   どんな雰囲気がいい？ くつろげる感じがいいのか、それとも気を紛らわせたいのか。
 
 ---
@@ -37,32 +37,32 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   うーん、落ち着くけど退屈じゃないやつ。エッセイか記事みたいなのがいいかも
 
-AI ASSISTANT:
-  じゃあDavid Foster Wallaceの「Consider the Lobster」はどう？ ロブスターフェスティバルの話なんだけど、意外と深いところまでいくよ。もっと軽めがいいなら、The New Yorkerの個人エッセイもかなりいい。
+AIアシスタント:
+  じゃあデイビッド・フォスター・ウォレスの「Consider the Lobster」はどう？ ロブスターフェスティバルの話なんだけど、意外と深いところまでいくよ。もっと軽めがいいなら、The New Yorkerの個人エッセイもかなりいい。
 
 ---
 
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   おお、それ聞いたことある。長い？ 正直いま集中力が壊滅的なんだけど
 
-AI ASSISTANT:
-  20ページくらいだけど、すぐ読めるよ。もしそれでも長ければ、代わりに同じくDavid Foster Wallaceの「This is Water」を試してみて。卒業式のスピーチで、かなり短いし、人生の見方みたいな話だよ。
+AIアシスタント:
+  20ページくらいだけど、すぐ読めるよ。もしそれでも長ければ、代わりに同じくデイビッド・フォスター・ウォレスの「This is Water」を試してみて。卒業式のスピーチで、かなり短いし、人生の見方みたいな話だよ。
 
 ---
 
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   いいね、それちょうどよさそう。Kindleに送っとく、ありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ 少しでも眠りやすくなるといいな。おやすみ🌙
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   助かった。試してみる
 
-AI ASSISTANT:
+AIアシスタント:
   いつでもどうぞ！ 明日また別のおすすめが必要なら言ってね
 
 ================================================================================

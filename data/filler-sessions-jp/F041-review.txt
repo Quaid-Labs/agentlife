@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   うわ、人生で最悪の会議をさっき終えた
 
-AI ASSISTANT:
+AIアシスタント:
   それはつらい。何があったの？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   PMに、チーム全員の前で「本当にロードマップを理解してるの？」って言われたんだ
 
-AI ASSISTANT:
+AIアシスタント:
   ひどいね。実際のフィードバックをするんじゃなくて、公の場であなたを下げようとした感じだ。どう返したの？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   ただ「はい」って言って流したけど、内心は叫びたかった笑
 
-AI ASSISTANT:
+AIアシスタント:
   よく耐えたね。人前で相手の能力を疑うのはかなり不適切だよ。大丈夫？
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   正直よくない。問題があるなら、なんで直接言わないんだろうって思う
 
-AI ASSISTANT:
+AIアシスタント:
   その通りだよ。基本的なマネジメントの作法としておかしい。相手に人としての配慮が足りないか、わざと敵対的だったかのどちらかに見える。前にもこういうことはあった？
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   うん、わりとある。会議でいつも小さい嫌味を言ってくるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   それはもうパターンだね。こういう出来事は記録しておいて、続くなら自分のマネージャーかHRに相談する価値がある。そんな扱いを我慢する必要はないよ。
 
 ---

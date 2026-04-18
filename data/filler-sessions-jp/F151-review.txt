@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   レシピを誰かが共有したりコメントしたりしたときに webhook 通知を追加したいんだ。Slack 風の webhook みたいに、URL に POST する感じ。
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ つまり、これらのイベントが起きたら外部 URL に POST したいということだよね？ 必要になるのは：
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   まずは DB スキーマかな。secret は webhook ごとに保存すべき？ それとも HMAC 署名を生成するべき？
 
-AI ASSISTANT:
+AIアシスタント:
   両方だね！ webhook ごとに secret を保存して、それを使って相手が検証できる HMAC 署名を生成する。スキーマはこんな感じ：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   うん、いい判断。何を追跡すればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   試行、レスポンス、失敗を追跡するよ：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   うん、それでいこう
 
-AI ASSISTANT:
+AIアシスタント:
   HMAC 署名つきの webhook 送信処理はこんな感じ：
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   そうそう、でもリトライは 3 回だけ、バックオフありで。大げさなのはいらない
 
-AI ASSISTANT:
+AIアシスタント:
   ```javascript
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   完璧。じゃあ、誰かが share/comment したときはどうやってこれを発火させるの？
 
-AI ASSISTANT:
+AIアシスタント:
   既存の share/comment ルートにフックすればいい：
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   なるほど。でも webhook が失敗したら、失敗回数が多すぎた時点で無効化すべき？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、それが良いね。10 回連続で失敗したら無効化する：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   ああそうか笑。更新後のスキーマを見せてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   ```sql
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   いいね。じゃあ webhook を作成・一覧・削除するエンドポイントも必要だよね？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、標準的な CRUD だね：
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   なるほど。相手側では署名をどう検証するんだろう？
 
-AI ASSISTANT:
+AIアシスタント:
   webhook 受信側ではこうする：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いい考えだね。あと、自分の受信処理がちゃんと動くか確認できるテスト用エンドポイントも追加したほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   それは賢いね！ テスト ping を追加しよう：
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。あとひとつだけ - webhook の作成数をレート制限したほうがいいかな？ 1000 個とか作られたくないし
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。ユーザーごとに上限を設けよう：
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うん、それでいい。よし、これを試してみる、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ まずは webhook.site みたいなところでテストして、payload を見てみるといいよ。署名検証やリトライで何か問題があったら教えて。がんばって！
 
 ---

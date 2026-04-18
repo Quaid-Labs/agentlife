@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   ねえ、直近 3 スプリントのリリースノートをまとめるのを手伝ってくれる？ 明日までに stakeholders に送る必要があるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。3 スプリントで出た主な機能や修正は何？ それと、対象は誰？ 社内チーム、顧客、それとも両方？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   ほぼ社内の stakeholders だね。execs と product team。新しい search filters、payment のバグ修正、analytics dashboard の着手をやったよ
 
-AI ASSISTANT:
+AIアシスタント:
   了解。3 スプリントをまとめた 1 つの文書にする？ それとも各スプリントごとに分ける？ それと、普段はどんな形式を使う？ 箇条書き、ナラティブなセクション、ほかに何か？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   1 つの doc でいい。箇条書きがいちばん合うと思う。execs は長文読まないし、笑。feature / fix / in-progress みたいにテーマでまとめるのはどう？
 
-AI ASSISTANT:
+AIアシスタント:
   完璧。こんな構成にしよう:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   いいね。でも search filters のところはもう少し具体的にしてくれる？ 5 種類くらいフィルタを追加したし、かなり大きい作業だったんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。こんな感じはどう？
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   完璧。あと payment bug は実際かなり重大で、2 日間で transactions の 15% を止めてたんだ。書くべきかな？
 
-AI ASSISTANT:
+AIアシスタント:
   それは入れたほうがいい。影響は書きつつ、前向きに見せよう:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   うん、それでいいね。ちゃんと対処できてる感じが出る。analytics dashboard については、実際に使えるメトリクスを分解して書くべきかな？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、そのほうが stakeholders には役立つ。Phase 1 ではどの metrics が入った？ DAU、conversion rates、そのあたり？
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   そうだよ - DAU、conversion funnel、page views、session duration。あと、当初のスコープにはなかった real-time monitoring も追加した
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ 更新したよ:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、そこは確かに範囲以上にやったよね。何か注記を入れたほうがいいかも
 
-AI ASSISTANT:
+AIアシスタント:
   一番上に `Highlights` セクションを追加するのはどう？
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   いいね。analytics の phase 2 については何て書くべき？ reports と exports の予定なんだけど、正直ちょっと遅れてるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   そこは曖昧にしつつ、前向きに書くのがいいね:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   sprint 28 なら大丈夫、現実的だね。あと mobile のやつはまだ始まったばかりで、半分終わってるとかじゃないってことも書かなきゃ
 
-AI ASSISTANT:
+AIアシスタント:
   その補足は大事だね。更新したよ:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   うん、`kicked off` のほうがいいね。もっと動いてる感じがする。よし、かなり良くなってきた。coming next について何か追加する？ それとも in-progress だけで終わらせる？
 
-AI ASSISTANT:
+AIアシスタント:
   何を届けたかと、今まさに進んでいるものに絞ったほうがいいと思う。`what's next` を足すと、達成できるか分からない期待を作るかもしれない。
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   いや、きれいにまとめておこう。どこにあるかはみんな知ってるし、笑。全文を送ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが完全版だよ:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   完璧、ありがとう！ 日曜の夜 7 時に自分で書いたやつよりずっといいよ、笑
 
-AI ASSISTANT:
+AIアシスタント:
   はは、どういたしまして。明日の stakeholder update、うまくいくといいね 🙌
 
 ---

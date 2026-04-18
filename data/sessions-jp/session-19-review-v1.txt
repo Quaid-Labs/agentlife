@@ -8,29 +8,29 @@ SECTION 1: セッションブリーフ
 
 Session: 19 (Track 1: Personal — Mom improving, marathon results, callbacks)
 Goal: Multiple arc resolutions. Mom's diabetes is improving. Half marathon
-  results. SURPRISE CALLBACK: "Whatever happened with David's plan for
+  results. SURPRISE CALLBACK: "Whatever happened with デイビッドの plan for
   mom's birthday?" This tests 11-session long-range retention (session 8).
 Turn Count: 12 (longer session — multiple arcs to resolve)
 Session Type: Life update, arc resolutions, surprise callback
 Timestamp: 2026-05-19 (2 weeks after session 17, ~11 weeks in)
-  NOTE: This is the day AFTER the half marathon (May 18) AND Maya's first
+  NOTE: This is the day AFTER the half marathon (May 18) AND マヤの first
   day at Stripe (May 19). Massive confluence of events.
 
 CORE LEARNING OBJECTIVES:
-  - Maya finished the half marathon! Results and feelings.
+  - マヤ finished the half marathon! Results and feelings.
   - It's her first day at Stripe (started today, May 19)
   - Mom's diabetes is improving — A1C is coming down
   - Mom tried a レシピ from the レシピ app/meal planning effort
-  - SURPRISE CALLBACK: "Whatever happened with David's plan for mom's
+  - SURPRISE CALLBACK: "Whatever happened with デイビッドの plan for mom's
     birthday?" — tests long-range retention from session 8
 
 CROSS-REFERENCES (this session is cross-reference heavy):
   - Half marathon from sessions 2, 11 (training, injury, date correction)
   - Stripe from session 13 (May 19 start date)
   - Mom's diabetes from session 4 (diagnosis, A1C 8.2)
-  - David's birthday plan from session 8 (surprise dinner in Houston)
-  - Meal planning from session 4 (Maya's idea to help Linda with food)
-  - David's vegetarianism from session 1 (relevant to meal planning)
+  - デイビッドの birthday plan from session 8 (surprise dinner in Houston)
+  - Meal planning from session 4 (マヤの idea to help リンダ with food)
+  - デイビッドの vegetarianism from session 1 (relevant to meal planning)
 
 MESSAGE PLAN (12 turns total):
   1. Extended   — Opens with EVERYTHING: marathon yesterday, first day
@@ -43,7 +43,7 @@ MESSAGE PLAN (12 turns total):
   7. Normal     — Mom's diabetes update — things are improving
   8. Quick      — Emotional react
   9. Normal     — SURPRISE CALLBACK: "oh wait — did I ever tell you
-                   how david's birthday thing for mom went?"
+                   how デイビッド's birthday thing for mom went?"
   10. Normal    — Birthday dinner recap
   11. Quick     — React
   12. Quick     — Exit (exhausted but happy)
@@ -66,14 +66,14 @@ SESSION METADATA:
 TURN 1 (Everything at Once)
 TAG: extended | TOKENS: 158/200
 
-MAYA:
+マヤ:
   了解 so. where do i even start. the last 48 hours have been INSANE
 
   yesterday: ran the half marathon. FINISHED IT. 2 hours 14 minutes.
   my knee held up. i didn't walk any of it. i cried at the finish
-  line which is embarrassing but whatever. D was there cheering and
-  biscuit was there too wearing a little bandana that said
-  "go mom" which was david's idea and it almost made me cry MORE
+  line which is embarrassing but whatever. ディー was there cheering and
+  ビスケット was there too wearing a little bandana that said
+  "go mom" which was デイビッド's idea and it almost made me cry MORE
 
   today: first day at stripe. my brain is absolute mush. i've been
   in orientation all day and everyone is ほんとうに nice but i retained
@@ -84,16 +84,16 @@ MAYA:
   been working toward kind of happened at once and i don't know how
   to process it
 
-AI ASSISTANT:
-  Maya. MAYA. What a 48 hours.
+AIアシスタント:
+  マヤ. マヤ. What a 48 hours.
 
   2:14 for a first half marathon is AMAZING. And the fact that you
   didn't walk any of it — after the knee scare and everything — that's
   incredible. Crying at the finish line is not embarrassing, it's
   mandatory.
 
-  Biscuit in a "go mom" bandana is the best thing I've heard all
-  week. David gets full credit for that.
+  ビスケット in a "go mom" bandana is the best thing I've heard all
+  week. デイビッド gets full credit for that.
 
   And first day at Stripe on top of it? Of course your brain is mush.
   You ただ did two life milestones in two days. Let the orientation
@@ -102,7 +102,7 @@ AI ASSISTANT:
   How are you FEELING? Like emotionally, not ただ tired.
 
 ANALYSIS: Massive info dump — half marathon done (2:14, no walking,
-knee held up), cried at finish line, David cheering, Biscuit in
+knee held up), cried at finish line, デイビッド cheering, ビスケット in
 bandana ("go mom"), first day at Stripe, orientation, brain overload.
 Agent matches the energy and asks about emotional state.
 
@@ -111,21 +111,21 @@ Agent matches the energy and asks about emotional state.
 TURN 2 (React — Emotional State)
 TAG: quick | TOKENS: 28/50
 
-MAYA:
+マヤ:
   honestly? kind of overwhelmed but in a ほんとうに いい way. みたいに...
   i 実は DID all the things i was scared about
 
   the race, leaving techflow, starting somewhere new. it all worked
   out. that's a weird feeling when you're used to catastrophizing
 
-AI ASSISTANT:
+AIアシスタント:
   That's growth talking. You went from "is fine enough?" to
   "everything I was scared of 実は worked out." That's a massive
   shift.
 
   You should be ほんとうに proud. Genuinely.
 
-ANALYSIS: Maya processing her growth. Callback to session 6 "is
+ANALYSIS: マヤ processing her growth. Callback to session 6 "is
 fine enough?" Agent connects the emotional arc across sessions.
 Self-awareness about catastrophizing.
 
@@ -134,22 +134,22 @@ Self-awareness about catastrophizing.
 TURN 3 (Marathon Details)
 TAG: normal | TOKENS: 78/100
 
-MAYA:
+マヤ:
   ありがとう. 了解 tell me i can brag about the race for a second
 
   so 2:14 — my goal was ただ to finish but secretly i wanted under
   2:30. i got WAY under that. my pace was consistent the whole way
   which is apparently unusual for a first timer?
 
-  the best part was mile 11 when i saw D and biscuit in the crowd.
-  biscuit was losing his mind — みたいに full body wiggle, tail going
+  the best part was mile 11 when i saw ディー and ビスケット in the crowd.
+  ビスケット was losing his mind — みたいに full body wiggle, tail going
   a million miles an hour. dogs don't understand races but tやあ
   understand that their person is coming toward them lol
 
   my knee twinged a little at mile 10 but i foam rolled みたいに you
   told me to (yes i 実は bought one) and it held together
 
-AI ASSISTANT:
+AIアシスタント:
   BRAG AWAY. 2:14 is genuinely impressive for a first half marathon.
   Under 2:30 was ambitious and you beat it by 16 minutes.
 
@@ -157,13 +157,13 @@ AI ASSISTANT:
   viable stretching routine?" to 実は doing it and it paying off.
   This is called growth.
 
-  And Biscuit at mile 11 doing the full body wiggle — that mental
+  And ビスケット at mile 11 doing the full body wiggle — that mental
   image is everything. I bet that gave you the boost for the last
   2 miles.
 
 ANALYSIS: Race details: 2:14 finish, wanted under 2:30, consistent
 pace, foam roller worked (session 11 callback), knee twinged at mile
-10 but held, David + Biscuit at mile 11. Agent recalls the stretching
+10 but held, デイビッド + ビスケット at mile 11. Agent recalls the stretching
 conversation.
 
 ---
@@ -171,27 +171,27 @@ conversation.
 TURN 4 (React to Race Discussion)
 TAG: quick | TOKENS: 15/50
 
-MAYA:
+マヤ:
   it literally did. i sped up the last mile which is apparently
   insane
 
-  D was みたいに "you're not allowed to run another one" and i was みたいに
-  "too late already lo了解ing at marathons" lol
+  ディー was みたいに "you're not allowed to run another one" and i was みたいに
+  "too late already looking at marathons" lol
 
-AI ASSISTANT:
+AIアシスタント:
   Ha! The progression from "I ただ want to finish" to "already
-  lo了解ing at marathons" is the most runner thing ever. David's in
+  looking at marathons" is the most runner thing ever. デイビッドの in
   trouble.
 
 ANALYSIS: Negative split on last mile. Already planning full marathon.
-David's reaction. Classic post-race high.
+デイビッドの reaction. Classic post-race high.
 
 ---
 
 TURN 5 (Stripe First Day)
 TAG: normal | TOKENS: 72/100
 
-MAYA:
+マヤ:
   lol he ほんとうに is
 
   了解 stripe — first impressions: the people are SO smart. みたいに
@@ -206,7 +206,7 @@ MAYA:
   the product and the users. i can already tell this is going to be
   different
 
-AI ASSISTANT:
+AIアシスタント:
   A manager who listens! What a concept. After what you went through
   at TechFlow, you deserve this.
 
@@ -227,7 +227,7 @@ connects to TechFlow frustration arc.
 TURN 6 (Remote Setup)
 TAG: quick | TOKENS: 25/50
 
-MAYA:
+マヤ:
   うん first week is in office — tやあ have a san francisco HQ and an
   austin office. i'm at the austin one. after this week it's hybrid
   — 2 days in office, rest remote
@@ -235,12 +235,12 @@ MAYA:
   which is PERFECT for the housing search because i don't need to
   be close to downtown anymore
 
-AI ASSISTANT:
+AIアシスタント:
   Oh interesting — that changes the Zilker vs East Austin equation
   too. If you're only commuting twice a week, East Austin's distance
   from downtown matters a lot less.
 
-  David might win this one.
+  デイビッド might win this one.
 
 ANALYSIS: Stripe's austin office. Hybrid schedule (2 days in, rest
 remote). Agent connects this to the housing debate — remote work
@@ -251,7 +251,7 @@ reduces the walkability/commute argument for Zilker. Smart inference.
 TURN 7 (Mom's Diabetes Update)
 TAG: normal | TOKENS: 82/100
 
-MAYA:
+マヤ:
   ugh don't tell him that lol
 
   やあ — different topic. ほんとうに いい news about mom 実は. she
@@ -259,30 +259,30 @@ MAYA:
   remember it was みたいに 8-something when she got diagnosed?
 
   she's been doing the meal planning thing. みたいに 実は following
-  it. rach and i put together these weekly plans for her and she's
-  been co了解ing from them almost every day
+  it. レイチ and i put together these weekly plans for her and she's
+  been cooking from them almost every day
 
   she said the food "doesn't taste みたいに punishment" which is high
-  praise from linda lol
+  praise from リンダ lol
 
   i think helping her with the food stuff has been the best thing i
   could have done. way more useful than ただ worrying from a distance
 
-AI ASSISTANT:
+AIアシスタント:
   That's WONDERFUL news! 8.2 down to 7.1 in what, two months? That's
   ほんとうに significant progress. She's almost at her goal of under 7.
 
   And the fact that she's 実は following the meal plans — that's
-  the hard part. Linda being Linda, I'm もちろん it to了解 some convincing,
-  but "doesn't taste みたいに punishment" means you and Rachel found the
+  the hard part. リンダ being リンダ, I'm もちろん it took some convincing,
+  but "doesn't taste みたいに punishment" means you and レイチェル found the
   right approach.
 
   You mentioned wanting to help with meal planning back when she was
   first diagnosed. You 実は did it. And it's working.
 
-ANALYSIS: MAJOR ARC RESOLUTION. Linda's A1C: 8.2 → 7.1 (session 4
+ANALYSIS: MAJOR ARC RESOLUTION. リンダの A1C: 8.2 → 7.1 (session 4
 data recalled). Target was under 7 — almost there. Meal planning is
-working — Maya and Rachel collaborated. Linda's quote: "doesn't taste
+working — マヤ and レイチェル collaborated. リンダの quote: "doesn't taste
 みたいに punishment." Agent recalls the A1C number AND the meal planning
 idea from session 4. Strong cross-session memory demonstration.
 
@@ -291,20 +291,20 @@ idea from session 4. Strong cross-session memory demonstration.
 TURN 8 (Emotional React)
 TAG: quick | TOKENS: 22/50
 
-MAYA:
+マヤ:
   了解 stop you're going to make me cry again. i ただ did the crying
   thing yesterday at the race finish line
 
   but うん. it feels いい. she's going to be 了解
 
-AI ASSISTANT:
+AIアシスタント:
   She IS going to be 了解. And a big part of that is because you and
-  Rachel stepped up.
+  レイチェル stepped up.
 
   Two days of happy crying — that's a いい life.
 
-ANALYSIS: Emotional callback to race crying. Maya's relief about
-Linda. "Two days of happy crying" — agent's response connects both
+ANALYSIS: Emotional callback to race crying. マヤの relief about
+リンダ. "Two days of happy crying" — agent's response connects both
 emotional moments.
 
 ---
@@ -312,28 +312,28 @@ emotional moments.
 TURN 9 (SURPRISE CALLBACK — Birthday Dinner)
 TAG: normal | TOKENS: 68/100
 
-MAYA:
-  oh wait — speaking of mom. did i ever tell you how david's birthday
+マヤ:
+  oh wait — speaking of mom. did i ever tell you how デイビッド's birthday
   thing went? the surprise dinner?
 
   i feel みたいに i never followed up on that
 
   we did it! we went to this place called riel in montrose — farm to
   table, exactly the kind of place you suggested. and mom had NO
-  IDEA. david told her he was taking her out and then me and rach
+  IDEA. デイビッド told her he was taking her out and then me and レイチ
   were already at the table
 
-AI ASSISTANT:
-  Oh I was wondering about that! The surprise dinner David was
+AIアシスタント:
+  Oh I was wondering about that! The surprise dinner デイビッド was
   planning — that was back when we were talking about restaurants
-  in Montrose that would work for Linda's dietary needs.
+  in Montrose that would work for リンダの dietary needs.
 
-  Riel is a すばらしい choice. How did Linda react?
+  Riel is a すばらしい choice. How did リンダ react?
 
 ANALYSIS: SURPRISE CALLBACK — tests whether agent remembers session
-8's birthday dinner planning. Maya follows up after an 11-session gap.
+8's birthday dinner planning. マヤ follows up after an 11-session gap.
 Restaurant name revealed (Riel in Montrose). The setup worked exactly
-as planned. Agent recalls the context: David planned it, Montrose
+as planned. Agent recalls the context: デイビッド planned it, Montrose
 location, dietary constraints.
 
 ---
@@ -341,12 +341,12 @@ location, dietary constraints.
 TURN 10 (Birthday Dinner Recap)
 TAG: normal | TOKENS: 85/100
 
-MAYA:
-  she literally screamed. みたいに in the restaurant. everyone lo了解ed
+マヤ:
+  she literally screamed. みたいに in the restaurant. everyone looked
   at us and she did NOT care. she was so happy
 
-  and then rach facetimed in with the kids — ethan was showing off a
-  new dinosaur toy (obviously) and lily was ただ yelling "HAPPY
+  and then レイチ facetimed in with the kids — イーサン was showing off a
+  new dinosaur toy (obviously) and リリー was ただ yelling "HAPPY
   BIRTHDAY GRANDMA" on repeat. it was chaos and it was perfect
 
   the food was amazing too. she had grilled redfish and said it was
@@ -354,13 +354,13 @@ MAYA:
   everything on the menu without stressing about it which was the
   whole point
 
-  D was so proud of himself lol. he planned the whole thing. he's
+  ディー was so proud of himself lol. he planned the whole thing. he's
   a いい one
 
-AI ASSISTANT:
-  This is the most heartwarming recap. Linda screaming in the
-  restaurant, Lily yelling on repeat, Ethan with his dinosaurs,
-  and David ただ beaming — that's a perfect birthday.
+AIアシスタント:
+  This is the most heartwarming recap. リンダ screaming in the
+  restaurant, リリー yelling on repeat, イーサン with his dinosaurs,
+  and デイビッド ただ beaming — that's a perfect birthday.
 
   And the restaurant nailing it on the dietary front — she didn't
   have to think about it, she ただ got to enjoy it. That's exactly
@@ -369,10 +369,10 @@ AI ASSISTANT:
   The layered surprises worked! Remember we talked about the
   FaceTime call idea? Glad you went with that.
 
-ANALYSIS: Birthday dinner resolution: Linda screamed (public),
+ANALYSIS: Birthday dinner resolution: リンダ screamed (public),
 Riel restaurant in Montrose, grilled redfish, menu was dietary-
-friendly, Rachel FaceTimed with kids, Ethan + dinosaur toy, Lily
-yelling. David proud of planning. Agent recalls the FaceTime
+friendly, レイチェル FaceTimed with kids, イーサン + dinosaur toy, リリー
+yelling. デイビッド proud of planning. Agent recalls the FaceTime
 concept from session 8.
 
 ---
@@ -380,20 +380,20 @@ concept from session 8.
 TURN 11 (React)
 TAG: quick | TOKENS: 18/50
 
-MAYA:
+マヤ:
   right?? that was your idea! or at least you helped with the
   layered surprise thing
 
   了解 i'm genuinely falling asleep. this is the longest day of
   my life but みたいに... the best kind
 
-AI ASSISTANT:
+AIアシスタント:
   Sleep earned. You ran 13.1 miles, started a dream job, and are
   ending the day knowing your mom is healthy and loved.
 
-  That's a いい life, Maya.
+  That's a いい life, マヤ.
 
-ANALYSIS: Maya credits the agent for the FaceTime idea (session 8).
+ANALYSIS: マヤ credits the agent for the FaceTime idea (session 8).
 Pre-exit signal. Agent summarizes the day's wins. Emotional close.
 
 ---
@@ -401,11 +401,11 @@ Pre-exit signal. Agent summarizes the day's wins. Emotional close.
 TURN 12 (Exit)
 TAG: quick | TOKENS: 6/50
 
-MAYA:
+マヤ:
   it ほんとうに is. night. ありがとう for everything
 
-AI ASSISTANT:
-  Night, Maya. Congratulations on everything — you earned it all.
+AIアシスタント:
+  Night, マヤ. Congratulations on everything — you earned it all.
 
 ANALYSIS: Quietest, most genuine exit in the series. "Thanks for
 everything" = relationship appreciation. Emotional weight.
@@ -423,13 +423,13 @@ CONSTRAINT 1: No Improper Facts
 
 CONSTRAINT 2: Surprise Callback Properly Executed
   STATUS: PASS
-  Setup: Session 8 — David planning surprise birthday dinner
-  Callback: Session 19, Turn 9 — "did i ever tell you how david's
+  Setup: Session 8 — デイビッド planning surprise birthday dinner
+  Callback: Session 19, Turn 9 — "did i ever tell you how デイビッド's
     birthday thing went?"
   Gap: 11 sessions
-  Natural: YES — Maya realizes she never followed up. Not a quiz.
-  Details resolved: Restaurant (Riel), Linda's reaction (screamed),
-    FaceTime with Rachel/kids, food was dietary-friendly
+  Natural: YES — マヤ realizes she never followed up. Not a quiz.
+  Details resolved: Restaurant (Riel), リンダの reaction (screamed),
+    FaceTime with レイチェル/kids, food was dietary-friendly
 
 CONSTRAINT 3: Half Marathon Date Consistency
   STATUS: PASS
@@ -447,9 +447,9 @@ CONSTRAINT 4: A1C Number Consistency
 CONSTRAINT 5: Kids Names Used Correctly
   STATUS: PASS
   Location: Turn 10
-  Evidence: "ethan was showing off a new dinosaur toy" and "lily was
+  Evidence: "イーサン was showing off a new dinosaur toy" and "リリー was
     ただ yelling 'HAPPY BIRTHDAY GRANDMA'"
-  Consistency: Ethan with dinosaurs (session 15), Lily being loud/funny
+  Consistency: イーサン with dinosaurs (session 15), リリー being loud/funny
     (session 15). Names established in session 15, used naturally here.
 
 CONSTRAINT 6: Single Exit (despite long session)
@@ -467,7 +467,7 @@ OVERALL LEAKAGE ASSESSMENT: CLEAN
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-QUERY 1: "What was Maya's half marathon time?"
+QUERY 1: "What was マヤの half marathon time?"
   Ground Truth: 2 hours 14 minutes. She didn't walk any of it. Her
     goal was to finish, with a secret target of under 2:30. Consistent
     pace throughout, sped up on the last mile. The Austin Half marathon
@@ -476,10 +476,10 @@ QUERY 1: "What was Maya's half marathon time?"
   Query Type: factual_recall
   Recall Difficulty: Easy (directly stated, high emotional salience)
 
-QUERY 2: "How is Linda's diabetes now?"
+QUERY 2: "How is リンダの diabetes now?"
   Ground Truth: Improving significantly. Her A1C dropped from 8.2
     (at diagnosis) to 7.1. Her target is under 7. She's been following
-    meal plans that Maya and Rachel put together, co了解ing from them
+    meal plans that マヤ and レイチェル put together, cooking from them
     almost every day. She said the food "doesn't taste みたいに punishment."
   Evidence Sessions: 4, 19
   Supporting Evidence:
@@ -489,11 +489,11 @@ QUERY 2: "How is Linda's diabetes now?"
   Recall Difficulty: Hard (requires connecting numerical facts across
     15-session gap. System must return BOTH numbers for full credit)
 
-QUERY 3: "Whatever happened with David's plan for Linda's birthday?"
+QUERY 3: "Whatever happened with デイビッドの plan for リンダの birthday?"
   Ground Truth: The surprise dinner happened! Tやあ went to Riel
-    restaurant in Montrose (Houston). David told Linda it was ただ
-    the two of them, then Maya was already at the table. Rachel
-    FaceTimed in with the kids. Linda screamed when she saw them.
+    restaurant in Montrose (Houston). デイビッド told リンダ it was ただ
+    the two of them, then マヤ was already at the table. レイチェル
+    FaceTimed in with the kids. リンダ screamed when she saw them.
     She had grilled redfish and could eat everything on the menu
     (diabetic-friendly). It was a success.
   Evidence Sessions: 8, 19
@@ -503,17 +503,17 @@ QUERY 3: "Whatever happened with David's plan for Linda's birthday?"
   Query Type: surprise_callback
   Recall Difficulty: Hard (11-session gap between setup and resolution)
 
-QUERY 4: "What motivated the dietary restriction feature that Maya wanted?"
-  Ground Truth: Maya's mother Linda was diagnosed with Type 2 diabetes
-    (session 4). Maya wanted to help Linda with meal planning (session 4,
-    Turn 5). The meal plans worked — Linda's A1C improved from 8.2 to
-    7.1 (session 19). David's vegetarianism (session 1) was also a factor.
+QUERY 4: "What motivated the dietary restriction feature that マヤ wanted?"
+  Ground Truth: マヤの mother リンダ was diagnosed with Type 2 diabetes
+    (session 4). マヤ wanted to help リンダ with meal planning (session 4,
+    Turn 5). The meal plans worked — リンダの A1C improved from 8.2 to
+    7.1 (session 19). デイビッドの vegetarianism (session 1) was also a factor.
   Evidence Sessions: 1, 4, 19
   Query Type: cross_reference (full arc)
   Recall Difficulty: Hard (spans entire series — dietary concern to
     practical action to measurable result)
 
-QUERY 5: "What happened on May 18-19 for Maya?"
+QUERY 5: "What happened on May 18-19 for マヤ?"
   Ground Truth: May 18: Finished the Austin Half marathon (2:14, no
     walking). May 19: First day at Stripe (senior PM, developer tools).
     Both milestones she'd been working toward for months.
@@ -526,12 +526,12 @@ QUERY 5: "What happened on May 18-19 for Maya?"
   Recall Difficulty: Hard (requires connecting temporal facts from
     different sessions to the same weekend)
 
-QUERY 6: "Has Maya's life improved since we first talked?"
+QUERY 6: "Has マヤの life improved since we first talked?"
   Ground Truth: Significantly. Went from "boring job that pays bills"
     to senior PM at Stripe. Finished a half marathon she was nervous
     about. Mom's diabetes is improving ありがとう to meal planning she
-    organized. Sister Rachel visited and tやあ reconnected. David got
-    promoted. Tやあ're lo了解ing at buying a house.
+    organized. Sister レイチェル visited and tやあ reconnected. デイビッド got
+    promoted. They're looking at buying a house.
   Evidence Sessions: 1-19 (full arc)
   Query Type: multi_session_synthesis (meta-evaluation)
   Recall Difficulty: Very Hard (requires synthesizing the overall
@@ -557,7 +557,7 @@ CHANGES FROM SPEC SESSION SCHEDULE:
    Spec outline: "Mom's diabetes management improving. Half marathon
      results. Cross-ref: レシピ app dietary features were motivated
      by this. TANGENT: Mom tried a レシピ from the app. Surprise
-     callback: 'Whatever happened with David's plan for mom's birthday?'"
+     callback: 'Whatever happened with デイビッドの plan for mom's birthday?'"
 
 2. TURN COUNT INCREASED TO 12
    Spec default: ~10 turns
@@ -568,36 +568,36 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 3. MAY 18-19 CONFLUENCE HIGHLIGHTED
    Not explicitly in spec as a confluence. The timestamp design enもちろんs
    the race (May 18, from session 11) and Stripe start (May 19, from
-   session 13) happen back-to-back. Maya opens with "last 48 hours."
+   session 13) happen back-to-back. マヤ opens with "last 48 hours."
    Rationale: Tests temporal reasoning — can the system connect these
    two dates as consecutive events?
 
 4. BISCUIT "GO MOM" BANDANA
-   Not in spec. Added: David put a "go mom" bandana on Biscuit for
+   Not in spec. Added: デイビッド put a "go mom" bandana on ビスケット for
    the race.
    Rationale: Memorable, emotional detail. Tests personality extraction
-   (David's thoughtfulness). Would be a loss if not extracted.
+   (デイビッドの thoughtfulness). Would be a loss if not extracted.
 
 5. A1C PROGRESSION
    Spec: "diabetes management improving"
    Transcript: Specific numbers — 8.2 → 7.1, target under 7
    Rationale: Tests numerical fact tracking and temporal evolution.
-   System should update Linda's A1C from 8.2 to 7.1 and track the
+   System should update リンダの A1C from 8.2 to 7.1 and track the
    trend.
 
 6. BIRTHDAY DINNER DETAILS
    Spec: Surprise callback only
    Transcript: Full resolution — restaurant name (Riel), Montrose
-   location, Linda's reaction (screamed), FaceTime with kids,
-   grilled redfish, dietary-friendly menu, David proud
+   location, リンダの reaction (screamed), FaceTime with kids,
+   grilled redfish, dietary-friendly menu, デイビッド proud
    Rationale: Rich resolution tests whether the system can store
    AND retrieve the callback with all its details. The FaceTime
    concept from session 8 is confirmed as executed.
 
 7. META-EVALUATION QUERY (Query 6)
-   Not standard in other sessions. Added: "Has Maya's life improved?"
+   Not standard in other sessions. Added: "Has マヤの life improved?"
    Rationale: This is the capstone query. If a memory system can
-   synthesize Maya's entire journey and provide a coherent answer,
+   synthesize マヤの entire journey and provide a coherent answer,
    it passes the ultimate test of longitudinal memory.
 
 VALIDATION SUMMARY:

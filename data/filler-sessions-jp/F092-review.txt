@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   これを丁寧に言い換えてほしいんだけど、「Q2 までに出すのは無理」って、失礼じゃない言い方にできる？
 
-AI ASSISTANT:
+AIアシスタント:
   いくつか案があります:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
-  お、2つ目いいね。その言い方で David（うちのエンジリード）宛てのメールを書いてくれる？
+マヤ:
+  お、2つ目いいね。その言い方で デイビッド（うちのエンジリード）宛てのメールを書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   こんなドラフトはいかがですか:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。あと、その人に出す段階的なロードマップも一緒に作ってほしいな
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。ざっくりこう分けられます:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
-  うん、技術的な部分も足して。D は graphql のスキーマと、どのエンドポイントを作るのか見たがるはず
+マヤ:
+  うん、技術的な部分も足して。デイビッド は graphql のスキーマと、どのエンドポイントを作るのか見たがるはず
 
-AI ASSISTANT:
+AIアシスタント:
   技術詳細を入れた版に更新しました:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
-  よし、これで完璧。D に送るね
+マヤ:
+  よし、これで完璧。デイビッド に送るね
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ うまくいくといいです。反応が厳しかったら、計画 C も一緒に考えましょう 😅
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   lol さっき「フェーズ1で行こう、これを leadership に送れる？」って返ってきた。もう、exec 向けに直さないといけないじゃん
 
-AI ASSISTANT:
+AIアシスタント:
   よし、exec 翻訳モードですね。もっと絞った版を作ります:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   それで十分。フェーズ1でも Q2 の OKR は達成できるって一文を足して送るわ
 
-AI ASSISTANT:
+AIアシスタント:
   完璧です。たとえば、「Phase 1 は、Q2 の OKR である『週次 meal planner 利用者を 15% 増やす』を達成しつつ、Q3 の定着改善につなげます」みたいに書けば通りやすいと思います。頑張って！
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   送った。これで助かった、ほんとに lol
 
-AI ASSISTANT:
+AIアシスタント:
   いつでもどうぞ！ それが私の役目です。standup も乗り切ってください 💪
 
 ---

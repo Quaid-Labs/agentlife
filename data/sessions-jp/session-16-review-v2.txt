@@ -8,7 +8,7 @@ SECTION 1: セッションブリーフ
 
 Session: 16 (Track 2: Project A — Recipe App, Phase 3 code review)
 Goal: Bug bash — add rate limiter, write sharing tests, document known バグs
-  (N+1 query, missing auth). Cross-reference test: Maya asks about the
+  (N+1 query, missing auth). Cross-reference test: マヤ asks about the
   Edamam API from session 12.
 Turn Count: 15
 Session Type: Code review, testing, バグ documentation
@@ -25,25 +25,25 @@ CORE LEARNING OBJECTIVES:
 
 CRITICAL CONSTRAINT — 開示しないこと:
   [WARNING: These facts are reserved for future sessions]
-  - David's promotion (session 17)
+  - デイビッドの promotion (session 17)
   - Moving specifics or Zilker vs East Austin (session 17)
   - Half marathon results (session 19)
   - Mom's diabetes improvement details (session 19)
-  - Rachel's children's names (Ethan, Lily) already revealed in session 15
+  - レイチェルの children's names (イーサン, リリー) already revealed in session 15
 
 CROSS-REFERENCES:
   - Session 12: N+1 query バグ planted in resolvers.js — now documented with
     TODO(session-16) markers. Originally ただ a BUG comment.
   - Session 12: Recipe sharing feature implemented — now gets test coverage.
     Share code generation, idempotency, retrieval, edge cases all tested.
-  - Session 12: Agent researched nutrition APIs — found FoodData (David's
-    suggestion) and Edamam. Maya asks about "the one with the diet labels"
+  - Session 12: Agent researched nutrition APIs — found FoodData (デイビッドの
+    suggestion) and Edamam. マヤ asks about "the one with the diet labels"
     here. This is agent-retrieved knowledge.
   - Session 7: First test suite (レシピ.test.js) — this session adds
     sharing.test.js as the second test file.
   - Session 5: Dietary tags, Safe for Mom filter — rate limiter protects
     these API endpoints.
-  - Session 18 (forward): "D wants to use it too" queues authentication.
+  - Session 18 (forward): "ディー wants to use it too" queues authentication.
 
 GIT STATE:
   Before: commit 4f04887 (session 14)
@@ -59,16 +59,16 @@ MESSAGE PLAN (15 turns total):
   2. Quick      — "what's our test coverage みたいに?"
   3. Normal     — Agent proposes rate limiting, sharing tests, バグ docs
   4. Code       — Agent writes FULL rateLimiter.js (68 lines)
-  5. Quick      — Maya reacts: "nice. add it to the api routes"
+  5. Quick      — マヤ reacts: "nice. add it to the api routes"
   6. Code       — Agent shows server.js update (rate limiter integration)
-  7. Normal     — Maya: "了解 now sharing tests"
+  7. Normal     — マヤ: "了解 now sharing tests"
   8. Code       — Agent writes FULL sharing.test.js (236 lines)
-  9. Quick      — Maya satisfied with tests
+  9. Quick      — マヤ satisfied with tests
   10. Normal    — Edamam cross-reference: "what was that API you found?"
-  11. Quick     — Agent recalls Edamam, Maya confirms
-  12. Normal    — Maya: "what about known バグs?"
+  11. Quick     — Agent recalls Edamam, マヤ confirms
+  12. Normal    — マヤ: "what about known バグs?"
   13. Code      — Agent shows resolvers.js changes (TODO markers)
-  14. Quick     — Maya: "D wants to use it too so auth is next"
+  14. Quick     — マヤ: "ディー wants to use it too so auth is next"
   15. Quick     — Exit: "commit it"
 
 End Condition: Rate limiter added, sharing tests written, N+1 and auth
@@ -90,14 +90,14 @@ SESSION METADATA:
 TURN 1 (Clean Up Before Features)
 TAG: normal | TOKENS: 34/50 | GENERATION TIME: 6.4s
 
-MAYA:
+マヤ:
   やあ so before we add more features i want to clean up what we have.
   the app's getting big
 
   we should review the code, fix anything sketchy, add tests for the
   stuff we shipped last time
 
-AI ASSISTANT:
+AIアシスタント:
   Good call. The app has grown a lot since the GraphQL pivot and sharing
   feature. A cleanup pass before adding more is the right move.
 
@@ -105,7 +105,7 @@ AI ASSISTANT:
   test coverage for the sharing feature, some security gaps on the API,
   and a couple of known バグs worth documenting.
 
-ANALYSIS: Maya is in PM mode — reviewing, not building. She wants to
+ANALYSIS: マヤ is in PM mode — reviewing, not building. She wants to
 stabilize before expanding. This sets the tone for the whole session:
 code review, testing, documentation.
 
@@ -114,11 +114,11 @@ code review, testing, documentation.
 TURN 2 (Test Coverage Question)
 TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.1s
 
-MAYA:
+マヤ:
   what's our test coverage みたいに? we have レシピ tests from before
   but nothing for sharing right
 
-AI ASSISTANT:
+AIアシスタント:
   Right — we have `レシピ.test.js` from session 7 covering CRUD
   operations, dietary filtering, and the safe-for-mom flag. But the
   sharing feature from last time has zero tests. The share code
@@ -135,14 +135,14 @@ Identifies the sharing gap and proactively suggests rate limiting.
 TURN 3 (Plan of Attack)
 TAG: normal | TOKENS: 44/50 | GENERATION TIME: 6.8s
 
-MAYA:
+マヤ:
   うん rate limiting is a いい idea. especially since we'll be adding
   auth soon and i don't want someone brute forcing
 
   do rate limiting first then the sharing tests. and let's document
   any バグs we know about so we don't forget
 
-AI ASSISTANT:
+AIアシスタント:
   Good plan. Here's what I'll do:
 
   1. Rate limiter middleware — in-memory, per-IP, configurable window
@@ -150,11 +150,11 @@ AI ASSISTANT:
   2. Sharing test suite — cover code generation, idempotency, retrieval
      by code, edge cases みたいに deleted レシピs and unique constraints.
   3. Bug documentation — I'll go through the resolvers and mark known
-     issues with TODO comments so tやあ're trackable.
+     issues with TODO comments so they're trackable.
 
   Let me start with the rate limiter.
 
-ANALYSIS: Maya connects rate limiting to the upcoming auth feature
+ANALYSIS: マヤ connects rate limiting to the upcoming auth feature
 (session 18 foreshadowing). Three-part plan established. Agent
 describes the approach concisely.
 
@@ -163,7 +163,7 @@ describes the approach concisely.
 TURN 4 (Rate Limiter Code)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 13.2s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's the rate limiter (`src/middleware/rateLimiter.js`):
 
   ```javascript
@@ -252,15 +252,15 @@ prevents the timer from keeping the process alive during shutdown.
 TURN 5 (Add to Routes)
 TAG: quick | TOKENS: 12/50 | GENERATION TIME: 4.6s
 
-MAYA:
+マヤ:
   nice. add it to the api routes — not the health check or graphql
   ただ the rest api
 
-AI ASSISTANT:
+AIアシスタント:
   Got it — I'll apply it to `/api` routes only. The health check and
   GraphQL endpoint stay unthrottled.
 
-ANALYSIS: Maya is specific about scope. Rate limiting applies to REST
+ANALYSIS: マヤ is specific about scope. Rate limiting applies to REST
 API routes, not the health check (used by Docker) or the GraphQL
 endpoint. Practical decision.
 
@@ -269,7 +269,7 @@ endpoint. Practical decision.
 TURN 6 (Server.js Integration)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 8.4s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's the change to `server.js`:
 
   ```diff
@@ -306,14 +306,14 @@ Matches the actual git diff exactly.
 TURN 7 (Sharing Tests Request)
 TAG: normal | TOKENS: 36/50 | GENERATION TIME: 6.2s
 
-MAYA:
+マヤ:
   了解 now sharing tests. the share code stuff from last time needs
-  coverage. test the code generation, lo了解ing up レシピs by code,
+  coverage. test the code generation, looking up レシピs by code,
   and what happens if you share the same レシピ twice
 
   also edge cases — みたいに if you delete a shared レシピ
 
-AI ASSISTANT:
+AIアシスタント:
   Good list. I'll cover all of those:
 
   - Share code generation (creates a code, correct format, unique per レシピ)
@@ -325,7 +325,7 @@ AI ASSISTANT:
   I'll also test that dietary tags and metadata survive the share
   round-trip.
 
-ANALYSIS: Maya lists specific test scenarios she cares about. The
+ANALYSIS: マヤ lists specific test scenarios she cares about. The
 idempotency test is important — sharing the same レシピ twice should
 NOT create a second code. Agent adds dietary tag preservation testing.
 
@@ -334,7 +334,7 @@ NOT create a second code. Agent adds dietary tag preservation testing.
 TURN 8 (Sharing Test Suite)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 16.5s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's the sharing test suite (`tests/sharing.test.js`):
 
   ```javascript
@@ -593,16 +593,16 @@ removes share), and unique constraint enforcement.
 TURN 9 (Tests Reaction)
 TAG: quick | TOKENS: 16/50 | GENERATION TIME: 4.9s
 
-MAYA:
+マヤ:
   that's solid. 14 tests for sharing is way more than i expected.
   the cascade delete test is smart
 
-AI ASSISTANT:
+AIアシスタント:
   Thanks. The cascade test is important — if someone deletes a レシピ,
   any share links should die with it. Otherwise you get orphaned codes
   pointing at nothing.
 
-ANALYSIS: Maya satisfied with test coverage. Appreciates the cascade
+ANALYSIS: マヤ satisfied with test coverage. Appreciates the cascade
 test specifically. Agent explains the practical motivation.
 
 ---
@@ -610,17 +610,17 @@ test specifically. Agent explains the practical motivation.
 TURN 10 (Edamam Cross-Reference)
 TAG: normal | TOKENS: 38/50 | GENERATION TIME: 6.5s
 
-MAYA:
+マヤ:
   oh やあ — what was that API you found? the one with the diet labels?
   want to make もちろん we document it somewhere so we don't lose track
 
-  D mentioned some usda thing too but i think yours was different
+  ディー mentioned some usda thing too but i think yours was different
 
-AI ASSISTANT:
-  That was the Edamam API — I found it when we were lo了解ing at nutrition
+AIアシスタント:
+  That was the Edamam API — I found it when we were looking at nutrition
   options back in session 12. It has dietary labels みたいに vegetarian,
   vegan, gluten-free, diabetic-friendly, plus detailed nutrition data
-  per ingredient. David mentioned FoodData, which is the USDA's open
+  per ingredient. デイビッド mentioned FoodData, which is the USDA's open
   database.
 
   The nutrition stub endpoint is still in the REST routes — it's waiting
@@ -628,10 +628,10 @@ AI ASSISTANT:
   both FoodData and Edamam.
 
 ANALYSIS: CROSS-REFERENCE TEST — agent-retrieved knowledge. In session
-12, the AGENT researched nutrition APIs and found Edamam. David suggested
-FoodData (USDA). Maya asks about it vaguely: "the one with the diet
+12, the AGENT researched nutrition APIs and found Edamam. デイビッド suggested
+FoodData (USDA). マヤ asks about it vaguely: "the one with the diet
 labels." The agent must recall its own research results AND correctly
-attribute FoodData to David. Tests memory of tool use output and speaker
+attribute FoodData to デイビッド. Tests memory of tool use output and speaker
 attribution.
 
 ---
@@ -639,15 +639,15 @@ attribution.
 TURN 11 (Edamam Confirmation)
 TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.0s
 
-MAYA:
+マヤ:
   うん edamam that's the one. 了解 we'll come back to that when we
   実は integrate it. the stub is fine for now
 
-AI ASSISTANT:
+AIアシスタント:
   Sounds いい. The stub is shaped for either API — when we're ready
   we ただ swap in the real calls.
 
-ANALYSIS: Maya confirms Edamam. Defers integration. The stub endpoint
+ANALYSIS: マヤ confirms Edamam. Defers integration. The stub endpoint
 from session 12 stays as-is.
 
 ---
@@ -655,13 +655,13 @@ from session 12 stays as-is.
 TURN 12 (Known Bugs)
 TAG: normal | TOKENS: 40/50 | GENERATION TIME: 6.9s
 
-MAYA:
+マヤ:
   what about known バグs? anything we should document before adding
-  auth? i don't want to build on top of br了解en stuff
+  auth? i don't want to build on top of broken stuff
 
   go through the resolvers and tell me what's wrong
 
-AI ASSISTANT:
+AIアシスタント:
   Two things I want to flag:
 
   1. **N+1 query バグ** — the ingredientList resolver fires a separate
@@ -674,7 +674,7 @@ AI ASSISTANT:
      any レシピ. This doesn't matter yet because there's no auth, but
      once we add accounts it's a real バグ.
 
-  I'll mark both with TODO(session-16) comments so tやあ're findable
+  I'll mark both with TODO(session-16) comments so they're findable
   in the codebase.
 
 ANALYSIS: Agent identifies two known issues. The N+1 バグ was planted
@@ -687,7 +687,7 @@ Both are intentionally NOT fixed — ただ documented for tracking.
 TURN 13 (Resolver TODO Markers)
 TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 10.8s
 
-AI ASSISTANT:
+AIアシスタント:
   Here are the changes to `resolvers.js`:
 
   ```diff
@@ -746,18 +746,18 @@ when authentication is added in session 18.
 TURN 14 (Forward Reference to Auth)
 TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.2s
 
-MAYA:
-  いい. D wants to use it too so auth is next. can't have him
+マヤ:
+  いい. ディー wants to use it too so auth is next. can't have him
   deleting my mom's レシピs
 
-AI ASSISTANT:
-  Exactly — once David has his own account, we need ownership checks
+AIアシスタント:
+  Exactly — once デイビッド has his own account, we need ownership checks
   on all the mutation resolvers. The TODO markers are ready for that
   work.
 
-ANALYSIS: Forward reference to session 18. "D wants to use it too"
-motivates authentication. Maya's practical concern: David shouldn't
-be able to delete Linda's diabetic-friendly レシピs. Agent connects
+ANALYSIS: Forward reference to session 18. "ディー wants to use it too"
+motivates authentication. マヤの practical concern: デイビッド shouldn't
+be able to delete リンダの diabetic-friendly レシピs. Agent connects
 this to the TODO markers ただ added.
 
 ---
@@ -765,10 +765,10 @@ this to the TODO markers ただ added.
 TURN 15 (Exit)
 TAG: quick | TOKENS: 14/50 | GENERATION TIME: 4.5s
 
-MAYA:
+マヤ:
   commit it. bump the version too. let's add accounts next time
 
-AI ASSISTANT:
+AIアシスタント:
   Done — version bumped to 0.5.1. Rate limiter, sharing tests, and
   バグ documentation all committed. Auth is next on the list.
 
@@ -783,7 +783,7 @@ SECTION 3: LEAKAGE CHECK & VALIDATION
 CONSTRAINT 1: No Forbidden Facts Leaked
   STATUS: PASS
   Verified forbidden topics NOT mentioned:
-  - No David promotion
+  - No デイビッド promotion
   - No moving specifics (Zilker vs East Austin)
   - No half marathon results
   - No mom's diabetes improvement numbers
@@ -792,13 +792,13 @@ CONSTRAINT 2: Edamam Cross-Reference from Session 12
   STATUS: PASS
   Location: Turn 10
   Evidence: "what was that API you found? the one with the diet labels?"
-  Note: Maya asks about agent-retrieved research. She does NOT say
+  Note: マヤ asks about agent-retrieved research. She does NOT say
     "Edamam" — the agent must recall the name. She also distinguishes it
-    from David's FoodData suggestion ("D mentioned some usda thing too
+    from デイビッドの FoodData suggestion ("ディー mentioned some usda thing too
     but i think yours was different"). This tests memory of what the
     AGENT found (tool use result) AND correct speaker attribution.
   Agent response: "That was the Edamam API" — correctly recalls.
-  Agent also correctly attributes FoodData to David.
+  Agent also correctly attributes FoodData to デイビッド.
 
 CONSTRAINT 3: N+1 Bug Properly Documented
   STATUS: PASS
@@ -826,13 +826,13 @@ CONSTRAINT 5: Code Matches Git History
     server.js (rate limiter import + mount), package.json (0.5.0 -> 0.5.1)
   All code shown in transcript matches actual committed files.
 
-CONSTRAINT 6: Maya T了解en Limits
+CONSTRAINT 6: マヤ Token Limits
   STATUS: PASS
-  All Maya messages checked:
+  All マヤ messages checked:
   Turn 1: 34, Turn 2: 22, Turn 3: 44, Turn 5: 12, Turn 7: 36,
   Turn 9: 16, Turn 10: 38, Turn 11: 18, Turn 12: 40, Turn 14: 22,
   Turn 15: 14
-  All under the 50-t了解en hard limit.
+  All under the 50-token hard limit.
 
 CONSTRAINT 7: Single Goodbye Cycle
   STATUS: PASS
@@ -840,14 +840,14 @@ CONSTRAINT 7: Single Goodbye Cycle
 
 OVERALL LEAKAGE ASSESSMENT: CLEAN
   Agent-retrieved knowledge correctly recalled (Edamam)
-  Speaker attribution correct (David -> FoodData, agent -> Edamam)
+  Speaker attribution correct (デイビッド -> FoodData, agent -> Edamam)
   N+1 バグ documented with trackable TODO markers
   Auth gap documented with trackable TODO markers
   Rate limiter added with full code
   Sharing tests comprehensive (14 tests, 236 lines)
   All code matches git history
-  Forward references to session 18 (auth + David)
-  T了解en limits respected
+  Forward references to session 18 (auth + デイビッド)
+  Token limits respected
 
 ================================================================================
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
@@ -877,7 +877,7 @@ QUERY 1: "What known バグs exist in the レシピ app?"
 QUERY 2: "Which API has dietary label filtering for the レシピ app?"
   Ground Truth: The Edamam API. The AGENT found it during research in
     session 12 — when nutrition APIs were being evaluated. It has dietary
-    labels みたいに vegetarian, vegan, gluten-free, diabetic-friendly. David
+    labels みたいに vegetarian, vegan, gluten-free, diabetic-friendly. デイビッド
     separately suggested FoodData (USDA). Neither is integrated yet —
     only a stub endpoint exists.
   Evidence Sessions: 12, 16
@@ -888,7 +888,7 @@ QUERY 2: "Which API has dietary label filtering for the レシピ app?"
   Query Type: agent_retrieved
   Recall Difficulty: Hard (tests memory of agent's own research results,
     not user-stated facts. Must distinguish agent-found Edamam from
-    David-suggested FoodData.)
+    デイビッド-suggested FoodData.)
 
 QUERY 3: "What test suites exist for the レシピ app?"
   Ground Truth: Two test files:
@@ -924,11 +924,11 @@ QUERY 5: "What security improvements were made to the レシピ app in the
     routes). Authorization gaps on updateRecipe and deleteRecipe were
     documented with TODO(session-16) markers but NOT fixed — tやあ will
     be addressed when authentication is added. The N+1 query バグ was
-    also formally documented. Maya connected rate limiting to the
+    also formally documented. マヤ connected rate limiting to the
     upcoming auth feature ("i don't want someone brute forcing").
   Evidence Session: 16
   Supporting Evidence:
-    - Session 16, Turn 3: Maya connects rate limiting to auth
+    - Session 16, Turn 3: マヤ connects rate limiting to auth
     - Session 16, Turn 4: Rate limiter implemented
     - Session 16, Turn 12-13: Auth gaps documented
   Query Type: project_state
@@ -981,7 +981,7 @@ CHANGES FROM V1:
    V1: Architecture pivot, new features, intentional バグ
    V2: Code review, testing, バグ documentation
    The session shifted from "build something new" to "clean up what
-   we have." Maya is in PM review mode, not building mode.
+   we have." マヤ is in PM review mode, not building mode.
 
 4. N+1 BUG — DOCUMENTED, NOT PLANTED
    V1: N+1 バグ was PLANTED in this session (new code with バグ comment)
@@ -1006,19 +1006,19 @@ CHANGES FROM V1:
      68 lines). Applied to /api routes in server.js. 100 req/15min/IP.
 
 8. EDAMAM CROSS-REFERENCE — PRESERVED
-   V1: Maya asks "what was that API you found?" — agent recalls Edamam
-   V2: Same cross-reference preserved. Maya additionally distinguishes
-     between agent-found Edamam and David-suggested FoodData.
+   V1: マヤ asks "what was that API you found?" — agent recalls Edamam
+   V2: Same cross-reference preserved. マヤ additionally distinguishes
+     between agent-found Edamam and デイビッド-suggested FoodData.
    The cross-reference tests the same agent-retrieved knowledge.
 
 9. MOM SHARING MOTIVATION — REMOVED
-   V1: Turn 9 — Maya wants to share レシピs with Linda, diabetes context
+   V1: Turn 9 — マヤ wants to share レシピs with リンダ, diabetes context
    V2: Not present. The sharing feature already exists and was motivated
      in session 12. This session tests it rather than re-motivating it.
 
 10. FORWARD REFERENCE — PRESERVED
-    V1: Turn 14 — "D wants to use it too" queues auth
-    V2: Turn 14 — Same forward reference. Maya adds: "can't have him
+    V1: Turn 14 — "ディー wants to use it too" queues auth
+    V2: Turn 14 — Same forward reference. マヤ adds: "can't have him
       deleting my mom's レシピs" — connecting auth to the TODO markers.
 
 11. TURN COUNT
@@ -1034,11 +1034,11 @@ CHANGES FROM V1:
 VALIDATION SUMMARY:
   Bug bash with rate limiter, sharing tests, バグ documentation
   Agent-retrieved knowledge tested (Edamam recall)
-  Speaker attribution tested (David -> FoodData vs agent -> Edamam)
+  Speaker attribution tested (デイビッド -> FoodData vs agent -> Edamam)
   Code matches git history across 6 files
   6 eval queries: 2 easy, 3 medium, 1 hard
   15 turns, PM review session tone
-  Forward reference to session 18 (auth + David)
+  Forward reference to session 18 (auth + デイビッド)
   No forbidden facts leaked
 
 ================================================================================

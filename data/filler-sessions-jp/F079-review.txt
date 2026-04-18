@@ -8,7 +8,7 @@ SECTION 1: SESSION BRIEF
 ================================================================================
 Session: F079 (Filler — Cross-Reference Reinforcer)
 Date: 2026-04-26 08:56
-Topic: Dがまたレシピアプリの話をしてきた。自分のレシピを追加したいらしい
+Topic: デイビッドがまたレシピアプリの話をしてきた。自分のレシピを追加したいらしい
 Turn Count: 5
 
 ================================================================================
@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
-  D がまたレシピアプリのことを聞いてくる笑。自分のレシピを追加したいらしいんだけど、まだ auth の部分すら終わってないんだよね
+マヤ:
+  デイビッド がまたレシピアプリのことを聞いてくる笑。自分のレシピを追加したいらしいんだけど、まだ auth の部分すら終わってないんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   あるあるですね。何かが動くと、みんなすぐ機能を欲しがります。共有アカウントを考えているんですか？ それとも彼が自分で作れるようにするだけ？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うーん、同じ家に住んでるんだし共有アカウントは理にかなってるけど、権限とかどうするかはまだよくわからない
 
-AI ASSISTANT:
+AIアシスタント:
   まずはシンプルに始めればいいです。同じアカウントで、2人とも全部追加・編集できるようにする。権限が本当に必要になってから考えれば十分です。auth もシンプルになります。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   そうだよね。とにかくまず auth を動かしてから他を考えたい。彼は少し待てばいい笑
 
-AI ASSISTANT:
+AIアシスタント:
   それでいいです。動くものを出して、あとで改善すればいい。auth のセットアップに戻ったときに手伝ってほしければ言ってください。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   そうする！ 今日は家探しのほうに集中するつもりだし。auth は来週まで待ってもらう
 
-AI ASSISTANT:
+AIアシスタント:
   それがいいですね。今日の内見、うまくいくといいです
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~1
 
-MAYA:
+マヤ:
   ありがと！
 
-AI ASSISTANT:
+AIアシスタント:
   いつでもどうぞ
 
 ---
@@ -82,8 +82,8 @@ AI ASSISTANT:
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-QUERY 1: "What did Maya mention about D asked about the recipe app again. he w?"
-  Ground Truth: D asked about the recipe app again. he wants to add his own recipes
+QUERY 1: "What did マヤ mention about ディー asked about the recipe app again. he w?"
+  Ground Truth: ディー asked about the recipe app again. he wants to add his own recipes
   Evidence Session: F079
   Query Type: cross_reference
   Recall Difficulty: Medium (filler session callback)

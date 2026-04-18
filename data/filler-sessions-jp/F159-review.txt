@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   レシピ用のタグシステムを追加してくれる？ "dessert > cookies > chocolate chip" みたいな階層カテゴリにしたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   いいですよ。親子関係を持つ tags テーブルと、レシピとタグの関連付け用の中間テーブルを作ります。階層には自己参照外部キーを使う形で進めましょうか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   うん、それでいい。親タグで絞り込んで、子タグ配下のレシピも全部取れるようにしたいよね？
 
-AI ASSISTANT:
+AIアシスタント:
   そのとおりです。スキーマはこんな感じです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   うん、進めて。インデックスも必要だよね？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、追加します:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   ちょっと待って。循環参照はどうやって防ぐの？ たとえば dessert を cookies の子にして、cookies を dessert の子にするみたいな
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。挿入前に検証チェックを追加します:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   なるほど。あと、"dessert > cookies > chocolate chip" を毎回再帰クエリなしで表示したいから、path フィールドも追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   いい最適化です。materialized path パターンを使いましょう:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   でもそれだと親を変えるたびに path を更新しないといけないよね。トリガーにできる？
 
-AI ASSISTANT:
+AIアシスタント:
   はい、よりよい方法があります。トリガーはこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うーん、だんだん面倒になってきたな。いっそ path の更新は必要なときだけアプリ層でやるほうがいいかも
 
-AI ASSISTANT:
+AIアシスタント:
   その判断はもっともです。トリガーはデバッグしにくいことがあります。もっとシンプルに、書き込み時に path を更新する方法にしましょう:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   うん、そのほうがわかりやすい。循環参照チェックのテストを書いてくれる？ ちゃんと動くか確かめたい。
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。テストスイートはこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね。あと、UI で表示するための完全な tag tree を返すエンドポイントも必要。JSON 形式でいいかな？
 
-AI ASSISTANT:
+AIアシスタント:
   はい、そのルートはこちらです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   完璧。もう一つ。各タグのレシピ数も追加できる？ 子タグ分も含めてほしい
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。tree builder に追加します:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うーん、テストしたら "Error: SQLITE_ERROR: no such column: tt.root_id" って出た
 
-AI ASSISTANT:
+AIアシスタント:
   すみません - SQLite では CTE 内で lateral references は使えません。修正はこちらです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいね、動いた。最後にもう一つ。レシピ追加時にタグをその場で作れるようにする？ それとも事前定義にする？
 
-AI ASSISTANT:
+AIアシスタント:
   両方やるのがいいです。既存タグは autocomplete のドロップダウンで選べるようにしつつ、新しいタグもその場で追加できるようにしましょう。エンドポイントはこちらです:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   なるほど、すごく柔軟だね。じゃあ今はここまででいいや、UI 側を実装してくる。ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ UI ではタグの autocomplete に debouncing を入れて、階層型のドロップダウンには react-select か downshift のようなライブラリを使うといいかもしれません。クエリや大きなタグ一覧のページングで詰まったら声をかけてください。
 
 ---

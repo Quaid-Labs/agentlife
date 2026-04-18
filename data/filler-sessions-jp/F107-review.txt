@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   recipes エンドポイントに pagination を入れるにはどうしたらいい？ recipe が 200 件以上になってきて、少し遅くなってる
 
-AI ASSISTANT:
+AIアシスタント:
   GET route に `limit` と `offset` の query params を追加してください:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   いいけど、frontend はどうやって次のページがあるってわかるの？
 
-AI ASSISTANT:
+AIアシスタント:
   total count を返して、frontend がページ数を計算できるようにします:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   これを試したら、エンドポイントを叩いたときに "SQLITE_BUSY: database is locked" が出る lol
 
-AI ASSISTANT:
+AIアシスタント:
   SQLite への並列クエリが原因です。直列実行に切り替えるか、DB 接続で WAL mode を有効にしてください:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   直った。次は `?category=breakfast&difficulty=easy` みたいな filter を追加したい
 
-AI ASSISTANT:
+AIアシスタント:
   WHERE 句を動的に組み立てます:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   これ、かなり messy に感じる。もっときれいなクエリの組み方ある？
 
-AI ASSISTANT:
+AIアシスタント:
   あります。Knex みたいな query builder を使うといいです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   そもそも今の実装で SQL injection を心配すべき？
 
-AI ASSISTANT:
+AIアシスタント:
   `?` プレースホルダを使っている今のコードは安全です。ただし、文字列連結を始めたら危険になります:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   わかった。最後に、この pagination のテストはどう書けばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   test database を使って supertest で書きます:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   ありがとう。今のうちに追加しておくね、忘れそうだから
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ テスト同士が干渉しないように、`afterEach` で test db を消すのを忘れずに。
 
 ---

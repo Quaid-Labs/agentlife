@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   ひどいデータを送ったら500エラーが出たんだけど、レシピ作成エンドポイントに入力検証を追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   レシピ作成エンドポイントに包括的な入力検証を追加します。リクエスト検証と適切なエラー処理の両方を用意します。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   いいね！ すべての検証ケースのテストも書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。すべての検証シナリオをカバーする包括的なテストスイートはこちらです。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いい感じ！ ところで、テストを実行したらこのエラーが出たんだ：`Error: Cannot find module '../app'`
 
-AI ASSISTANT:
+AIアシスタント:
   メインの app ファイルをセットアップする必要があります。Express アプリ全体の設定はこちらです。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   テストは通ってるんだけど、テスト14がめちゃくちゃ遅い（8秒くらい）。「should create recipe with valid data」のやつ
 
-AI ASSISTANT:
+AIアシスタント:
   たぶんデータベースのトランザクションのオーバーヘッドです。単一トランザクションでレシピ作成を最適化して、テストの性能改善も追加します。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   それで直った！ 今は0.3秒。 でもログにこれが出てる：`UnhandledPromiseRejectionWarning: Error: SQLITE_BUSY`
 
-AI ASSISTANT:
+AIアシスタント:
   それはデータベースのロック問題です。SQLite はデフォルトでは同時書き込みにあまり強くありません。適切な接続プーリングと busy timeout の処理を追加します。
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   すごい、うまくいった。次に、既存のレシピを更新する PUT エンドポイントを追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。検証と部分更新対応付きの更新エンドポイントはこちらです。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   うん、テストもあるといいな。あと、まだなければスキーマに updated_at カラムも追加して
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。更新用のスキーマ移行と包括的な更新テストはこちらです。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   マイグレーションは動いたけど、テスト17が失敗してる。「should return 400 for invalid recipe ID」なんだけど、400じゃなくて404になってる
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。無効な ID に対する `parseInt()` は `NaN` を返し、それが SQL クエリに渡されて一致しないので（404になります）。先に ID 形式を検証する必要があります。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   完璧！ これで全部のテストが通った。DELETE エンドポイントも追加してくれる？ 同じ ID 検証付きで
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。適切な検証とカスケード処理付きの DELETE エンドポイントはこちらです。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね！ でも `Error: SQLITE_CONSTRAINT: FOREIGN KEY constraint failed` が出る。削除しようとすると
 
-AI ASSISTANT:
+AIアシスタント:
   外部キー制約が失敗しているのは、スキーマに `ON DELETE CASCADE` が設定されていない可能性があります。正しいスキーマと、それを直すマイグレーションを示します。
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   直った！ テストは全部グリーン。最後に、全エンドポイントにレート制限を追加できる？ レシピ作成を連打されるのは困る
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。エンドポイントの種類ごとに異なる制限を持つ完全なレート制限実装はこちらです。
 
 ---

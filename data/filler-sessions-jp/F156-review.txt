@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   ねえ、ユーザーが持っている食材を追跡するパントリー管理システムを追加してくれる？ いま冷蔵庫にあるもので何が作れるか知りたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！ パントリーシステムを追加するよ。必要なのは：
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   うん、やろう。あと、レシピ検索したときに、完全に作れるものと一部だけ作れるものを表示できるようにしたい
 
-AI ASSISTANT:
+AIアシスタント:
   いいアイデアだね。パントリーのエンドポイントとマッチングロジックはこんな感じ：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいね！ でも待って、recipes テーブルって JSON で食材を持ってるわけじゃないよね？ separate ingredients table があった気がする
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、その通り。ごめん、スキーマを正しく使う形に直すね：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   完璧。これのテストを書いてくれる？ 特にマッチングロジックを
 
-AI ASSISTANT:
+AIアシスタント:
   テストはこれ：
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いい感じだけど、レシピがたくさんあるとこれ遅くならない？ あの promise.all で大量の DB クエリを投げるやつ
 
-AI ASSISTANT:
+AIアシスタント:
   うん、いい指摘。1 回の JOIN クエリで最適化しよう：
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   だいぶ良くなった笑。じゃあパントリー item に expiration date field も追加できる？ 期限切れが近いものを警告できるように
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！ スキーマを更新して、警告エンドポイントを追加しよう：
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   いいね。期限切れアイテムの通知も送る？ それともなし？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね - daily cron job を追加できるよ。簡単な方法はこんな感じ：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   とりあえずそれはやめとこう。UI で期限切れアイテムがあるときにバッジか何かを出すだけでいい？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、そのほうが簡単だね。既存の user/profile endpoint にこれを追加して：
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   完璧。あと、パントリー item の削除もできる？ それから quantity の更新も
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。CRUD エンドポイントはこれ：
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   待って、update は空の body が送られたら失敗するよね
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、そうだね。validation が必要：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。`expiration date` で並べた、パントリー item 一覧の get endpoint も追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、どうぞ：
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   この status field いいね、賢い。最後に - レシピのマッチングをもっと賢くできる？ たとえば `chicken breast` を持っていたら `chicken` を必要とするレシピにマッチするとか
 
-AI ASSISTANT:
+AIアシスタント:
   いいアイデアだね - あいまいな食材マッチングが必要だ。substring matching を使うアプローチはこんな感じ：
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   うーん、でもそれだと一致しすぎない？ たとえば `rice` が `licorice` にマッチしちゃうとか
 
-AI ASSISTANT:
+AIアシスタント:
   笑、たしかにその通り。じゃあ最小文字数チェックと word boundary matching を追加しよう：
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   うん、それでいける。特にそのマッチングロジックのテストを書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。マッチング用のテストスイートはこれ：
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   完璧！ じゃあ今はそれでいいかな。パントリー機能について README に簡単なセクションを追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   README セクションはこれ：
 
 ---
@@ -191,10 +191,10 @@ AI ASSISTANT:
 TURN 16 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   最高、ありがとう！ これかなり役立ちそう
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ パントリーシステムはもう全部できてるよ。入っているのは：
 
 ---

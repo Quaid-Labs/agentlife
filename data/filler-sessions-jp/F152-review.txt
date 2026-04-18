@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   レシピアプリの計量単位に i18n を追加する必要があるんだ。cups を ml に、fahrenheit を celsius に、みたいな感じ。どうするのが一番いい？
 
-AI ASSISTANT:
+AIアシスタント:
   ユーザーごとの単位設定を持つ変換システムを追加しよう。`measurement_units` テーブルで変換を保存して、`preferred_units` フィールドを users に追加するのがいいと思う。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   DB テーブルのほうがよさそうだね。スキーマ見せてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   スキーマはこんな感じ：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   うん、seed データも見せて
 
-AI ASSISTANT:
+AIアシスタント:
   ```sql
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   うん、ヘルパーも見てみたい
 
-AI ASSISTANT:
+AIアシスタント:
   ```javascript
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。じゃあ、レシピを表示するときは実際にどう使うの？
 
-AI ASSISTANT:
+AIアシスタント:
   レシピを取得する時に材料を変換する必要がある。やり方はこんな感じ：
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   なるほど、ingredients テーブルも更新が必要だね。マイグレーションはどんな感じ？
 
-AI ASSISTANT:
+AIアシスタント:
   ```sql
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   ちょっと待って、"2 eggs" とか "1 onion" みたいに単位タイプがないものはどうするの？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘だね！ そういうものには `'count'` タイプを追加しよう：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   なるほど。じゃあ、ユーザーが実際に設定できるようにするにはどうする？ エンドポイントが必要だよね
 
-AI ASSISTANT:
+AIアシスタント:
   ```javascript
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   誰かが無効な unit を設定しようとしたらどうする？ たぶん検証したほうがいいよね
 
-AI ASSISTANT:
+AIアシスタント:
   ```javascript
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   いいね。変換ロジックのテストも追加したほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。テストスイートはこんな感じ：
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   テストを実行したらこんなエラーが出たんだけど：
 
-AI ASSISTANT:
+AIアシスタント:
   テスト用データベースのセットアップが必要だね。テストヘルパーを作ろう：
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   よし、今はテストが通ってる。あとひとつ - 変換後の量をきれいに表示するにはどうしたらいい？ たとえば丸め処理とか
 
-AI ASSISTANT:
+AIアシスタント:
   フォーマット用ヘルパーを追加しよう：
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ああ、分数記号まで出るのはいいね。これって metric も対応してる？ それとも imperial だけ？
 
-AI ASSISTANT:
+AIアシスタント:
   両方で動くよ！ 分数ロジックは cup/tbsp/tsp のみ（imperial）に適用されるけど、丸め処理はすべてに効く：
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いや、フルスペルのほうで十分だよ。これでいいと思う！ 試してみるね
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ 新しい材料については、レシピ作成エンドポイントで `unit_type` を受け取るようにするのも忘れずに：
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   やるよ、ありがとう！ こんなにきれいになるとは思わなかった
 
-AI ASSISTANT:
+AIアシスタント:
   うん、DB ベースのやり方だとかなり柔軟だよ。あとから quarts, pints, liters みたいな単位を増やしたくなったら、`measurement_conversions` に行を追加して `VALID_UNITS` に入れるだけ。コード変更は不要だよ。
 
 ---

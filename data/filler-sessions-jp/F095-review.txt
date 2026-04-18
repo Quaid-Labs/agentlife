@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
-  D に送る前に、Q2 の OKR を見てもらえる？
+マヤ:
+  デイビッド に送る前に、Q2 の OKR を見てもらえる？
 
-AI ASSISTANT:
+AIアシスタント:
   いい感じです。少しだけ手直しするとしたら:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   ダウンタイムの件、指摘してくれて正解だった。そうだね、いつも両方のバージョンを欲しがるから、これはストレッチ版なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   2 つで十分です。特にこういう野心的な目標なら、3 つ目を入れると分散しすぎて、結局どれも集中できなくなります。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うん、わかった。確認したかっただけ
 
-AI ASSISTANT:
+AIアシスタント:
   いい気づきです。レイテンシをもっと速くすると、冗長化やエッジ配置が増えるので、コストも上がりやすいです。
 
 ---
@@ -59,21 +59,21 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   うん、2番目の案がきれい。そういう見せ方でいいね
 
-AI ASSISTANT:
-  いいですね。レビュー、うまくいくといいです。David に変化球を投げられたら教えてください。
+AIアシスタント:
+  いいですね。レビュー、うまくいくといいです。デイビッド に変化球を投げられたら教えてください。
 
 ---
 
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   lol、そうする。ちなみに全然関係ないけど、recipe app の最新の sign-up 数を取れる？ auth フローの変更で conversion が改善したか見たくて
 
-AI ASSISTANT:
+AIアシスタント:
   DB を確認しました。直近 7 日間はこんな感じです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   おお、それ前の 60% より全然いいじゃん
 
-AI ASSISTANT:
+AIアシスタント:
   かなり良いですね。1 日だけのスパイクじゃなく、ちゃんと傾向が出ています。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   それいいね。じゃあそれを加える。よし、また本来の仕事に戻るか。午後 3 時に APAC チームとの会議があるし
 
-AI ASSISTANT:
+AIアシスタント:
   APAC の会議、がんばってください！ タイムゾーン会議はきついですよね。まだ朝 6 時じゃないだけマシです。
 
 ---

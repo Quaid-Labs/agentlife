@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ねえ、レシピアプリに栄養成分を追加できる？ カロリー、タンパク質とかの実際の USDA データで
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ USDA FoodData Central API を使えます。各材料が自動で栄養情報を引く形に統合したいですか、それとも手動で検索したいですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   自動が最高。設定はどれくらい大変？
 
-AI ASSISTANT:
+AIアシスタント:
   それほど大変ではありません。fdc.nal.usda.gov で無料のAPIキーを取得すれば、データを取得するサービスを追加できます。基本のラッパーはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   よし、それでいこう。じゃあ材料テーブルには USDA の食品を追跡するための新しいカラムが必要だよね？
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ USDA の食品項目を追跡するために `fdc_id` を追加してください:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   よし、マイグレーションは走らせた。材料エンドポイントとはどうつなぐの？
 
-AI ASSISTANT:
+AIアシスタント:
   USDA の食品を検索して紐づける新しいエンドポイントを追加してください:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。じゃあレシピ全体の栄養はどうやって計算するの？
 
-AI ASSISTANT:
+AIアシスタント:
   各材料の栄養素を分量に応じて足し合わせます。計算関数はこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   待って、単位が合わない場合は？ たとえば材料がカップで、USDA の基準がグラムとか
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。単位変換が必要になります。ヘルパーはこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   なるほど、かなり複雑になってきた笑。レート制限を避けるために USDA のレスポンスをキャッシュしたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。前に示した nutrition_facts テーブルはそのキャッシュ用です。キャッシュ処理はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   了解。USDA のレスポンスのパースはどうするの？ 形式が変なんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   はい、かなりネストされています。主要な栄養素を抜き出すパーサーはこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いいね。じゃあレシピの栄養を取得するエンドポイントが必要だね？
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ こちらがそのエンドポイントです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   毎回再計算すべき？ それともキャッシュする？ 材料が変わることもありそうだし
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。基本は必要時に再計算しつつ、`nutrition_updated_at` タイムスタンプを追加するのがよいです。材料が前回計算以降に変わった場合だけ再計算してください:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   了解。あと、1食分じゃなくて1レシピあたりの栄養は1食分表示にしたい
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ レシピテーブルに servings を追加して、合計を割ってください:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   いいね。これのテストも追加できる？ エッジケースが多そうだし
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。まずはこのテストスイートから始めましょう:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   テストすると `TypeError: Cannot read property 'grams' of undefined` が `convertToGrams` で出る
 
-AI ASSISTANT:
+AIアシスタント:
   それは、単位が変換表にないときに起きています。フォールバックを追加してください:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   直った。最後に、フロントエンドではどう見せる？ いい感じの栄養ラベルがほしい
 
-AI ASSISTANT:
+AIアシスタント:
   栄養成分パネル用の React コンポーネントはこちらです:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   これで完璧、まさに欲しかったものだ。いくつかのレシピで試してみるよ、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ うまくいくことを願っています。USDA の検索で特定の材料がうまく一致しない場合は、あとで手動上書き機能を追加できます。うまくいきますように！
 
 ================================================================================

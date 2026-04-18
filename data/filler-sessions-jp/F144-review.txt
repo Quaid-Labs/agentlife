@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
+マヤ:
   ねえ、レシピアプリに食事準備のスケジューリング機能を追加できる？ 週ごとにレシピを選んで、カレンダーに表示したいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！ 特定の日にレシピを割り当てて、カレンダー表示で見られるようにしたいということだね？ それと、週分の買い物リストも自動生成したほうがいい？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、買い物リストもあると最高。あと、レシピを別の日にドラッグして移動できたらいいかも？
 
-AI ASSISTANT:
+AIアシスタント:
   いいね。meal_plan テーブルとカレンダーコンポーネントを追加するよ。スキーマはこんな感じ:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   ドラッグ&ドロップはかっこいいけど、実装めんどくさくない？ ｗ
 
-AI ASSISTANT:
+AIアシスタント:
   react-dnd を使えば、そこまで大変じゃないよ。基本のセットアップはこんな感じ:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   じゃあそれでいこう。あ、これって新しい API エンドポイントも必要？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、meal plan 用の REST エンドポイントを追加する:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。買い物リスト生成はどうやるの？ 仕組みを教えて
 
-AI ASSISTANT:
+AIアシスタント:
   指定した日付範囲のすべてのレシピの材料を集計するよ:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   もし同じレシピを2回予定に入れたらどうなる？ 材料も自動で2倍になるの？
 
-AI ASSISTANT:
+AIアシスタント:
   そう、そのとおり。SUM(ri.quantity) で処理できる。月曜と水曜に chicken tacos を入れたら、材料は 2 倍として合計されるよ。リストから除外するために「already have」として項目をマークできるようにする？
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
-  お、賢い。うん、それ便利そう。D は買い物前にパントリーを確認しないからな
+マヤ:
+  お、賢い。うん、それ便利そう。デイビッド は買い物前にパントリーを確認しないからな
 
-AI ASSISTANT:
+AIアシスタント:
   はは、まあね。pantry テーブルを追加するよ:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   それで完璧。あ、食事を作った扱いにするにはどうするの？
 
-AI ASSISTANT:
+AIアシスタント:
   status フィールドを追加する:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   だんだん複雑になってきたなｗ パントリー差し引きの処理にテスト書いた？
 
-AI ASSISTANT:
+AIアシスタント:
   まだだよ - いい指摘。テストはこんな感じ:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。ところで、カレンダーで朝食・昼食・夕食を色分けできる？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、簡単にできる:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   いいね。ちょっと待って、これって既にある食事制限フィルターと連携する？ たとえばグルテンフリーで絞ったら、プランナーにも gf レシピだけ表示される？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘だね - まだ連携していない。dietary フィルターを recipe list に渡す必要がある:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   了解、完璧。最後に、同じ食事を翌週に使いたいとき、1週間分まるごと複製できる？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、clone エンドポイントを追加するよ:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   あれ、その日付計算おかしくない？ 同じ日付をそのまま使っちゃわない？
 
-AI ASSISTANT:
+AIアシスタント:
   あ、ほんとだ。オフセットを計算する必要がある:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   うん、それなら大丈夫そう。よし試してみる、ありがと！
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ ドラッグ&ドロップの挙動が変だったり、バグに当たったら教えて。買い物リストはカレンダーに食事を追加・削除すると自動更新されるはずだよ
 
 ---

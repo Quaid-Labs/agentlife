@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   おい、seedデータにバグ見つけた… レシピの1つが "teaspon" になってる笑。直して、二度と起きないようにバリデーションも追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   seedデータの টাইポを直して、将来これを防ぐための適切な単位バリデーションも追加します。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いいね！ それと、DBにある既存レシピにも同じタイポがあるかもしれないから、修正用のマイグレーションも追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。既存のレシピデータ内のタイポを見つけて修正するマイグレーションはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね！ でも実行したらエラー出た… "Cannot read property 'VALID_UNITS' of undefined"
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、循環依存の問題です。マイグレーションが seeds から import しようとしていて、そこに VALID_UNITS が export されていません。直します:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   動いた！ "✓ Fixed 1 typo(s) in 24 total ingredients" って出た。バリデーションのテストも追加すべき？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。単位バリデーション用の包括的なテストスイートはこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   いいね。1つ聞きたいんだけど、使える単位一覧を返す GET エンドポイントも追加できる？ フロントのドロップダウンに便利そう
 
-AI ASSISTANT:
+AIアシスタント:
   いい案です！エラー処理とテスト込みのエンドポイントはこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   その提案機能いいね！ それ用のテストも追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。units エンドポイントのテストスイートはこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   完璧！ 最後に、フロントのドロップダウンは20個以上の単位があって大きくなるよね。「よく使う」フラグを追加して、よく使うやつを目立たせられる？
 
-AI ASSISTANT:
+AIアシスタント:
   いい着眼点です！使用頻度トラッキングと common units を加えた強化版はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   おお、いいね。usage count も便利だ。これって db 接続ファイルが必要？
 
-AI ASSISTANT:
+AIアシスタント:
   いいところに気づきました。必要になる DB 接続モジュールはこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   完璧！ 最後の質問 - usage count はキャッシュすべき？ 毎回DBを叩くのは無駄そう
 
-AI ASSISTANT:
+AIアシスタント:
   それは良い最適化です。TTL と手動無効化付きのキャッシュ案はこちらです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いい感じ！ これで出すわ。タイポを見つけて、バリデーションまで全部作ってくれてありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。ざっくり振り返ると、私たちは次を作りました:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   了解！ ちなみにマラソンまであと3週間。応援して笑
 
-AI ASSISTANT:
+AIアシスタント:
   マラソン頑張ってください！ 3週間前ならちょうどテーパーモードですね。追い込みすぎないように。
 
 ---

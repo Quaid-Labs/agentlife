@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   フロントエンドからレシピAPIにアクセスしようとしたら、こんなCORSエラーが出るんだけど - "Access to fetch at 'http://localhost:3001/api/recipes' from origin 'http://localhost:3000' has been blocked by CORS policy"
 
-AI ASSISTANT:
+AIアシスタント:
   これは典型的なCORSの問題だよ。Expressバックエンドが、別ポートで動いているReactフロントエンドからのリクエストを受け入れる設定になっていない。ExpressアプリにCORSミドルウェアを追加する必要がある。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   それで直った！ じゃあ次はユーザー認証を入れたいんだけど、JWTトークンを考えてる。Passportを使うべき、それとも自作でいい？
 
-AI ASSISTANT:
+AIアシスタント:
   レシピアプリなら、自前でJWT認証を組むのをおすすめするよ。Passportよりシンプルだし、何が起きているかを正確に把握できる。基本的なトークン認証なら、Passportは不要なオーバーヘッドになる。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いいね！ データベースのスキーマはどうする？ usersテーブルをちゃんと用意する必要がある
 
-AI ASSISTANT:
+AIアシスタント:
   適切な外部キー制約とインデックスを備えた完全なデータベーススキーマはこれだよ。セットアップ用のマイグレーションスクリプトも含めておくね:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   動いた！ 今度はテストが必要なんだけど、この認証エンドポイントをテストするいちばんいい方法は？
 
-AI ASSISTANT:
+AIアシスタント:
   APIエンドポイントの統合テストにはJestとsupertestを使うのがいい。認証用の包括的なテスト一式はこんな感じ:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   完璧！ 最後に、トークン更新はどう扱えばいい？ 7日たったら自動でログアウトされるのは困る
 
-AI ASSISTANT:
+AIアシスタント:
   いい視点だね。更新トークン方式を実装する必要がある。短命のアクセストークンと長寿命の更新トークンを組み合わせる二重トークン方式がいいよ:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   かなりいい感じだけど、セキュリティがちょっと心配。レート制限とかはどうするの？
 
-AI ASSISTANT:
+AIアシスタント:
   その懸念は正しいよ。特に認証エンドポイントではレート制限が必要だ。express-rate-limitとhelmetを使った包括的なセキュリティ設定はこんな感じ:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   了解、あと1個だけ。これをどうデプロイすればいい？ RailwayかRenderを考えてる
 
-AI ASSISTANT:
+AIアシスタント:
   この構成ならRailwayのほうが簡単だよ。無料枠も使いやすいし、SQLiteの扱いもシンプル。完全なデプロイ手順はこれ:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   最高！ そのあとスキーマを更新したときのDBマイグレーションはどう扱えばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。ちゃんとしたマイグレーション機構が必要になる。素のSQLファイルとマイグレーション管理テーブルを使う軽量な方法はこれ:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいね！ じゃあ最後の質問。保護されたルートをどうテストすればいい？ 有効なトークンを使ってるのにテストで401が出る
 
-AI ASSISTANT:
+AIアシスタント:
   問題は、テスト用のトークンが本番用のJWT_SECRETに対して検証されていることだよ。でもテスト環境ではその値にアクセスできないかもしれない。認証済みルートを正しくテストする方法はこれ:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   完璧、ありがとう！ これをデプロイして試してみる
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ デプロイする前に、全部が本番投入可能か確認するための簡単な事前チェックリストを置いておくよ:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   デプロイも完了して動いてる！ 本当にいろいろありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   それはよかった！ ちゃんと動いていて何よりだよ。JWT認証と更新トークン、適切なレート制限、セキュリティミドルウェア、データベースのマイグレーション、包括的なテスト、きれいなデプロイ設定までできている。十分に本番向けだよ。
 
 ================================================================================

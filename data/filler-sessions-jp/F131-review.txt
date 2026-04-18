@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~34
 
-MAYA:
+マヤ:
   えっと、上司から金曜までにDR計画を出してって言われたんだけど、どこから手を付ければいいのか全然わからない笑。マイクロサービスが3つくらいとPostgresのDBがある。こういうのって何を書けばいいの？
 
-AI ASSISTANT:
+AIアシスタント:
   DR計画では通常、次の内容を扱います:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   うん、で、現実的なのは何かな？うちは小さいチームだし、即時フェイルオーバーみたいなのは無理。数時間のダウンタイムならまあ許容できるかも？
 
-AI ASSISTANT:
+AIアシスタント:
   小規模チームなら、一般的な目標は次のとおりです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~32
 
-MAYA:
+マヤ:
   ほとんどはレシピ保存と献立プランで、金融系じゃない。1時間失うのはつらいけど、世界の終わりではないかな。じゃあ日次バックアップとトランザクションログって、どこに保存すればいいの？
 
-AI ASSISTANT:
+AIアシスタント:
   バックアップは本番とは別のリージョンや別プロバイダに保存してください:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   了解、助かる。あと、うちはAWSを全部使ってる。EC2とRDSのPostgresね。RDSスナップショットだけにするべき？ それともpg_dumpもやる？
 
-AI ASSISTANT:
+AIアシスタント:
   両方使ってください:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   なるほど。実際のサービスはどうするの？ いちから全部再デプロイする手順まで書く必要ある？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、その通りです。手順をステップごとのコマンド付きで書いた実行手順書を作ってください:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   うわ、それめっちゃ面倒そう。docker-composeファイルはあるけど、参照してる環境変数が…サーバーにそのまま置いてあるだけなんだよね笑
 
-AI ASSISTANT:
+AIアシスタント:
   それはよくある抜けですね。次の項目を文書化する必要があります:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   Secrets Managerは使ってなくて、全部ボックス上の.envファイルに入ってる。わかってる、わかってるけど、ダメなのは自覚してる
 
-AI ASSISTANT:
+AIアシスタント:
   その自覚があるだけでもえらいです。DR計画では、次を文書化してください:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   そうだね、まず現実を文書化するのが先か。じゃあバックアップ、実行手順書…あと何がいる？ さっき言ってた連絡先リスト？
 
-AI ASSISTANT:
+AIアシスタント:
   そうです、**インシデント対応** セクションを作ってください:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
-  うちは当番制っていうほどじゃなくて、誰かが障害に気づいた人が対応する感じ笑。たいていはD（デイビッド、うちのリード）が見てる
+マヤ:
+  うちは当番制っていうほどじゃなくて、誰かが障害に気づいた人が対応する感じ笑。たいていはディー（デイビッド、うちのリード）が見てる
 
-AI ASSISTANT:
+AIアシスタント:
   なら、その現実を書いておきましょう:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   監視はDatadogを使ってて、アラートは#engineeringのSlackに飛ぶ。顧客向けにはたぶんTwitterで告知するくらいかな。ステータスページはないんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね、こう書いておきましょう:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   それ、いいね。テンプレートがあると助かるよね。今これで4セクションある - RTO/RPO、バックアップ、復旧実行手順、連絡先。これで十分？ 何か見落としてるかな？
 
-AI ASSISTANT:
+AIアシスタント:
   核心は押さえています。あと2つだけ簡単に足しましょう:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   え、バックアップってテストするべき？ 実際に復元するの？ 正直、一度もやったことない
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです - 「未検証のバックアップはシュレーディンガーのバックアップ」ってやつです 😅
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~30
 
-MAYA:
+マヤ:
   なるほど、怖すぎる笑。計画に入れるわ。金曜までに書けそうな気がしてきた。Google Docsでまとめるつもり。ありがとう、めっちゃ助かった
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ 最後にひとつ: 文書の冒頭に**エグゼクティブサマリー**（半ページ）を置いて、RTO/RPOとコストを平易な英語で説明してください。上司がさっと読んで承認しやすくなります。
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うん、いい判断だね。上司は絶対に全文なんて読まないし。木曜に詰まったら連絡するね。ありがと!!
 
-AI ASSISTANT:
+AIアシスタント:
   了解です！ いけますよ 💪
 
 ---

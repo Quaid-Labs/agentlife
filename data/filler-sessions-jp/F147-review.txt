@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   ねえ、recipe API に Swagger ドキュメントを追加するのを手伝ってくれる？ ポートフォリオでもっとプロっぽく見せたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！Swagger/OpenAPI ドキュメントを追加しましょう。まず依存関係をインストールします:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   うん、その部分を見せて
 
-AI ASSISTANT:
+AIアシスタント:
   これを `src/app.js` に追加してください:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   うん、じゃあ get all recipes エンドポイントのドキュメントはどう書けばいいの？
 
-AI ASSISTANT:
+AIアシスタント:
   `src/routes/recipes.js` のルートの上に JSDoc コメントを追加します:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   いいね。じゃあ request body がある POST エンドポイントは？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが POST エンドポイントのドキュメントです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   recipe の構造を繰り返すより、再利用できる schema component にしたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   そうです！そっちのほうがきれいです。`swagger.js` を更新しましょう:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   じゃあ、今はルートのドキュメントからそれをどう参照するの？
 
-AI ASSISTANT:
+AIアシスタント:
   `$ref` を使って component を参照します:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   get by id と delete のエンドポイントは？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが GET by ID と DELETE です:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   validation エラーみたいな error response schema も追加できる？
 
-AI ASSISTANT:
+AIアシスタント:
   いい考えです！components に Error schema を追加しましょう:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。ちゃんと動いてるかどうやってテストするの？ サーバーを起動するだけ？
 
-AI ASSISTANT:
+AIアシスタント:
   そのとおりです！サーバーを起動してください:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   `src/app.js` `src/routes/recipes.js` `src/db.js` があるんだけど、swagger.js も src に置くべき？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、`src/` に置いて大丈夫です。構成は良い感じです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うーん、起動したけど "Cannot GET /api-docs" エラーが出る
 
-AI ASSISTANT:
+AIアシスタント:
   たいていは swagger middleware の設定が正しくないときです。`app.js` を確認して、次があるか見てください:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   あ、`swagger-ui-express` を require し忘れてた。動いた！ UI かなりきれいだね
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！Swagger UI はポートフォリオにぴったりです。仕上げのポイントをいくつか挙げます:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   いいね。これを GitHub 用に json ファイルとして出力できる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！OpenAPI JSON を生成するスクリプトを追加しましょう:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   完璧。もうひとつ - その後 login を追加したときのために auth headers も足せる？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、components に security scheme を追加できます:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   最高、ありがとう！ これでプロジェクトがずっと本格的に見える
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！API がかなり整ってきましたね。Swagger ドキュメントは確実にプロっぽさを上げます。採用担当はちゃんとした API ドキュメントを見せると喜びます。
 
 ---

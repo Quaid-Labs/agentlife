@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   ねえ、API エンドポイント用のセキュリティ監査チェックリストを作るのを手伝ってくれる？ Stripe 連携のレビューでそのまま使えるものがほしい
 
-AI ASSISTANT:
+AIアシスタント:
   実用的なセキュリティ監査チェックリストを作るよ。API セキュリティで押さえるべき主要項目をまとめよう。認証、データ検証、レート制限、暗号化、ログ、エラーハンドリングが中心だね。Markdown のチェックリスト形式にする？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、Markdown のチェックリストでお願い。特に Stripe 連携のレビューで本当に重要なところに絞ってほしい。一般的なセキュリティの建前はいらない
 
-AI ASSISTANT:
+AIアシスタント:
   了解。では、重要な項目に絞ってチェックリストをまとめるね:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね。あとテストの項目も入れてくれる？ 出荷前に実際に何を確認すべきか知りたい
 
-AI ASSISTANT:
+AIアシスタント:
   テスト項目も追加したよ:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   ちょっと初歩的な質問なんだけど、idempotency keys ってクライアント側で生成するんだっけ？ それともサーバー側でやるべき？
 
-AI ASSISTANT:
+AIアシスタント:
   クライアント側で生成するのが標準的だよ。クライアントが一意なキー（普通は UUID）を作ってリクエストに付ける。サーバーはそれを保存して重複を確認する。
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   なるほど、それは納得。Webhook の署名はどう？ Stripe が送ってくるんだよね。こっちで検証するだけでいい？
 
-AI ASSISTANT:
+AIアシスタント:
   そのとおり。流れはこうだよ:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   了解。あと PII の保存時暗号化についてだけど、これはデータベースの暗号化だけでいい？ それともアプリケーションレベルも必要？
 
-AI ASSISTANT:
+AIアシスタント:
   決済 API なら、両方の層が必要だよ:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   じゃあ顧客のメールアドレスとか請求先住所みたいなフィールドを個別に暗号化する感じだね。そこにはどのライブラリを使えばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   Node/JavaScript アプリなら、組み込みの `crypto` モジュールで AES-256-GCM を使う:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   なるほど。チェックリストに戻るけど、CORS の設定についても入れるべき？ それとももっと一般的な Web セキュリティの話かな
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん CORS は入れるべきだよ。決済 API では重要だから:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   それは助かる。あとログの部分だけど、センシティブなパラメータは除外って言ってたよね。具体的に何を絶対にログに残しちゃだめ？
 
-AI ASSISTANT:
+AIアシスタント:
   これらは絶対にログに残さない:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   そうだよね、さすがに CVV を CloudWatch に残したくはない。リクエスト ID についてはどう？ こっちで生成するの？ それとも Stripe が出してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   自分たちの API 呼び出しやログ用には、自分たちでリクエスト ID を生成する（UUID を使う）。Stripe は Stripe 側の API 応答用の ID を返す（ヘッダーに `request_id` が入る）。
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   それはデバッグに便利だね。最後にレート制限の部分だけど、決済エンドポイントならどのくらいの制限が妥当？
 
-AI ASSISTANT:
+AIアシスタント:
   ユースケース次第だけど、保守的な初期値はこんな感じ:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   それなら納得。制限に達したときの挙動についてもメモを足しておくよ。たとえば 429 を返して Retry-After ヘッダーを付けるとか
 
-AI ASSISTANT:
+AIアシスタント:
   いい追加だね:
 
 ---
@@ -158,21 +158,21 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
-  うん、いい感じ。これで十分固まったと思う。明日の Stripe 連携キックオフ前に、D にレビューへ回すよ
+マヤ:
+  うん、いい感じ。これで十分固まったと思う。明日の Stripe 連携キックオフ前に、デイビッド にレビューへ回すよ
 
-AI ASSISTANT:
-  いい判断だね。このチェックリストなら、決済 API の重要なセキュリティ領域を押さえられている。D とのレビューでは、次の点も意識するといい:
+AIアシスタント:
+  いい判断だね。このチェックリストなら、決済 API の重要なセキュリティ領域を押さえられている。デイビッド とのレビューでは、次の点も意識するといい:
 
 ---
 
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、それなら助かる。きれいに整えて、ちゃんと見栄えよくしてくれ。ありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   最終版のセキュリティ監査チェックリストをまとめたよ:
 
 ---

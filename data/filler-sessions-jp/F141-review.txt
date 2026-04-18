@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   ねえ、ユーザーの好みに基づく完全なレシピ推薦エンジンを作ってくれる？ タグとか食事制限とか、そういうのを考えたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！ まずはデータベーススキーマと基本のスコアリングから始めましょう。preferences テーブルと、レシピをそれに照合する仕組みが必要です。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~5
 
-MAYA:
+マヤ:
   うん、エンドポイントを見せて
 
-AI ASSISTANT:
+AIアシスタント:
   基本的な推薦スコアラーはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   レシピが多いとめっちゃ遅そうだね笑。最適化できる？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です！ N+1 クエリの代わりに JOIN を使いましょう:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いいね。食事制限はどう追加する？ たとえば母には低糖質で糖尿病向けのものが必要なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   ハードフィルタ付きの制限システムを追加しましょう:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   待って、それだと低糖質レシピを除外してるじゃん。糖尿病ユーザー向けには高糖質レシピを除外したいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、そうでした。正の食事タグを使う必要があります:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   ユーザーに好みを設定するにはどうする？ それ用のエンドポイントが必要なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが preferences の CRUD です:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   テストすると `Error: SQLITE_CONSTRAINT: UNIQUE constraint failed: user_preferences.user_id, user_preferences.tag` が出る
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、重複した好みを追加しようとしていますね。UNIQUE 制約を追加して、INSERT OR REPLACE を使いましょう:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   完璧。否定的な好みも追加できる？ たとえば「パクチーのレシピは絶対に見せない」とか笑
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ 負の重みを使えばいいです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   うん、負の重みのほうがすっきりするね。あと、人が実際に作ったレシピを追跡して推薦を改善するのはどう？
 
-AI ASSISTANT:
+AIアシスタント:
   いい考えです！ インタラクションを記録して、気に入ったレシピに似たものを強めましょう:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   おお、それ賢い、自動学習だね。スキップしたレシピの重みは下がる？
 
-AI ASSISTANT:
+AIアシスタント:
   まだですが、それも追加しましょう:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。推薦スコアリングのテストも追加できる？ ロジックが動くか確認したい
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！ こちらが Jest のテストスイートです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   ダイエットテストで `TypeError: Cannot read property 'length' of undefined` が出る
 
-AI ASSISTANT:
+AIアシスタント:
   クエリが一致なしのときに null を返しています。エンドポイントを修正しましょう:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   よし、テストは通った。あと1つ - 「サプライズして」モードを追加できる？ 好みに合わないけど評価の高いレシピをランダムに表示するやつ
 
-AI ASSISTANT:
+AIアシスタント:
   はい！ 探索と活用を追加しましょう:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   完璧。最後に - 10k件のレシピと1000人のユーザーがいたら、これどれくらい高くつく？
 
-AI ASSISTANT:
+AIアシスタント:
   速さを保つためにインデックスを追加しましょう:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いい感じ。とりあえずこれで大丈夫そう、正直ここまでできるとは思わなかった
 
-AI ASSISTANT:
+AIアシスタント:
   よかったです！ こんな感じになっています:
 
 ---

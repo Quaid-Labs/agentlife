@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   ねえ、アナリティクスダッシュボードのPRDを書いてくれる？ プロダクトチーム向けに新しい指標をいくつか追加する必要があるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん、そのPRD作成を手伝うよ！ アナリティクスダッシュボード機能向けの包括的なプロダクト要件定義書の構成を作るね。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   いいね！ 主な指標はDAU/MAU比、5つのコア機能の機能採用率、コホート別のユーザー維持率だよ
 
-AI ASSISTANT:
+AIアシスタント:
   了解！ その具体的な指標に合わせて各セクションを広げるね：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   機能は、ドキュメントアップロード、AI要約、チーム共有、コメントスレッド、PDF出力だよ
 
-AI ASSISTANT:
+AIアシスタント:
   いいね！ 機能一覧を更新したよ。次に技術要件と実装詳細を追加するね：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うん、UIモックもあるといいね。あとAPIエンドポイントがどうあるべきかのセクションも追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **8. API Endpoints**
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。各カードの配置や表示内容まで含めた、UI全体の説明を書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **9.2 Detailed UI Layout**
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、コホート別維持率まで進めて、それからエンジニアリング側で必要なデータについてのセクションも追加して
 
-AI ASSISTANT:
+AIアシスタント:
   **Right Column (continued)**
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、データベーススキーマと、いつリリースできそうかのタイムラインも入れて
 
-AI ASSISTANT:
+AIアシスタント:
   **10.2 Database Schema Requirements**
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   うん、それでタイムラインを仕上げてから、リスクと依存関係も追加して
 
-AI ASSISTANT:
+AIアシスタント:
   **Week 5-6: Frontend Development (Apr 1 - Apr 12)**
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   うん、成功基準も追加して、それから将来的に欲しくなる機能拡張のセクションもあるといいかも
 
-AI ASSISTANT:
+AIアシスタント:
   **13. Success Criteria**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   すごい！ エンジニアリングとデザインに送ってこのプロジェクトを始めるための、短いメール文も作ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **Subject: [New Project] Analytics Dashboard for Product Team - Kickoff & Review Needed**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いいね！ 最後に、明日のVP向けプレゼンで使える話し方のポイントもくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **Executive Talking Points - Analytics Dashboard PRD**
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   いや、これで十分。ありがとう、すごく助かった
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ 役に立ててうれしいよ。かなりまとまったPRDになってるね。具体的な指標、タイムライン、話し方のポイントがあれば、エンジニアリングのキックオフにもVP向けの説明にも十分対応できるはずだよ。
 
 ---
@@ -158,11 +158,11 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   もちろん、ありがとうまたね！
 
-AI ASSISTANT:
-  いつでもどうぞ、Maya！ プレゼン、きっとうまくいくよ。VPがタイムラインとリソース要請をどう見るか、あとでぜひ聞かせてね。
+AIアシスタント:
+  いつでもどうぞ、マヤ！ プレゼン、きっとうまくいくよ。VPがタイムラインとリソース要請をどう見るか、あとでぜひ聞かせてね。
 
 ---
 

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   しまった、最後のGitコミットを戻すにはどうするんだっけ？まだプッシュしてない
 
-AI ASSISTANT:
+AIアシスタント:
   変更は残したままコミットだけ外すなら:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   了解、soft のやつやった。変更はまだ残ってるよね？
 
-AI ASSISTANT:
+AIアシスタント:
   はい。変更はステージに戻っているので、もう一度コミットできます。`git status` で確認できます。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   よかった、コミットメッセージ間違えるところだった笑
 
-AI ASSISTANT:
+AIアシスタント:
   あるあるです！プッシュする前に気づけてよかったですね。これで正しいメッセージで再コミットできます。
 
 ---

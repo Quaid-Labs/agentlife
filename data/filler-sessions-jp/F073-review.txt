@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   APIリクエストを、うるさくならずにログするにはどうすればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   静的アセットとヘルスチェックを除外するカスタムフォーマット付きの morgan ミドルウェアを使ってください:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   でもそれだとレシピ取得のたびに全部ログされるじゃん。リクエストの9割くらいそれなんだけど笑
 
-AI ASSISTANT:
+AIアシスタント:
   もっともです。メソッドで絞るか、代わりにルート単位のロガーを追加しましょう:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   あー、メソッドで絞るのは理にかなってるね。じゃあエラーはどう？ 別でエラーログも必要？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、morgan はハンドラ内で投げられたエラーは拾えません。ルートの後ろにエラーミドルウェアを追加してください:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
-  いいね、Dが帰ってくる前に今入れるよ。あとで走りに行かなきゃいけないし
+マヤ:
+  いいね、デイビッドが帰ってくる前に今入れるよ。あとで走りに行かなきゃいけないし
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ ちょっとした注意ですが、async なルートハンドラを使っているなら、Promise の rejection を必ず捕まえてください。そうしないとエラーミドルウェアに届きません:
 
 ---

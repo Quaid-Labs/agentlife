@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   ねえ、金曜日のスプリント振り返り用のアジェンダを作ってくれる？ 6人チームで、GraphQL移行は出荷できたけど、デプロイまわりで少し問題があったんだ
 
-AI ASSISTANT:
+AIアシスタント:
   チーム向けの振り返りアジェンダを作成します。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いい感じだけど、各セクションに具体的な問いも追加できる？ チームに実際に聞く質問みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   **質問付きのスプリント23振り返りアジェンダ**
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、完璧。じゃあ会議前の匿名入力用のセクションも追加して。話しにくい人もいるから
 
-AI ASSISTANT:
+AIアシスタント:
   **匿名事前準備付きのスプリント23振り返り**
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   最高。じゃあ実際の Google フォームの質問も作ってくれる？ さっと答えられるように簡単にしてね
 
-AI ASSISTANT:
+AIアシスタント:
   **スプリント23振り返り - 匿名事前入力フォーム**
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   完璧。あとひとつだけ - この振り返りと事前準備を案内する Slack メッセージも書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **Slackメッセージ:**
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   もう少しくだけた感じにできる？ うちのチームの雰囲気だとちょっと堅すぎる
 
-AI ASSISTANT:
+AIアシスタント:
   **Slackメッセージ:**
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   だいぶ良くなった、ありがと。で、最後の最後なんだけど - 1語チェックイン以外にいいアイスブレイクの質問ってある？
 
-AI ASSISTANT:
+AIアシスタント:
   **振り返り向けの別アイスブレイク質問:**
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   いや、アイデアがほしかっただけ。天気のやつを使おうかな。ところで、よくある振り返りのテーマから行動項目をまとめるのを手伝ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **よくある振り返りの行動項目 - テンプレート**
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   すごく助かる。とくにデプロイ問題に関係が深いものを上位5つ抜き出してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **デプロイ問題向けの上位5つの行動項目**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、会議後にそのまま貼れるように、アジェンダ文書形式で入れておいて
 
-AI ASSISTANT:
+AIアシスタント:
   **行動項目セクション - 振り返り文書に貼り付け用**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。ちなみに、stop/start/continue だと 24 分は長いかな？ 討議セクションをもう少し厳密に時間区切りしたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   **そうだね、6人なら24分はかなり余裕がある。** もっと詰めた配分はこんな感じ:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   3番にして、stop と start はまとめるのが好き
 
-AI ASSISTANT:
+AIアシスタント:
   **更新済みの議論セクション - オプション3**
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いいね、まさに欲しかった形。よし、これで振り返りの準備は全部できた、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   これで準備完了です！ 🎉
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   あ、やっぱり。振り返り後に送るフォローアップのメールテンプレートも書いてくれる？ 要点のまとめと行動項目を送るやつ
 
-AI ASSISTANT:
+AIアシスタント:
   **振り返り後のまとめメールテンプレート**
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、すごくいい。金曜日のために全部保存しておくよ。たくさん助かった、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ 準備はもう全部整いました 💪
 
 ---
@@ -191,10 +191,10 @@ AI ASSISTANT:
 TURN 16 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   そうする、またありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   いつでもどうぞ！ いい一週間の締めくくりになりますように、振り返りが有意義でありますように 🙌
 
 ================================================================================

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   旧来の Webhooks v1 API の非推奨通知を書きたいんだけど、Q3 の終わりまでにみんな v2 に切り替えてもらう予定。あまり怖く聞こえないようにしたい
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。わかりやすくて安心感のある非推奨通知の下書きを作るよ。完全版はこんな感じ：
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いい感じだけど、冒頭をもう少しくだけた表現にできる？ いつも開発者向けにはもっとカジュアルなんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。もっとカジュアルな版にするとこうなる：
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。あと、サポートチーム向けに内部メールも作ってほしい。これから始まるって知っておいてほしいから
 
-AI ASSISTANT:
+AIアシスタント:
   サポートチーム向けの社内通知はこれだよ：
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   いいね。実際の API ドキュメントのページも更新したい。v1 のドキュメントに表示する警告バナーの文面を作ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   ドキュメント用の警告バナーは 3 パターンあるよ。好きなものを選んで：
 
 ---
@@ -70,21 +70,21 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
-  1 で決まり。次は D（エンジニアリングリード）に、実際の廃止手順を説明しないと。v1 を止める流れをざっくり教えて
+マヤ:
+  1 で決まり。次は ディー（エンジニアリングリード）に、実際の廃止手順を説明しないと。v1 を止める流れをざっくり教えて
 
-AI ASSISTANT:
-  David 向けの技術的な流れはこれだよ：
+AIアシスタント:
+  デイビッド 向けの技術的な流れはこれだよ：
 
 ---
 
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ありがとう。あと、これに向けて何の指標を追うべき？ 経営陣に進捗報告をしないといけないんだ
 
-AI ASSISTANT:
+AIアシスタント:
   経営層向けのトラッキングダッシュボードはこれだよ：
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   お願い。うちは Looker を使ってる。必要な SQL クエリだけ教えて
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが Looker 用の SQL クエリだよ：
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいね。もうひとつ。これを告知する全社会向けの話し方も必要なんだ。箇条書きで大丈夫
 
-AI ASSISTANT:
+AIアシスタント:
   **Webhooks v1 の非推奨化 - 全社会向けトークポイント**
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   それいいね。最後にほんとこれだけ。#engineering チャンネル向けの Slack メッセージも必要なんだ。みんなにこれが起きるって知らせたい
 
-AI ASSISTANT:
+AIアシスタント:
   **Slack メッセージ - #engineering チャンネル:**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   完璧、ありがとう。あ、もうひとつだけ。API 変更ログ用に、非推奨通知の短い版も必要なんだ。2〜3 文でいい
 
-AI ASSISTANT:
+AIアシスタント:
   **API 変更ログの項目:**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   2 のほうがいいね。じゃあ次は実際の移行ガイドを書かないと。どんなセクションにすべきか、構成を出してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **Webhooks v2 移行ガイド - 構成**
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。4.3 の Python 向けセクションも書いてくれる？ うちは FastAPI が中心なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **4.3 節 - コードを更新する（Python/FastAPI）**
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね。よし、実際のガイドを書き始めるのに十分だと思う。ちょっと待って、ほかに何かあったかな…
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん、どうぞゆっくり。いま手元にはこんなものがあるよ：
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   そうだ、FAQ セクションも書いてくれる？ 開発者がこういうときに何を聞くのか、いつも忘れちゃうんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **8 節 - よくある質問**
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   すごくいい。最後に本当に最後。早めに移行してもらうインセンティブを出すべきかな？ それで効果はあると思う？
 
-AI ASSISTANT:
+AIアシスタント:
   **早期移行インセンティブの分析:**
 
 ---

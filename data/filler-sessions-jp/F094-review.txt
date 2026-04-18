@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   サインアップしたけどアカウントを有効化してないユーザーのクエリを書きたいんだけど、手伝ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。まずスキーマを少し教えてください。`users` テーブルはありますか？ `activated_at` の timestamp カラムがありますか、それとも有効化は別管理ですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   うん、users テーブルに email, created_at, activated_at（nullable）がある
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。クエリはこうです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   あ、あと直近 24 時間以内にサインアップした人は除外したい。まだ有効化するかもしれないから
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。新しいサインアップを除外します:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。ついでに、signup week ごとに count を出せる？ 傾向を見たい
 
-AI ASSISTANT:
+AIアシスタント:
   週ごとの件数を出す版はこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね。さらに、有効化した割合、つまり各週の conversion rate も見られる？
 
-AI ASSISTANT:
+AIアシスタント:
   完全版の内訳はこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   すごく助かる！ これを実行して、growth チームに共有するね
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ これで有効化のトレンドが見やすくなるはずです。他に見たい切り口があれば教えてください。signup source や cohort retention みたいな軸でも出せます。
 
 ---

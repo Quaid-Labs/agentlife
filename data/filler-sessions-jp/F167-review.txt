@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   ねえ、レシピアプリに検索を追加するのを手伝ってくれる？ 名前、材料、手順……要するに全部を検索したい
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！ SQLite の全文検索には FTS5 を使います。まず、recipes を写す仮想テーブルを作りましょう:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うん、で、実際にどうやって検索するの？笑
 
-AI ASSISTANT:
+AIアシスタント:
   基本的な検索エンドポイントはこんな感じです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   なるほど。でも、どうやってハイライトを出すの？ どこが一致したか表示したいんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   `highlight()` 関数を使います:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   あ、じゃあ同期用のトリガーも作る必要があるんだよね？ それがないと fts テーブルが更新されない
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ この 3 つのトリガーを追加してください:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   了解。複数語の検索クエリはどうなる？ たとえば "chicken pasta" みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   FTS5 は既定で AND として自動的に処理します:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   "1 cup flour" みたいに数字が入る検索はどう？ それで壊れたりしない？
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です！ 数字は問題なく使えますが、FTS5 の特殊演算子はサニタイズしたほうがいいです。ヘルパーはこんな感じです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   なるほど。どうやってテストするの？ Jest の例ある？
 
-AI ASSISTANT:
+AIアシスタント:
   テストスイートはこんな感じです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   FTS テーブルを作ろうとするとエラーになるんだけど: "no such column: recipes.id"
 
-AI ASSISTANT:
+AIアシスタント:
   FTS テーブルは recipes テーブルの後に作成する必要があります。マイグレーションの順番を確認してください:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   ああ、それだった。今は検索できるけど、ハイライトがレスポンス内で <mark> をそのまま文字として出してる
 
-AI ASSISTANT:
+AIアシスタント:
   それは想定どおりです！ API は `<mark>` タグをプレーンテキストとして返します。フロントエンド側で HTML として描画する必要があります:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   正直、dangerouslySetInnerHTML はあまり好きじゃないな。別のやり方はある？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、位置情報を返す形にできます:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   snippet のやつ、見た目はきれいだね。64 って何？
 
-AI ASSISTANT:
+AIアシスタント:
   `snippet()` の引数はこうです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いいね。あとひとつ、特定の項目に重みを付けられる？ たとえば名前への一致は手順より高くしたい
 
-AI ASSISTANT:
+AIアシスタント:
   はい。FTS5 テーブルに列の重みを付けられます:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   ちょっと待って、columnsize=0 って何？
 
-AI ASSISTANT:
+AIアシスタント:
   `columnsize=0` は列サイズの保存を無効にするので、容量は節約できますが `highlight()` は壊れます。`highlight()` を使うなら、**設定しないでください**:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   なるほど。かなりうまく動いてる！ 最後にひとつ、空の検索クエリはどう扱えばいい？ そのまま全部返すべき？
 
-AI ASSISTANT:
+AIアシスタント:
   全部返すのはやめましょう。遅いし役に立ちません。何も返さないか、最近のレシピや人気レシピを表示するのがいいです:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   了解、最近のレシピにする。ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ 検索はかなり整いました。簡単にまとめると:
 
 ================================================================================

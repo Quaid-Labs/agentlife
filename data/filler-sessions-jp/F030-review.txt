@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   えっと、margin と padding の違いってまた何だっけ lol いつも混同しちゃう
 
-AI ASSISTANT:
+AIアシスタント:
   margin は要素の**外側**の余白です（他の要素を押しのける）。padding は要素の**内側**の余白です（内容を境界線から離す）。margin は周囲に影響し、padding は自分の中身に影響します。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   なるほど、じゃあ margin = 他人との距離、padding = 内側のクッションって感じ？
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ それは覚えやすいですね。margin は「他人から距離を置きたい」、padding は「中の内容に少しゆとりを持たせたい」という感じです。
 
 ---

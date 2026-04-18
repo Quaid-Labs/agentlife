@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   レシピアプリに 'favorites' 機能を追加したいんだけど、そのためにはどのテーブルが必要？
 
-AI ASSISTANT:
+AIアシスタント:
   favorites 機能には、ユーザーとお気に入りレシピを結びつける中間テーブルが必要です。追加すべきスキーマはこちらです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   うん、ルートも見せて。それと、そのマイグレーションの実行方法も教えて
 
-AI ASSISTANT:
+AIアシスタント:
   マイグレーションの実行方法とルートハンドラはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。でもその認証ミドルウェアがまだないんだよね笑。見せてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   必要な認証ミドルウェアはこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   マイグレーションを走らせたら "Error: SQLITE_ERROR: no such table: users" って出た。どうすればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   まず users テーブルを作る必要があります！ favorites のマイグレーションはそれを参照していますが、まだ存在していません。完全なマイグレーション順はこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   うん、直った。じゃあこれをどうテストする？ favorites ルートの Jest テストがほしい
 
-AI ASSISTANT:
+AIアシスタント:
   favorites ルート用の完全なテストスイートはこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   テストで "TypeError: Cannot read property 'id' of undefined" が beforeAll で出る。何がまずいの？
 
-AI ASSISTANT:
+AIアシスタント:
   問題は `db.run` が非同期なのに、ちゃんと待っていないことです。コールバックが Promise の解決後に走るので、テスト開始時点では `testUser` がまだ undefined なんです。修正版はこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   完璧、これで動いた！ じゃあ frontend にお気に入りの切り替えボタンを追加するにはどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   トグル機能付きのお気に入りボタンの React コンポーネントはこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   うん、recipes エンドポイントに `is_favorited` を追加する方法も見せて
 
-AI ASSISTANT:
+AIアシスタント:
   `is_favorited` フラグを含めるように recipes エンドポイントを修正する方法はこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いいね！ もう一つ、お気に入りだけ表示する favorites ページを作るには？
 
-AI ASSISTANT:
+AIアシスタント:
   フロントエンドとバックエンドの両方を含む完全な favorites ページはこちらです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   完璧！ でも unfavorite の callback が動かない。RecipeCard に onUnfavorite prop がないみたい
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ `RecipeCard` コンポーネントを unfavorite callback に対応するよう更新する必要があります。修正版はこちらです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   最高、全部動いた！ 最後に nav に favorites の件数バッジを追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   ナビゲーション用の favorites 件数バッジはこちらです:
 
 ---
@@ -147,11 +147,11 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
-  いいね！ 完璧に動いてる。D も明日アプリを試したら気に入るはず笑
+マヤ:
+  いいね！ 完璧に動いてる。デイビッド も明日アプリを試したら気に入るはず笑
 
-AI ASSISTANT:
-  いいですね！ David は favorites 機能にきっと感心するはずです。見せる前に、いくつか簡単な注意点があります:
+AIアシスタント:
+  いいですね！ デイビッド は favorites 機能にきっと感心するはずです。見せる前に、いくつか簡単な注意点があります:
 
 ---
 

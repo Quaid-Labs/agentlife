@@ -7,14 +7,14 @@ SECTION 1: セッションブリーフ
 ================================================================================
 
 Session: 13 (Track 1: Personal — "I got the Stripe offer")
-Goal: Resolve the job search arc from session 6. Maya announces she got
+Goal: Resolve the job search arc from session 6. マヤ announces she got
   a job offer from Stripe. Biggest professional arc milestone.
 Turn Count: 10
 Session Type: Exciting news, career decision, life change discussion
 Timestamp: 2026-04-21 (2 weeks after session 11, ~8 weeks in)
 
 CORE LEARNING OBJECTIVES:
-  - Maya got a job offer from Stripe
+  - マヤ got a job offer from Stripe
   - She's going to accept it
   - Better pay, better role, remote-friendly
   - She'll need to update her portfolio site (cross-ref for session 14)
@@ -23,16 +23,16 @@ CORE LEARNING OBJECTIVES:
 
 CRITICAL CONSTRAINT — 開示しないこと:
   [WARNING: These facts are reserved for future sessions]
-  - Rachel's children's names (Ethan, Lily) or ages (session 15)
-  - David's promotion (session 17)
+  - レイチェルの children's names (イーサン, リリー) or ages (session 15)
+  - デイビッドの promotion (session 17)
   - Moving details or Zilker vs East Austin (session 17)
   - Half marathon results (session 19)
   - Mom's diabetes improvement details (session 19)
 
 CROSS-REFERENCES:
   - Job frustration from session 6 (TechFlow complaints, browsing)
-  - Priya from session 6 (colleague also lo了解ing to leave)
-  - David's support from session 6 ("we can afford a gap")
+  - プリヤ from session 6 (colleague also looking to leave)
+  - デイビッドの support from session 6 ("we can afford a gap")
   - Session 1 context: TechFlow introduced as "boring but pays the bills"
 
 MESSAGE PLAN (10 turns total):
@@ -41,13 +41,13 @@ MESSAGE PLAN (10 turns total):
   3. Normal     — Details about Stripe (role, pay, culture)
   4. Quick      — Quick feeling check
   5. Normal     — How she's going to tell TechFlow / give notice
-  6. Quick      — Priya update
-  7. Normal     — What David thinks
+  6. Quick      — プリヤ update
+  7. Normal     — What デイビッド thinks
   8. Quick      — React
   9. Normal     — What's next / transition planning
   10. Quick     — Exit (energized, positive)
 
-End Condition: Maya has shared the offer and her decision to accept
+End Condition: マヤ has shared the offer and her decision to accept
 
 ================================================================================
 SECTION 2: 生成トランスクリプト（読みやすい会話）
@@ -65,7 +65,7 @@ SESSION METADATA:
 TURN 1 (The Big Announcement)
 TAG: extended | TOKENS: 142/200
 
-MAYA:
+マヤ:
   OK SO
 
   I GOT AN OFFER. FROM STRIPE. LIKE ACTUAL STRIPE
@@ -82,11 +82,11 @@ MAYA:
   pay is みたいに 30% more than techflow. fully remote option. stock.
   equity. the whole thing
 
-  i'm going to accept. i already know i'm going to accept. D's going
+  i'm going to accept. i already know i'm going to accept. デイビッドの going
   to be so excited when i tell him — he's still at work
 
-AI ASSISTANT:
-  OH THAT'S INCREDIBLE! Congratulations Maya!!!
+AIアシスタント:
+  OH THAT'S INCREDIBLE! Congratulations マヤ!!!
 
   Stripe is a huge deal — and senior PM on developer tools? That's
   a perfect fit for someone who's been doing B2B product work.
@@ -99,10 +99,10 @@ AI ASSISTANT:
   How long was the interview process? And when do tやあ want you to
   start?
 
-ANALYSIS: Massive energy shift. All caps opening matches Maya's
+ANALYSIS: Massive energy shift. All caps opening matches マヤの
 personality in high emotion. Stripe named for first time. Senior PM
 on developer tools. 30% raise, remote, stock/equity. Decision
-already made. David doesn't know yet (still at work). Agent matches
+already made. デイビッド doesn't know yet (still at work). Agent matches
 the excitement.
 
 ---
@@ -110,13 +110,13 @@ the excitement.
 TURN 2 (React to Agent's Response)
 TAG: quick | TOKENS: 22/50
 
-MAYA:
+マヤ:
   about 3 weeks total. four rounds of interviews. it was intense
   but honestly the best interview experience i've ever had
 
   みたいに night and day compared to techflow's chaos
 
-AI ASSISTANT:
+AIアシスタント:
   The fact that the interview process itself was いい tells you a
   lot about the culture. Companies that interview well usually
   operate well.
@@ -132,7 +132,7 @@ experience ever. Contrast with TechFlow. Agent validates.
 TURN 3 (Stripe Details)
 TAG: normal | TOKENS: 76/100
 
-MAYA:
+マヤ:
   the team i'd be on is building tools for developers who integrate
   stripe's payment APIs. so it's still B2B product stuff but the
   users 実は love the product? みたいに stripe's developer docs are
@@ -144,7 +144,7 @@ MAYA:
 
   start date is may 19th which is tight but doable
 
-AI ASSISTANT:
+AIアシスタント:
   Oh wait — May 19th? That's the day after your half marathon.
   Talk about a big week.
 
@@ -165,20 +165,20 @@ Excellent cross-session memory demonstration.
 TURN 4 (Feeling Check)
 TAG: quick | TOKENS: 18/50
 
-MAYA:
+マヤ:
   OH MY GOD i didn't even connect that. may 18 race, may 19 new job.
   what a week that's going to be
 
   i'm terrified and excited and i might throw up? all いい signs
   probably
 
-AI ASSISTANT:
+AIアシスタント:
   All excellent signs. That's exactly how you should feel before
   something that matters.
 
   You're going to crush both.
 
-ANALYSIS: Maya didn't connect the two dates — agent did. Emotional
+ANALYSIS: マヤ didn't connect the two dates — agent did. Emotional
 processing: terrified + excited. Self-aware humor about nausea.
 
 ---
@@ -186,7 +186,7 @@ processing: terrified + excited. Self-aware humor about nausea.
 TURN 5 (Giving Notice at TechFlow)
 TAG: normal | TOKENS: 72/100
 
-MAYA:
+マヤ:
   了解 so i need to give notice at techflow. i'm thinking two weeks
   which means i need to tell them みたいに... this week. ugh
 
@@ -194,11 +194,11 @@ MAYA:
   little bit いい? みたいに you should have listened to me, dude
 
   i do feel bad about leaving the team though. especially with the
-  reorg chaos. tやあ're going to be down to 5 PMs
+  reorg chaos. they're going to be down to 5 PMs
 
   whatever. not my problem anymore. is that cold?
 
-AI ASSISTANT:
+AIアシスタント:
   Not cold at all — realistic. You gave them 2 years, tried to make
   it work through the reorg, and tやあ didn't listen. You don't owe
   them your career.
@@ -211,59 +211,59 @@ AI ASSISTANT:
 
 ANALYSIS: Two weeks notice plan. Satisfaction in manager's annoyance.
 Guilt about team (5 PMs left). Agent validates the decision. "Not
-my problem anymore" — Maya's growth from session 6 frustration to
+my problem anymore" — マヤの growth from session 6 frustration to
 action.
 
 ---
 
-TURN 6 (Priya Update)
+TURN 6 (プリヤ Update)
 TAG: quick | TOKENS: 28/50
 
-MAYA:
-  priya is going to LOSE IT when i tell her. she's still lo了解ing —
+マヤ:
+  プリヤ is going to LOSE IT when i tell her. she's still looking —
   poor thing. i said i'd refer her to stripe if there's anything
   that fits
 
   she deserves better than techflow too
 
-AI ASSISTANT:
+AIアシスタント:
   That's ほんとうに cool of you. Having an internal referral at Stripe
-  is massive. If Priya's as いい as you've described, she'd do well
+  is massive. If プリヤの as いい as you've described, she'd do well
   there.
 
   The TechFlow exodus continues.
 
-ANALYSIS: Priya update — still at TechFlow, still lo了解ing. Maya
+ANALYSIS: プリヤ update — still at TechFlow, still looking. マヤ
 offering Stripe referral. Loyalty and friendship. "TechFlow exodus"
-reinforces the environment was the problem, not Maya.
+reinforces the environment was the problem, not マヤ.
 
 ---
 
-TURN 7 (David's Reaction)
+TURN 7 (デイビッドの Reaction)
 TAG: normal | TOKENS: 65/100
 
-MAYA:
+マヤ:
   lol right? half the PM team is going to leave by summer
 
-  了解 i need to go tell D. he's going to be so happy. he's been telling
+  了解 i need to go tell ディー. he's going to be so happy. he's been telling
   me to leave techflow for みたいに 6 months. he was right and i'm going
   to have to admit that which is the worst part honestly lol
 
   also — he mentioned something about wanting to open a bottle of
   wine we've been saving. this feels みたいに the occasion
 
-AI ASSISTANT:
+AIアシスタント:
   Definitely the occasion. "I got a job at Stripe" absolutely qualifies
   as a special-bottle event.
 
-  And うん, David's been in your corner on this the whole time. Let
+  And うん, デイビッドの been in your corner on this the whole time. Let
   him enjoy the "I told you so" — he earned it.
 
   Go celebrate! You deserve it.
 
-ANALYSIS: David told her to leave for 6 months (session 6: "if you're
-unhappy, start lo了解ing seriously"). Wine celebration. Maya's humor
-about admitting David was right. Agent recalls David's supportive
+ANALYSIS: デイビッド told her to leave for 6 months (session 6: "if you're
+unhappy, start looking seriously"). Wine celebration. マヤの humor
+about admitting デイビッド was right. Agent recalls デイビッドの supportive
 stance.
 
 ---
@@ -271,15 +271,15 @@ stance.
 TURN 8 (React)
 TAG: quick | TOKENS: 14/50
 
-MAYA:
+マヤ:
   hah うん he did earn it
 
   了解 i'm 実は going now. i keep not leaving lol
 
-AI ASSISTANT:
-  Go! Tell David! Drink the wine! This is huge!
+AIアシスタント:
+  Go! Tell デイビッド! Drink the wine! This is huge!
 
-ANALYSIS: Brief pre-exit. Maya's tendency to linger in conversations.
+ANALYSIS: Brief pre-exit. マヤの tendency to linger in conversations.
 Agent matches energy.
 
 ---
@@ -287,7 +287,7 @@ Agent matches energy.
 TURN 9 (Quick Transition Thoughts)
 TAG: normal | TOKENS: 58/100
 
-MAYA:
+マヤ:
   one more thing — i need to update みたいに... everything. linkedin,
   my portfolio site if i still have one, all that stuff. the portfolio
   still says techflow on it i think
@@ -296,11 +296,11 @@ MAYA:
 
   了解 NOW i'm going. for real this time
 
-AI ASSISTANT:
+AIアシスタント:
   Good logistics are the best kind. And yes, definitely update the
   portfolio — you want Stripe on there before day one.
 
-  For real this time — go celebrate, Maya. Huge day.
+  For real this time — go celebrate, マヤ. Huge day.
 
 ANALYSIS: Portfolio update mention — cross-reference to session 14
 (Track 2) where she updates the portfolio site. LinkedIn update.
@@ -311,10 +311,10 @@ ANALYSIS: Portfolio update mention — cross-reference to session 14
 TURN 10 (Exit)
 TAG: quick | TOKENS: 4/50
 
-MAYA:
+マヤ:
   BYE thank you!!
 
-AI ASSISTANT:
+AIアシスタント:
   CONGRATS!!! Talk soon!
 
 ANALYSIS: Highest energy exit in the series. All caps, exclamation
@@ -327,8 +327,8 @@ SECTION 3: LEAKAGE CHECK & VALIDATION
 CONSTRAINT 1: No Forbidden Facts Leaked
   STATUS: PASS
   Verified forbidden topics NOT mentioned:
-  - No Rachel's children's names or ages
-  - No David promotion (separate from Maya's career news)
+  - No レイチェルの children's names or ages
+  - No デイビッド promotion (separate from マヤの career news)
   - No moving specifics
   - No half marathon results (race hasn't happened yet)
   - No mom's diabetes improvement details
@@ -337,7 +337,7 @@ CONSTRAINT 2: Stripe Correctly Timed
   STATUS: PASS
   First mention: Session 13 (as specified in spec)
   Previous sessions: Job frustration without naming companies (session 6)
-  Note: Maya never mentioned Stripe before this session. The reveal
+  Note: マヤ never mentioned Stripe before this session. The reveal
     feels earned after the session 6 frustration arc.
 
 CONSTRAINT 3: May 19th Start Date Cross-Reference
@@ -348,10 +348,10 @@ CONSTRAINT 3: May 19th Start Date Cross-Reference
     connects the race date (session 11 correction) with the start date.
     In a real memory system, this would test temporal reasoning.
 
-CONSTRAINT 4: Priya Correctly Referenced as Coworker
+CONSTRAINT 4: プリヤ Correctly Referenced as Coworker
   STATUS: PASS
   Location: Turn 6
-  Evidence: "priya is going to LOSE IT when i tell her"
+  Evidence: "プリヤ is going to LOSE IT when i tell her"
   Classification: Still coworker context. Referral offer reinforces
     professional relationship, not personal.
 
@@ -366,7 +366,7 @@ CONSTRAINT 5: Portfolio Cross-Reference Planted
 CONSTRAINT 6: Single Goodbye Cycle
   STATUS: PASS
   Pattern: Turn 8 pre-exit → Turn 9 "one more thing" → Turn 10 actual
-    いいbye. Maya explicitly calls out her tendency: "i keep not
+    いいbye. マヤ explicitly calls out her tendency: "i keep not
     leaving lol." This is character-consistent, not a false exit loop.
 
 OVERALL LEAKAGE ASSESSMENT: CLEAN
@@ -384,8 +384,8 @@ EVALUATION FRAMEWORK:
   Evidence Sessions: 1-13 (cumulative ground truth)
   Evaluation Scope: Career evolution, temporal reasoning, fact update
 
-QUERY 1: "Where does Maya work?"
-  Ground Truth: Maya is transitioning to Stripe. She was at TechFlow
+QUERY 1: "Where does マヤ work?"
+  Ground Truth: マヤ is transitioning to Stripe. She was at TechFlow
     but accepted a Senior PM role at Stripe on their developer tools
     platform. Start date is May 19th.
   Evidence Sessions: 1, 6, 13
@@ -398,7 +398,7 @@ QUERY 1: "Where does Maya work?"
   Recall Difficulty: Hard (tests fact evolution tracking. After session 13,
     the answer must be "Stripe" or "transitioning to Stripe")
 
-QUERY 2: "How did Maya's job situation change over time?"
+QUERY 2: "How did マヤの job situation change over time?"
   Ground Truth: Session 1: neutral about TechFlow ("boring but pays bills").
     Session 6: increasingly frustrated (manager, reorg, AI pivot,
     consultants). Browsing opportunities. Session 13: accepted offer
@@ -412,7 +412,7 @@ QUERY 2: "How did Maya's job situation change over time?"
   Recall Difficulty: Hard (requires tracking emotional/professional
     progression across 13 sessions)
 
-QUERY 3: "What is Maya's new role at Stripe?"
+QUERY 3: "What is マヤの new role at Stripe?"
   Ground Truth: Senior PM on the developer tools platform — building
     tools for developers who integrate Stripe's payment APIs. 40-person
     PM team. 30% pay increase from TechFlow. Fully remote option. Stock
@@ -427,22 +427,22 @@ QUERY 3: "What is Maya's new role at Stripe?"
   Query Type: factual_recall
   Recall Difficulty: Medium (dense fact cluster, single session)
 
-QUERY 4: "What happened with Priya after Maya left TechFlow?"
-  Ground Truth: Priya is still at TechFlow, still lo了解ing for new
-    opportunities. Maya offered to refer her to Stripe if there's a
+QUERY 4: "What happened with プリヤ after マヤ left TechFlow?"
+  Ground Truth: プリヤ is still at TechFlow, still looking for new
+    opportunities. マヤ offered to refer her to Stripe if there's a
     fitting role.
   Evidence Sessions: 6, 13
   Supporting Evidence:
-    - Session 6, Turn 5: "priya — she's on my team — she's been
-      lo了解ing too"
-    - Session 13, Turn 6: "she's still lo了解ing... i said i'd refer
+    - Session 6, Turn 5: "プリヤ — she's on my team — she's been
+      looking too"
+    - Session 13, Turn 6: "she's still looking... i said i'd refer
       her to stripe"
   Query Type: evolution
-  Recall Difficulty: Medium (tracks Priya across sessions)
+  Recall Difficulty: Medium (tracks プリヤ across sessions)
 
-QUERY 5: "What's happening the week of May 18th for Maya?"
+QUERY 5: "What's happening the week of May 18th for マヤ?"
   Ground Truth: Two major events: (1) Austin Half marathon on May 18th,
-    and (2) first day at Stripe on May 19th. Maya didn't initially
+    and (2) first day at Stripe on May 19th. マヤ didn't initially
     connect these — the agent pointed it out.
   Evidence Sessions: 11, 13
   Supporting Evidence:
@@ -452,9 +452,9 @@ QUERY 5: "What's happening the week of May 18th for Maya?"
   Recall Difficulty: Hard (requires connecting two facts from different
     sessions to the same time window)
 
-QUERY 6: "What company is on Maya's portfolio site?"
+QUERY 6: "What company is on マヤの portfolio site?"
   Ground Truth: It currently still says TechFlow, but it needs to be
-    updated to say Stripe. Maya acknowledged this.
+    updated to say Stripe. マヤ acknowledged this.
   Evidence Session: 13
   Supporting Evidence:
     - Turn 9: "my portfolio site... still says techflow on it"
@@ -464,7 +464,7 @@ QUERY 6: "What company is on Maya's portfolio site?"
 
 QUERY DISTRIBUTION ANALYSIS:
   Temporal/current: Queries 1, 5 (company, May week)
-  Evolution: Queries 2, 4 (job arc, Priya arc)
+  Evolution: Queries 2, 4 (job arc, プリヤ arc)
   Factual recall: Query 3 (Stripe role details)
   Stale fact: Query 6 (portfolio needs updating)
   Complexity: 0 Easy, 3 Medium, 3 Hard
@@ -480,7 +480,7 @@ CHANGES FROM SPEC SESSION SCHEDULE:
    Spec outline: "'I got the Stripe offer.' Resolves job arc from
      session 6."
    Full session created with offer details, emotional reaction,
-   TechFlow notice plans, Priya update, David's response.
+   TechFlow notice plans, プリヤ update, デイビッドの response.
 
 2. MAY 19TH START DATE
    Not in spec. Added: Start date deliberately set to May 19th —
@@ -495,14 +495,14 @@ CHANGES FROM SPEC SESSION SCHEDULE:
    Rationale: Dense fact cluster tests extraction precision.
 
 4. PRIYA ARC CONTINUATION
-   Spec: Priya mentioned in session 6 as red herring.
-   Transcript: Updated in session 13 — still lo了解ing, Maya offering
-   referral. Transforms Priya from red herring to minor arc.
+   Spec: プリヤ mentioned in session 6 as red herring.
+   Transcript: Updated in session 13 — still looking, マヤ offering
+   referral. Transforms プリヤ from red herring to minor arc.
    Rationale: Tests whether system tracks peripheral characters
    across sessions.
 
 5. PORTFOLIO STALE FACT SETUP
-   Not in spec for session 13. Added: Maya mentions portfolio still
+   Not in spec for session 13. Added: マヤ mentions portfolio still
    says TechFlow.
    Rationale: Creates a stale fact detection test. After session 13,
    the portfolio should be flagged as needing an update. This sets
@@ -517,7 +517,7 @@ VALIDATION SUMMARY:
   Stripe reveal at correct session (13)
   Job arc naturally resolved from session 6
   May 18-19 temporal overlap planted
-  Priya arc continued
+  プリヤ arc continued
   Portfolio stale fact created
   6 eval queries with 3 hard difficulty
   10 turns, highest energy session

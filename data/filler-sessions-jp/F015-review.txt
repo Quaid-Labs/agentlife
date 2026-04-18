@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   idempotentの意味って何だっけ笑 いつも忘れる
 
-AI ASSISTANT:
+AIアシスタント:
   同じ操作を何回実行しても同じ結果になる、という意味だよ。たとえば「保存」を何度押しても重複が作られない、みたいなもの。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   ああそうか。じゃあAPIをうっかり2回呼んでも大丈夫ってこと？
 
-AI ASSISTANT:
+AIアシスタント:
   その通り。DELETEリクエストは冪等だよ（2回削除しても結果は同じ）。でもPOSTはたいてい違う（2件作られることがある）。
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   on-call incident の escalation procedures を書くのを手伝ってくれる？ いつ誰を page するかを文書化したいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。まず escalation tiers から始めましょう。primary on-call は誰で、その次の escalation point は誰ですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
-  primary はその週の rotation の人で、次が tech lead（今は D）、その次が engineering manager。でも各レベルの基準をどうするべきかがよくわからない
+マヤ:
+  primary はその週の rotation の人で、次が tech lead（今は ディー）、その次が engineering manager。でも各レベルの基準をどうするべきかがよくわからない
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。まず severity levels を定義して、それを escalation timing に結びつけましょう。たとえば:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね。あと、primary がまったく反応しない場合も書きたい。先月それが起きたんだよね lol
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です。こういう section を入れるといいです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   うん、slack も必須。あと、incident が複数 team にまたがる場合は？ たとえば database 関連なら platform team を巻き込む必要がある
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。cross-team section を追加します:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   primary がその判断をする。みんなが自分の限界をわかってるって信用してるから
 
-AI ASSISTANT:
+AIアシスタント:
   それは賢いです。ここまでの内容をまとめるとこうです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   これいいね。formal incident report を作るべきか、それとも quiet に解決していいか、みたいなことも入れるべきかな？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。こんな感じはどうですか:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   別セクションでいい。incident 中の stakeholder への communication はどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   いいポイントです。communication section はこんなふうにできます:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   うん。incident の途中で deploy してた場合、rollback を決められるのが誰かも書いた方がいいよね
 
-AI ASSISTANT:
+AIアシスタント:
   いい気づきです。こんな内容を足しましょう:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   link でいいよ。deploy docs にもうあるから。じゃあ incident が deploy 中に起きたらどうする？ ちょうど release の最中だったら
 
-AI ASSISTANT:
+AIアシスタント:
   それもカバーすべきシナリオです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   ああ、そうだね。flag を切り替えられるなら rollback よりずっと速いよね
 
-AI ASSISTANT:
+AIアシスタント:
   これも追加します:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   完璧。最後に、pagerduty の setup 自体もどこかに書くべきかな？ schedule の構成とか
 
-AI ASSISTANT:
+AIアシスタント:
   process/decision-making の文書なので、そこは別にしておくのがいいです。reference section なら追加できます:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いや、今は別ドキュメントでいい。このままで十分。全体版を送ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   complete document をどうぞ:
 
 ---
@@ -158,11 +158,11 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
-  ありがとう！ 明日 D とレビューして wiki に入れるわ
+マヤ:
+  ありがとう！ 明日 デイビッド とレビューして wiki に入れるわ
 
-AI ASSISTANT:
-  いいですね！ David から feedback があれば一緒に直しましょう。これでチームに clear なガイドラインができて、深夜 2 時に「誰に page するの？」が減るはずです。
+AIアシスタント:
+  いいですね！ デイビッド から feedback があれば一緒に直しましょう。これでチームに clear なガイドラインができて、深夜 2 時に「誰に page するの？」が減るはずです。
 
 ---
 

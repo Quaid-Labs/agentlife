@@ -8,7 +8,7 @@ SECTION 1: SESSION BRIEF
 ================================================================================
 Session: F043 (Filler — Cross-Reference Reinforcer)
 Date: 2026-04-06 20:12
-Topic: Ethan が火山の動画を送ってきた。地質学モード全開だね
+Topic: イーサン が火山の動画を送ってきた。地質学モード全開だね
 Turn Count: 4
 
 ================================================================================
@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
-  Ethan が火山の動画を送ってきて、噴火の流れを全部ナレーションしてたのが笑った。地質学モード全開だわ
+マヤ:
+  イーサン が火山の動画を送ってきて、噴火の流れを全部ナレーションしてたのが笑った。地質学モード全開だわ
 
-AI ASSISTANT:
+AIアシスタント:
   いいね笑。もう岩のコレクション段階は抜けたの？ それともまだ部屋を占領してる？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   ああ、岩はまだ残るらしい。棚にラベル付きが30個くらい並んでて、正直ちょっと感心する
 
-AI ASSISTANT:
+AIアシスタント:
   それは本気だね！ 少なくとも整理されてるのはいい。子どもが何か集めると、結局そこら中に散らばるからね
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   たしかに笑。来週末に自然史博物館の宝石展示を見に行きたいって言ってた。意外と楽しそうではある
 
-AI ASSISTANT:
+AIアシスタント:
   それはかなり面白そう！ 宝石の展示って、地質オタクじゃなくても普通に見応えあることが多いよね
 
 ---
@@ -60,8 +60,8 @@ AI ASSISTANT:
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-QUERY 1: "What did Maya mention about ethan sent me a video of a volcano. geol?"
-  Ground Truth: ethan sent me a video of a volcano. geology phase is going strong
+QUERY 1: "What did マヤ mention about イーサン sent me a video of a volcano. geol?"
+  Ground Truth: イーサン sent me a video of a volcano. geology phase is going strong
   Evidence Session: F043
   Query Type: cross_reference
   Recall Difficulty: Medium (filler session callback)

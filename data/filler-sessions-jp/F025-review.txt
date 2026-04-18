@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   ねえ、v1 API エンドポイントの廃止告知文を書かなきゃ... 6月までにみんなを GraphQL に移行するんだ。下書きを作ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   きちんとした廃止告知文を作成します。こちらが完全版のお知らせです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   すごくいいけど、もう少しやわらかくできる？ なんか企業っぽすぎる笑。あと、移行しなかった場合にどうなるかの説明も追加して
 
-AI ASSISTANT:
+AIアシスタント:
   もっと親しみやすく、なおかつ影響も含めた版はこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   完璧！ 次は、廃止のタイムラインと、どんな監視を用意すべきかについての開発チーム向け内部メールが必要
 
-AI ASSISTANT:
+AIアシスタント:
   開発チーム向けの内部メールはこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   うん！ じゃあ別件 - meal planning 機能を追加する理由についての PRD セクションを書いてほしい。短く、事業面の理由だけでいい
 
-AI ASSISTANT:
+AIアシスタント:
   簡潔な事業面の理由セクションはこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。でも競合分析の部分も足して。ほかのアプリとの比較を 3〜4 個の箇条書きで入れる感じで
 
-AI ASSISTANT:
+AIアシスタント:
   競合分析を追加した更新版はこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   完璧。じゃあ次は、毎週の API レビューミーティング用の議事録テンプレートがほしい。何を追跡すべき？
 
-AI ASSISTANT:
+AIアシスタント:
   包括的な議事録テンプレートはこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね！ "提案された破壊的変更" のセクションも追加して。そこはかなり厳密に追いたいから
 
-AI ASSISTANT:
+AIアシスタント:
   破壊的変更セクションを追加したテンプレートです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   そうそう！ じゃあ全然違う話なんだけど、ドラッグ＆ドロップの meal planning カレンダー用に短いユーザーストーリーを書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   受け入れ条件付きのユーザーストーリーはこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   うん、完璧。今度は分析用に meal plan のイベントを追跡する SQL が必要なんだ。どのレシピが一番追加されているか、どの曜日が人気か、とか
 
-AI ASSISTANT:
+AIアシスタント:
   SQL スキーマとサンプルクエリはこちらです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   すごくいい！ もう1つクエリ - アクティブなプランナー向けの、ユーザーあたり週平均レシピ数
 
-AI ASSISTANT:
+AIアシスタント:
   そのクエリはこちらです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   いいね！ じゃあ話を戻して - GraphQL 移行の締切を延期する件をチームにメールしたいんだ。どうやら一部のパートナーにもっと時間が必要らしくて
 
-AI ASSISTANT:
+AIアシスタント:
   メールの下書きはこちらです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   もう少しフォーマルにして。これ、上司も含めて 15 人くらいに送ることになりそうだからさ笑
 
-AI ASSISTANT:
+AIアシスタント:
   こちらがよりフォーマルな版です:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   完璧！ 今夜の最後に、API の登録開発者数が 1万人に到達したことを知らせる短い Slack メッセージを書いてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   お祝いの Slack 告知はこちらです:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   いいね。でもドーナツのくだりは外して。みんなリモートだから笑。代わりに、うちの API 上で作られたトップアプリの話を入れてもいいかも
 
-AI ASSISTANT:
+AIアシスタント:
   更新版はこちらです:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   うん、それで完璧。今夜必要だったものはまさにこれ。手伝ってくれてありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ かなり多くのことを片付けられましたね。廃止告知、PRD セクション、議事録テンプレート、ユーザーストーリー、SQL クエリ、チームへのメール、お祝いメッセージまで。今夜はかなり実りある仕事量でした。
 
 ---

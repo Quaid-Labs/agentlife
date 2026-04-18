@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   ねえ、レシピアプリに栄養表示を入れたいんだ。カロリー、たんぱく質とか全部入ったラベルみたいなやつ。これってUSDA APIを使える？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、USDAのFoodData Central APIがぴったりです。APIキーが必要だけど無料だよ（fdc.nal.usda.gov）。連携のセットアップを手伝おうか？ 具材を受け取って、栄養の内訳を返す計算機能を追加できます。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、やろう。APIキーはもう取ってあって、.env に入れてる
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。栄養サービスを作ります。セットアップはこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   でも、具材をUSDAの食品にどう紐づけるの？ たとえば「chicken breast」って打たれたら、それを一致させる必要があるよね
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問です。DBにマッピングテーブルと検索エンドポイントを追加するといいです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   なるほど。じゃあ選んだあと、そのマッピングはどう保存するの？ たとえば「2 cups chicken breast」= fdcId 12345 みたいな感じ？
 
-AI ASSISTANT:
+AIアシスタント:
   ingredients テーブルに追加しましょう:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   ちょっと待って、これってレシピを表示するたびにAPIを叩くことになる？ それ、遅そうだね
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです。食品データはローカルにキャッシュしましょう:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   うん、それは納得。だけどUSDAのレスポンスってめちゃくちゃ大きいんだよね。栄養素も大量にある。欲しいのはカロリー、たんぱく質、炭水化物、脂質、ナトリウムだけ。どう絞ればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   栄養素は `foodNutrients` 配列に入っています。必要なものだけ抜き出すヘルパーはこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね。じゃあレシピの栄養計算は、各具材からスケールした栄養素を全部足せばいいの？
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです。全体の計算はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   ちょっと待って、parseAmountって何？ うちの具材は「2 cups」みたいな文字列で持ってるんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   ああ、それならパースする必要があります。簡単な版はこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   なるほど。でもcupsとgramsとouncesは… USDAってグラム基準だよね？ どう変換するの？
 
-AI ASSISTANT:
+AIアシスタント:
   そうです、USDAは100gあたりの値です。換算表が必要になります:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   うーん、どんどん複雑になるな。じゃあv1ではユーザーにグラムで入力してもらって、あとはその人の問題にしちゃおうかな？
 
-AI ASSISTANT:
+AIアシスタント:
   正直、v1としては悪くないです。あるいは両方用意して、"200g chicken" と入れるか、USDAで検索して1食分を選べるようにするのもありです。妥協案はこちらです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   うん、それはあり。じゃあ栄養ラベルはどう表示する？ あのFDA形式のやつ
 
-AI ASSISTANT:
+AIアシスタント:
   HTML/CSSで描画してもいいし、JSONを返してスタイルを当ててもいいです。基本的なルートはこちらです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   え、servingsって… recipes テーブルにまだないんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   すぐ追加しましょう:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   いい感じ。最後に、USDA APIが落ちたら？ それともレート制限を食らったら？ 何か対応したほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。リトライロジックとフォールバックを入れましょう:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   いいね。これって栄養計算のテストも書くべき？
 
-AI ASSISTANT:
+AIアシスタント:
   ええ、絶対です。計算はややこしくなりやすいので、まずはこんな感じです:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
-  よし、かなり固まった。実装始めるわ。ありがとうD
+マヤ:
+  よし、かなり固まった。実装始めるわ。ありがとうディー
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ フロントエンド側にもエラー処理を忘れずに入れてください - いくつかの具材で栄養データが取れないときはメッセージを出しましょう。それと、栄養が計算値なのか推定値なのか分かるように「verify nutrition」フラグを付けるのもいいですね。うまくいくといいです！
 
 ---

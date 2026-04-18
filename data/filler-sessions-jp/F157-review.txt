@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   ねえ、レシピに難易度スコアを追加したいんだけど、どう計算したらいいかわからないんだ。手順数？ 材料？ 時間？ 何を基準にするのがいいかな
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問です！いくつかの要素を組み合わせるのがよさそうです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、コードを見せて。あと、これはどこに置くべき？ レシピモデルの中、それとも別の util？
 
-AI ASSISTANT:
+AIアシスタント:
   再利用しやすくするために、ユーティリティ関数に置くのがいいでしょう。基本形はこんな感じです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   でもさ、2ステップしかないのに3時間かかるレシピもあるじゃん。これだと間違ったスコアにならない？
 
-AI ASSISTANT:
+AIアシスタント:
   そのとおりです！ 重みは調整が必要です。低温調理みたいなものでは、時間の比重をもっと大きくします:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   それはいいね。じゃあこれどうテストする？ ユニットテストを書くべき？ それともいくつかのレシピを手で確認するだけ？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんテストを書くべきです！ こんな Jest の例があります:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   なるほど。スコアを出したあと、どう保存する？ recipes テーブルに difficulty カラムを足す感じ？
 
-AI ASSISTANT:
+AIアシスタント:
   そうです、スキーマに追加しましょう:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   ちょっと待って。誰かがレシピを編集するたびに再計算しないといけない？ それとも一度保存したら終わりでいい？
 
-AI ASSISTANT:
+AIアシスタント:
   編集のたびに再計算してください！ そうしないと、ステップを追加しても難易度が古いままになります。更新ルートで `calculateDifficulty()` を呼べば大丈夫です:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   うん、わかった。ちなみに、ユーザーに難易度で絞り込みさせるのはどう？ v1 にはやりすぎかな
 
-AI ASSISTANT:
+AIアシスタント:
   全然やりすぎではありません！ かなり便利な機能です。クエリパラメータを追加しましょう:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   いいね。もう一つ。あとで材料の複雑さを追加したくなったらどうする？ たとえばトリュフオイルは塩より手に入りにくい、とかさ
 
-AI ASSISTANT:
+AIアシスタント:
   いい考えです！ スコアリングをモジュール化しておけば拡張できます:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   あ、今これを試したらエラーになった。貼るね
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん、エラーを貼ってくれればデバッグします！
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~1
 
-MAYA:
+マヤ:
   ```
 
-AI ASSISTANT:
+AIアシスタント:
   実際に `ALTER TABLE` コマンドを実行しましたか？ スキーマを確認してください:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   あー、ファイルには入れたけど実行してなかった。マイグレーションってどうやってちゃんと実行するの？
 
-AI ASSISTANT:
+AIアシスタント:
   今のところは、手動で実行すれば大丈夫です:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   うん、実行したら動いた。難易度スコアもそれっぽい。これって UI に表示したほうがいい？ それとも今はバックエンドだけにしておく？
 
-AI ASSISTANT:
+AIアシスタント:
   表示しましょう！ ユーザーは見られると便利です。シンプルなバッジを追加してください:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   完璧。じゃあ最後に一つ。既存のレシピにも difficulty を backfill するべき？ それとも今後分だけ計算する？
 
-AI ASSISTANT:
+AIアシスタント:
   backfill してください！ そうしないと古いレシピは絞り込み対象にできません。簡単なスクリプトはこちらです:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   できた！ すごくうまくいった。ありがとう、めっちゃ助かった
 
-AI ASSISTANT:
+AIアシスタント:
   よかったです！ 難易度スコア、絞り込み、そしてあとで材料の複雑さを追加できる土台までできました。これで進めて、ユーザーの反応を見てください。問題が出たら知らせてください！
 
 ---

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   recipe の画像アップロードってどう扱えばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   Express ならファイルアップロードに `multer` を使います。基本のセットアップはこちらです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   うん。あと、それが本当に image かどうかはどう検証するの？
 
-AI ASSISTANT:
+AIアシスタント:
   multer の config に file filter を追加します:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   いいね。path を sqlite に保存するべき？ それとも actual image blob？
 
-AI ASSISTANT:
+AIアシスタント:
   SQLite には **path** を保存して、ファイル自体はディスクに置く方がいいです。かなり効率的です。
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   なるほど。クライアントに画像を返すときはどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   Express で静的ファイルを配信します:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   lol、アップロードしようとすると ENOENT が出る。ディレクトリが存在しないっぽい
 
-AI ASSISTANT:
+AIアシスタント:
   Multer はディレクトリを自動作成しません。起動時にこれを追加してください:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   いいね、直った。これどうテストすればいい？ file upload の mock は面倒そう
 
-AI ASSISTANT:
+AIアシスタント:
   `supertest` で buffer upload を使います:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   完璧。最後に、duplicate filename は気にするべき？ multer が面倒見てくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   multer はデフォルトでランダムな名前（たとえば `3f2a1b4c5d6e7f8g`）を作るので、衝突はしません。ただし拡張子は付きません。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   最高、それが欲しかったんだ thx
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ recipe app がかなり形になってきました。画像、auth、SQLite と、なかなか solid な構成です。upload で詰まったらまた言ってください。
 
 ---

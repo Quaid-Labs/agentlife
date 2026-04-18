@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   長めのランに合うポッドキャストって何かある？ 今 austin marathon のトレーニング中で、気を紛らわせるものが欲しい笑
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ マラソントレーニングなら、How I Built This（起業家のストーリー、約45分）、Radiolab（科学やストーリーが面白い）、純粋にモチベが欲しいなら、ランナー向けの Ali on the Run Show がおすすめです。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   お、Ali on the Run いいかも。ランナーへのインタビュー系？ それともトレーニング tips 多め？
 
-AI ASSISTANT:
+AIアシスタント:
   両方です！ Ali はプロランナーや一般のマラソンランナーへのインタビューに加えて、トレーニングのアドバイスも織り交ぜています。エピソードはだいたい30〜60分で、長めのランにぴったり。すごく落ち着いた会話っぽい雰囲気です。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   完璧、ありがと！ 明日の12マイル走に向けていくつかキューに入れるよ
 
-AI ASSISTANT:
+AIアシスタント:
   いけます！ 12マイルはいい準備になります。明日のラン、楽しんでください 🏃‍♀️
 
 ---

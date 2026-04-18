@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   ねえ、recipe app の認証機能に取り組んでるんだけど、8 件のユーザーストーリーに対する受け入れ条件の書き方を手伝ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。ユーザーストーリーはもう書いてある？ それともゼロから始める？ それと、認証方式は何にする予定？ OAuth、マジックリンク、それとも従来の email/password？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うん、もう書いてある。今は email/password で、OAuth は後回し。まず数件貼るね
 
-AI ASSISTANT:
+AIアシスタント:
   完璧。どうぞ貼って。各ストーリーごとに、明確でテスト可能な受け入れ条件を書くのを手伝うよ。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   じゃあ一覧を貼るね:
 
-AI ASSISTANT:
+AIアシスタント:
   了解。まずは #1（サインアップ）から始めよう。こんな感じを提案するよ:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   うん、いい感じ。ひとつだけ - ウェルカムメールは必要かな？ なんか余計なスコープに感じるんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   その懸念はもっともだよ。MVP では外して、後で追加してもいい。中核機能はそれなしでも動く。`nice to have` にする？ それとも完全に削る？
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   とりあえず外そう。じゃあ #2 と #3 をお願い
 
-AI ASSISTANT:
+AIアシスタント:
   **ユーザーストーリー 2: ログイン**
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   うん。ロックアウトの件なんだけど、15 分って標準？ ちょっと長く感じる
 
-AI ASSISTANT:
+AIアシスタント:
   15 分はセキュリティ上かなり一般的だけど、もう少し緩くしたいなら 5 分でもいい。OWASP では 15〜30 分を推奨してるけど、recipe app なら 5 分でもたぶん十分。そこは任せるよ。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   じゃあ 5 分でいこう。じゃあ今度は #4 と #5 をお願い
 
-AI ASSISTANT:
+AIアシスタント:
   **ユーザーストーリー 4: プロフィールを見る**
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   待って - email の変更に確認メールは必要？ それと再認証って面倒そう
 
-AI ASSISTANT:
+AIアシスタント:
   確認メールはセキュリティ上のベストプラクティスだよ（アカウント乗っ取りを防げる）。ただ、MVP では省いてもいい。再認証は重要だけどね。これがないと、ロック解除したノート PC を誰かに触られたときに email を変えられて、アカウントに戻れなくなる。完全なログインし直しではなく、パスワード確認だけにするのはどう？
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ああ、いい指摘。うん、パスワード確認ならいいね。あと、確認メールは新しいアドレスにだけ 1 通送る形で残そう
 
-AI ASSISTANT:
+AIアシスタント:
   完璧。じゃあ #5 を更新するね:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   うん、それで進めよう
 
-AI ASSISTANT:
+AIアシスタント:
   **ユーザーストーリー 6: パスワード変更**
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   なんでソフト削除なの？ ハード削除じゃだめ？
 
-AI ASSISTANT:
+AIアシスタント:
   ソフト削除なら、うっかり削除したときに戻せるし（「あれ、消すつもりじゃなかった」）、分析や監査のためにデータを残せる。ハード削除は完全に元に戻せないし、ユーザーに recipes や comments があったら外部キー関係を壊すこともある。30 日の猶予期間を置いてから本当に削除する、という形にもできるよ。ただし GDPR をきっちり満たすなら、最終的には cascade ルール付きのハード削除が必要になる。
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   じゃあ 30 日の猶予期間つきのソフト削除でいけるね。最後は #8 だ
 
-AI ASSISTANT:
+AIアシスタント:
   **ユーザーストーリー 8: 永続ログイン**
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   うん、それがあるとすごく助かる。ストーリー、受け入れ条件、エッジケースの列がある表形式にしてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが完全な表だよ:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   完璧！ すごく助かった。これを Linear に貼って、タスク分解を始めるよ。ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。実装、うまくいくといいね。認証コードやデータベーススキーマでまた手伝いが必要なら、いつでも言って。
 
 ---

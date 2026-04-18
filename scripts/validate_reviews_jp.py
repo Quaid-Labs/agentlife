@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -14,6 +15,7 @@ EVAL_DIR = ROOT / "eval"
 if str(EVAL_DIR) not in sys.path:
     sys.path.insert(0, str(EVAL_DIR))
 
+os.environ.setdefault("BENCHMARK_DATASET", "jp")
 import dataset as ds  # type: ignore
 
 SCAFFOLD_TOKENS = [
@@ -21,8 +23,6 @@ SCAFFOLD_TOKENS = [
     "SECTION 2:",
     "SESSION METADATA:",
     "TURN ",
-    "MAYA:",
-    "AI ASSISTANT:",
     "SECTION 4:",
     "QUERY ",
     "Ground Truth:",
@@ -32,8 +32,13 @@ SCAFFOLD_TOKENS = [
     "Recall Difficulty:",
 ]
 
+SCAFFOLD_TOKEN_EQUIVALENTS = [
+    ("MAYA:", ("MAYA:", "マヤ:")),
+    ("AI ASSISTANT:", ("AI ASSISTANT:", "AIアシスタント:")),
+]
+
 DIALOGUE_BLOCK_RE = re.compile(
-    r"(?ms)^(MAYA:|AI ASSISTANT:)\s*\n(.*?)(?=^\s*(?:AI ASSISTANT:|MAYA:|ANALYSIS:|---|TURN\s+\d+\s*\(|={8,}|END OF FILLER SESSION|$))"
+    r"(?ms)^(MAYA:|マヤ:|AI ASSISTANT:|AIアシスタント:)\s*\n(.*?)(?=^\s*(?:AI ASSISTANT:|AIアシスタント:|MAYA:|マヤ:|ANALYSIS:|---|TURN\s+\d+\s*\(|={8,}|END OF FILLER SESSION|$))"
 )
 QUERY_LINE_RE = re.compile(r'(?m)^QUERY\s+\d+:\s*"([^"]+)"')
 GROUND_TRUTH_RE = re.compile(
@@ -47,6 +52,14 @@ def _count_token_mismatch(src: str, dst: str) -> List[str]:
     for tok in SCAFFOLD_TOKENS:
         if src.count(tok) != dst.count(tok):
             mismatches.append(f"{tok!r}: src={src.count(tok)} dst={dst.count(tok)}")
+    for label, equivalents in SCAFFOLD_TOKEN_EQUIVALENTS:
+        src_count = len(re.findall(rf"(?m)^{re.escape(label)}", src))
+        dst_count = sum(
+            len(re.findall(rf"(?m)^{re.escape(tok)}", dst))
+            for tok in equivalents
+        )
+        if src_count != dst_count:
+            mismatches.append(f"{label!r}: src={src_count} dst={dst_count}")
     return mismatches
 
 

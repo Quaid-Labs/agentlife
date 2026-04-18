@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   ねえ、新しい user tables の移行計画のドラフト作成を手伝ってくれる？ 明日それを説明しないといけなくて、ロールバック戦略がまったく浮かばないんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。構成を整えるのを手伝うよ。これは recipe app の auth スキーマ変更の話？ 今の状態はどう？ 新しいテーブルを追加するのか、それとも既存のものを変更するのか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   oauth と user profile 用の新しいテーブルを追加する。今は Firebase auth だけなんだけど、自前の user management に移行してるところなんだ。切り替え中のデータ損失が心配でさ
 
-AI ASSISTANT:
+AIアシスタント:
   なるほど。移行計画では、1) 両方に書き込む dual-write 期間、2) 既存ユーザーの backfill、3) 検証フェーズ、4) 切り替え、をカバーしよう。ロールバック手順まで含めた全文のドラフトを作ろうか？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   お願い。各フェーズで必要な期間の見積もりと、監視項目も入れてほしい
 
-AI ASSISTANT:
+AIアシスタント:
   では、こんな移行計画ドラフトにしよう:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね。でもスキーマの実際の SQL も入れてくれる？ うちのリードはテーブル定義を見たがるはず
 
-AI ASSISTANT:
+AIアシスタント:
   ```sql
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   完璧。じゃあロールバックのシナリオはどうする？ たとえば phase 4 でデータの不一致が 10% 出たら、具体的にどうするの？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問だね。ロールバックの判断フローはこんな感じ:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   そうだね。phase 5 は、実際に読み取り先を切り替える怖い段階だよね
 
-AI ASSISTANT:
+AIアシスタント:
   **Phase 5 のロールバック手順（切り替え）**
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   うん、これは本当に助かる。各フェーズが実際にうまくいったかどうか、何を成功指標として追うべきかのセクションも追加してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   ```markdown
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   すごくいい。あとひとつ - バックフィル用の実際の script はどんな感じ？ 擬似コードだけで十分だから、本体は自分で書ける
 
-AI ASSISTANT:
+AIアシスタント:
   ```python
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   完璧。最後にひとつだけ、いや本当に最後なんだけど、タイムラインはどうなる？ PM に全体でどれくらいかかるか聞かれるはずなんだ
 
-AI ASSISTANT:
+AIアシスタント:
   **移行タイムライン**
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   うん、それを入れて。あと、今夜リードに送れる簡単な email も書いてくれる？ 要点とタイムラインだけでいい
 
-AI ASSISTANT:
+AIアシスタント:
   ```
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   うん、いいね。あ、index の DBA review が必要ってことも書いたほうがいい？ それとも暗黙的に伝わる？
 
-AI ASSISTANT:
+AIアシスタント:
   ぜひ明示したほうがいいよ。`Risk mitigation` のあとにこの段落を追加しよう:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   その通りだね。よし、これで大丈夫そう。送ったら今日はちゃんと夜を楽しむよ。ありがとう
 
-AI ASSISTANT:
+AIアシスタント:
   もう準備は万端だよ。計画はしっかりしてるし、安全策もロールバック経路も明確だ。これだけの詳細があれば、リードも満足するはず。よい夜を！🎉
 
 ---

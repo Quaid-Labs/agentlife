@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   来 Q2 の capacity planning doc を書くのを手伝ってくれる？ 木曜に leadership に出す必要があるんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。まず基本を確認しましょう。今のチーム人数は何人で、Q2 に headcount の変化はありそうですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
-  今は engineer が 4 人（私、David、Priya、Sam）。2 人採用は承認されてるけど、現実的には Q2 に始められるのは 1 人だけかな
+マヤ:
+  今は engineer が 4 人（私、デイビッド、プリヤ、Sam）。2 人採用は承認されてるけど、現実的には Q2 に始められるのは 1 人だけかな
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。計画上は実質 4.5 人ですね。Q2 の main project は何ですか？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   meal planning 機能が一番大きい。あと GraphQL への移行、tech debt の片付け、いつもの bug fix もある
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。meal planning については、おおよそ何週間くらいの工数を見ていますか？ それと GraphQL migration は何かをブロックしていますか、それとも並行で進められますか？
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   meal planning はたぶん 8〜10 週間？ GraphQL はブロッカーじゃないけど、frontend の作業がかなり楽になる。migration は 6 週間くらいかな
 
-AI ASSISTANT:
+AIアシスタント:
   なるほど。ざっくりしたアウトラインを作ります:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   いいね。新しい人は ramp-up 中だから、Q2 では生産性 50% くらいで見積もって
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。capacity を分解してみます:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   うーん、leadership からは buffer が多すぎるって絶対聞かれるよね。もし先に GraphQL をやって、その後 meal planning に行ったら、全体的には速くなるかな？
 
-AI ASSISTANT:
+AIアシスタント:
   いい考えです。GraphQL が frontend を楽にするなら、先にやることで meal planning を 10 週間から 7〜8 週間くらいに短縮できるかもしれません。つまり:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   database の index も本当に必要だよ。query performance を殺してる。deployment pipeline の container 化もしたい
 
-AI ASSISTANT:
+AIアシスタント:
   どちらもいい追加です。ざっくりした見積もりはこんな感じです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   うん、いいね。主な risk は、新しい人が 6 月まで始まらないかもしれないこと、meal planning の scope 膨張、GraphQL migration で想定外の問題が出ることかな
 
-AI ASSISTANT:
+AIアシスタント:
   完璧です。risk section を追加します:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   その通り。もし遅れたら containerization から削る。meal planning と GraphQL は必須だよ
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。priority tiers を追加します:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   両方とも lol。特に meal planning の成功の測り方は見せないといけないだろうし
 
-AI ASSISTANT:
+AIアシスタント:
   metrics を追加しましょう:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   dependencies の section も足してくれる？ meal planning は design review が必要で、rec algorithm spec を product がまだ固めてるところなんだ
 
-AI ASSISTANT:
+AIアシスタント:
   追加しました:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   うん、それで。vp が好きな standard PRD template 形式でお願い
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが complete document です:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   これ、まさに欲しかったやつだ。Q2 は 6 月 30 日で終わるのに、7 月 4 日にしてた timeline end date を直してくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   修正しました。Meal Planning の timeline をこう変更しました:
 
 ---
@@ -169,11 +169,11 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
-  最高、ありがとう。スクリーンショットを足して、木曜前に Rach にレビューしてもらうよ
+マヤ:
+  最高、ありがとう。スクリーンショットを足して、木曜前に レイチ にレビューしてもらうよ
 
-AI ASSISTANT:
-  Rachel に先に見てもらうのは賢いですね。木曜のプレゼン、うまくいくといいです。leadership に質問されたり、何か修正が必要になったら、また言ってください。
+AIアシスタント:
+  レイチェル に先に見てもらうのは賢いですね。木曜のプレゼン、うまくいくといいです。leadership に質問されたり、何か修正が必要になったら、また言ってください。
 
 ---
 

@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   金曜のチーム retro のプレゼンを計画したいんだけど、手伝ってくれる？ 今回こそちゃんと役立つものにしたい lol
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。何がうまくいって、何がうまくいかなかったのかはどうでしたか？ それと、retro の時間はどれくらいありますか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   45 分ある。正直、今回はかなりぐちゃぐちゃだった。user dashboard は出せたけど、prod でバグがいくつも出たし。チームの士気も微妙
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。45 分なら、こういう構成がおすすめです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。Google doc 形式でコピペできるようにしてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   **Sprint 12 Retrospective - March 7, 2026**
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   完璧。「うまくいかなかったこと」のところ、事前に話すポイントを用意した方がいい？ それともライブでブレストさせる？
 
-AI ASSISTANT:
+AIアシスタント:
   2〜3 個のスタート用ポイントは用意した方がいいです。でも、チームが自分たちの意見を出せる余地は残してください。静まり返るのを防げますが、話の流れを支配してる感じにはなりません。主な prod バグは何でしたか？
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   permission error で半分のユーザーがログインできなくなったのと、dashboard の load time が 2 秒のはずが 8 秒だった
 
-AI ASSISTANT:
+AIアシスタント:
   きついですね。こんな感じで用意するといいです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
-  そのまとめ方いいね。正直、David（うちの eng lead）がテストの件で防御的になるのが心配なんだ。どう対応したらいい？
+マヤ:
+  そのまとめ方いいね。正直、デイビッド（うちの eng lead）がテストの件で防御的になるのが心配なんだ。どう対応したらいい？
 
-AI ASSISTANT:
+AIアシスタント:
   個人ではなくチームの話にしましょう。たとえば「staging で何をもっと拾えたはずか？」と聞くのがいいです。「なぜ QA が見つけなかったのか？」ではなく、という感じです。
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   それいいね。じゃあ action item は、事前にいくつか作っておくべき？ それとも重くなりすぎる？
 
-AI ASSISTANT:
+AIアシスタント:
   1〜2 個の明らかなもの（たとえば「staging checklist に performance testing を追加する」など）は用意しておいて、他はチームに出してもらう余地を残しましょう。買ってもらうのが大事で、ただの ToDo リストでは意味がありません。
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   なるほど。shout-out セクションってどう？ 今までやったことないし、ちょっと不自然に感じるかも
 
-AI ASSISTANT:
+AIアシスタント:
   まず自分から 1 人に感謝を伝えるといいです。たとえば login バグをすぐ直した人を褒める、とか。そして「他にも誰か称えたい人いる？」と聞く。反応がなくても大丈夫です。試せばいいんです。だんだん自然になります。
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
-  じゃあ Rachel を褒めるわ。彼女、遅くまで残って直してくれたから。アジェンダは金曜前に送るべき？ それとも当日行けばいい？
+マヤ:
+  じゃあ レイチェル を褒めるわ。彼女、遅くまで残って直してくれたから。アジェンダは金曜前に送るべき？ それとも当日行けばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   木曜の午後に送るのがおすすめです。考える時間はあるけど、考えすぎるほどではありません。「必要なら前までに思ったことを足してください」みたいな一文を添えると、準備しやすくなります。
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   完璧。あと一つ、notes は自分で取る？ それとも誰かに頼む？
 
-AI ASSISTANT:
+AIアシスタント:
   誰か別の人に頼んだ方がいいです。あなたは進行に集中したいし、メモ取りは視野を分けます。毎スプリントで役割を回すのもいいですね。
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~16
 
-MAYA:
+マヤ:
   いいね。junior pm に頼むわ。もっと存在感を出したがってたし
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。彼女にとっても成長の機会になります。木曜に送るメールのドラフトも作りますか？
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うん、助かる。かしこまりすぎない感じでお願い。チーム、そういう corporate speak 嫌いだから
 
-AI ASSISTANT:
+AIアシスタント:
   **Subject:** Sprint retro agenda - Friday 3/7
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   最高、ありがとう！ だいぶ気が楽になった lol。もう大丈夫そう
 
-AI ASSISTANT:
+AIアシスタント:
   大丈夫です。うまくいくといいですね。金曜、頑張ってください！
 
 ---

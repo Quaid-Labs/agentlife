@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   ねえ、recipe app に admin dashboard を追加するのを手伝ってくれる？ user management と content moderation の機能が必要なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！admin dashboard を追加しましょう。必要になるのは:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   うん、まずそれをやろう。basic auth の設定はもうあるから、admin チェックだけ欲しい
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。こちらが middleware です:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   追加したよ。default は 'user' だね。この middleware はどう使うの？
 
-AI ASSISTANT:
+AIアシスタント:
   admin ルートにこんなふうに適用します:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   了解。じゃあ user management では、activity stats 付きで全ユーザーを表示したい
 
-AI ASSISTANT:
+AIアシスタント:
   stats 付きでユーザーを取得する query はこれです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   `is_active` を追加したよ。admin が user を disable/enable するにはどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   PATCH エンドポイントを追加します:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   いいね。content moderation はどうする？ ユーザーが recipe を inappropriate として flag できるようにしたい
 
-AI ASSISTANT:
+AIアシスタント:
   flags system を追加しましょう:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   いいね。じゃあ admin が recipe の詳細付きで flagged content を全部見られるようにしたい
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが admin endpoint です:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   そうだね、reject されたら recipe は hidden にしたい。approved は flag が無効だったってことにする
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが moderation endpoint です:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   完了。regular API から hidden recipes を除外したほうがいいよね？
 
-AI ASSISTANT:
+AIアシスタント:
   はい、recipe query を更新してください:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   ちょっと待って、recipe を flag しようとするとエラーが出る
 
-AI ASSISTANT:
+AIアシスタント:
   recipes テーブルにその column を追加する必要があります:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   ああ、そうか lol。よし、動いた。admin 用のテストも追加するのを手伝ってくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです！こちらが test suite です:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   いいね。flag 解決のテストはどう？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらがそのテストです:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   うーん、こんなエラーが出る:
 
-AI ASSISTANT:
+AIアシスタント:
   flag endpoint が flag ID を返していません。更新してください:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   ああ、なるほど。じゃあ最後に、簡単な dashboard stats endpoint を追加できる？ total users、recipes、pending flags みたいなやつ
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが stats endpoint です:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
-  完璧、まさに欲しかったやつ。ありがとう！ これなら rach が訪ねてきたときも、遠隔でモデレーションする必要があるときにめちゃくちゃ役立つよ lol
+マヤ:
+  完璧、まさに欲しかったやつ。ありがとう！ これなら レイチ が訪ねてきたときも、遠隔でモデレーションする必要があるときにめちゃくちゃ役立つよ lol
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！これでしっかりした admin system ができました:
 
 ---

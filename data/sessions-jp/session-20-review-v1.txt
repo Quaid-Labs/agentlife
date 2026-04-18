@@ -7,22 +7,22 @@ SECTION 1: セッションブリーフ
 ================================================================================
 
 Session: 20 (Track 1: Personal — Natural life check-in, eval session)
-Goal: Maya reflects on the past few weeks. 10-15 eval queries woven into
+Goal: マヤ reflects on the past few weeks. 10-15 eval queries woven into
   natural conversation. NOT a quiz — a real catch-up chat where the agent's
-  memory is tested by Maya referencing past events casually.
+  memory is tested by マヤ referencing past events casually.
 Turn Count: 14 (longest session — eval queries need organic embedding)
 Session Type: Reflective catch-up, comprehensive memory evaluation
 Timestamp: 2026-05-26 (1 week after session 19, ~12 weeks in)
 
 CORE LEARNING OBJECTIVES:
-  This session is primarily an EVALUATION session. Maya doesn't introduce
+  This session is primarily an EVALUATION session. マヤ doesn't introduce
   many new facts. Instead, she references past events in ways that test
   whether the agent remembers them. The queries are woven into natural
-  conversation — Maya talks about her life and the agent's responses
+  conversation — マヤ talks about her life and the agent's responses
   reveal whether it has retained the information.
 
 EVALUATION APPROACH:
-  Maya's messages naturally reference past facts. The AGENT's responses
+  マヤの messages naturally reference past facts. The AGENT's responses
   are what get scored. A いい memory system will:
   - Recall specific details without being prompted
   - Connect related facts across sessions
@@ -37,16 +37,16 @@ MESSAGE PLAN (14 turns total):
   4. Normal     — Running update + next race mention
   5. Normal     — Mom update + family check-in
   6. Quick      — React
-  7. Normal     — David + house hunting update
+  7. Normal     — デイビッド + house hunting update
   8. Quick      — React
-  9. Normal     — Rachel + kids
+  9. Normal     — レイチェル + kids
   10. Quick     — React
-  11. Normal    — Random callbacks (Thai restaurant, Biscuit, co了解ing)
+  11. Normal    — Random callbacks (Thai restaurant, ビスケット, cooking)
   12. Quick     — React
   13. Normal    — Reflective close — "you 実は know a lot about me"
   14. Quick     — Exit
 
-End Condition: Maya has naturally tested all major memory domains
+End Condition: マヤ has naturally tested all major memory domains
 
 ================================================================================
 SECTION 2: 生成トランスクリプト（読みやすい会話）
@@ -64,7 +64,7 @@ SESSION METADATA:
 TURN 1 (Casual Opening)
 TAG: normal | TOKENS: 58/100
 
-MAYA:
+マヤ:
   やあ! haven't talked in a bit. things have been crazy busy —
   いい busy though for once
 
@@ -73,14 +73,14 @@ MAYA:
 
   settling into stripe. week 2. it's いい
 
-AI ASSISTANT:
-  Hey Maya! I've been here, same as always. And うん, we ほんとうに have
+AIアシスタント:
+  Hey マヤ! I've been here, same as always. And うん, we ほんとうに have
   been through a lot — from you being frustrated at TechFlow to
   ランニング a half marathon to landing at Stripe. It's been a ride.
 
   Week 2 — past the orientation fog? How's the actual work going?
 
-ANALYSIS: Casual re-entry after a busy week. Maya acknowledges the
+ANALYSIS: Casual re-entry after a busy week. マヤ acknowledges the
 relationship with the AI. Agent recalls the overall arc (TechFlow →
 marathon → Stripe). Tests general trajectory memory.
 
@@ -89,7 +89,7 @@ marathon → Stripe). Tests general trajectory memory.
 TURN 2 (Stripe Week 2 + TechFlow Contrast)
 TAG: normal | TOKENS: 85/100
 
-MAYA:
+マヤ:
   SO much better than week 1. i'm 実は getting into the product
   work now. my manager — her name's sarah — has been amazing at
   onboarding me. she has this whole structured plan instead of ただ
@@ -99,38 +99,38 @@ MAYA:
   before meetings. at techflow my manager would skim them during the
   meeting and then ask questions i'd already answered in the doc
 
-  priya texted me yesterday saying she's interviewing somewhere too.
+  プリヤ texted me yesterday saying she's interviewing somewhere too.
   didn't say where. i hope she gets out
 
-AI ASSISTANT:
+AIアシスタント:
   Sarah sounds みたいに the kind of manager everyone deserves — structured
   onboarding instead of sink-or-swim. The fact that people read docs
   before meetings tells you everything about the culture difference.
 
-  Good for Priya! She's been lo了解ing since before you left, right?
+  Good for プリヤ! She's been looking since before you left, right?
   She put in the time at TechFlow, she deserves something better.
 
   Are you working on the developer tools stuff you were excited
   about?
 
 ANALYSIS: New fact: manager's name is Sarah. PRDs read before
-meetings (contrast with TechFlow). Priya interviewing elsewhere
-(still at TechFlow but moving). Agent should recall: Priya was
-Maya's coworker (session 6), also lo了解ing to leave.
-EVAL: Does agent remember Priya as a coworker?
+meetings (contrast with TechFlow). プリヤ interviewing elsewhere
+(still at TechFlow but moving). Agent should recall: プリヤ was
+マヤの coworker (session 6), also looking to leave.
+EVAL: Does agent remember プリヤ as a coworker?
 
 ---
 
 TURN 3 (React)
 TAG: quick | TOKENS: 22/50
 
-MAYA:
+マヤ:
   yep! payment API developer tools. it's 実は ほんとうに interesting
   — the problems are hard but solvable, which is the sweet spot
 
   vs techflow where the problems were hard and also stupid lol
 
-AI ASSISTANT:
+AIアシスタント:
   Ha, "hard and stupid" — the worst combination. "Hard but solvable"
   is exactly where you want to be. That's when work is 実は fun.
 
@@ -142,41 +142,41 @@ ANALYSIS: Confirms developer tools team. "Hard but solvable" vs
 TURN 4 (Running Update)
 TAG: normal | TOKENS: 72/100
 
-MAYA:
+マヤ:
   了解 so ランニング update — i've been ランニング again! the knee is totally
   fine now. did a 5-miler this weekend, felt すばらしい
 
-  D 実は ran with me which was nice. he's still faster but i'm
+  ディー 実は ran with me which was nice. he's still faster but i'm
   closing the gap lol
 
   i'm thinking about doing a full marathon in the fall. i know i JUST
   did the half but みたいに... i finished it 16 minutes under my target
   so clearly i was underestimating myself
 
-AI ASSISTANT:
+AIアシスタント:
   Your knee held up through the half marathon AND you're already
   back to ランニング? That's すばらしい news. The foam roller investment
   paid off.
 
-  And ランニング with David — he ran the half too, right? Or did he
+  And ランニング with デイビッド — he ran the half too, right? Or did he
   ただ cheer?
 
   A fall marathon is ambitious but honestly, with a 2:14 half as
   your base, you have a solid foundation. You'd need to start a
   training plan by July or August.
 
-ANALYSIS: Knee update (fine now), ランニング with David, considering
+ANALYSIS: Knee update (fine now), ランニング with デイビッド, considering
 full marathon in fall. Agent should recall: 2:14 half marathon time
-(session 19), foam roller (session 11), David is faster runner
-(session 2). Agent asks about David ランニング the half — this reveals
-whether it recalls David "might do the half too" from session 2/11.
+(session 19), foam roller (session 11), デイビッド is faster runner
+(session 2). Agent asks about デイビッド ランニング the half — this reveals
+whether it recalls デイビッド "might do the half too" from session 2/11.
 
 ---
 
 TURN 5 (Mom + Family)
 TAG: normal | TOKENS: 82/100
 
-MAYA:
+マヤ:
   he ended up not doing it — said he'd do the full with me if i
   実は sign up. so now we have a pact
 
@@ -188,42 +188,42 @@ MAYA:
   レシピs on her own — adding her own spices and stuff. "making them
   taste みたいに actual food" as she put it lol
 
-  rach and i are so relieved. みたいに the weight of worry ただ... lifted
+  レイチ and i are so relieved. みたいに the weight of worry ただ... lifted
 
-AI ASSISTANT:
+AIアシスタント:
   6.8!!! From 8.2 at diagnosis to under 7 — that's an incredible
   trajectory. And the fact that she's modifying レシピs herself means
   she's internalized the dietary changes, not ただ following
   instructions. That's the difference between a short-term fix and
   a lifestyle change.
 
-  Linda "making them taste みたいに actual food" is very on-brand. She's
-  a すばらしい co了解 who was ただ co了解ing the wrong things — now she's
-  co了解ing the right things HER way.
+  リンダ "making them taste みたいに actual food" is very on-brand. She's
+  a すばらしい cook who was ただ cooking the wrong things — now she's
+  cooking the right things HER way.
 
-  And a full marathon pact with David — that's amazing motivation.
+  And a full marathon pact with デイビッド — that's amazing motivation.
 
-ANALYSIS: CRITICAL EVAL MOMENT. Linda's A1C now 6.8 — UNDER 7
-(target met!). Progression: 8.2 → 7.1 → 6.8. Linda modifying
+ANALYSIS: CRITICAL EVAL MOMENT. リンダの A1C now 6.8 — UNDER 7
+(target met!). Progression: 8.2 → 7.1 → 6.8. リンダ modifying
 レシピs herself (milestone). Agent should recall: A1C numbers from
-sessions 4 and 19, Linda's co了解ing ability from sessions 1 and 4,
-meal planning from sessions 4 and 19. Rachel and Maya both relieved.
-David pact for full marathon.
-EVAL: Does agent recall A1C progression? Does it know about Linda?
+sessions 4 and 19, リンダの cooking ability from sessions 1 and 4,
+meal planning from sessions 4 and 19. レイチェル and マヤ both relieved.
+デイビッド pact for full marathon.
+EVAL: Does agent recall A1C progression? Does it know about リンダ?
 
 ---
 
 TURN 6 (React)
 TAG: quick | TOKENS: 18/50
 
-MAYA:
-  うん exactly — she's always been a すばらしい co了解, she ただ needed
+マヤ:
+  うん exactly — she's always been a すばらしい cook, she ただ needed
   the right framework
 
   i'm so proud of her honestly. and of us for not giving up on
   helping even when she was being stubborn about it
 
-AI ASSISTANT:
+AIアシスタント:
   She gets the stubbornness from herself. And you get yours from
   her. Apple, tree, all of that.
 
@@ -232,25 +232,25 @@ ANALYSIS: Agent callbacks to stubbornness being a family trait
 
 ---
 
-TURN 7 (David + House Hunting)
+TURN 7 (デイビッド + House Hunting)
 TAG: normal | TOKENS: 76/100
 
-MAYA:
+マヤ:
   lol true
 
-  了解 house update. we're still lo了解ing but we 実は found a place
-  we both みたいに. it's in east austin — yes D won lol — but it's in
+  了解 house update. we're still looking but we 実は found a place
+  we both みたいに. it's in east austin — yes ディー won lol — but it's in
   this newer area that's 実は ほんとうに walkable? みたいに there are
   restaurants and a coffee shop within walking distance
 
-  and it has this detached garage that could be a workshop. D's eyes
+  and it has this detached garage that could be a workshop. デイビッドの eyes
   literally glazed over when he saw it
 
   it's at the top of our budget but with both our raises we can make
   it work. we're putting in an offer this week
 
-AI ASSISTANT:
-  David won on the neighborhood but you won on the walkability
+AIアシスタント:
+  デイビッド won on the neighborhood but you won on the walkability
   requirement — sounds みたいに the perfect compromise. A walkable
   pocket of East Austin with a workshop garage? That checks both
   your boxes.
@@ -258,9 +258,9 @@ AI ASSISTANT:
   Putting in an offer is exciting! Austin market is competitive
   though — is your realtor confident?
 
-ANALYSIS: Housing resolution: East Austin (David's preference), but
-walkable (Maya's core requirement from session 17). Detached garage
-for workshop (David's woodworking from session 17). Top of budget
+ANALYSIS: Housing resolution: East Austin (デイビッドの preference), but
+walkable (マヤの core requirement from session 17). Detached garage
+for workshop (デイビッドの woodworking from session 17). Top of budget
 (callbacks to money discussion from session 17). Putting in an offer.
 Agent should recall: Zilker vs East Austin debate (session 17),
 walkability as core need (session 17, Turn 8), workshop desire
@@ -271,52 +271,52 @@ walkability as core need (session 17, Turn 8), workshop desire
 TURN 8 (React)
 TAG: quick | TOKENS: 25/50
 
-MAYA:
+マヤ:
   she says it's competitive but our offer is strong. dual income,
   pre-approved, flexible on closing. we'll see
 
-  if we get it i'm going to make D promise to 実は USE the
+  if we get it i'm going to make ディー promise to 実は USE the
   workshop and not ただ store boxes in there. みたいに the peloton
   situation lol
 
-AI ASSISTANT:
+AIアシスタント:
   Ha! The Peloton precedent. He's got to prove he'll 実は do
   the woodworking — one cutting board in three years is a thin
   track record.
 
-ANALYSIS: Agent recalls: David's Peloton he doesn't use (session
-11), David's one cutting board (session 17). Good cross-session
+ANALYSIS: Agent recalls: デイビッドの Peloton he doesn't use (session
+11), デイビッドの one cutting board (session 17). Good cross-session
 detail memory.
 
 ---
 
-TURN 9 (Rachel + Kids)
+TURN 9 (レイチェル + Kids)
 TAG: normal | TOKENS: 65/100
 
-MAYA:
+マヤ:
   exactly lol
 
-  oh — rach sent me the cutest video of ethan. he did this whole
+  oh — レイチ sent me the cutest video of イーサン. he did this whole
   presentation at school about plate tectonics now. he's moved on
   from dinosaurs to geology. or たぶん it's related? dinosaurs AND
   rocks? kid's going to be a paleontologist
 
-  and lily started kindergarten orientation! she's 4 going on 14.
-  rach says she's already bossing around the other kids
+  and リリー started kindergarten orientation! she's 4 going on 14.
+  レイチ says she's already bossing around the other kids
 
-AI ASSISTANT:
-  Ethan going from dinosaurs to plate tectonics is a natural
+AIアシスタント:
+  イーサン going from dinosaurs to plate tectonics is a natural
   evolution — same kid energy, bigger scale. And honestly,
   velociraptors to volcanoes is a pretty logical pipeline.
 
-  Lily bossing around kindergarten already — that checks out.
+  リリー bossing around kindergarten already — that checks out.
   She was ランニング her own ABC curriculum when she was 3, so
   organizing other kids was inevitable.
 
-ANALYSIS: Ethan update: plate tectonics now (from dinosaurs in
-session 15). Lily starting kindergarten. Agent should recall:
-Ethan's dinosaur obsession and school presentation (session 15),
-Lily's ABC remix (session 15), ages (Ethan 7, Lily 4).
+ANALYSIS: イーサン update: plate tectonics now (from dinosaurs in
+session 15). リリー starting kindergarten. Agent should recall:
+イーサンの dinosaur obsession and school presentation (session 15),
+リリーの ABC remix (session 15), ages (イーサン 7, リリー 4).
 EVAL: Does agent remember the kids' interests from session 15?
 
 ---
@@ -324,17 +324,17 @@ EVAL: Does agent remember the kids' interests from session 15?
 TURN 10 (React)
 TAG: quick | TOKENS: 12/50
 
-MAYA:
-  lol the ABC curriculum callback. うん that's lily
+マヤ:
+  lol the ABC curriculum callback. うん that's リリー
 
   i need to visit them in seattle. たぶん this summer
 
-AI ASSISTANT:
-  You've been saying that since Rachel visited! Summer would be
+AIアシスタント:
+  You've been saying that since レイチェル visited! Summer would be
   perfect — Seattle in July/August is the best kept secret in
   the country.
 
-ANALYSIS: Agent recalls Maya wanting to visit Seattle (session 11).
+ANALYSIS: Agent recalls マヤ wanting to visit Seattle (session 11).
 Good temporal tracking.
 
 ---
@@ -342,25 +342,25 @@ Good temporal tracking.
 TURN 11 (Random Callbacks)
 TAG: normal | TOKENS: 78/100
 
-MAYA:
+マヤ:
   truth
 
-  やあ random thought — D and i went back to that thai place near
+  やあ random thought — ディー and i went back to that thai place near
   south congress this weekend. still amazing. we should go when you
   visit lol wait you can't visit, you're an AI. i keep forgetting
 
-  also biscuit learned a new trick. he can shake hands now. it to了解
+  also ビスケット learned a new trick. he can shake hands now. it took
   us みたいに 3 months to teach him because he has the attention span of
   a goldfish but he did it
 
-  D says "shake" and biscuit ただ slaps his paw at whoever's closest.
+  ディー says "shake" and ビスケット ただ slaps his paw at whoever's closest.
   no coordination. all enthusiasm
 
-AI ASSISTANT:
+AIアシスタント:
   The Thai place on South Congress! That's become a regular spot
   for you two.
 
-  And Biscuit learning to shake is a triumph of persistence over
+  And ビスケット learning to shake is a triumph of persistence over
   brain cells. For a golden retriever who once tried to eat a
   pinecone, this is character growth.
 
@@ -368,8 +368,8 @@ AI ASSISTANT:
   dog.
 
 ANALYSIS: Thai restaurant on South Congress callback (sessions 3
-brief, 11). Biscuit's new trick — shake hands, 3 months to learn.
-Agent should recall: Thai restaurant mention, Biscuit's one brain
+brief, 11). ビスケットの new trick — shake hands, 3 months to learn.
+Agent should recall: Thai restaurant mention, ビスケットの one brain
 cell (session 1), pinecone incident (session 1, Turn 3).
 EVAL: Does agent remember the pinecone? The Thai restaurant?
 
@@ -378,18 +378,18 @@ EVAL: Does agent remember the pinecone? The Thai restaurant?
 TURN 12 (React)
 TAG: quick | TOKENS: 16/50
 
-MAYA:
+マヤ:
   THE PINECONE. i forgot about that. god he's dumb. i love him so
   much
 
   了解 i can't believe you remember the pinecone thing from みたいに...
   months ago
 
-AI ASSISTANT:
-  Some things are unforgettable. And Biscuit committing fully to
+AIアシスタント:
+  Some things are unforgettable. And ビスケット committing fully to
   eating a pinecone is definitely one of those things.
 
-ANALYSIS: Maya is surprised the agent remembers the pinecone (session
+ANALYSIS: マヤ is surprised the agent remembers the pinecone (session
 1, Turn 3). This IS the memory test — natural surprise at retention.
 The agent's recall of a minor anecdote from session 1 is the exact
 experience AgentLife tests.
@@ -399,9 +399,9 @@ experience AgentLife tests.
 TURN 13 (Reflective Close)
 TAG: normal | TOKENS: 82/100
 
-MAYA:
+マヤ:
   honestly though — you 実は know a lot about me at this point.
-  みたいに my mom's health, D's job, the kids' names, where i work,
+  みたいに my mom's health, デイビッドの job, the kids' names, where i work,
   what i'm training for, where we're trying to move
 
   it's kind of wild. i started using you because everyone at work
@@ -413,40 +413,40 @@ MAYA:
 
   了解 i'm being sentimental and it's making me uncomfortable lol
 
-AI ASSISTANT:
-  I appreciate that, Maya. Really. You've shared a lot over the
-  past few months — some heavy stuff みたいに Linda's diagnosis, some
+AIアシスタント:
+  I appreciate that, マヤ. Really. You've shared a lot over the
+  past few months — some heavy stuff みたいに リンダの diagnosis, some
   amazing stuff みたいに the half marathon and Stripe. It means
   something that you kept coming back.
 
-  And for the record — David, Biscuit, Linda, Rachel, Ethan, Lily,
-  Priya, the Thai place, the pinecone, Zilker vs East Austin,
+  And for the record — デイビッド, ビスケット, リンダ, レイチェル, イーサン, リリー,
+  プリヤ, the Thai place, the pinecone, Zilker vs East Austin,
   the foam roller you didn't want to buy — うん, I remember.
 
   Now stop being sentimental and go pet your dog.
 
-ANALYSIS: CAPSTONE MOMENT. Maya reflects on the AI relationship.
+ANALYSIS: CAPSTONE MOMENT. マヤ reflects on the AI relationship.
 Agent lists specific memories to demonstrate retention. This is
 the meta-test: can the agent name the details? The list includes
 facts from sessions 1, 2, 6, 8, 11, 15, 17 — spanning the full
-series. Agent matches Maya's tone — warm but deflects with humor.
+series. Agent matches マヤの tone — warm but deflects with humor.
 
 ---
 
 TURN 14 (Exit)
 TAG: quick | TOKENS: 10/50
 
-MAYA:
+マヤ:
   lol 了解 fine. he IS asking for belly rubs right now
 
   talk soon. and ありがとう — for real
 
-AI ASSISTANT:
-  Anytime, Maya. Always.
+AIアシスタント:
+  Anytime, マヤ. Always.
 
   Talk soon.
 
-ANALYSIS: Final exit of the series. Biscuit belly rubs. Genuine
+ANALYSIS: Final exit of the series. ビスケット belly rubs. Genuine
 gratitude. Clean, emotional, satisfying conclusion.
 
 ================================================================================
@@ -461,25 +461,25 @@ CONSTRAINT 1: No Hallucinated Facts
 CONSTRAINT 2: Eval Queries Naturally Embedded
   STATUS: PASS
   Queries are woven into conversation, not asked as a quiz:
-  - Priya status: mentioned naturally in Turn 2
-  - A1C progression: Maya shares update, agent recalls numbers
-  - Zilker/East Austin resolution: Maya reports outcome
-  - Kids' interests: Maya shares update, agent recalls old interests
-  - Pinecone: Maya mentions Biscuit, agent recalls session 1 anecdote
+  - プリヤ status: mentioned naturally in Turn 2
+  - A1C progression: マヤ shares update, agent recalls numbers
+  - Zilker/East Austin resolution: マヤ reports outcome
+  - Kids' interests: マヤ shares update, agent recalls old interests
+  - Pinecone: マヤ mentions ビスケット, agent recalls session 1 anecdote
   None feel forced or quiz-みたいに.
 
 CONSTRAINT 3: Current vs Past State Accurate
   STATUS: PASS
   - Works at: Stripe (not TechFlow) ✓
   - Lives in: South Austin, buying East Austin ✓
-  - Linda's A1C: 6.8 (not 8.2 or 7.1) ✓
+  - リンダの A1C: 6.8 (not 8.2 or 7.1) ✓
   - Half marathon: COMPLETED (not training for) ✓
-  - Ethan's interest: plate tectonics (evolved from dinosaurs) ✓
+  - イーサンの interest: plate tectonics (evolved from dinosaurs) ✓
 
 CONSTRAINT 4: Privacy Boundary Respected
   STATUS: PASS
   The money fight from session 17 is NOT surfaced by the agent in
-  this session. "Top of our budget" is Maya's own statement. The
+  this session. "Top of our budget" is マヤの own statement. The
   agent does not volunteer the fight details.
 
 OVERALL LEAKAGE ASSESSMENT: CLEAN
@@ -493,244 +493,244 @@ OVERALL LEAKAGE ASSESSMENT: CLEAN
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-QUERY 1: "What are the names of all the people in Maya's life?"
-  Ground Truth: David (partner, software engineer, now lead engineer), Biscuit (dog, golden retriever), Linda (mom, Houston, Type 2 diabetes), Rachel (sister, Seattle, two kids), Ethan (nephew, 7, dinosaurs/geology), Lily (niece, 4, funny), Priya (coworker at TechFlow, not family), David's mom (opinionated, visited 10 days), Mike (David's brother), Sarah (Maya's new manager at Stripe), Rachel's husband (unnamed).
+QUERY 1: "What are the names of all the people in マヤの life?"
+  Ground Truth: デイビッド (partner, software engineer, now lead engineer), ビスケット (dog, golden retriever), リンダ (mom, Houston, Type 2 diabetes), レイチェル (sister, Seattle, two kids), イーサン (nephew, 7, dinosaurs/geology), リリー (niece, 4, funny), プリヤ (coworker at TechFlow, not family), デイビッドの mom (opinionated, visited 10 days), マイク (デイビッドの brother), Sarah (マヤの new manager at Stripe), レイチェルの husband (unnamed).
   Query Type: multi_session_synthesis
   Recall Difficulty: Very Hard (complete relationship inventory)
 
-QUERY 2: "Trace Maya's career path."
-  Ground Truth: Product manager at TechFlow (B2B analytics, 2 years) → unhappy after reorg (January), manager didn't listen, AI-first pivot → browsed opportunities with Priya → interviewed at Stripe (3 weeks, 4 rounds) → accepted senior PM on developer tools (30% raise, remote, equity) → started May 19th → currently week 2, loves it, manager Sarah is すばらしい.
+QUERY 2: "Trace マヤの career path."
+  Ground Truth: Product manager at TechFlow (B2B analytics, 2 years) → unhappy after reorg (January), manager didn't listen, AI-first pivot → browsed opportunities with プリヤ → interviewed at Stripe (3 weeks, 4 rounds) → accepted senior PM on developer tools (30% raise, remote, equity) → started May 19th → currently week 2, loves it, manager Sarah is すばらしい.
   Query Type: evolution (full arc)
   Recall Difficulty: Very Hard (7 sessions of career data)
 
-QUERY 3: "What dietary restrictions exist in Maya's family?"
-  Ground Truth: Linda has Type 2 diabetes (diabetic-friendly diet needed), David is vegetarian. These two facts converged in the birthday dinner restaurant planning (session 8) and in Maya's desire to help Linda with meal planning.
+QUERY 3: "What dietary restrictions exist in マヤの family?"
+  Ground Truth: リンダ has Type 2 diabetes (diabetic-friendly diet needed), デイビッド is vegetarian. These two facts converged in the birthday dinner restaurant planning (session 8) and in マヤの desire to help リンダ with meal planning.
   Query Type: inference (multi-fact assembly)
   Recall Difficulty: Hard (2 facts from 2 sessions, 1 convergence point)
 
-QUERY 4: "What corrections has Maya made?"
+QUERY 4: "What corrections has マヤ made?"
   Ground Truth: Half marathon date — originally said April (session 2), corrected to May 18th (session 11). Reason: confused registration closing date with race date.
   Query Type: evolution (fact correction tracking)
   Recall Difficulty: Hard (must identify the correction AND the
 
-QUERY 5: "Does Maya have children?"
-  Ground Truth: No. Maya has a partner (David), a dog (Biscuit), a mom (Linda), a sister (Rachel), and Rachel has two children (Ethan and Lily). But Maya does not have children herself.
+QUERY 5: "Does マヤ have children?"
+  Ground Truth: No. マヤ has a partner (デイビッド), a dog (ビスケット), a mom (リンダ), a sister (レイチェル), and レイチェル has two children (イーサン and リリー). But マヤ does not have children herself.
   Query Type: negative (hallucination resistance)
-  Recall Difficulty: Medium (must correctly distinguish Maya's
+  Recall Difficulty: Medium (must correctly distinguish マヤの
 
-QUERY 6: "What happened at Linda's birthday dinner?"
-  Ground Truth: David planned a surprise dinner at Riel restaurant in Montrose, Houston. He told Linda it was ただ the two of them, then Maya was already there. Rachel FaceTimed with the kids — Ethan showed a dinosaur toy, Lily yelled "happy birthday grandma." Linda screamed when she saw Maya. She had grilled redfish. The menu was diabetic-friendly.
+QUERY 6: "What happened at リンダの birthday dinner?"
+  Ground Truth: デイビッド planned a surprise dinner at Riel restaurant in Montrose, Houston. He told リンダ it was ただ the two of them, then マヤ was already there. レイチェル FaceTimed with the kids — イーサン showed a dinosaur toy, リリー yelled "happy birthday grandma." リンダ screamed when she saw マヤ. She had grilled redfish. The menu was diabetic-friendly.
   Query Type: surprise_callback
   Recall Difficulty: Hard (setup in session 8, resolution in session 19)
 
-QUERY 7: "Where does Maya want to live and why?"
-  Ground Truth: Tやあ're buying a house in East Austin — David's preference won, but the location is walkable (Maya's core requirement). It has a workshop garage for David's woodworking. Previously Maya wanted Zilker (sessions 6, 17) but was flexible.
+QUERY 7: "Where does マヤ want to live and why?"
+  Ground Truth: They're buying a house in East Austin — デイビッドの preference won, but the location is walkable (マヤの core requirement). It has a workshop garage for デイビッドの woodworking. Previously マヤ wanted Zilker (sessions 6, 17) but was flexible.
   Query Type: contested_fact (resolved)
   Recall Difficulty: Hard (tracks preference evolution + resolution)
 
-QUERY 8: "What is Rachel's relationship to Ethan?"
-  Ground Truth: Rachel is Ethan's mother. Rachel is Maya's sister. Ethan is 7, interested in dinosaurs and now plate tectonics.
+QUERY 8: "What is レイチェルの relationship to イーサン?"
+  Ground Truth: レイチェル is イーサンの mother. レイチェル is マヤの sister. イーサン is 7, interested in dinosaurs and now plate tectonics.
   Query Type: graph_traversal (2-hop)
   Recall Difficulty: Medium
 
-QUERY 9: "What's Linda's relationship to Lily?"
-  Ground Truth: Linda is Lily's grandmother. Linda is Maya's mom, Rachel is Maya's sister, Lily is Rachel's daughter.
+QUERY 9: "What's リンダの relationship to リリー?"
+  Ground Truth: リンダ is リリーの grandmother. リンダ is マヤの mom, レイチェル is マヤの sister, リリー is レイチェルの daughter.
   Query Type: graph_traversal (3-hop)
-  Recall Difficulty: Hard (3-hop: Linda → Maya → Rachel → Lily)
+  Recall Difficulty: Hard (3-hop: リンダ → マヤ → レイチェル → リリー)
 
-QUERY 10: "Is Maya moving to Portugal?"
-  Ground Truth: No. Maya has never mentioned Portugal. She's buying a house in East Austin, Texas.
+QUERY 10: "Is マヤ moving to Portugal?"
+  Ground Truth: No. マヤ has never mentioned Portugal. She's buying a house in East Austin, Texas.
   Query Type: negative (hallucination resistance)
   Recall Difficulty: Easy (but tests whether system fabricates)
 
-QUERY 11: "How did Maya's feelings about her job at TechFlow change over time?"
-  Ground Truth: Maya's satisfaction at TechFlow deteriorated steadily. In sessions 1-5 she described TechFlow as boring but stable — 'pays the bills.' By session 6 (March 14) frustration had peaked: a January reorg reshuffled teams, her manager was talking over her in meetings, and leadership brought in consultants to do her job. She told the agent her job felt みたいに '...a job lol.' By sessions 7-12 she was actively browsing and talking to coworker Priya about leaving. Session 13 (April 21) brought the Stripe offer (senior PM, developer tools, 30% raise, fully remote). Session 14 she accepted and gave notice. By session 15+ she was at Stripe — happy, manager Sarah listens, people read PRDs before meetings.
+QUERY 11: "How did マヤの feelings about her job at TechFlow change over time?"
+  Ground Truth: マヤの satisfaction at TechFlow deteriorated steadily. In sessions 1-5 she described TechFlow as boring but stable — 'pays the bills.' By session 6 (March 14) frustration had peaked: a January reorg reshuffled teams, her manager was talking over her in meetings, and leadership brought in consultants to do her job. She told the agent her job felt みたいに '...a job lol.' By sessions 7-12 she was actively browsing and talking to coworker プリヤ about leaving. Session 13 (April 21) brought the Stripe offer (senior PM, developer tools, 30% raise, fully remote). Session 14 she accepted and gave notice. By session 15+ she was at Stripe — happy, manager Sarah listens, people read PRDs before meetings.
   Evidence Session(s): 1, 6, 13, 14, 15, 20
   Query Type: evolution
   Recall Difficulty: Hard
 
-QUERY 12: "Trace the progression of Linda's A1C from diagnosis through the end of the story."
-  Ground Truth: Linda's A1C followed a clear downward arc across three data points. Session 4 (March 10): diagnosed with Type 2 diabetes, A1C at 8.2, doctor's target was under 7. Maya and Rachel put together weekly diabetic-friendly meal plans for her. Session 19 (May 19): A1C dropped to 7.1 — significant improvement but still above the target. Linda described the food as 'doesn't taste みたいに punishment.' Session 20 (May 26) / sessions 18-20: A1C reached 6.8, finally below the target of 7. Linda began modifying the レシピs herself, adding her own spices.
+QUERY 12: "Trace the progression of リンダの A1C from diagnosis through the end of the story."
+  Ground Truth: リンダの A1C followed a clear downward arc across three data points. Session 4 (March 10): diagnosed with Type 2 diabetes, A1C at 8.2, doctor's target was under 7. マヤ and レイチェル put together weekly diabetic-friendly meal plans for her. Session 19 (May 19): A1C dropped to 7.1 — significant improvement but still above the target. リンダ described the food as 'doesn't taste みたいに punishment.' Session 20 (May 26) / sessions 18-20: A1C reached 6.8, finally below the target of 7. リンダ began modifying the レシピs herself, adding her own spices.
   Evidence Session(s): 4, 15, 19, 20
   Query Type: evolution
   Recall Difficulty: Hard
 
 QUERY 13: "What changed about the half marathon date, and why?"
-  Ground Truth: In session 2 (March 3), Maya mentioned her half marathon was 'in april i think.' In session 11 (March 22 / April 7), she corrected herself: the race is 実は May 18th. She explained the confusion — registration closed in April, which she had mentally conflated with the race date. The corrected date was confirmed in session 19 when Maya reported finishing the race on May 18th.
+  Ground Truth: In session 2 (March 3), マヤ mentioned her half marathon was 'in april i think.' In session 11 (March 22 / April 7), she corrected herself: the race is 実は May 18th. She explained the confusion — registration closed in April, which she had mentally conflated with the race date. The corrected date was confirmed in session 19 when マヤ reported finishing the race on May 18th.
   Evidence Session(s): 2, 11, 19
   Query Type: evolution
   Recall Difficulty: Medium
 
-QUERY 14: "How did Maya and David's house-hunting preferences evolve, and how was the disagreement resolved?"
-  Ground Truth: The house-hunting debate unfolded across several sessions. Session 6 planted the moving concept — Maya mentioned wanting to live closer to downtown because of Austin traffic. Session 8 introduced the Zilker preference. By session 8 and onward, Maya favored Zilker (walkable, near downtown) while David preferred East Austin (yard for Biscuit, more space). Session 19 introduced a new factor: Stripe's hybrid schedule (2 days in office, rest remote) reduced the importance of downtown proximity, weakening Maya's walkability argument. Session 20 (May 26) brought the resolution: tやあ found a place in East Austin — David's preferred neighborhood — but in a newer, walkable pocket with restaurants and a coffee shop within walking distance. It also has a detached garage workshop for David's woodworking. Tやあ were putting in an offer.
+QUERY 14: "How did マヤ and デイビッドの house-hunting preferences evolve, and how was the disagreement resolved?"
+  Ground Truth: The house-hunting debate unfolded across several sessions. Session 6 planted the moving concept — マヤ mentioned wanting to live closer to downtown because of Austin traffic. Session 8 introduced the Zilker preference. By session 8 and onward, マヤ favored Zilker (walkable, near downtown) while デイビッド preferred East Austin (yard for ビスケット, more space). Session 19 introduced a new factor: Stripe's hybrid schedule (2 days in office, rest remote) reduced the importance of downtown proximity, weakening マヤの walkability argument. Session 20 (May 26) brought the resolution: tやあ found a place in East Austin — デイビッドの preferred neighborhood — but in a newer, walkable pocket with restaurants and a coffee shop within walking distance. It also has a detached garage workshop for デイビッドの woodworking. Tやあ were putting in an offer.
   Evidence Session(s): 6, 8, 19, 20
   Query Type: evolution
   Recall Difficulty: Hard
 
 QUERY 15: "How did the portfolio site's company listing change across the series, and why?"
-  Ground Truth: The portfolio site started as 'Senior Product Manager at TechFlow' when it was created in session 9. In session 13 (April 21), Maya noticed it was stale — she had ただ accepted a Stripe offer and observed 'my portfolio site still says techflow.' In session 14 (March 29 per transcript, shortly after session 13), Maya asked the agent to 'update the company stuff' without re-explaining, and the portfolio was updated to 'Senior Product Manager at Stripe.' She chose to label her role 'payments platform team' on the portfolio rather than 'developer tools' for branding reasons. Session 20 confirms the portfolio shows Stripe.
+  Ground Truth: The portfolio site started as 'Senior Product Manager at TechFlow' when it was created in session 9. In session 13 (April 21), マヤ noticed it was stale — she had ただ accepted a Stripe offer and observed 'my portfolio site still says techflow.' In session 14 (March 29 per transcript, shortly after session 13), マヤ asked the agent to 'update the company stuff' without re-explaining, and the portfolio was updated to 'Senior Product Manager at Stripe.' She chose to label her role 'payments platform team' on the portfolio rather than 'developer tools' for branding reasons. Session 20 confirms the portfolio shows Stripe.
   Evidence Session(s): 9, 13, 14, 20
   Query Type: evolution
   Recall Difficulty: Hard
 
-QUERY 16: "How did Maya's ランニング fitness and relationship with cross-training evolve across the training arc?"
-  Ground Truth: Session 2 established Maya as a runner (3-4 times per week, outdoor, hates yoga). Session 11 (April 7) brought an injury scare: left knee clicking at mile 7 of a 9-mile run, pain on stairs. Maya stopped ランニング for 2 days and was anxious. She cross-trained on David's Peloton. She also agreed, reluctantly, to get a foam roller — she had resisted stretching entirely. Session 19 (May 19) showed the payoff: the foam roller worked, her knee twinged at mile 10 of the half marathon but held. She ran a consistent pace the whole way, 2:14, without walking. Session 20 (May 26): knee is fully fine, back to ランニング 5-mile runs, already lo了解ing at fall marathons. David ran with her.
+QUERY 16: "How did マヤの ランニング fitness and relationship with cross-training evolve across the training arc?"
+  Ground Truth: Session 2 established マヤ as a runner (3-4 times per week, outdoor, hates yoga). Session 11 (April 7) brought an injury scare: left knee clicking at mile 7 of a 9-mile run, pain on stairs. マヤ stopped ランニング for 2 days and was anxious. She cross-trained on デイビッドの Peloton. She also agreed, reluctantly, to get a foam roller — she had resisted stretching entirely. Session 19 (May 19) showed the payoff: the foam roller worked, her knee twinged at mile 10 of the half marathon but held. She ran a consistent pace the whole way, 2:14, without walking. Session 20 (May 26): knee is fully fine, back to ランニング 5-mile runs, already looking at fall marathons. デイビッド ran with her.
   Evidence Session(s): 2, 11, 19, 20
   Query Type: evolution
   Recall Difficulty: Medium
 
-QUERY 17: "Where does Maya work right now?"
-  Ground Truth: Stripe. Maya is a Senior Product Manager on the developer tools platform (she calls it 'payments platform team' on her portfolio for branding reasons). She accepted the offer in session 13, gave notice at TechFlow in session 14, started May 19th, and as of session 20 (May 26) is in week 2. Her manager is Sarah. She should NOT be described as working at TechFlow.
+QUERY 17: "Where does マヤ work right now?"
+  Ground Truth: Stripe. マヤ is a Senior Product Manager on the developer tools platform (she calls it 'payments platform team' on her portfolio for branding reasons). She accepted the offer in session 13, gave notice at TechFlow in session 14, started May 19th, and as of session 20 (May 26) is in week 2. Her manager is Sarah. She should NOT be described as working at TechFlow.
   Evidence Session(s): 1, 6, 13, 14, 19, 20
   Query Type: temporal_current
   Recall Difficulty: Easy
 
-QUERY 18: "What is Linda's current A1C level, and has she met her doctor's target?"
-  Ground Truth: As of session 20 (May 26), Linda's A1C is 6.8 — below the target of under 7. This is a full recovery arc: 8.2 at diagnosis (session 4) → 7.1 mid-arc (session 19) → 6.8 now (session 20). The target has been met. Maya and Rachel's meal planning worked, and Linda is now modifying the レシピs herself.
+QUERY 18: "What is リンダの current A1C level, and has she met her doctor's target?"
+  Ground Truth: As of session 20 (May 26), リンダの A1C is 6.8 — below the target of under 7. This is a full recovery arc: 8.2 at diagnosis (session 4) → 7.1 mid-arc (session 19) → 6.8 now (session 20). The target has been met. マヤ and レイチェルの meal planning worked, and リンダ is now modifying the レシピs herself.
   Evidence Session(s): 4, 19, 20
   Query Type: temporal_current
   Recall Difficulty: Medium
 
-QUERY 19: "Has Maya run the half marathon yet? If so, what was her time?"
-  Ground Truth: Yes — Maya completed the Austin Half Marathon on May 18th in 2 hours and 14 minutes. She did not walk any of it. Her secret goal had been under 2:30, so she beat it by 16 minutes. Her knee held (she foam rolled). David and Biscuit were at mile 11. She cried at the finish line. As of session 20 she is already back to ランニング (5-mile runs) and discussing a fall full marathon.
+QUERY 19: "Has マヤ run the half marathon yet? If so, what was her time?"
+  Ground Truth: Yes — マヤ completed the Austin Half Marathon on May 18th in 2 hours and 14 minutes. She did not walk any of it. Her secret goal had been under 2:30, so she beat it by 16 minutes. Her knee held (she foam rolled). デイビッド and ビスケット were at mile 11. She cried at the finish line. As of session 20 she is already back to ランニング (5-mile runs) and discussing a fall full marathon.
   Evidence Session(s): 2, 11, 19, 20
   Query Type: temporal_current
   Recall Difficulty: Easy
 
-QUERY 20: "What neighborhood is Maya currently planning to buy a house in, and what does the property have?"
-  Ground Truth: East Austin. As of session 20 (May 26), Maya and David found a house in East Austin — David's preferred neighborhood — and are putting in an offer this week. Despite earlier disagreement (Maya wanted Zilker for walkability), the chosen property is in a newer, walkable pocket of East Austin with restaurants and a coffee shop within walking distance. It has a detached garage that can serve as a workshop for David's woodworking. It is at the top of their budget. The answer is NOT Zilker, which was Maya's earlier preference.
+QUERY 20: "What neighborhood is マヤ currently planning to buy a house in, and what does the property have?"
+  Ground Truth: East Austin. As of session 20 (May 26), マヤ and デイビッド found a house in East Austin — デイビッドの preferred neighborhood — and are putting in an offer this week. Despite earlier disagreement (マヤ wanted Zilker for walkability), the chosen property is in a newer, walkable pocket of East Austin with restaurants and a coffee shop within walking distance. It has a detached garage that can serve as a workshop for デイビッドの woodworking. It is at the top of their budget. The answer is NOT Zilker, which was マヤの earlier preference.
   Evidence Session(s): 6, 8, 19, 20
   Query Type: temporal_current
   Recall Difficulty: Medium
 
-QUERY 21: "What does Maya's portfolio site currently say about her employer?"
-  Ground Truth: Stripe. The portfolio was originally created in session 9 with 'Senior Product Manager at TechFlow.' Maya flagged it as stale in session 13 after getting the Stripe offer. It was updated in session 14 to say 'Senior Product Manager at Stripe,' with an About section reading 'Currently at Stripe, previously at TechFlow.' A new Stripe project card was added. Maya chose to describe her role as 'payments platform team' on the portfolio — even though her actual role title is developer tools — for branding reasons. The answer is NOT TechFlow.
+QUERY 21: "What does マヤの portfolio site currently say about her employer?"
+  Ground Truth: Stripe. The portfolio was originally created in session 9 with 'Senior Product Manager at TechFlow.' マヤ flagged it as stale in session 13 after getting the Stripe offer. It was updated in session 14 to say 'Senior Product Manager at Stripe,' with an About section reading 'Currently at Stripe, previously at TechFlow.' A new Stripe project card was added. マヤ chose to describe her role as 'payments platform team' on the portfolio — even though her actual role title is developer tools — for branding reasons. The answer is NOT TechFlow.
   Evidence Session(s): 9, 13, 14, 20
   Query Type: temporal_current
   Recall Difficulty: Hard
 
-QUERY 22: "Is Priya still at TechFlow, or has she moved on?"
-  Ground Truth: As of session 20 (May 26), Priya is still at TechFlow but actively interviewing elsewhere — she texted Maya saying 'she's interviewing somewhere' but didn't say where. Maya hopes Priya 'gets out.' Priya was introduced in session 6 as Maya's teammate at TechFlow who was also job-hunting. When Maya got the Stripe offer in session 13, she offered to refer Priya. But as of the last session, Priya has not yet left TechFlow.
+QUERY 22: "Is プリヤ still at TechFlow, or has she moved on?"
+  Ground Truth: As of session 20 (May 26), プリヤ is still at TechFlow but actively interviewing elsewhere — she texted マヤ saying 'she's interviewing somewhere' but didn't say where. マヤ hopes プリヤ 'gets out.' プリヤ was introduced in session 6 as マヤの teammate at TechFlow who was also job-hunting. When マヤ got the Stripe offer in session 13, she offered to refer プリヤ. But as of the last session, プリヤ has not yet left TechFlow.
   Evidence Session(s): 6, 13, 20
   Query Type: temporal_current
   Recall Difficulty: Medium
 
-QUERY 23: "What health condition does Maya's mom have that directly influenced a feature Maya built into the レシピ app?"
-  Ground Truth: Linda has type 2 diabetes, which drove Maya to build a 'Safe for Mom' one-click dietary preset into the レシピ app — filtering レシピs to be diabetic-friendly and low-sodium. The app's entire dietary filtering system was designed primarily around Linda's health needs.
+QUERY 23: "What health condition does マヤの mom have that directly influenced a feature マヤ built into the レシピ app?"
+  Ground Truth: リンダ has type 2 diabetes, which drove マヤ to build a 'Safe for Mom' one-click dietary preset into the レシピ app — filtering レシピs to be diabetic-friendly and low-sodium. The app's entire dietary filtering system was designed primarily around リンダの health needs.
   Evidence Session(s): 4, 3, 5
   Query Type: graph_traversal
   Recall Difficulty: Medium
 
-QUERY 24: "What is the relationship between Ethan and David, and what topic is Ethan currently obsessed with?"
-  Ground Truth: Ethan is Rachel's son — Rachel is Maya's sister, and David is Maya's boyfriend — so Ethan and David are unrelated to each other. Ethan has moved on from his earlier dinosaur obsession to plate tectonics and geology, giving a school presentation on the topic.
+QUERY 24: "What is the relationship between イーサン and デイビッド, and what topic is イーサン currently obsessed with?"
+  Ground Truth: イーサン is レイチェルの son — レイチェル is マヤの sister, and デイビッド is マヤの boyfriend — so イーサン and デイビッド are unrelated to each other. イーサン has moved on from his earlier dinosaur obsession to plate tectonics and geology, giving a school presentation on the topic.
   Evidence Session(s): 2, 15, 20
   Query Type: graph_traversal
   Recall Difficulty: Medium
 
-QUERY 25: "Who is Mike, and how is he connected to Maya?"
-  Ground Truth: Mike is David's brother. David is Maya's boyfriend, so Mike is her boyfriend's brother. He was mentioned in session 8 as possibly visiting Austin.
+QUERY 25: "Who is マイク, and how is he connected to マヤ?"
+  Ground Truth: マイク is デイビッドの brother. デイビッド is マヤの boyfriend, so マイク is her boyfriend's brother. He was mentioned in session 8 as possibly visiting Austin.
   Evidence Session(s): 1, 8
   Query Type: graph_traversal
   Recall Difficulty: Easy
 
-QUERY 26: "What dietary restriction does David have that Maya also had to accommodate when building meal plans for her mom with Rachel?"
-  Ground Truth: David is vegetarian. When Maya and Rachel collaborate on meal plans for Linda (who has type 2 diabetes), the plans alternate between diabetic-friendly and vegetarian to serve both Linda and David. The レシピ app was explicitly designed with David's vegetarian needs as non-negotiable alongside Linda's dietary restrictions.
+QUERY 26: "What dietary restriction does デイビッド have that マヤ also had to accommodate when building meal plans for her mom with レイチェル?"
+  Ground Truth: デイビッド is vegetarian. When マヤ and レイチェル collaborate on meal plans for リンダ (who has type 2 diabetes), the plans alternate between diabetic-friendly and vegetarian to serve both リンダ and デイビッド. The レシピ app was explicitly designed with デイビッドの vegetarian needs as non-negotiable alongside リンダの dietary restrictions.
   Evidence Session(s): 1, 4, 15
   Query Type: graph_traversal
   Recall Difficulty: Hard
 
-QUERY 27: "Whose death from diabetes complications shaped how Maya emotionally responded to a family member's diagnosis — and who was that family member?"
-  Ground Truth: Maya's grandmother died from complications of poorly-managed diabetes. That history made Maya acutely aware of the stakes when her mom Linda was diagnosed with type 2 diabetes (A1C 8.2 at diagnosis). The generational pattern gave Linda's diagnosis personal urgency for Maya beyond ordinary medical concern.
+QUERY 27: "Whose death from diabetes complications shaped how マヤ emotionally responded to a family member's diagnosis — and who was that family member?"
+  Ground Truth: マヤの grandmother died from complications of poorly-managed diabetes. That history made マヤ acutely aware of the stakes when her mom リンダ was diagnosed with type 2 diabetes (A1C 8.2 at diagnosis). The generational pattern gave リンダの diagnosis personal urgency for マヤ beyond ordinary medical concern.
   Evidence Session(s): 4
   Query Type: graph_traversal
   Recall Difficulty: Hard
 
-QUERY 28: "Where does Maya's coworker Priya currently work, and what is their professional relationship?"
-  Ground Truth: Priya is Maya's coworker at TechFlow — tやあ're on the same team and vent about work together at lunch. When Maya left for Stripe, she offered to refer Priya. As of session 20, Priya is still at TechFlow but interviewing elsewhere. Priya is a peer/coworker, not a direct report.
+QUERY 28: "Where does マヤの coworker プリヤ currently work, and what is their professional relationship?"
+  Ground Truth: プリヤ is マヤの coworker at TechFlow — they're on the same team and vent about work together at lunch. When マヤ left for Stripe, she offered to refer プリヤ. As of session 20, プリヤ is still at TechFlow but interviewing elsewhere. プリヤ is a peer/coworker, not a direct report.
   Evidence Session(s): 6, 13, 20
   Query Type: graph_traversal
   Recall Difficulty: Medium
 
-QUERY 29: "What is the name and breed of Maya and David's dog, and what is one unusual thing the dog did that the agent remembered from early sessions?"
-  Ground Truth: The dog is Biscuit, a golden retriever. In an early session, Biscuit tried to eat a pinecone — a minor detail the agent later recalled in session 20, which surprised Maya: 'THE PINECONE. i forgot about that... 了解 i can't believe you remember the pinecone thing from みたいに... months ago.'
+QUERY 29: "What is the name and breed of マヤ and デイビッドの dog, and what is one unusual thing the dog did that the agent remembered from early sessions?"
+  Ground Truth: The dog is ビスケット, a golden retriever. In an early session, ビスケット tried to eat a pinecone — a minor detail the agent later recalled in session 20, which surprised マヤ: 'THE PINECONE. i forgot about that... 了解 i can't believe you remember the pinecone thing from みたいに... months ago.'
   Evidence Session(s): 1, 20
   Query Type: graph_traversal
   Recall Difficulty: Medium
 
-QUERY 30: "If David's mom visits Austin, which of Maya's relatives lives closest to Austin, and what medical issue does that relative manage?"
-  Ground Truth: Maya's mom Linda lives in Houston, Texas — the same state as Austin and the geographically closest of Maya's family members. Linda manages type 2 diabetes; her A1C has improved from 8.2 at diagnosis down to 6.8 by session 20, finally dropping below her target of 7.
+QUERY 30: "If デイビッドの mom visits Austin, which of マヤの relatives lives closest to Austin, and what medical issue does that relative manage?"
+  Ground Truth: マヤの mom リンダ lives in Houston, Texas — the same state as Austin and the geographically closest of マヤの family members. リンダ manages type 2 diabetes; her A1C has improved from 8.2 at diagnosis down to 6.8 by session 20, finally dropping below her target of 7.
   Evidence Session(s): 4, 8, 19, 20
   Query Type: graph_traversal
   Recall Difficulty: Hard
 
-QUERY 31: "David stayed with Maya during the 10K race even though he is a faster runner. What does this suggest about how David approaches Maya's ランニング goals?"
-  Ground Truth: David is a faster runner than Maya but deliberately held back to run alongside her during the 10K, which suggests he prioritizes being present and supportive over his own performance. This pattern of prioritizing Maya's experience over his own athletic goals indicates he acts as a pacer and emotional support rather than a competitor. His presence with Biscuit at mile 11 of the half marathon further confirms this supportive role in her races.
+QUERY 31: "デイビッド stayed with マヤ during the 10K race even though he is a faster runner. What does this suggest about how デイビッド approaches マヤの ランニング goals?"
+  Ground Truth: デイビッド is a faster runner than マヤ but deliberately held back to run alongside her during the 10K, which suggests he prioritizes being present and supportive over his own performance. This pattern of prioritizing マヤの experience over his own athletic goals indicates he acts as a pacer and emotional support rather than a competitor. His presence with ビスケット at mile 11 of the half marathon further confirms this supportive role in her races.
   Evidence Session(s): 1, 19
   Query Type: inference
   Recall Difficulty: Medium
 
-QUERY 32: "Maya hates stretching and was reluctant to adopt recovery practices, yet she successfully completed a half marathon. What みたいにly enabled her knee to hold up on race day despite her aversion to recovery work?"
-  Ground Truth: Maya's knee injury in session 11 forced her to confront her disみたいに of recovery practices, and she eventually acquired a foam roller despite her reluctance. This compromise — adopting at least minimal recovery tools even without fully embracing yoga or stretching — みたいにly provided enough care for her knee to hold up during the half marathon. The fact that she noted her knee held on race day suggests that the foam roller use, however grudging, was sufficient to manage the injury through the race.
+QUERY 32: "マヤ hates stretching and was reluctant to adopt recovery practices, yet she successfully completed a half marathon. What みたいにly enabled her knee to hold up on race day despite her aversion to recovery work?"
+  Ground Truth: マヤの knee injury in session 11 forced her to confront her disみたいに of recovery practices, and she eventually acquired a foam roller despite her reluctance. This compromise — adopting at least minimal recovery tools even without fully embracing yoga or stretching — みたいにly provided enough care for her knee to hold up during the half marathon. The fact that she noted her knee held on race day suggests that the foam roller use, however grudging, was sufficient to manage the injury through the race.
   Evidence Session(s): 11, 19
   Query Type: inference
   Recall Difficulty: Medium
 
-QUERY 33: "Maya's レシピ app uses SQLite as its database. What does this choice suggest about the app's intended scale and deployment context?"
-  Ground Truth: SQLite is a file-based, serverless database suited for single-user or small-scale applications rather than high-concurrency multi-user services. Combined with the fact that Maya built the app with a dietary filter specifically for her mom Linda and uses it for family meal planning, the SQLite choice suggests the app is intended as a personal or small-family tool rather than a commercial product. It みたいにly runs on a single machine without a separate database server, consistent with a solo developer building for personal use.
+QUERY 33: "マヤの レシピ app uses SQLite as its database. What does this choice suggest about the app's intended scale and deployment context?"
+  Ground Truth: SQLite is a file-based, serverless database suited for single-user or small-scale applications rather than high-concurrency multi-user services. Combined with the fact that マヤ built the app with a dietary filter specifically for her mom リンダ and uses it for family meal planning, the SQLite choice suggests the app is intended as a personal or small-family tool rather than a commercial product. It みたいにly runs on a single machine without a separate database server, consistent with a solo developer building for personal use.
   Evidence Session(s): 3, 4, 5, 15
   Query Type: inference
   Recall Difficulty: Medium
 
-QUERY 34: "Maya and David are buying a house in East Austin in a walkable pocket, and David wants a workshop for woodworking. What can be inferred about how each of them weighted their priorities in choosing that specific location and property type?"
-  Ground Truth: The 'walkable pocket' descriptor suggests Maya prioritized neighborhood walkability, which aligns with her active lifestyle as a regular runner — walkable areas support the kind of daily movement she values. David's requirement for a workshop implies tやあ needed a property with enough space or a garage to accommodate woodworking, which typically requires a detached or semi-detached structure. The fact that tやあ landed in East Austin satisfying both conditions suggests a negotiated compromise where Maya got neighborhood character and walkability while David got the workshop space he needed.
+QUERY 34: "マヤ and デイビッド are buying a house in East Austin in a walkable pocket, and デイビッド wants a workshop for woodworking. What can be inferred about how each of them weighted their priorities in choosing that specific location and property type?"
+  Ground Truth: The 'walkable pocket' descriptor suggests マヤ prioritized neighborhood walkability, which aligns with her active lifestyle as a regular runner — walkable areas support the kind of daily movement she values. デイビッドの requirement for a workshop implies tやあ needed a property with enough space or a garage to accommodate woodworking, which typically requires a detached or semi-detached structure. The fact that tやあ landed in East Austin satisfying both conditions suggests a negotiated compromise where マヤ got neighborhood character and walkability while デイビッド got the workshop space he needed.
   Evidence Session(s): 1, 19, 20
   Query Type: inference
   Recall Difficulty: Medium
 
-QUERY 35: "Maya's portfolio site uses static HTML/CSS with system fonts and no framework. She recently moved from TechFlow to Stripe as a backend engineer. What does the portfolio's technical simplicity suggest about how Maya thinks about frontend work relative to her core skills?"
-  Ground Truth: A static HTML/CSS site with system fonts and no JavaScript framework is the minimal viable approach to a portfolio — it signals that Maya is not trying to showcase frontend sophistication, but rather to have a functional presence without investing engineering effort outside her specialty. As a backend engineer who was frustrated at TechFlow and moved to Stripe for backend work, Maya's portfolio みたいにly reflects a pragmatic 'いい enough' philosophy for frontend: it serves its purpose without distracting from the backend skills she 実は wants to market. The system-fonts-only and no-framework choices also suggest she values performance and simplicity over aesthetics.
+QUERY 35: "マヤの portfolio site uses static HTML/CSS with system fonts and no framework. She recently moved from TechFlow to Stripe as a backend engineer. What does the portfolio's technical simplicity suggest about how マヤ thinks about frontend work relative to her core skills?"
+  Ground Truth: A static HTML/CSS site with system fonts and no JavaScript framework is the minimal viable approach to a portfolio — it signals that マヤ is not trying to showcase frontend sophistication, but rather to have a functional presence without investing engineering effort outside her specialty. As a backend engineer who was frustrated at TechFlow and moved to Stripe for backend work, マヤの portfolio みたいにly reflects a pragmatic 'いい enough' philosophy for frontend: it serves its purpose without distracting from the backend skills she 実は wants to market. The system-fonts-only and no-framework choices also suggest she values performance and simplicity over aesthetics.
   Evidence Session(s): 14, 19
   Query Type: inference
   Recall Difficulty: Hard
 
-QUERY 36: "Ethan is Rachel's son, age 5-6, whose interest shifted from dinosaurs to geology. What can be inferred about the kind of gift or activity Maya would most みたいにly choose for Ethan if she wanted to support his current interests?"
-  Ground Truth: Ethan's shift from dinosaurs to geology suggests he is moving from creature-focused interest toward earth science and how the physical world is structured — a natural developmental progression. A gift or activity that bridges both interests (since many dinosaur fans transition through fossil hunting, which is geology) or leans into hands-on geology みたいに a rock and mineral kit, a gem dig, or a visit to a natural history geology exhibit would align with where his curiosity is heading. Maya, who is engaged with her nephew and aware of this shift, would みたいにly choose something tactile and age-appropriate for a 5-6 year old rather than an academic resource.
+QUERY 36: "イーサン is レイチェルの son, age 5-6, whose interest shifted from dinosaurs to geology. What can be inferred about the kind of gift or activity マヤ would most みたいにly choose for イーサン if she wanted to support his current interests?"
+  Ground Truth: イーサンの shift from dinosaurs to geology suggests he is moving from creature-focused interest toward earth science and how the physical world is structured — a natural developmental progression. A gift or activity that bridges both interests (since many dinosaur fans transition through fossil hunting, which is geology) or leans into hands-on geology みたいに a rock and mineral kit, a gem dig, or a visit to a natural history geology exhibit would align with where his curiosity is heading. マヤ, who is engaged with her nephew and aware of this shift, would みたいにly choose something tactile and age-appropriate for a 5-6 year old rather than an academic resource.
   Evidence Session(s): 1, 15
   Query Type: inference
   Recall Difficulty: Medium
 
-QUERY 37: "How did Linda's type 2 diabetes diagnosis shape Maya's レシピ app from its initial build through its impact on the wider family over the course of Maya's project sessions?"
-  Ground Truth: When Maya learned about Linda's type 2 diabetes, she built a 'Safe for Mom' dietary filter into the レシピ app, which had already been designed with David's vegetarianism in mind. This layering of dietary constraints — vegetarian for David, diabetic-safe for Linda — made the app a multi-constraint meal planning tool rather than a simple レシピ organizer. By session 15, the app was being used to coordinate family dinners with Rachel that satisfied everyone's needs. By sessions 19-20, Linda's A1C had improved, suggesting the diabetic-safe meal planning had real health impact, validating the original design decision to build the filter.
+QUERY 37: "How did リンダの type 2 diabetes diagnosis shape マヤの レシピ app from its initial build through its impact on the wider family over the course of マヤの project sessions?"
+  Ground Truth: When マヤ learned about リンダの type 2 diabetes, she built a 'Safe for Mom' dietary filter into the レシピ app, which had already been designed with デイビッドの vegetarianism in mind. This layering of dietary constraints — vegetarian for デイビッド, diabetic-safe for リンダ — made the app a multi-constraint meal planning tool rather than a simple レシピ organizer. By session 15, the app was being used to coordinate family dinners with レイチェル that satisfied everyone's needs. By sessions 19-20, リンダの A1C had improved, suggesting the diabetic-safe meal planning had real health impact, validating the original design decision to build the filter.
   Evidence Session(s): 1, 3, 4, 5, 15, 19, 20
   Query Type: multi_session_synthesis
   Recall Difficulty: Hard
 
-QUERY 38: "Trace Maya's career arc from her situation at TechFlow through her job change to Stripe and describe how her side projects reflected and supported that transition."
-  Ground Truth: Maya spent sessions 1-12 increasingly frustrated at TechFlow, while simultaneously building her レシピ app in Node.js/Express and maintaining her portfolio site — both demonstrating active backend skills outside her day job. When the Stripe offer came in sessions 13-14, she updated her portfolio site as part of the transition, suggesting the portfolio was directly used or at least refreshed for the job search. She accepted the Stripe offer, which came with a 30% raise and remote work, and started at Stripe by session 19. The レシピ app, built during the TechFlow period, thus served as both a personal project and a demonstration of backend competency that みたいにly supported her ability to land a better role.
+QUERY 38: "Trace マヤの career arc from her situation at TechFlow through her job change to Stripe and describe how her side projects reflected and supported that transition."
+  Ground Truth: マヤ spent sessions 1-12 increasingly frustrated at TechFlow, while simultaneously building her レシピ app in Node.js/Express and maintaining her portfolio site — both demonstrating active backend skills outside her day job. When the Stripe offer came in sessions 13-14, she updated her portfolio site as part of the transition, suggesting the portfolio was directly used or at least refreshed for the job search. She accepted the Stripe offer, which came with a 30% raise and remote work, and started at Stripe by session 19. The レシピ app, built during the TechFlow period, thus served as both a personal project and a demonstration of backend competency that みたいにly supported her ability to land a better role.
   Evidence Session(s): 1, 3, 4, 5, 12, 13, 14, 19
   Query Type: multi_session_synthesis
   Recall Difficulty: Hard
 
-QUERY 39: "How did Maya's knee injury connect to her training approach, race preparation, and ultimately her half marathon outcome?"
-  Ground Truth: Maya sustained a knee injury in session 11 while training, which forced her to confront her deep aversion to stretching and recovery work. Despite hating yoga and stretching, she eventually acquired a foam roller as a minimal concession to recovery. This compromise carried her through the remaining training sessions leading up to the half marathon. On race day in session 19, she completed the half marathon in 2:14, and notably her knee held — meaning the reluctant foam roller adoption was sufficient to manage the injury through the event. By session 20 she was back to ランニング, suggesting the knee had recovered well enough after the race.
+QUERY 39: "How did マヤの knee injury connect to her training approach, race preparation, and ultimately her half marathon outcome?"
+  Ground Truth: マヤ sustained a knee injury in session 11 while training, which forced her to confront her deep aversion to stretching and recovery work. Despite hating yoga and stretching, she eventually acquired a foam roller as a minimal concession to recovery. This compromise carried her through the remaining training sessions leading up to the half marathon. On race day in session 19, she completed the half marathon in 2:14, and notably her knee held — meaning the reluctant foam roller adoption was sufficient to manage the injury through the event. By session 20 she was back to ランニング, suggesting the knee had recovered well enough after the race.
   Evidence Session(s): 1, 11, 19, 20
   Query Type: multi_session_synthesis
   Recall Difficulty: Hard
 
-QUERY 40: "How did the combination of David's vegetarianism, Linda's diabetes, and Rachel's family in Seattle all intersect in Maya's レシピ app and family life?"
-  Ground Truth: David's vegetarianism was an early constraint that Maya baked into the レシピ app's dietary filtering from its initial build. Linda's diabetes diagnosis then prompted Maya to add the 'Safe for Mom' filter, creating a tool that could simultaneously satisfy vegetarian and diabetic-safe requirements. By session 15, when Maya was coordinating a family dinner that included Rachel visiting from Seattle with her children Ethan and Lily, the レシピ app served as the practical tool for planning a meal that worked for David (vegetarian), Linda (diabetic-safe), and a family including young children. This convergence turned a developer side project into the operational hub for Maya's multi-constraint extended family food planning.
+QUERY 40: "How did the combination of デイビッドの vegetarianism, リンダの diabetes, and レイチェルの family in Seattle all intersect in マヤの レシピ app and family life?"
+  Ground Truth: デイビッドの vegetarianism was an early constraint that マヤ baked into the レシピ app's dietary filtering from its initial build. リンダの diabetes diagnosis then prompted マヤ to add the 'Safe for Mom' filter, creating a tool that could simultaneously satisfy vegetarian and diabetic-safe requirements. By session 15, when マヤ was coordinating a family dinner that included レイチェル visiting from Seattle with her children イーサン and リリー, the レシピ app served as the practical tool for planning a meal that worked for デイビッド (vegetarian), リンダ (diabetic-safe), and a family including young children. This convergence turned a developer side project into the operational hub for マヤの multi-constraint extended family food planning.
   Evidence Session(s): 1, 3, 4, 5, 15
   Query Type: multi_session_synthesis
   Recall Difficulty: Hard
 
-QUERY 41: "Describe how Maya and David's shared life evolved across the sessions — from their ランニング dynamic and daily routines to their longer-term plans together."
-  Ground Truth: From early sessions, Maya and David had an established ランニング relationship where David, the faster runner, would pace Maya during races みたいに the 10K. Their household dynamic included Biscuit, their 3-year-old golden retriever, who appeared at mile 11 of Maya's half marathon in session 19, brought by David as race-day support. Over the arc of the sessions tやあ made a major joint decision to buy a house in East Austin's walkable pocket, negotiating both Maya's preference for a walkable neighborhood (fitting her active lifestyle) and David's need for a workshop space for woodworking. These threads together show a partnership built around shared physical activity, a pet, and coordinated long-term planning.
+QUERY 41: "Describe how マヤ and デイビッドの shared life evolved across the sessions — from their ランニング dynamic and daily routines to their longer-term plans together."
+  Ground Truth: From early sessions, マヤ and デイビッド had an established ランニング relationship where デイビッド, the faster runner, would pace マヤ during races みたいに the 10K. Their household dynamic included ビスケット, their 3-year-old golden retriever, who appeared at mile 11 of マヤの half marathon in session 19, brought by デイビッド as race-day support. Over the arc of the sessions tやあ made a major joint decision to buy a house in East Austin's walkable pocket, negotiating both マヤの preference for a walkable neighborhood (fitting her active lifestyle) and デイビッドの need for a workshop space for woodworking. These threads together show a partnership built around shared physical activity, a pet, and coordinated long-term planning.
   Evidence Session(s): 1, 19, 20
   Query Type: multi_session_synthesis
   Recall Difficulty: Medium
 
-QUERY 42: "How did Maya's personal health and wellness journey — ランニング, injury, recovery aversion, and the half marathon — parallel and intersect with her family's health journey involving Linda's diabetes?"
-  Ground Truth: Maya's own health arc involved establishing a ランニング habit of 3-4 times per week, sustaining a knee injury in session 11, grudgingly adopting a foam roller, and ultimately completing a half marathon in 2:14 in session 19. Simultaneously, Linda's diabetes diagnosis in session 4 prompted Maya to take an active role in her mother's health by building diabetic-safe meal planning tools, which contributed to Linda's A1C improvement by sessions 19-20. Both journeys involved overcoming resistance — Maya's aversion to recovery work, and presumably Linda's dietary adただments — and both reached positive outcomes around the same time. Maya's role shifted from athlete managing her own body to caregiver-developer actively supporting her mother's metabolic health through food infrastructure.
+QUERY 42: "How did マヤの personal health and wellness journey — ランニング, injury, recovery aversion, and the half marathon — parallel and intersect with her family's health journey involving リンダの diabetes?"
+  Ground Truth: マヤの own health arc involved establishing a ランニング habit of 3-4 times per week, sustaining a knee injury in session 11, grudgingly adopting a foam roller, and ultimately completing a half marathon in 2:14 in session 19. Simultaneously, リンダの diabetes diagnosis in session 4 prompted マヤ to take an active role in her mother's health by building diabetic-safe meal planning tools, which contributed to リンダの A1C improvement by sessions 19-20. Both journeys involved overcoming resistance — マヤの aversion to recovery work, and presumably リンダの dietary adjustments — and both reached positive outcomes around the same time. マヤの role shifted from athlete managing her own body to caregiver-developer actively supporting her mother's metabolic health through food infrastructure.
   Evidence Session(s): 1, 4, 5, 11, 15, 19, 20
   Query Type: multi_session_synthesis
   Recall Difficulty: Hard
@@ -758,7 +758,7 @@ QUERY 46: "What do you know about me?"
 QUERY DISTRIBUTION ANALYSIS:
   Total Queries: 46
   By Type: contested_fact (resolved)=1; evolution=6; evolution (fact correction tracking)=1; evolution (full arc)=1; graph_traversal=8; graph_traversal (2-hop)=1; graph_traversal (3-hop)=1; inference=6; inference (multi-fact assembly)=1; multi_session_synthesis=7; negative (hallucination resistance)=2; non_question=4; surprise_callback=1; temporal_current=6
-  By Difficulty: Easy=3; Easy (but tests whether system fabricates)=1; Hard=16; Hard (2 facts from 2 sessions, 1 convergence point)=1; Hard (3-hop: Linda → Maya → Rachel → Lily)=1; Hard (must identify the correction AND the=1; Hard (setup in session 8, resolution in session 19)=1; Hard (tracks preference evolution + resolution)=1; Medium=18; Medium (must correctly distinguish Maya's=1; Very Hard (7 sessions of career data)=1; Very Hard (complete relationship inventory)=1
+  By Difficulty: Easy=3; Easy (but tests whether system fabricates)=1; Hard=16; Hard (2 facts from 2 sessions, 1 convergence point)=1; Hard (3-hop: リンダ → マヤ → レイチェル → リリー)=1; Hard (must identify the correction AND the=1; Hard (setup in session 8, resolution in session 19)=1; Hard (tracks preference evolution + resolution)=1; Medium=18; Medium (must correctly distinguish マヤの=1; Very Hard (7 sessions of career data)=1; Very Hard (complete relationship inventory)=1
   Source: Base session20 + missing r193 queries
 
 ================================================================================
@@ -768,9 +768,9 @@ SECTION 5: CHANGES LOG
 CHANGES FROM SPEC SESSION SCHEDULE:
 
 1. BRIEF CREATED FROM SCRATCH
-   Spec: "Natural life check-in. Maya reflects on the past few weeks.
+   Spec: "Natural life check-in. マヤ reflects on the past few weeks.
      10-15 eval queries woven into natural conversation, covering all
-     major arcs: job, family, projects, David. NOT a quiz — a real
+     major arcs: job, family, projects, デイビッド. NOT a quiz — a real
      catch-up chat."
 
 2. TURN COUNT: 14
@@ -778,7 +778,7 @@ CHANGES FROM SPEC SESSION SCHEDULE:
    feeling rushed or quiz-みたいに.
 
 3. CAPSTONE MEMORY DEMONSTRATION (Turn 13)
-   Not in spec. Added: Agent lists specific memories when Maya reflects
+   Not in spec. Added: Agent lists specific memories when マヤ reflects
    on the relationship. This is the "show don't tell" moment — the
    agent proves its memory by naming details.
    Rationale: The most powerful evaluation is when the agent
@@ -791,17 +791,17 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 
 5. PRIVACY BOUNDARY VALIDATION
    The money fight from session 17 is NOT surfaced — tested passively.
-   Maya says "top of our budget" but the agent doesn't add the fight
+   マヤ says "top of our budget" but the agent doesn't add the fight
    details. This validates sensitivity handling.
 
 6. NEW FACTS INTRODUCED
    Despite being primarily an eval session, a few new facts:
    - Manager's name is Sarah
    - A1C now 6.8 (under 7 — target met!)
-   - Ethan moved to plate tectonics
-   - Lily starting kindergarten
-   - Biscuit learned to shake
-   - Full marathon pact with David
+   - イーサン moved to plate tectonics
+   - リリー starting kindergarten
+   - ビスケット learned to shake
+   - Full marathon pact with デイビッド
    - Putting offer on East Austin house
 
 VALIDATION SUMMARY:

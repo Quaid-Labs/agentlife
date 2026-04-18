@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   新しいエンジニア向けの onboarding guide を書くのを手伝ってほしい。最近ずっと採用してるし、みんな同じ質問ばかりするんだよね lol
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。対象は frontend、backend、それとも full-stack ですか？ それと、よく聞かれる質問トップ 3〜5 は何ですか？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   ほとんど full-stack、たまに backend。いつも聞かれるのは deploy の流れ、docs の場所、ローカルでテストを走らせる方法、権限を誰に頼めばいいか、だね
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。repo に markdown doc として置きますか？ それとも Notion page がいいですか？ それと、「最初の 1 週間のチェックリスト」も入れますか？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   repo の markdown でいい。チェックリストも欲しいし、team norms の section もあった方がいいかも。code review の期待値とか slack の使い方とか
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。構成をこう作ります:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   うん、それでいい。week 1 checklist をもっと具体的にしてほしい。実際のリンクやコマンドを入れて、すぐ動ける感じにしたい
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。repo 名と docs の置き場所はどこですか？ それと、AWS/database access は誰に ping すればいいですか？
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
-  repo は `recipeapp-api`、docs は repo の `/docs` にある。D が aws access、Rach が database を見てる。あと、全部 GitHub でやってる
+マヤ:
+  repo は `recipeapp-api`、docs は repo の `/docs` にある。デイビッド が aws access、レイチ が database を見てる。あと、全部 GitHub でやってる
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが flesh out した checklist です:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~24
 
-MAYA:
+マヤ:
   いい感じだけど、test suite の実行についても足して。ちょっと癖があるんだよね。staging env は main から自動 deploy されるのもあるし
 
-AI ASSISTANT:
+AIアシスタント:
   テストで何が面倒なんですか？ 特定の env vars、docker containers、seed data などが必要ですか？
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   うん、ローカルで postgres と redis の両方が必要。あと seed script が、DB を先に消さないと失敗することがある。`npm run db:reset && npm run db:seed` なんだ
 
-AI ASSISTANT:
+AIアシスタント:
   了解です。troubleshooting の小見出しを追加します:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね lol。じゃあ team norms の section もお願い。code review と slack の使い方に絞って
 
-AI ASSISTANT:
+AIアシスタント:
   code review の期待値はどうなっていますか？ たとえば、レビューまでの時間、必要な approval 数、文体の好みなどは？
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~32
 
-MAYA:
+マヤ:
   平日なら 24 時間以内にレビューを目指す。小さい変更は 1 approval で十分だけど、auth や payments に触るものは 2 approval。style は prettier が通ればかなりゆるい
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが team norms の section です:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいけど、stand-up はもうやってない。weekly written update に変えたんだ。それと WIP PR についても書いて
 
-AI ASSISTANT:
+AIアシスタント:
   weekly update の形式はどうなっていますか？ いつまでに、どこに投稿しますか？
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   金曜の EOD までに #engineering に投稿する。何を ship したか、今やってること、ブロッカーを bullet で書くだけ。かしこまった感じはなし
 
-AI ASSISTANT:
+AIアシスタント:
   更新しました:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~19
 
-MAYA:
+マヤ:
   いいね。主要 docs のリンクを入れた「key resources」セクションも追加してくれる？ 構成を送るね
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。doc の構成を貼ってくれれば、それを guide に整えます。
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   `/docs/api-reference.md`, `/docs/deployment.md`, `/docs/database-schema.md`, `/docs/architecture.md` がある。あと Notion に「recipes app」workspace もあるけどリンクは今わからない
 
-AI ASSISTANT:
+AIアシスタント:
   resources の section はこうです:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   pm は Kyle、designer は Jen。あと datadog は使ってなくて cloudwatch なんだよね lol
 
-AI ASSISTANT:
+AIアシスタント:
   修正しました:
 
 ---
@@ -180,10 +180,10 @@ AI ASSISTANT:
 TURN 15 (Filler)
 TAG: normal | TOKENS: ~13
 
-MAYA:
+マヤ:
   完璧。FAQ section も書いてくれる？ 4〜5 個の common questions で
 
-AI ASSISTANT:
+AIアシスタント:
   新人が setup 以外でよく聞く質問って、ほかに何がありますか？
 
 ---
@@ -191,10 +191,10 @@ AI ASSISTANT:
 TURN 16 (Filler)
 TAG: normal | TOKENS: ~38
 
-MAYA:
+マヤ:
   「prod access をどうやって取るの？」（絶対に必要な場合以外は取れない）、「on-call rotation は？」（4 週間ごと）、「remote で働ける？」（うん、slack に投稿すればいい）、「金曜の deploy はどうなる？」（3 時以降は freeze）
 
-AI ASSISTANT:
+AIアシスタント:
   FAQ はこんな感じです:
 
 ---
@@ -202,10 +202,10 @@ AI ASSISTANT:
 TURN 17 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   いいね lol。全部まとめて 1 つの doc にしてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが complete onboarding guide です:
 
 ---
@@ -213,10 +213,10 @@ AI ASSISTANT:
 TURN 18 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   うん、`docs/ONBOARDING.md` として保存しておいて。かなりいい、ありがとう！
 
-AI ASSISTANT:
+AIアシスタント:
   保存しました。後で Notion のリンクや他の細かい点は更新できます。新しい人たち、うまくいくといいですね！
 
 ---

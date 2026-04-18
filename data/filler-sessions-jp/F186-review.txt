@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   変更を失わずに git commit を元に戻すにはどうすればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   `git reset --soft HEAD~1` を使ってください。これでコミットは取り消されますが、変更はすべてステージされたまま残るので、そのまま再コミットできます。
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   でも、もう push しちゃってたら？
 
-AI ASSISTANT:
+AIアシスタント:
   その場合は `git revert <commit-hash>` を使います。変更を打ち消す新しいコミットが作られます。まだ誰も pull していないなら `git push --force` もできますが、共有ブランチでは危険です。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   まだ push はしてない。間違ったブランチに commit しちゃっただけなんだよね笑
 
-AI ASSISTANT:
+AIアシスタント:
   それなら `git reset --soft HEAD~1` でコミットを取り消して、次に `git checkout <correct-branch>` してそこで commit すれば大丈夫です。変更はステージされたままなので、そのまま移せます。
 
 ---

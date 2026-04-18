@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   Stripeで技術仕様をレビューするときのチェックリストを作りたいんだけど。どのPRDにも使い回せるやつ。下書きしてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん。使い回せる包括的な技術仕様レビュー用チェックリストを作ります。テンプレートはこちらです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね。でも長すぎる笑。もっと短くできる？重要なところを押さえた10〜12項目くらいで
 
-AI ASSISTANT:
+AIアシスタント:
   もちろんです。簡潔版はこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね、ボーナス質問まであるの最高笑。じゃあ即座に差し戻し判断するレッドフラグを5個くらいも教えてくれる？
 
-AI ASSISTANT:
+AIアシスタント:
   こちらが、今すぐ差し戻すべき5つのレッドフラグです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   了解、完璧。じゃあ仕様に差し戻しを入れるときに送るメールのテンプレも書いてくれる？きっぱりしてるけど意地悪じゃない感じで
 
-AI ASSISTANT:
+AIアシスタント:
   こちらはカスタマイズできるテンプレートです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   いいね。もう1つ、良い問題文と悪い問題文の例も出してくれる？2つずつくらいで、チームに意図を見せたいんだ
 
-AI ASSISTANT:
+AIアシスタント:
   こちらに分かりやすい例があります:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~26
 
-MAYA:
+マヤ:
   うん、これで最後。レビュー会議そのものではどんな質問をすればいい？みんなでその場で確認するときのやつ
 
-AI ASSISTANT:
+AIアシスタント:
   レビュー会議で使える進行スクリプトはこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~10
 
-MAYA:
+マヤ:
   これ最高。全部保存するわ。ありがと！！
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。役に立ってよかったです。これであなたは:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   実はStripe向けの版があると助かる。特に決済とコンプラ周り
 
-AI ASSISTANT:
+AIアシスタント:
   Stripe向けの技術仕様アドエンドはこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~28
 
-MAYA:
+マヤ:
   完璧。じゃあ1つシナリオ、仕様の8割は良いんだけど納期が完全に現実的じゃない場合は？その場合の対処を具体的に知りたい
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問です。現実離れしたスケジュールに対処する方法はこちらです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   なるほど、めっちゃ助かる。じゃあ相手が「でもエンジニアが3週間って見積もったんだから、それで行く」と言ってきたら？
 
-AI ASSISTANT:
+AIアシスタント:
   その「でもエンジニアが3週間って言ったじゃん！」への対処法はこちらです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~31
 
-MAYA:
+マヤ:
   笑、最後の手段はきついけど、たしかにそういうときもあるよね。じゃあ最後の最後、かなり年上の人の仕様をレビューするときのコツはある？
 
-AI ASSISTANT:
+AIアシスタント:
   いい質問です。相手を立てつつレビューする方法はこちらです:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   これは宝物だ、ありがとう。全部ブックマークするわ笑
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして。技術仕様レビューのツールキットが一式そろいました:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~23
 
-MAYA:
+マヤ:
   ちょっと待って、必須の10項目版をそのままGoogleドキュメントに貼れるテンプレにしてくれる？チェックボックス付きで
 
-AI ASSISTANT:
+AIアシスタント:
   こちらがGoogleドキュメント向けのチェックボックス付き版です:
 
 ---
@@ -169,10 +169,10 @@ AI ASSISTANT:
 TURN 14 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   完璧、まさに欲しかったやつ。明日から使うわ。ほんとありがとう！！
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね。新しいチェックリストで最初のレビューがうまくいくことを願っています。
 
 ---

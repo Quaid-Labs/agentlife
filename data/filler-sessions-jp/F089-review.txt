@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~25
 
-MAYA:
+マヤ:
   Jest で async 関数のテストってどう書けばいい？ SQLite にレシピを保存するルートがあるんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   Jest で async 関数をテストするなら、テスト内で `async/await` を使います。SQLite に保存する async ルートをテストする完全な例はこちらです:
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~20
 
-MAYA:
+マヤ:
   うん、でもテスト後に "jest has detected the following 1 open handle potentially keeping jest from exiting" が出るんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   それはデータベース接続が閉じられていないからです！ SQLite がまだ接続中なので、Jest がきれいに終了できません。修正はこちらです:
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   それは直ったんだけど、今度はルートのテストが "Cannot read property 'run' of undefined" で失敗する。insert するときに出る
 
-AI ASSISTANT:
+AIアシスタント:
   そのエラーは、ルートが `db` を使うときに `db` が `undefined` になっていることを意味します。たぶんデータベース初期化を await していません。正しいパターンはこちらです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   そうだ！ じゃあ毎回 SQLite を本当に叩かなくて済むように、DB をモックするにはどうする？
 
-AI ASSISTANT:
+AIアシスタント:
   いい判断です。ただ、この用途なら DB をモックしないほうがむしろおすすめです。`:memory:` のインメモリ SQLite を使うほうが、モックより速くて信頼性も高いです。理由はこちらです:
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   なるほど。じゃあ JWT トークンを使って auth を追加したい。保護ルート用のミドルウェアはどう構成すればいい？
 
-AI ASSISTANT:
+AIアシスタント:
   保護ルート向けのきれいな JWT auth セットアップとミドルウェアはこちらです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   うん、ログインルートも見せて。パスワードは bcrypt を使ってる
 
-AI ASSISTANT:
+AIアシスタント:
   bcrypt を使った登録とログインの完全な auth セットアップはこちらです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   bcrypt を npm install したのに、"Error: Cannot find module 'bcrypt'" が出る
 
-AI ASSISTANT:
+AIアシスタント:
   これはよくある bcrypt の問題です。ネイティブ依存のコンパイルが失敗することがあります。修正はこちらです:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~18
 
-MAYA:
+マヤ:
   うまくいった。じゃあログインルートのテストはどうする？ ユーザーを先に作る必要あるよね
 
-AI ASSISTANT:
+AIアシスタント:
   その通りです！ テストセットアップでユーザーを作ってから、その資格情報でログインをテストする必要があります。完全なテストスイートはこちらです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いいね。保護ルートはどうテストする？ token を header に送ればいいんだよね
 
-AI ASSISTANT:
+AIアシスタント:
   そうです！ トークンを生成して Authorization ヘッダーに送る必要があります。保護ルートのテスト方法はこちらです:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   いいね。最後に一つだけ、フロントエンドでトークンの期限切れをどう扱う？ 自動リフレッシュする？ それとも再ログインしてもらう？
 
-AI ASSISTANT:
+AIアシスタント:
   レシピアプリなら、シンプルにいきましょう。期限切れを検知して再ログインを促すだけで十分です。パターンはこちらです:
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   シンプルなのが一番だね笑。よし、auth はこれで全部かな。ありがと！
 
-AI ASSISTANT:
+AIアシスタント:
   いい仕事です！ かなりしっかりした auth セットアップになりました。何を作ったか、簡単に振り返ると:
 
 ---

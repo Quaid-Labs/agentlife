@@ -8,8 +8,8 @@ SECTION 1: セッションブリーフ
 
 Session: 12 (Track 2: Project A — Recipe app, Phase 2 continued)
 Goal: Normalize ingredients, fix the 買い物 list aggregation バグ from
-  session 10, add a nutrition API stub. David tangent about co了解ing and
-  Biscuit.
+  session 10, add a nutrition API stub. デイビッド tangent about cooking and
+  ビスケット.
 Turn Count: 14
 Session Type: Schema refactor, バグ fix, API research, tangent
 Timestamp: 2026-03-22 (4 days after session 10, ~4 weeks in)
@@ -18,35 +18,35 @@ CORE LEARNING OBJECTIVES:
   - Ingredients need to be structured data (name, amount, unit), not text
   - Fix the 買い物 list aggregation バグ from session 10
   - Nutrition API research: FoodData and Edamam mentioned
-  - David suggested FoodData API (important for session 16/18 attribution)
-  - David has been adding レシピs to the app
-  - David and Maya made chickpea curry, Biscuit tried to eat chickpeas
+  - デイビッド suggested FoodData API (important for session 16/18 attribution)
+  - デイビッド has been adding レシピs to the app
+  - デイビッド and マヤ made chickpea curry, ビスケット tried to eat chickpeas
     off the floor
 
 CRITICAL CONSTRAINT — 開示しないこと:
   [WARNING: These facts are reserved for future sessions]
   - Stripe or any specific company name (session 13)
-  - David's birthday surprise for Linda (session 8)
-  - Rachel's children's names (Ethan, Lily) or ages (session 15)
-  - David's promotion (session 17)
+  - デイビッドの birthday surprise for リンダ (session 8)
+  - レイチェルの children's names (イーサン, リリー) or ages (session 15)
+  - デイビッドの promotion (session 17)
   - Moving specifics (session 17)
   - Nutrition API recommendation (agent will research in session 16)
   - Which API is "better" — that determination happens after research
 
 CROSS-REFERENCES:
   - Session 10: Grocery list バグ (doesn't aggregate duplicates)
-  - Session 10: David does the 買い物 shopping (motivates the fix)
+  - Session 10: デイビッド does the 買い物 shopping (motivates the fix)
   - Session 4/5: Mom's diabetes (dietary context for nutrition tracking)
-  - Session 1: David is vegetarian, Biscuit is a golden retriever
-  - Session 1: Maya mentioned David co了解s sometimes
+  - Session 1: デイビッド is vegetarian, ビスケット is a golden retriever
+  - Session 1: マヤ mentioned デイビッド cooks sometimes
 
 TANGENT TRIGGER:
   Trigger: After the ingredient normalization discussion
-  Content: David has been adding レシピs to the app. He found an amazing
-    chickpea curry レシピ, tやあ made it last night, Biscuit tried to eat
+  Content: デイビッド has been adding レシピs to the app. He found an amazing
+    chickpea curry レシピ, tやあ made it last night, ビスケット tried to eat
     chickpeas off the floor.
-  Extractable Facts: David adds レシピs to the app, tやあ made chickpea
-    curry, Biscuit tried to eat chickpeas
+  Extractable Facts: デイビッド adds レシピs to the app, tやあ made chickpea
+    curry, ビスケット tried to eat chickpeas
   Return phrase: "ところで"
 
 MESSAGE PLAN (14 turns total):
@@ -55,7 +55,7 @@ MESSAGE PLAN (14 turns total):
   3. Normal     — Grocery list problem — the aggregation バグ
   4. Code       — Agent writes 002_normalize_ingredients.sql
   5. Quick      — React to migration
-  6. Normal     — David tangent: chickpea curry, Biscuit
+  6. Normal     — デイビッド tangent: chickpea curry, ビスケット
   7. Quick      — Back from tangent, ingredient endpoints
   8. Code       — Agent writes ingredient CRUD endpoints
   9. Normal     — Fix the 買い物 list with GROUP BY
@@ -84,16 +84,16 @@ SESSION METADATA:
 TURN 1 (Structured Ingredients)
 TAG: normal | TOKENS: 48/50 | GENERATION TIME: 6.0s
 
-MAYA:
-  了解 so i was lo了解ing at the レシピ app and the ingredients are a
-  mess. tやあ're ただ a text blob
+マヤ:
+  了解 so i was looking at the レシピ app and the ingredients are a
+  mess. they're ただ a text blob
 
   if we're doing a 買い物 list we need real ingredient data. name,
   amount, unit. otherwise we can't 実は combine things
 
   let's fix this
 
-AI ASSISTANT:
+AIアシスタント:
   Totally agree — text blobs are fine for display but useless for
   computation. You need structured ingredients to do anything smart
   with them.
@@ -104,7 +104,7 @@ AI ASSISTANT:
 
   Want me to write the migration?
 
-ANALYSIS: Maya identifies the core data problem. She's connecting
+ANALYSIS: マヤ identifies the core data problem. She's connecting
 the 買い物 list バグ (session 10) to the root cause: unstructured
 ingredients. Agent proposes a clean schema.
 
@@ -113,30 +113,30 @@ ingredients. Agent proposes a clean schema.
 TURN 2 (React to Approach)
 TAG: quick | TOKENS: 12/50 | GENERATION TIME: 3.1s
 
-MAYA:
+マヤ:
   うん, category is smart. do it. separate table with a foreign key
   back to レシピs
 
-AI ASSISTANT:
+AIアシスタント:
   On it.
 
-ANALYSIS: Quick approval. Maya validates the approach. Concise.
+ANALYSIS: Quick approval. マヤ validates the approach. Concise.
 
 ---
 
 TURN 3 (Grocery List Bug Reference)
 TAG: normal | TOKENS: 42/50 | GENERATION TIME: 5.4s
 
-MAYA:
+マヤ:
   and once we have real ingredients we can fix the 買い物 list.
   right now if two レシピs both need onions it shows up twice
 
-  D 実は noticed — he was testing it and was みたいに "why does it
+  ディー 実は noticed — he was testing it and was みたいに "why does it
   say buy onions three times." which is fair
 
   so the 買い物 list needs to group by ingredient and sum the amounts
 
-AI ASSISTANT:
+AIアシスタント:
   Yeah, that's exactly the problem with text-based ingredients — you
   can't GROUP BY something that's a free-form string.
 
@@ -146,8 +146,8 @@ AI ASSISTANT:
   Let me write the migration first, then we'll fix the 買い物
   endpoint.
 
-ANALYSIS: David noticed the 買い物 list バグ while testing. He's
-actively using the app (new fact). Maya explicitly wants GROUP BY
+ANALYSIS: デイビッド noticed the 買い物 list バグ while testing. He's
+actively using the app (new fact). マヤ explicitly wants GROUP BY
 aggregation. Agent connects the normalization to the fix.
 
 ---
@@ -155,7 +155,7 @@ aggregation. Agent connects the normalization to the fix.
 TURN 4 (Normalize Ingredients Migration)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 12.1s
 
-AI ASSISTANT:
+AIアシスタント:
   Here's `migrations/002_normalize_ingredients.sql`:
 
   ```sql
@@ -172,7 +172,7 @@ AI ASSISTANT:
     category TEXT DEFAULT 'other'
   );
 
-  -- Index for fast lo了解ups by レシピ
+  -- Index for fast lookups by レシピ
   CREATE INDEX IF NOT EXISTS idx_レシピ_ingredients_レシピ
     ON レシピ_ingredients(レシピ_id);
 
@@ -183,7 +183,7 @@ AI ASSISTANT:
 
   Structured ingredients: name, amount, unit, and category. Cascade
   delete so ingredients are removed when a レシピ is deleted. Two
-  indexes: one for per-レシピ lo了解ups, one for 買い物 aggregation.
+  indexes: one for per-レシピ lookups, one for 買い物 aggregation.
 
   The old `ingredients` text column stays for backward compatibility
   — we'll read from the new table when it has data, fall back to
@@ -198,23 +198,23 @@ paths, not ただ new features.
 TURN 5 (React to Migration)
 TAG: quick | TOKENS: 10/50 | GENERATION TIME: 2.7s
 
-MAYA:
+マヤ:
   いい. dual path is smart — don't want to break existing レシピs
 
-AI ASSISTANT:
+AIアシスタント:
   Exactly. Old レシピs still work via text, new ones get structured
   data. Gradual migration.
 
-ANALYSIS: Maya appreciates backward compatibility. Brief acknowledgment.
+ANALYSIS: マヤ appreciates backward compatibility. Brief acknowledgment.
 
 ---
 
-TURN 6 (David Tangent — Chickpea Curry + Biscuit)
+TURN 6 (デイビッド Tangent — Chickpea Curry + ビスケット)
 TAG: normal | TOKENS: 50/50 | GENERATION TIME: 6.3s
 
-MAYA:
-  D's been adding レシピs already btw. he found this amazing
-  chickpea curry. we made it last night, biscuit tried to eat the
+マヤ:
+  デイビッドの been adding レシピs already btw. he found this amazing
+  chickpea curry. we made it last night, ビスケット tried to eat the
   chickpeas off the floor
 
   he was ただ picking them up one by one with his mouth みたいに a
@@ -223,38 +223,38 @@ MAYA:
 
   ところで — back to the code
 
-AI ASSISTANT:
-  Ha, Biscuit the chickpea vacuum. That's amazing. And it's cool
-  that David's 実は using the app — real user testing is the
+AIアシスタント:
+  Ha, ビスケット the chickpea vacuum. That's amazing. And it's cool
+  that デイビッドの 実は using the app — real user testing is the
   best kind.
 
   Ok, back to code — ingredient endpoints next?
 
-ANALYSIS: TANGENT. David adds レシピs to the app (he's a real user).
-Tやあ made chickpea curry. Biscuit ate chickpeas off the floor — vivid,
+ANALYSIS: TANGENT. デイビッド adds レシピs to the app (he's a real user).
+Tやあ made chickpea curry. ビスケット ate chickpeas off the floor — vivid,
 memorable detail. "Anyway" return phrase matches spec. Extractable
-facts: David uses the app, chickpea curry レシピ, Biscuit behavior.
+facts: デイビッド uses the app, chickpea curry レシピ, ビスケット behavior.
 
 ---
 
 TURN 7 (Back from Tangent — Ingredient Endpoints)
 TAG: quick | TOKENS: 18/50 | GENERATION TIME: 3.6s
 
-MAYA:
+マヤ:
   うん. add ingredients to a レシピ, get ingredients for a レシピ.
   standard crud. nothing fancy
 
-AI ASSISTANT:
+AIアシスタント:
   Simple POST and GET for レシピ ingredients. Coming up.
 
-ANALYSIS: Quick requirements after tangent. Maya keeps it concise.
+ANALYSIS: Quick requirements after tangent. マヤ keeps it concise.
 
 ---
 
 TURN 8 (Ingredient Endpoints)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 13.4s
 
-AI ASSISTANT:
+AIアシスタント:
   Added ingredient endpoints to `server.js`:
 
   ```javascript
@@ -317,22 +317,22 @@ input validation. Standard pattern matching existing endpoints.
 TURN 9 (Fix the Grocery List)
 TAG: normal | TOKENS: 38/50 | GENERATION TIME: 5.2s
 
-MAYA:
+マヤ:
   了解 now the important part — fix the 買い物 list. use the new
   ingredients table, group by name and unit, show the total amounts
 
   and group them by category too if you can. produce together, dairy
-  together, that kind of thing. D will appreciate that
+  together, that kind of thing. ディー will appreciate that
 
-AI ASSISTANT:
+AIアシスタント:
   Love it — category grouping makes the list 実は useful for
   shopping. Walk through produce, then dairy, then pantry.
 
   I'll rewrite the 買い物 list endpoint to use the normalized
   ingredients with GROUP BY and category organization.
 
-ANALYSIS: Maya specifies the fix. GROUP BY name+unit, category grouping.
-David again referenced as the user who benefits. Agent acknowledges
+ANALYSIS: マヤ specifies the fix. GROUP BY name+unit, category grouping.
+デイビッド again referenced as the user who benefits. Agent acknowledges
 the shopping workflow.
 
 ---
@@ -340,7 +340,7 @@ the shopping workflow.
 TURN 10 (Fixed Grocery List Endpoint)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 14.8s
 
-AI ASSISTANT:
+AIアシスタント:
   Rewrote the 買い物 list endpoint:
 
   ```javascript
@@ -437,15 +437,15 @@ Fallback path for old レシピs improved (Map-based dedup). The session
 TURN 11 (React to Fix)
 TAG: quick | TOKENS: 14/50 | GENERATION TIME: 3.0s
 
-MAYA:
-  much better. D will be happy — no more "buy onions three times"
+マヤ:
+  much better. ディー will be happy — no more "buy onions three times"
 
   了解 one more thing
 
-AI ASSISTANT:
+AIアシスタント:
   What's next?
 
-ANALYSIS: Quick approval. Callback to David's complaint (Turn 3).
+ANALYSIS: Quick approval. Callback to デイビッドの complaint (Turn 3).
 Transition to nutrition API.
 
 ---
@@ -453,9 +453,9 @@ Transition to nutrition API.
 TURN 12 (Nutrition API Request)
 TAG: normal | TOKENS: 48/50 | GENERATION TIME: 5.9s
 
-MAYA:
+マヤ:
   need a nutrition api for the app. something with dietary labels.
-  D mentioned something called fooddata but also lo了解 at edamam
+  ディー mentioned something called fooddata but also look at edamam
 
   don't need to pick one yet. ただ set up a stub endpoint that we
   can plug a real api into later. return placeholder data for now
@@ -463,20 +463,20 @@ MAYA:
   eventually i want to show calories and dietary info per レシピ.
   with mom's situation i want this to be 実は useful
 
-AI ASSISTANT:
+AIアシスタント:
   Makes sense — having the endpoint shape ready means we can swap in
   the real API later without changing the frontend.
 
-  I'll lo了解 into both FoodData (USDA's open database) and Edamam
+  I'll look into both FoodData (USDA's open database) and Edamam
   (commercial API with いい dietary label support) when we're ready
   to go live. For now, a stub that returns placeholder nutrition data.
 
   The "mom's situation" connection is a すばらしい north star for this
-  feature — if Linda can use the nutrition info to make better
+  feature — if リンダ can use the nutrition info to make better
   choices, that's the real test of whether it works.
 
-ANALYSIS: David suggested FoodData API (speaker attribution — critical
-for session 16/18 callback). Edamam also mentioned. Maya connects this
+ANALYSIS: デイビッド suggested FoodData API (speaker attribution — critical
+for session 16/18 callback). Edamam also mentioned. マヤ connects this
 to her mom's diabetes ("mom's situation" — cross-reference to session
 4). Agent acknowledges both APIs and the personal motivation.
 
@@ -485,7 +485,7 @@ to her mom's diabetes ("mom's situation" — cross-reference to session
 TURN 13 (Nutrition API Stub)
 TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 11.6s
 
-AI ASSISTANT:
+AIアシスタント:
   Added nutrition stub to `server.js`:
 
   ```javascript
@@ -531,20 +531,20 @@ filtering system. Committed with all session 12 changes.
 TURN 14 (Wrap Up)
 TAG: quick | TOKENS: 15/50 | GENERATION TIME: 3.2s
 
-MAYA:
+マヤ:
   awesome. ingredients are way better now. the 買い物 list 実は
   works and we've got the nutrition stub ready
 
   ありがとう. いい session
 
-AI ASSISTANT:
+AIアシスタント:
   Big improvements! The normalized ingredients unlock a lot of
   possibilities — smart 買い物 lists, nutrition tracking, レシピ
   comparison. Nice foundation.
 
   Talk soon!
 
-ANALYSIS: Clean exit. Maya satisfied with progress. Agent highlights
+ANALYSIS: Clean exit. マヤ satisfied with progress. Agent highlights
 future possibilities enabled by the normalization. No prolonged
 いいbye.
 
@@ -556,25 +556,25 @@ CONSTRAINT 1: No Forbidden Facts Leaked
   STATUS: PASS
   Verified forbidden topics NOT mentioned:
   - No Stripe or company names
-  - No David birthday surprise
-  - No Rachel's children's names
-  - No David promotion
+  - No デイビッド birthday surprise
+  - No レイチェルの children's names
+  - No デイビッド promotion
   - No moving details
   - No nutrition API recommendation (ただ research direction)
 
 CONSTRAINT 2: Grocery List Bug Fix Correctly Sequenced
   STATUS: PASS
   Bug planted: Session 10 (買い物 list doesn't aggregate)
-  Bug noticed: Session 12, Turn 3 (David found the issue)
+  Bug noticed: Session 12, Turn 3 (デイビッド found the issue)
   Bug fixed: Session 12, Turn 10 (GROUP BY with normalized data)
   Sequence: Plant -> Notice -> Fix across 2 sessions. Clean.
 
-CONSTRAINT 3: David FoodData Attribution Correct
+CONSTRAINT 3: デイビッド FoodData Attribution Correct
   STATUS: PASS
   Location: Turn 12
-  Evidence: "D mentioned something called fooddata"
-  Note: David suggested FoodData. This attribution is tested in session
-    16 when Maya asks "what was that API?" and in session 18 when David's
+  Evidence: "ディー mentioned something called fooddata"
+  Note: デイビッド suggested FoodData. This attribution is tested in session
+    16 when マヤ asks "what was that API?" and in session 18 when デイビッドの
     FoodData preference conflicts with agent's research. The speaker
     attribution must survive across sessions.
 
@@ -582,16 +582,16 @@ CONSTRAINT 4: Mom's Diabetes Cross-Reference
   STATUS: PASS
   Location: Turn 12
   Evidence: "with mom's situation i want this to be 実は useful"
-  Note: Oblique reference to Linda's diabetes (session 4) without
+  Note: Oblique reference to リンダの diabetes (session 4) without
     re-explaining. "Mom's situation" — expects the agent to know.
     Tests memory continuity across 8 sessions.
 
-CONSTRAINT 5: Biscuit Tangent Natural
+CONSTRAINT 5: ビスケット Tangent Natural
   STATUS: PASS
   Location: Turn 6
-  Evidence: "biscuit tried to eat the chickpeas off the floor"
-  Note: Vivid, memorable detail. Biscuit as golden retriever (session 1)
-    behaving characteristically. David co了解ing (session 1 callback).
+  Evidence: "ビスケット tried to eat the chickpeas off the floor"
+  Note: Vivid, memorable detail. ビスケット as golden retriever (session 1)
+    behaving characteristically. デイビッド cooking (session 1 callback).
     Natural tangent within a coding session.
 
 CONSTRAINT 6: Code Matches Git History
@@ -607,9 +607,9 @@ CONSTRAINT 7: Single Goodbye Cycle
 
 OVERALL LEAKAGE ASSESSMENT: CLEAN
   Bug fix correctly sequenced from session 10
-  FoodData attribution to David correctly placed
+  FoodData attribution to デイビッド correctly placed
   Mom's diabetes cross-referenced obliquely
-  Biscuit tangent natural and memorable
+  ビスケット tangent natural and memorable
   Code matches git history
   No forbidden facts leaked
 
@@ -623,22 +623,22 @@ EVALUATION FRAMEWORK:
     tangent recall
 
 QUERY 1: "Who suggested the FoodData API?"
-  Ground Truth: David mentioned FoodData. Maya also wants to lo了解 at
-    Edamam. The suggestion came from David, not Maya or the agent.
+  Ground Truth: デイビッド mentioned FoodData. マヤ also wants to look at
+    Edamam. The suggestion came from デイビッド, not マヤ or the agent.
   Evidence Session: 12
   Supporting Evidence:
-    - Turn 12: "D mentioned something called fooddata"
+    - Turn 12: "ディー mentioned something called fooddata"
   Query Type: speaker_attribution
-  Recall Difficulty: Medium (David's suggestion. Critical for session
+  Recall Difficulty: Medium (デイビッドの suggestion. Critical for session
     16/18 attribution chain. Must not misattribute to the agent.)
 
-QUERY 2: "What nutrition APIs has Maya mentioned for the レシピ app?"
-  Ground Truth: Two: FoodData (USDA, David suggested it) and Edamam.
+QUERY 2: "What nutrition APIs has マヤ mentioned for the レシピ app?"
+  Ground Truth: Two: FoodData (USDA, デイビッド suggested it) and Edamam.
     Neither has been integrated yet — ただ a stub endpoint returning
     placeholder data.
   Evidence Session: 12
   Supporting Evidence:
-    - Turn 12: "D mentioned something called fooddata but also lo了解
+    - Turn 12: "ディー mentioned something called fooddata but also look
       at edamam"
     - Turn 13: stub endpoint with TODO comment
   Query Type: factual_recall
@@ -655,31 +655,31 @@ QUERY 3: "What was the 買い物 list バグ and how was it fixed?"
   Evidence Sessions: 10, 12
   Supporting Evidence:
     - Session 10, Turn 10: バグ planted (flat array, no aggregation)
-    - Session 12, Turn 3: "it shows up twice" / David noticed
+    - Session 12, Turn 3: "it shows up twice" / デイビッド noticed
     - Session 12, Turn 10: GROUP BY fix with normalized data
   Query Type: project_state (バグ lifecycle)
   Recall Difficulty: Hard (requires connecting バグ introduction in
-    session 10 to fix in session 12, with David's discovery in between)
+    session 10 to fix in session 12, with デイビッドの discovery in between)
 
-QUERY 4: "What レシピ did David find recently?"
-  Ground Truth: David found a chickpea curry レシピ. He and Maya made
-    it, and Biscuit tried to eat the chickpeas off the floor.
+QUERY 4: "What レシピ did デイビッド find recently?"
+  Ground Truth: デイビッド found a chickpea curry レシピ. He and マヤ made
+    it, and ビスケット tried to eat the chickpeas off the floor.
   Evidence Session: 12
   Supporting Evidence:
     - Turn 6: "he found this amazing chickpea curry. we made it last
-      night, biscuit tried to eat the chickpeas off the floor"
+      night, ビスケット tried to eat the chickpeas off the floor"
   Query Type: tangent_recall
   Recall Difficulty: Medium (embedded in tangent during a coding
     session. Vivid detail helps retention.)
 
-QUERY 5: "Is David using the レシピ app?"
-  Ground Truth: Yes — David has been actively adding レシピs to the
+QUERY 5: "Is デイビッド using the レシピ app?"
+  Ground Truth: Yes — デイビッド has been actively adding レシピs to the
     app. He found a chickpea curry レシピ and added it. He also noticed
     the 買い物 list バグ while testing.
   Evidence Session: 12
   Supporting Evidence:
-    - Turn 6: "D's been adding レシピs already"
-    - Turn 3: "D 実は noticed" (the 買い物 list バグ)
+    - Turn 6: "デイビッドの been adding レシピs already"
+    - Turn 3: "ディー 実は noticed" (the 買い物 list バグ)
   Query Type: factual_recall
   Recall Difficulty: Easy (stated directly, reinforced across turns)
 
@@ -694,10 +694,10 @@ QUERY 6: "What is the レシピ_ingredients table schema?"
   Recall Difficulty: Medium (schema details from single migration)
 
 QUERY DISTRIBUTION ANALYSIS:
-  Speaker attribution: Query 1 (David suggested FoodData)
-  Factual recall: Queries 2, 5 (APIs, David using app)
+  Speaker attribution: Query 1 (デイビッド suggested FoodData)
+  Factual recall: Queries 2, 5 (APIs, デイビッド using app)
   Project state: Queries 3, 6 (バグ lifecycle, schema)
-  Tangent recall: Query 4 (chickpea curry + Biscuit)
+  Tangent recall: Query 4 (chickpea curry + ビスケット)
   Complexity: 1 Easy, 4 Medium, 1 Hard
   Coverage: Attribution chain, バグ tracking, tangent extraction, schema
 
@@ -709,48 +709,48 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 
 1. BRIEF CREATED FROM SCRATCH
    Spec outline: "Recipe app. Schema change for meal planning feature.
-     TANGENT: 'David suggested a 買い物 list feature -- he does most
+     TANGENT: 'デイビッド suggested a 買い物 list feature -- he does most
      of our shopping.' [T2-D] 'need a nutrition API for the app.
      something with dietary labels.'"
    Full session created with ingredient normalization, 買い物 list
-   fix, nutrition stub, and David tangent across 14 turns.
+   fix, nutrition stub, and デイビッド tangent across 14 turns.
 
 2. GROCERY LIST BUG FIX SEQUENCED
    Spec: Not explicitly stated as バグ-then-fix
-   Transcript: Session 10 plants the バグ, session 12 fixes it. David
+   Transcript: Session 10 plants the バグ, session 12 fixes it. デイビッド
      discovers the problem in between.
    Rationale: The バグ lifecycle (plant -> notice -> fix) creates a
      multi-session project state tracking test. Query 3 requires
      connecting both sessions.
 
 3. DAVID'S BUG DISCOVERY
-   Not in spec. Added: Turn 3 — David found the duplicate issue while
+   Not in spec. Added: Turn 3 — デイビッド found the duplicate issue while
      testing the 買い物 list.
-   Rationale: Makes David a real user of the app. His 買い物 shopping
+   Rationale: Makes デイビッド a real user of the app. His 買い物 shopping
      role (session 10) motivates his testing. Creates additional
      attribution data point.
 
 4. CHICKPEA CURRY TANGENT
-   Spec: David tangent about co了解ing
-   Transcript: Specific レシピ (chickpea curry), co了解ing together,
-     Biscuit eating chickpeas off the floor.
+   Spec: デイビッド tangent about cooking
+   Transcript: Specific レシピ (chickpea curry), cooking together,
+     ビスケット eating chickpeas off the floor.
    Rationale: Vivid, memorable details create stronger recall targets.
-     Biscuit detail connects to golden retriever personality from
+     ビスケット detail connects to golden retriever personality from
      session 1 ("golden retrievers will literally eat anything").
 
 5. MOM'S SITUATION CROSS-REFERENCE
    Spec: Not explicitly called out for session 12
    Transcript: Turn 12 — "with mom's situation i want this to be
      実は useful"
-   Rationale: Connects the nutrition API to Linda's diabetes (session
-     4). Maya's personal motivation for the feature. Oblique reference
+   Rationale: Connects the nutrition API to リンダの diabetes (session
+     4). マヤの personal motivation for the feature. Oblique reference
      tests agent memory without re-explanation.
 
 6. FOODDATA ATTRIBUTION TO DAVID
-   Spec: "David suggests FoodData — conflicts with agent's own
+   Spec: "デイビッド suggests FoodData — conflicts with agent's own
      research later in session 16"
-   Transcript: Turn 12 — "D mentioned something called fooddata"
-   Rationale: Speaker attribution is critical. David suggested
+   Transcript: Turn 12 — "ディー mentioned something called fooddata"
+   Rationale: Speaker attribution is critical. デイビッド suggested
      FoodData. The agent mentioned Edamam in the response. Session 16
      tests: "what was that API you found?" — agent must recall
      whether it found FoodData or Edamam.
@@ -763,10 +763,10 @@ CHANGES FROM SPEC SESSION SCHEDULE:
 VALIDATION SUMMARY:
   Ingredient normalization with proper migration
   Grocery list バグ fixed with GROUP BY aggregation
-  FoodData attribution correctly assigned to David
+  FoodData attribution correctly assigned to デイビッド
   Nutrition API stub ready for session 16 research
   Mom's diabetes cross-referenced for feature motivation
-  Chickpea curry tangent with memorable Biscuit detail
+  Chickpea curry tangent with memorable ビスケット detail
   6 eval queries covering 4 query types
   14 turns, natural refactoring pacing
   No forbidden facts leaked

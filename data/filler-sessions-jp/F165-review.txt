@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~29
 
-MAYA:
+マヤ:
   ねえ、URL からレシピを取り込む機能を追加するのを手伝ってくれる？ たとえば、誰かがレシピブログのリンクを貼ったら、材料と手順を抜き出す感じ
 
-AI ASSISTANT:
+AIアシスタント:
   もちろん！ レシピデータを解析するためにライブラリを使うか、それとも HTML を自分でスクレイピングするか、どっちを考えていますか？ `recipe-scraper` みたいに、よくあるブログ形式を処理してくれる Node 用のライブラリもあります
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~22
 
-MAYA:
+マヤ:
   それ、知らなかったよ笑。信頼できる？ ブログがレイアウトを変えるたびに壊れるのは嫌なんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   主要サイトではかなり安定しています（Allrecipes、Food Network、Bon Appétit など）けど、うん、スクレイピングは壊れやすいです。解析に失敗したときのためにフォールバックを付けるやり方を見せましょうか？
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   うん、それがいい。基本的なセットアップがどうなるか見せて
 
-AI ASSISTANT:
+AIアシスタント:
   ざっくりした実装はこんな感じです:
 
 ---
@@ -59,10 +59,10 @@ AI ASSISTANT:
 TURN 4 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ちょっと待って。うちの recipes テーブルには dietary_tags と prep_time もあるんだけど、それも取れる？
 
-AI ASSISTANT:
+AIアシスタント:
   `recipe-scraper` は利用できる場合に prep_time と cook_time を抽出します。`dietary_tags` は材料から推測する必要があります。材料を解析して「ベジタリアン」や「グルテンフリー」みたいなタグを自動付与する関数を追加しましょうか？
 
 ---
@@ -70,10 +70,10 @@ AI ASSISTANT:
 TURN 5 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   うん、それかなり良さそう。どうやって動くの？
 
-AI ASSISTANT:
+AIアシスタント:
   キーワード一致を使う方法はこんな感じです:
 
 ---
@@ -81,10 +81,10 @@ AI ASSISTANT:
 TURN 6 (Filler)
 TAG: normal | TOKENS: ~14
 
-MAYA:
+マヤ:
   うーん、もしレシピに卵が入ってたら？ それだと ヴィーガン にタグ付けされちゃうけど、そうじゃないよね
 
-AI ASSISTANT:
+AIアシスタント:
   いい指摘です！ 修正はこんな感じです:
 
 ---
@@ -92,10 +92,10 @@ AI ASSISTANT:
 TURN 7 (Filler)
 TAG: normal | TOKENS: ~12
 
-MAYA:
+マヤ:
   了解。じゃあこれを importRecipe 関数にどう組み込めばいい？
 
-AI ASSISTANT:
+AIアシスタント:
   importRecipe 関数をこんなふうに更新します:
 
 ---
@@ -103,10 +103,10 @@ AI ASSISTANT:
 TURN 8 (Filler)
 TAG: normal | TOKENS: ~11
 
-MAYA:
+マヤ:
   いいね。Express のルートはどうする？ POST にしたほうがいい？
 
-AI ASSISTANT:
+AIアシスタント:
   うん、シンプルなルートはこんな感じです:
 
 ---
@@ -114,10 +114,10 @@ AI ASSISTANT:
 TURN 9 (Filler)
 TAG: normal | TOKENS: ~9
 
-MAYA:
+マヤ:
   ちょっと待って、これをテストするとこんなエラーが出る:
 
-AI ASSISTANT:
+AIアシスタント:
   プロジェクトのディレクトリにインストールしましたか？ これを試してください:
 
 ---
@@ -125,10 +125,10 @@ AI ASSISTANT:
 TURN 10 (Filler)
 TAG: normal | TOKENS: ~15
 
-MAYA:
+マヤ:
   ああ、端末タブを間違えてた笑。動いたけど、今はこうなる:
 
-AI ASSISTANT:
+AIアシスタント:
   その URL そのものが壊れているか、サイト構造が変わったのかもしれません。まずは実在するレシピ URL で試してください。あと、`recipe-scraper` はすべてのサイトに対応しているわけではありません。どのサイトが対応済みかをユーザーに伝える、よりよいエラーハンドリングを追加しますか？
 
 ---
@@ -136,10 +136,10 @@ AI ASSISTANT:
 TURN 11 (Filler)
 TAG: normal | TOKENS: ~17
 
-MAYA:
+マヤ:
   いや、それはちょっと面倒だな。失敗したら一般的なエラーを出すだけのほうがいい
 
-AI ASSISTANT:
+AIアシスタント:
   それなら、こんなふうにきれいにできます:
 
 ---
@@ -147,10 +147,10 @@ AI ASSISTANT:
 TURN 12 (Filler)
 TAG: normal | TOKENS: ~21
 
-MAYA:
+マヤ:
   いいね。あとひとつ、これをどうテストするの？ テストで実際の URL は叩きたくないんだけど
 
-AI ASSISTANT:
+AIアシスタント:
   HTTP リクエストは nock でモックできます:
 
 ---
@@ -158,10 +158,10 @@ AI ASSISTANT:
 TURN 13 (Filler)
 TAG: normal | TOKENS: ~6
 
-MAYA:
+マヤ:
   完璧、ありがとう！ 試してみるね
 
-AI ASSISTANT:
+AIアシスタント:
   いいですね！ 何か問題が出たら教えてください。材料の解析は、実際に試すサイトに合わせて少し調整が必要かもしれません。ブログによって材料の書き方が変わることがあるので
 
 ================================================================================

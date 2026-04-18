@@ -26,10 +26,10 @@ SESSION METADATA:
 TURN 1 (Filler)
 TAG: normal | TOKENS: ~7
 
-MAYA:
+マヤ:
   大さじをカップに換算するにはどうするの
 
-AI ASSISTANT:
+AIアシスタント:
   16 大さじ = 1 カップです。なので大さじの量を16で割ればOK。特定の換算が必要？
 
 ---
@@ -37,10 +37,10 @@ AI ASSISTANT:
 TURN 2 (Filler)
 TAG: normal | TOKENS: ~8
 
-MAYA:
+マヤ:
   うん、6 tbspのバターなんだけど、それってどれくらい？
 
-AI ASSISTANT:
+AIアシスタント:
   大さじ6は0.375カップで、1/3カップ（0.33）より少し多いくらいです。通常の計量カップには0.375の目盛りはないので、正確さを優先するなら大さじのまま使うのがいいです。
 
 ---
@@ -48,10 +48,10 @@ AI ASSISTANT:
 TURN 3 (Filler)
 TAG: normal | TOKENS: ~4
 
-MAYA:
+マヤ:
   了解、ありがと笑
 
-AI ASSISTANT:
+AIアシスタント:
   どういたしまして！ レシピ、うまくいくといいね。
 
 ---
