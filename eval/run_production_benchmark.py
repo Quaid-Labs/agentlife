@@ -210,6 +210,7 @@ _JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py
 _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
 _EXTRACT_SCRIPT = _resolve_quaid_script("extract.py", "ingest/extract.py")
 _PROJECT_UPDATER_SCRIPT = _resolve_quaid_script("project_updater.py", "datastore/docsdb/project_updater.py")
+_PROJECT_REGISTRY_CLI_SCRIPT = _resolve_quaid_script("core/project_registry_cli.py")
 # Last store telemetry (updated by _store_facts for extraction summaries).
 _LAST_STORE_METRICS: Dict[str, int] = {"domain_missing": 0}
 _EVAL_CORE_TOKEN_CAP = 1500
@@ -2747,6 +2748,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     )
     _seed_quaid_project_docs(workspace)
     _seed_instance_identity_from_sources(workspace, prefer_project_templates=False)
+    _register_benchmark_projects(workspace)
     print("  Project docs seeded")
     print()
 
@@ -4180,6 +4182,89 @@ def _run_project_update_flow(workspace: Path, project: str, session_num: int) ->
         "updates": updates,
         "event_path": str(event_path),
     }
+
+
+def _register_benchmark_projects(workspace: Path) -> None:
+    """Register benchmark projects through Quaid's product project registry.
+
+    The harness is allowed to create source fixtures, but project ownership must
+    still flow through Quaid's normal project API. Otherwise docs indexing can
+    see a project while project-scoped recall treats it as unlinked.
+    """
+    env = _benchmark_env(workspace, "setup")
+    projects = [
+        (
+            "recipe-app",
+            "Recipe app project workspace",
+            (workspace / "projects" / "recipe-app").resolve(),
+        ),
+        (
+            "portfolio-site",
+            "Portfolio site project workspace",
+            (workspace / "projects" / "portfolio-site").resolve(),
+        ),
+    ]
+    registered = 0
+
+    def _run_project_registry_cmd(cmd: List[str], *, name: str, action: str) -> subprocess.CompletedProcess:
+        result = subprocess.run(
+            cmd,
+            env=env,
+            cwd=str(_QUAID_DIR),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip()
+            raise RuntimeError(
+                f"Project registry {action} failed for {name}: {detail[:800]}"
+            )
+        return result
+
+    for name, description, source_root in projects:
+        base_cmd = _python_cmd_for_quaid_script(_PROJECT_REGISTRY_CLI_SCRIPT)
+        create_cmd = base_cmd + [
+            "create",
+            name,
+            "--description",
+            description,
+            "--source-root",
+            str(source_root),
+        ]
+        result = subprocess.run(
+            create_cmd,
+            env=env,
+            cwd=str(_QUAID_DIR),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip()
+            if "Project already exists" not in detail:
+                raise RuntimeError(
+                    f"Project registry create failed for {name}: {detail[:800]}"
+                )
+            _run_project_registry_cmd(
+                base_cmd + [
+                    "update",
+                    name,
+                    "--description",
+                    description,
+                    "--source-root",
+                    str(source_root),
+                ],
+                name=name,
+                action="update",
+            )
+            _run_project_registry_cmd(
+                base_cmd + ["link", name],
+                name=name,
+                action="link",
+            )
+        registered += 1
+    print(f"  Product projects registered: {registered}")
 
 
 def _benchmark_capture_chunk_tokens() -> int:

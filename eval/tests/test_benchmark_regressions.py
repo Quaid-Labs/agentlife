@@ -145,6 +145,74 @@ def test_project_update_flow_invokes_runtime_updater(monkeypatch, tmp_path):
     assert "runtime-generated.md" not in json.dumps(event)
 
 
+def test_register_benchmark_projects_uses_product_project_registry(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    (workspace / "projects" / "recipe-app").mkdir(parents=True)
+    (workspace / "projects" / "portfolio-site").mkdir(parents=True)
+
+    calls = []
+
+    def _fake_run(cmd, **kwargs):
+        calls.append((list(cmd), kwargs))
+        return SimpleNamespace(stdout="Created project\n", stderr="", returncode=0)
+
+    monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"QUAID_HOME": str(workspace)})
+    monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _script: [sys.executable, "project_registry_cli.py"])
+    monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+    monkeypatch.setattr(rpb.subprocess, "run", _fake_run)
+
+    rpb._register_benchmark_projects(workspace)
+
+    assert len(calls) == 2
+    names = [call[0][3] for call in calls]
+    assert names == ["recipe-app", "portfolio-site"]
+    for cmd, kwargs in calls:
+        assert cmd[:2] == [sys.executable, "project_registry_cli.py"]
+        assert cmd[1:3] == ["project_registry_cli.py", "create"]
+        assert "--description" in cmd
+        assert "--source-root" in cmd
+        source_root = Path(cmd[cmd.index("--source-root") + 1])
+        assert source_root.is_absolute()
+        assert kwargs["env"]["QUAID_HOME"] == str(workspace)
+        assert kwargs["cwd"] == str(tmp_path)
+        assert kwargs["timeout"] == 120
+
+
+def test_register_benchmark_projects_updates_and_links_existing_projects(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    (workspace / "projects" / "recipe-app").mkdir(parents=True)
+    (workspace / "projects" / "portfolio-site").mkdir(parents=True)
+
+    calls = []
+
+    def _fake_run(cmd, **kwargs):
+        calls.append((list(cmd), kwargs))
+        action = cmd[2]
+        if action == "create":
+            return SimpleNamespace(stdout="", stderr="Error: Project already exists: " + cmd[3], returncode=1)
+        return SimpleNamespace(stdout="ok\n", stderr="", returncode=0)
+
+    monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"QUAID_HOME": str(workspace)})
+    monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _script: [sys.executable, "project_registry_cli.py"])
+    monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+    monkeypatch.setattr(rpb.subprocess, "run", _fake_run)
+
+    rpb._register_benchmark_projects(workspace)
+
+    actions = [(call[0][2], call[0][3]) for call in calls]
+    assert actions == [
+        ("create", "recipe-app"),
+        ("update", "recipe-app"),
+        ("link", "recipe-app"),
+        ("create", "portfolio-site"),
+        ("update", "portfolio-site"),
+        ("link", "portfolio-site"),
+    ]
+    for cmd, _kwargs in calls:
+        if cmd[2] == "update":
+            assert "--source-root" in cmd
+
+
 def _fake_updater_module(fn_name="append_project_logs", fn=None):
     """Create fake datastore.docsdb.project_updater module hierarchy."""
     datastore_mod = ModuleType("datastore")
@@ -5337,6 +5405,10 @@ def test_anthropic_text_blocks_support_mixed_cache_policy():
 
 
 class TestSetupWorkspaceConfig:
+    @pytest.fixture(autouse=True)
+    def _stub_product_project_registration(self, monkeypatch):
+        monkeypatch.setattr(rpb, "_register_benchmark_projects", lambda _workspace: None)
+
     def test_workspace_seeds_janitor_checkpoint_and_clears_deferred_notices(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         quaid_dir = tmp_path / "modules" / "quaid"
