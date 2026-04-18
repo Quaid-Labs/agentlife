@@ -3245,7 +3245,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
             print(f"  Session {session_num}: {project} snapshot @ {snapshot_dir}")
             rsync_res = subprocess.run(
                 ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
-                 "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md",
+                 "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md",
                  str(snapshot_dir) + "/", str(target_dir) + "/"],
                 capture_output=True, timeout=30,
             )
@@ -3281,7 +3281,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
         for exc in excludes:
             cmd.extend(["--exclude", exc])
         # Preserve project docs/logs managed by Quaid runtime.
-        cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md"])
+        cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md"])
         cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
 
         rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
@@ -3970,7 +3970,9 @@ def _render_messages_as_transcript(messages: List[Dict[str, str]]) -> str:
 
 
 _PROJECT_UPDATE_EXCLUDED_DIRS = {".git", "node_modules", "__pycache__"}
-_PROJECT_UPDATE_EXCLUDED_FILES = {"PROJECT.md", "PROJECT.log", "TOOLS.md", "package-lock.json"}
+# These are runtime-managed project outputs, not source inputs. Including them
+# in updater events would make project-doc refresh self-trigger recursively.
+_PROJECT_UPDATE_EXCLUDED_FILES = {"PROJECT.md", "PROJECT.log", "TOOLS.md", "AGENTS.md", "package-lock.json"}
 
 
 def _project_update_files_touched(workspace: Path, project: str, *, max_files: int = 500) -> List[str]:
@@ -4188,7 +4190,7 @@ def _sync_project_snapshot(
     if snapshot_dir is not None:
         rsync_res = subprocess.run(
             ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
-             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md",
+             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md",
              str(snapshot_dir) + "/", str(target_dir) + "/"],
             capture_output=True, timeout=30,
         )
@@ -4214,7 +4216,7 @@ def _sync_project_snapshot(
     cmd = ["rsync", "-a", "--delete"]
     for exc in [".git", "node_modules", "package-lock.json"]:
         cmd.extend(["--exclude", exc])
-    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md"])
+    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md"])
     cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
     rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
     if has_git:
@@ -5475,7 +5477,7 @@ def run_per_day_extraction(
                         print(f"  Project update: {project} snapshot s{snum}")
                         rsync_res = subprocess.run(
                             ["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", "node_modules",
-                             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md",
+                             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md",
                              str(snapshot_dir) + "/", str(target_dir) + "/"],
                             capture_output=True, timeout=30,
                         )
@@ -5507,7 +5509,7 @@ def run_per_day_extraction(
                     cmd = ["rsync", "-a", "--delete"]
                     for exc in excludes:
                         cmd.extend(["--exclude", exc])
-                    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md"])
+                    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md"])
                     cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
                     rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
                     if rsync_res.returncode != 0:

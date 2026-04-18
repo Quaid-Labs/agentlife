@@ -76,7 +76,9 @@ def test_project_update_flow_invokes_runtime_updater(monkeypatch, tmp_path):
     project_dir.mkdir(parents=True)
     (project_dir / "index.js").write_text("console.log('recipe')\n", encoding="utf-8")
     (project_dir / "PROJECT.md").write_text("# Project: Recipe App\n", encoding="utf-8")
+    (project_dir / "PROJECT.log").write_text("- system-managed history\n", encoding="utf-8")
     (project_dir / "TOOLS.md").write_text("# Tools\n", encoding="utf-8")
+    (project_dir / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
     (project_dir / "node_modules").mkdir()
     (project_dir / "node_modules" / "skip.js").write_text("skip\n", encoding="utf-8")
 
@@ -116,7 +118,9 @@ def test_project_update_flow_invokes_runtime_updater(monkeypatch, tmp_path):
     assert "Benchmark" not in event["summary"]
     assert event["files_touched"] == ["projects/recipe-app/index.js"]
     assert "PROJECT.md" not in json.dumps(event)
+    assert "PROJECT.log" not in json.dumps(event)
     assert "TOOLS.md" not in json.dumps(event)
+    assert "AGENTS.md" not in json.dumps(event)
 
 
 def _fake_updater_module(fn_name="append_project_logs", fn=None):
@@ -7585,6 +7589,18 @@ class TestPerDayExtraction:
         conn.commit()
         conn.close()
 
+    @staticmethod
+    def _stub_prompt_context(monkeypatch, domains):
+        """Stub prompt metadata loaders used before the per-day store path."""
+        domain_ids = list(domains)
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: domain_ids)
+        monkeypatch.setattr(
+            rpb,
+            "_load_active_domains",
+            lambda _ws: [(domain, f"{domain} domain") for domain in domain_ids],
+        )
+        monkeypatch.setattr(rpb, "_load_prompt_project_defs", lambda _ws: {})
+
     def test_daily_janitor_and_weekly_distill(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         (workspace / "logs").mkdir(parents=True, exist_ok=True)
@@ -7599,7 +7615,7 @@ class TestPerDayExtraction:
         monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: fake_reviews)
         monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal", "project"])
+        self._stub_prompt_context(monkeypatch, ["personal", "project"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
         monkeypatch.setattr(
@@ -7613,6 +7629,7 @@ class TestPerDayExtraction:
         fake_repo = tmp_path / "recipe-app"
         (fake_repo / ".git").mkdir(parents=True, exist_ok=True)
         monkeypatch.setattr(rpb, "_resolve_project_source_repo", lambda _p: fake_repo)
+        monkeypatch.setattr(rpb, "_run_project_update_flow", lambda *a, **k: {})
 
         calls = []
         monkeypatch.setattr(rpb.subprocess, "run", lambda cmd, **k: (calls.append(list(cmd)), _FakeSubprocessResult())[1])
@@ -7654,7 +7671,7 @@ class TestPerDayExtraction:
         monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
         monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        self._stub_prompt_context(monkeypatch, ["personal"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
         monkeypatch.setattr(
@@ -7694,7 +7711,7 @@ class TestPerDayExtraction:
         monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
         monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        self._stub_prompt_context(monkeypatch, ["personal"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
 
         llm_calls = []
@@ -7716,6 +7733,7 @@ class TestPerDayExtraction:
         fake_repo = tmp_path / "recipe-app"
         (fake_repo / ".git").mkdir(parents=True, exist_ok=True)
         monkeypatch.setattr(rpb, "_resolve_project_source_repo", lambda _p: fake_repo)
+        monkeypatch.setattr(rpb, "_run_project_update_flow", lambda *a, **k: {})
         monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
         monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
         monkeypatch.setattr(rpb.subprocess, "run", lambda *a, **k: _FakeSubprocessResult())
@@ -7757,7 +7775,7 @@ class TestPerDayExtraction:
             lambda review: "small transcript" if review.session_num == 1 else "very large transcript",
         )
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        self._stub_prompt_context(monkeypatch, ["personal"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "build_extraction_prompt", lambda *a, **k: "prompt")
         monkeypatch.setattr(
@@ -7856,7 +7874,7 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
         monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
         monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["project"])
+        self._stub_prompt_context(monkeypatch, ["project"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
         monkeypatch.setattr(
@@ -7905,7 +7923,7 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
         monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
         monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["project"])
+        self._stub_prompt_context(monkeypatch, ["project"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
         monkeypatch.setattr(
@@ -7949,7 +7967,7 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
         monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
         monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        self._stub_prompt_context(monkeypatch, ["personal"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
         monkeypatch.setattr(
@@ -8008,7 +8026,7 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
         monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
         monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        self._stub_prompt_context(monkeypatch, ["personal"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
         monkeypatch.setattr(
@@ -8061,7 +8079,7 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
         monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: fake_reviews)
         monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        self._stub_prompt_context(monkeypatch, ["personal"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
         monkeypatch.setattr(
@@ -8122,7 +8140,7 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
         monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: fake_reviews)
         monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
         monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
-        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        self._stub_prompt_context(monkeypatch, ["personal"])
         monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
         monkeypatch.setattr(
