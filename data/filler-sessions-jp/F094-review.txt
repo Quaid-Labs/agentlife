@@ -1,0 +1,94 @@
+================================================================================
+FILLER SESSION F094 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F094 (Filler — Work Session)
+Date: 2026-03-28 10:06
+Topic: サインアップしたけど有効化していないユーザーを探す SQL を書きたい
+Turn Count: 9
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F094
+  Track: filler
+  Timestamp: 2026-03-28 10:06:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  サインアップしたけどアカウントを有効化してないユーザーのクエリを書きたいんだけど、手伝ってくれる？
+
+AI ASSISTANT:
+  もちろんです。まずスキーマを少し教えてください。`users` テーブルはありますか？ `activated_at` の timestamp カラムがありますか、それとも有効化は別管理ですか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  うん、users テーブルに email, created_at, activated_at（nullable）がある
+
+AI ASSISTANT:
+  了解です。クエリはこうです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  あ、あと直近 24 時間以内にサインアップした人は除外したい。まだ有効化するかもしれないから
+
+AI ASSISTANT:
+  了解です。新しいサインアップを除外します:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いいね。ついでに、signup week ごとに count を出せる？ 傾向を見たい
+
+AI ASSISTANT:
+  週ごとの件数を出す版はこちらです:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  いいね。さらに、有効化した割合、つまり各週の conversion rate も見られる？
+
+AI ASSISTANT:
+  完全版の内訳はこちらです:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  すごく助かる！ これを実行して、growth チームに共有するね
+
+AI ASSISTANT:
+  いいですね！ これで有効化のトレンドが見やすくなるはずです。他に見たい切り口があれば教えてください。signup source や cohort retention みたいな軸でも出せます。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

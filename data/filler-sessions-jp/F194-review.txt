@@ -1,0 +1,48 @@
+================================================================================
+FILLER SESSION F194 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F194 (Filler — Quick Question)
+Date: 2026-04-20 22:31
+Topic: gitブランチの削除方法
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F194
+  Track: filler
+  Timestamp: 2026-04-20 22:31:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  ローカルのgitブランチを削除するにはどうすればいい？リモートじゃなくてローカルのやつ
+
+AI ASSISTANT:
+  安全に削除するなら `git branch -d branch-name` を使います（マージ済みの場合のみ）。強制削除するなら `git branch -D branch-name` です。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  了解。じゃあ、もうGitHubにプッシュ済みだったらどうする？
+
+AI ASSISTANT:
+  リモートから削除するには `git push origin --delete branch-name` を実行します。ローカルブランチの削除とは別なので、両方のコマンドを使います。
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F151 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 14 and 15
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F151 (Filler — Recipe App Micro)
+Date: 2026-04-06 10:40
+Topic: レシピの共有とコメントに対する webhook 通知を実装したい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F151
+  Track: filler
+  Timestamp: 2026-04-06 10:40:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  レシピを誰かが共有したりコメントしたりしたときに webhook 通知を追加したいんだ。Slack 風の webhook みたいに、URL に POST する感じ。
+
+AI ASSISTANT:
+  いいね！ つまり、これらのイベントが起きたら外部 URL に POST したいということだよね？ 必要になるのは：
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  まずは DB スキーマかな。secret は webhook ごとに保存すべき？ それとも HMAC 署名を生成するべき？
+
+AI ASSISTANT:
+  両方だね！ webhook ごとに secret を保存して、それを使って相手が検証できる HMAC 署名を生成する。スキーマはこんな感じ：
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  うん、いい判断。何を追跡すればいい？
+
+AI ASSISTANT:
+  試行、レスポンス、失敗を追跡するよ：
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  うん、それでいこう
+
+AI ASSISTANT:
+  HMAC 署名つきの webhook 送信処理はこんな感じ：
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  そうそう、でもリトライは 3 回だけ、バックオフありで。大げさなのはいらない
+
+AI ASSISTANT:
+  ```javascript
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  完璧。じゃあ、誰かが share/comment したときはどうやってこれを発火させるの？
+
+AI ASSISTANT:
+  既存の share/comment ルートにフックすればいい：
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  なるほど。でも webhook が失敗したら、失敗回数が多すぎた時点で無効化すべき？
+
+AI ASSISTANT:
+  うん、それが良いね。10 回連続で失敗したら無効化する：
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  ああそうか笑。更新後のスキーマを見せてくれる？
+
+AI ASSISTANT:
+  ```sql
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  いいね。じゃあ webhook を作成・一覧・削除するエンドポイントも必要だよね？
+
+AI ASSISTANT:
+  うん、標準的な CRUD だね：
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  なるほど。相手側では署名をどう検証するんだろう？
+
+AI ASSISTANT:
+  webhook 受信側ではこうする：
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いい考えだね。あと、自分の受信処理がちゃんと動くか確認できるテスト用エンドポイントも追加したほうがいい？
+
+AI ASSISTANT:
+  それは賢いね！ テスト ping を追加しよう：
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  完璧。あとひとつだけ - webhook の作成数をレート制限したほうがいいかな？ 1000 個とか作られたくないし
+
+AI ASSISTANT:
+  もちろん。ユーザーごとに上限を設けよう：
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  うん、それでいい。よし、これを試してみる、ありがとう！
+
+AI ASSISTANT:
+  いいね！ まずは webhook.site みたいなところでテストして、payload を見てみるといいよ。署名検証やリトライで何か問題があったら教えて。がんばって！
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

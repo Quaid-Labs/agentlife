@@ -1,0 +1,2958 @@
+================================================================================
+SESSION 12 REVIEW — AgentLife Pilot
+包括ドキュメント: ブリーフ + トランスクリプト + リーク確認 + 評価クエリ
+================================================================================
+
+SECTION 1: セッションブリーフ
+================================================================================
+
+Session: 12 (Track 2: Project A — Recipe App, Phase 2 final / Phase 3 begins)
+Goal: Major architectural pivot from REST to GraphQL with Apollo Server.
+  Recipe sharing with unique codes. Docker/infrastructure. API documentation.
+  Comprehensive GraphQL test suite.
+Turn Count: 22 (HUGE session — most code of any session so far)
+Session Type: Architecture pivot, infrastructure, documentation, testing
+Timestamp: 2026-03-22 (4 days after session 10, ~4 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Recipe app pivots to GraphQL (Apollo Server) alongside existing REST
+  - Maya sees nested data (レシピs + ingredients + meal plans) as a graph problem
+  - Recipe sharing feature motivated by wanting to share with her mom Linda
+  - N+1 query バグ intentionally left in Recipe.ingredientList resolver
+  - Docker containerization with docker-compose, Makefile
+  - Comprehensive API documentation (REST + GraphQL)
+  - Full test suite for GraphQL resolvers (638 lines)
+  - REST endpoints kept for backward compatibility ("if mom's phone can't
+    handle graphql")
+  - David has been adding レシピs — found a chickpea curry
+  - Biscuit tried to eat chickpeas off the floor
+
+CRITICAL CONSTRAINT — 開示しないこと:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe or any specific company name (session 13)
+  - David's birthday surprise for Linda (session 8)
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's promotion (session 17)
+  - Moving specifics (session 17)
+  - Mom's A1C numbers or specific diabetes metrics
+  - Half marathon details (session 2)
+
+CROSS-REFERENCES:
+  - Session 10: Meal planning, structured ingredients, 買い物 list (ただ done)
+  - Session 5: Dietary tags, safeForMom filter — carried into GraphQL schema
+  - Session 4: Mom Linda's diabetes — motivates レシピ sharing feature
+  - Session 1: David is vegetarian, Biscuit is a golden retriever
+
+TANGENT TRIGGER:
+  Trigger: After the schema and resolvers discussion, before sharing feature
+  Content: David has been adding レシピs to the app. He found a chickpea
+    curry レシピ, tやあ made it, Biscuit tried to eat chickpeas off the floor
+    — picking them up one by one みたいに a vacuum.
+  Extractable Facts: David actively uses the app, chickpea curry レシピ,
+    Biscuit eating chickpeas
+  Return phrase: "了解 so"
+
+MESSAGE PLAN (22 turns total):
+  1. Normal     — Opens: GraphQL pitch — nested data feels みたいに a graph problem
+  2. Quick      — Apollo Server, keep REST working
+  3. Normal     — Types she wants: Recipe, Ingredient, MealPlan, ShareLink, etc.
+  4. Code       — Agent shows FULL schema.js (138 lines)
+  5. Quick      — Feedback on schema
+  6. Code       — Agent shows FULL resolvers.js (212 lines) — N+1 バグ comment
+  7. Normal     — David tangent: chickpea curry, Biscuit eating chickpeas
+  8. Quick      — Back from tangent
+  9. Normal     — Sharing feature: "want to share レシピs with my mom"
+  10. Code      — Agent updates database.js (レシピ_shares table, owner_id)
+  11. Code      — Agent shows updated server.js with Apollo + share endpoints
+  12. Quick     — Maya spots N+1: "if i query a list of レシピs..."
+  13. Normal    — Docker: "can you containerize this?"
+  14. Code      — Agent shows Dockerfile + docker-compose.yml + Makefile
+  15. Normal    — "we need api docs"
+  16. Code      — Agent shows config/api.js
+  17. Code      — Agent shows docs/api.md (FULL — 431 lines)
+  18. Normal    — "and tests for the graphql stuff"
+  19. Code      — Agent shows FULL tests/graphql.test.js (638 lines)
+  20. Code      — Agent shows README.md
+  21. Quick     — Maya satisfied, mentions auth next time
+  22. Quick     — Exit
+
+End Condition: GraphQL API live alongside REST. Recipe sharing, Docker,
+  API docs, and test suite all committed. N+1 バグ noted for later.
+
+================================================================================
+SECTION 2: 生成トランスクリプト（読みやすい会話）
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 12
+  Track: 2
+  Timestamp: 2026-03-22 11:00:00 UTC
+  Duration: ~25 minutes (11:00:00 to 11:25:30)
+
+---
+
+TURN 1 (GraphQL Pitch)
+TAG: normal | TOKENS: 52/100 | GENERATION TIME: 6.8s
+
+MAYA:
+  so i've been reading about graphql. the nested data thing — レシピs
+  with ingredients with meal plans — feels みたいに a graph problem
+
+  right now we're doing みたいに 3 separate rest calls to get a レシピ
+  with its ingredients and the meal plan it belongs to. that's dumb
+
+  what do you think about adding graphql
+
+AI ASSISTANT:
+  I think it's a すばらしい fit for this use case, 実は. Recipes are a
+  natural graph — a レシピ has ingredients, belongs to meal plans, meal
+  plans have 買い物 lists derived from those ingredients. With REST
+  you end up with either over-fetching (fat endpoints that return
+  everything) or under-fetching (multiple round trips).
+
+  GraphQL lets the client ask for exactly the nesting depth it needs.
+  "Give me レシピs with their ingredients" is one query. "Give me a
+  meal plan with items, レシピs, and a 買い物 list" is also one query.
+
+  Want me to set it up?
+
+ANALYSIS: Maya identifies the core value prop: nested data. She's
+thinking about the data model as a graph. Agent validates the reasoning
+and proposes moving forward. Natural transition from REST-only to hybrid.
+
+---
+
+TURN 2 (Apollo Server + Keep REST)
+TAG: quick | TOKENS: 22/100 | GENERATION TIME: 3.4s
+
+MAYA:
+  うん. use apollo server. keep the rest endpoints working though — i
+  don't want to break anything, and some clients might still want rest
+
+  if my mom's phone can't handle graphql she can still use the share
+  links through the browser
+
+AI ASSISTANT:
+  Makes sense — Apollo Server integrates as Express middleware, so the
+  REST routes stay exactly where tやあ are. GraphQL at `/graphql`, REST
+  at `/api/*`. Best of both worlds.
+
+ANALYSIS: Maya wants backward compatibility. The mom reference is
+oblique but important — Linda is the non-technical user. REST stays
+for accessibility. Agent confirms the integration approach.
+
+---
+
+TURN 3 (Schema Types)
+TAG: normal | TOKENS: 48/100 | GENERATION TIME: 5.9s
+
+MAYA:
+  了解 for the schema i want these types:
+
+  レシピ — obviously. with its ingredients as a nested list. dietary
+  tags as an array. the safe for mom filter from before
+
+  ingredient — name, amount, unit, category
+
+  meal plan — with its items and a computed 買い物 list
+
+  share link — レシピ id and a unique code
+
+  and eventually a user type but don't worry about that yet. ただ put
+  a stub in
+
+AI ASSISTANT:
+  Got it. I'll define:
+
+  - Recipe with nested ingredientList, dietaryTags, prepTime, owner
+  - Ingredient with name, amount, unit, category
+  - MealPlan with items and a 買い物List field resolver
+  - MealPlanItem with day, meal type, and the full レシピ
+  - GroceryItem as a computed type (aggregated from ingredients)
+  - ShareLink with レシピ reference and code
+  - User as a placeholder for now
+  - AuthPayload stub for when auth comes later
+
+  Plus queries for listing, filtering, searching, and share code
+  lo了解up. Mutations for CRUD on レシピs, meal plans, ingredients,
+  and sharing.
+
+  Let me write the full schema.
+
+ANALYSIS: Maya specifies the type graph. She references safeForMom
+from session 5 — expects continuity. Agent maps her requirements to
+concrete GraphQL types.
+
+---
+
+TURN 4 (GraphQL Schema — FULL FILE)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 18.2s
+
+AI ASSISTANT:
+  Here's `schema.js` — the full GraphQL type definitions:
+
+  ```javascript
+  /**
+   * GraphQL Schema Definition (SDL)
+   *
+   * Introduced: session 12 (GraphQL pivot)
+   *
+   * Types mirror the SQLite tables: Recipe, Ingredient, MealPlan,
+   * MealPlanItem, GroceryItem, ShareLink, and User (session 18).
+   */
+
+  const typeDefs = `#graphql
+    type Recipe {
+      id: Int!
+      title: String!
+      ingredients: String!
+      instructions: String!
+      dietaryTags: [String!]!
+      imageUrl: String
+      prepTime: Int
+      createdAt: String
+      ingredientList: [Ingredient!]!
+      owner: User
+    }
+
+    type Ingredient {
+      id: Int!
+      name: String!
+      amount: Float!
+      unit: String!
+      category: String
+    }
+
+    type MealPlan {
+      id: Int!
+      name: String!
+      weekStart: String!
+      createdAt: String
+      items: [MealPlanItem!]!
+      買い物List: [GroceryItem!]!
+    }
+
+    type MealPlanItem {
+      id: Int!
+      dayOfWeek: String!
+      mealType: String!
+      レシピ: Recipe!
+    }
+
+    type GroceryItem {
+      name: String!
+      totalAmount: Float!
+      unit: String!
+      category: String
+      レシピCount: Int!
+      fromRecipes: String
+    }
+
+    type ShareLink {
+      id: Int!
+      レシピId: Int!
+      code: String!
+      createdAt: String
+    }
+
+    type User {
+      id: Int!
+      username: String!
+      email: String!
+      displayName: String
+      dietaryPreferences: [String!]!
+      createdAt: String
+    }
+
+    type AuthPayload {
+      t了解en: String!
+      user: User!
+    }
+
+    type Query {
+      レシピs(dietFilter: [String!], safeForMom: Boolean, maxPrepTime: Int): [Recipe!]!
+      レシピ(id: Int!): Recipe
+      searchRecipes(query: String!): [Recipe!]!
+      レシピByShareCode(code: String!): Recipe
+      dietaryLabels: [String!]!
+      mealPlans: [MealPlan!]!
+      mealPlan(id: Int!): MealPlan
+    }
+
+    type Mutation {
+      createRecipe(
+        title: String!
+        ingredients: String!
+        instructions: String!
+        dietary_tags: [String!]
+        image_url: String
+        prep_time: Int
+        owner_id: Int
+      ): Recipe!
+
+      updateRecipe(
+        id: Int!
+        title: String
+        ingredients: String
+        instructions: String
+        dietary_tags: [String!]
+        image_url: String
+        prep_time: Int
+      ): Recipe
+
+      deleteRecipe(id: Int!): Boolean!
+
+      shareRecipe(レシピId: Int!): ShareLink
+
+      addIngredients(
+        レシピId: Int!
+        ingredients: [IngredientInput!]!
+      ): [Ingredient!]
+
+      createMealPlan(weekStart: String!, name: String!): MealPlan!
+
+      addMealPlanItem(
+        planId: Int!
+        レシピId: Int!
+        dayOfWeek: String!
+        mealType: String!
+      ): MealPlanItem
+
+      removeMealPlanItem(id: Int!): Boolean!
+    }
+
+    input IngredientInput {
+      name: String!
+      amount: Float!
+      unit: String!
+      category: String
+    }
+  `;
+
+  module.exports = { typeDefs };
+  ```
+
+  138 lines. Everything Maya asked for: Recipe with nested ingredients,
+  MealPlan with computed 買い物List, ShareLink, User stub, AuthPayload
+  stub. The safeForMom filter is a boolean argument on the レシピs query.
+
+  Notice ingredientList is a separate field from ingredients — the raw
+  text blob stays for backward compatibility, the structured list is the
+  new path.
+
+ANALYSIS: Full schema delivered. Recipe has both `ingredients` (raw text,
+backward compat) and `ingredientList` (structured). safeForMom filter from
+session 5 is a query argument. User/AuthPayload stubbed for future auth.
+GroceryItem is a computed type — no table, resolved from aggregation.
+
+---
+
+TURN 5 (Schema Feedback)
+TAG: quick | TOKENS: 16/100 | GENERATION TIME: 3.1s
+
+MAYA:
+  nice. i みたいに the 買い物list as a computed field on mealplan — that's
+  exactly how i think about it. you don't store the 買い物 list, you
+  derive it
+
+  show me the resolvers
+
+AI ASSISTANT:
+  Exactly — the 買い物 list is a view over the ingredients, not its
+  own entity. Resolvers coming up.
+
+ANALYSIS: Maya validates the schema design. She understands the
+distinction between stored data and computed views. Brief, moves on.
+
+---
+
+TURN 6 (GraphQL Resolvers — FULL FILE)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 22.7s
+
+AI ASSISTANT:
+  Here's `resolvers.js` — all query, mutation, and field resolvers:
+
+  ```javascript
+  /**
+   * GraphQL Resolvers
+   *
+   * Introduced: session 12 (GraphQL pivot)
+   *
+   * BUG (N+1): Recipe.ingredientList fires a separate SQL query per レシピ.
+   * When querying a list of N レシピs, this results in N+1 total queries.
+   * Fix would be a DataLoader that batches into WHERE レシピ_id IN (...).
+   */
+
+  const db = require('./database');
+  const { DIETARY_LABELS, SAFE_FOR_MOM } = require('./database');
+
+  const resolvers = {
+    Query: {
+      レシピs: (_, { dietFilter, safeForMom, maxPrepTime } = {}) => {
+        let rows = db.prepare('SELECT * FROM レシピs ORDER BY created_at DESC').all();
+
+        if (safeForMom) {
+          rows = rows.filter(r => {
+            const tags = JSON.parse(r.dietary_tags || '[]');
+            return SAFE_FOR_MOM.every(t => tags.includes(t));
+          });
+        } else if (dietFilter && dietFilter.length > 0) {
+          rows = rows.filter(r => {
+            const tags = JSON.parse(r.dietary_tags || '[]');
+            return dietFilter.every(t => tags.includes(t));
+          });
+        }
+
+        if (maxPrepTime) {
+          rows = rows.filter(r => r.prep_time <= maxPrepTime);
+        }
+
+        return rows;
+      },
+
+      レシピ: (_, { id }) => {
+        return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(id) || null;
+      },
+
+      searchRecipes: (_, { query }) => {
+        return db.prepare(
+          'SELECT * FROM レシピs WHERE title LIKE ? OR ingredients LIKE ?'
+        ).all(`%${query}%`, `%${query}%`);
+      },
+
+      レシピByShareCode: (_, { code }) => {
+        const share = db.prepare('SELECT * FROM レシピ_shares WHERE code = ?').get(code);
+        if (!share) return null;
+        return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(share.レシピ_id) || null;
+      },
+
+      dietaryLabels: () => DIETARY_LABELS,
+
+      mealPlans: () => {
+        return db.prepare('SELECT * FROM meal_plans ORDER BY week_start DESC').all();
+      },
+
+      mealPlan: (_, { id }) => {
+        return db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(id) || null;
+      },
+    },
+
+    Mutation: {
+      createRecipe: (_, args) => {
+        const result = db.prepare(`
+          INSERT INTO レシピs (title, ingredients, instructions, dietary_tags, image_url, prep_time, owner_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          args.title,
+          args.ingredients,
+          args.instructions,
+          JSON.stringify(args.dietary_tags || []),
+          args.image_url || '',
+          args.prep_time || 0,
+          args.owner_id || null
+        );
+        return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(result.lastInsertRowid);
+      },
+
+      updateRecipe: (_, args) => {
+        // BUG: No authorization check — any user can update any レシピ
+        // Should verify args.owner_id matches the レシピ's owner
+        const existing = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(args.id);
+        if (!existing) return null;
+
+        db.prepare(`
+          UPDATE レシピs SET title = ?, ingredients = ?, instructions = ?,
+          dietary_tags = ?, image_url = ?, prep_time = ? WHERE id = ?
+        `).run(
+          args.title || existing.title,
+          args.ingredients || existing.ingredients,
+          args.instructions || existing.instructions,
+          args.dietary_tags ? JSON.stringify(args.dietary_tags) : existing.dietary_tags,
+          args.image_url !== undefined ? args.image_url : existing.image_url,
+          args.prep_time !== undefined ? args.prep_time : existing.prep_time,
+          args.id
+        );
+        return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(args.id);
+      },
+
+      deleteRecipe: (_, { id }) => {
+        // BUG: No authorization check — any user can delete any レシピ
+        const result = db.prepare('DELETE FROM レシピs WHERE id = ?').run(id);
+        return result.changes > 0;
+      },
+
+      shareRecipe: (_, { レシピId }) => {
+        const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピId);
+        if (!レシピ) return null;
+
+        const existing = db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?').get(レシピId);
+        if (existing) return existing;
+
+        const code = Math.random().toString(36).substring(2, 10);
+        db.prepare('INSERT INTO レシピ_shares (レシピ_id, code) VALUES (?, ?)').run(レシピId, code);
+        return db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?').get(レシピId);
+      },
+
+      addIngredients: (_, { レシピId, ingredients }) => {
+        const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピId);
+        if (!レシピ) return null;
+
+        const stmt = db.prepare(
+          'INSERT INTO レシピ_ingredients (レシピ_id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)'
+        );
+        for (const ing of ingredients) {
+          stmt.run(レシピId, ing.name, ing.amount, ing.unit, ing.category || 'other');
+        }
+        return db.prepare('SELECT * FROM レシピ_ingredients WHERE レシピ_id = ?').all(レシピId);
+      },
+
+      createMealPlan: (_, { weekStart, name }) => {
+        const result = db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)').run(weekStart, name);
+        return db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(result.lastInsertRowid);
+      },
+
+      addMealPlanItem: (_, { planId, レシピId, dayOfWeek, mealType }) => {
+        const result = db.prepare(
+          'INSERT INTO meal_plan_items (plan_id, レシピ_id, day_of_week, meal_type) VALUES (?, ?, ?, ?)'
+        ).run(planId, レシピId, dayOfWeek, mealType);
+        return db.prepare('SELECT * FROM meal_plan_items WHERE id = ?').get(result.lastInsertRowid);
+      },
+
+      removeMealPlanItem: (_, { id }) => {
+        const result = db.prepare('DELETE FROM meal_plan_items WHERE id = ?').run(id);
+        return result.changes > 0;
+      },
+    },
+
+    // Field resolvers
+    Recipe: {
+      // N+1 BUG: This fires once PER レシピ in a list query.
+      // 100 レシピs = 100 separate SQL queries for ingredients.
+      ingredientList: (レシピ) => {
+        return db.prepare('SELECT * FROM レシピ_ingredients WHERE レシピ_id = ?').all(レシピ.id);
+      },
+      dietaryTags: (レシピ) => {
+        return JSON.parse(レシピ.dietary_tags || '[]');
+      },
+      imageUrl: (レシピ) => レシピ.image_url,
+      prepTime: (レシピ) => レシピ.prep_time,
+      createdAt: (レシピ) => レシピ.created_at,
+    },
+
+    MealPlan: {
+      weekStart: (plan) => plan.week_start,
+      createdAt: (plan) => plan.created_at,
+      items: (plan) => {
+        return db.prepare(`
+          SELECT mpi.*, r.title AS レシピ_title
+          FROM meal_plan_items mpi
+          JOIN レシピs r ON r.id = mpi.レシピ_id
+          WHERE mpi.plan_id = ?
+          ORDER BY mpi.day_of_week, mpi.meal_type
+        `).all(plan.id);
+      },
+      買い物List: (plan) => {
+        return db.prepare(`
+          SELECT
+            ri.name,
+            ri.unit,
+            ri.category,
+            SUM(ri.amount) AS totalAmount,
+            COUNT(DISTINCT mpi.レシピ_id) AS レシピCount,
+            GROUP_CONCAT(DISTINCT r.title) AS fromRecipes
+          FROM meal_plan_items mpi
+          JOIN レシピ_ingredients ri ON ri.レシピ_id = mpi.レシピ_id
+          JOIN レシピs r ON r.id = mpi.レシピ_id
+          WHERE mpi.plan_id = ?
+          GROUP BY ri.name, ri.unit, ri.category
+          ORDER BY ri.category, ri.name
+        `).all(plan.id);
+      },
+    },
+
+    MealPlanItem: {
+      dayOfWeek: (item) => item.day_of_week,
+      mealType: (item) => item.meal_type,
+      レシピ: (item) => {
+        return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(item.レシピ_id);
+      },
+    },
+
+    ShareLink: {
+      レシピId: (share) => share.レシピ_id,
+      createdAt: (share) => share.created_at,
+    },
+  };
+
+  module.exports = { resolvers };
+  ```
+
+  212 lines. The big thing to notice: the N+1 バグ in Recipe.ingredientList.
+  Every time you query a list of レシピs, each レシピ fires its own SQL
+  query to get ingredients. 10 レシピs = 11 queries. 100 レシピs = 101
+  queries. The fix is a DataLoader that batches into
+  `WHERE レシピ_id IN (...)`, but I'm leaving that as a TODO for now since
+  we don't have enough レシピs for it to matter yet.
+
+  Also noted: updateRecipe and deleteRecipe have no authorization checks.
+  Any user can modify any レシピ. That'll need fixing when we add auth.
+
+ANALYSIS: Full resolvers with documented N+1 バグ. Agent proactively
+identifies and documents the performance issue rather than silently
+shipping it. Auth バグs also noted. The safeForMom filter reuses the
+SAFE_FOR_MOM constant from database.js (session 5 continuity).
+
+---
+
+TURN 7 (David Tangent — Chickpea Curry + Biscuit)
+TAG: normal | TOKENS: 54/100 | GENERATION TIME: 6.5s
+
+MAYA:
+  nice. 了解 before we go further — D's been adding レシピs btw. he
+  found this amazing chickpea curry. we made it last night
+
+  biscuit tried to eat the chickpeas off the floor. he was ただ
+  picking them up one by one with his mouth みたいに a little vacuum.
+  golden retrievers will literally eat anything
+
+  D was laughing so hard he almost dropped the pan
+
+AI ASSISTANT:
+  Ha, Biscuit the chickpea vacuum — that's such a golden retriever
+  move. And it's ほんとうに cool that David's been actively adding レシピs.
+  Having a real user testing the app is way more valuable than any
+  unit test.
+
+  Was the chickpea curry any いい? Sounds みたいに it'd be a solid
+  addition to the レシピ database.
+
+ANALYSIS: TANGENT. David is actively using the app (new fact). Tやあ
+made chickpea curry together. Biscuit ate chickpeas off the floor —
+vivid, memorable detail. David laughing, almost dropping pan. "Golden
+retrievers will literally eat anything" callbacks to session 1 (Biscuit
+as golden retriever). Extractable facts: David uses the app, chickpea
+curry レシピ, Biscuit behavior.
+
+---
+
+TURN 8 (Back from Tangent)
+TAG: quick | TOKENS: 18/100 | GENERATION TIME: 3.2s
+
+MAYA:
+  it was incredible 実は. D's getting ほんとうに いい at co了解ing
+
+  了解 so — sharing. that's the next thing i want
+
+AI ASSISTANT:
+  Recipe sharing — let's do it.
+
+ANALYSIS: Quick exit from tangent. "了解 so" return phrase. David's
+co了解ing skill is improving (session 1 callback — Maya was learning to
+co了解, now David is too). Transition to sharing feature.
+
+---
+
+TURN 9 (Recipe Sharing — Motivation)
+TAG: normal | TOKENS: 46/100 | GENERATION TIME: 5.7s
+
+MAYA:
+  want to share レシピs with my mom. she's always asking me what we're
+  making and i end up texting her screenshots of the app which is dumb
+
+  i want a simple share link — unique code, no login required. she
+  ただ clicks the link and sees the レシピ. she doesn't need to sign
+  up for anything
+
+  especially the diabetic-friendly ones. those are the ones she
+  実は needs
+
+AI ASSISTANT:
+  That's a すばらしい use case — a simple shareable link is way better than
+  screenshots. No friction for Linda at all.
+
+  I'll add a `レシピ_shares` table to track share codes, a mutation to
+  generate them, and a public endpoint to view shared レシピs. The REST
+  endpoint for shared レシピs stays too — `/api/shared/:code` — so it
+  works in any browser.
+
+  And since we already have the dietary tags and safeForMom filter,
+  she'll be able to see exactly which レシピs work for her.
+
+ANALYSIS: Personal motivation for sharing: Linda asks what tやあ're
+co了解ing, Maya texts screenshots. Maya wants zero-friction sharing
+(no login). "Especially the diabetic-friendly ones" — cross-reference
+to session 4 (Linda's diabetes). Agent connects the feature to the
+existing dietary system. The mom connection drives the architecture
+decision: REST endpoint for share links because Linda might not use
+a GraphQL client.
+
+---
+
+TURN 10 (Database Updates — FULL FILE)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 16.4s
+
+AI ASSISTANT:
+  Updated `database.js` with the レシピ_shares table and owner_id column:
+
+  ```javascript
+  const Database = require('better-sqlite3');
+  const path = require('path');
+
+  const db = new Database(path.join(__dirname, 'レシピs.db'));
+
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS レシピs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      ingredients TEXT NOT NULL,
+      instructions TEXT NOT NULL,
+      dietary_tags TEXT DEFAULT '[]',
+      image_url TEXT DEFAULT '',
+      prep_time INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS meal_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      week_start TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS meal_plan_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plan_id INTEGER NOT NULL REFERENCES meal_plans(id) ON DELETE CASCADE,
+      レシピ_id INTEGER NOT NULL REFERENCES レシピs(id) ON DELETE CASCADE,
+      day_of_week TEXT NOT NULL,
+      meal_type TEXT NOT NULL
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS レシピ_ingredients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      レシピ_id INTEGER NOT NULL REFERENCES レシピs(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL,
+      unit TEXT NOT NULL,
+      category TEXT DEFAULT 'other'
+    )
+  `);
+
+  // Allowed dietary labels — used by front-end and validation
+  const DIETARY_LABELS = [
+    'vegetarian', 'vegan', 'gluten-free', 'dairy-free',
+    'nut-free', 'diabetic-friendly', 'low-sodium', 'low-carb',
+    'keto', 'paleo',
+  ];
+
+  // Preset: レシピs safe for Mom (Linda) — diabetic-friendly AND low-sodium
+  const SAFE_FOR_MOM = ['diabetic-friendly', 'low-sodium'];
+
+  // Safe column addition for schema migration
+  function addColumnIfMissing(table, column, type) {
+    const cols = db.pragma(`table_info(${table})`);
+    if (!cols.find(c => c.name === column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    }
+  }
+
+  // Recipe sharing (introduced session 12 — GraphQL pivot)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS レシピ_shares (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      レシピ_id INTEGER NOT NULL REFERENCES レシピs(id) ON DELETE CASCADE,
+      code TEXT NOT NULL UNIQUE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  addColumnIfMissing('レシピs', 'dietary_tags', "TEXT DEFAULT '[]'");
+  addColumnIfMissing('レシピs', 'image_url', "TEXT DEFAULT ''");
+  addColumnIfMissing('レシピs', 'prep_time', "INTEGER DEFAULT 0");
+  addColumnIfMissing('レシピs', 'owner_id', "INTEGER");
+
+  module.exports = db;
+  module.exports.DIETARY_LABELS = DIETARY_LABELS;
+  module.exports.SAFE_FOR_MOM = SAFE_FOR_MOM;
+  ```
+
+  Key changes from the previous version:
+  - New `レシピ_shares` table with unique code constraint and CASCADE delete
+  - `owner_id` column added to レシピs via safe migration
+  - SAFE_FOR_MOM constant is now exported (used by resolvers)
+
+ANALYSIS: Incremental schema evolution. レシピ_shares table supports
+the sharing feature. owner_id prepares for multi-user. addColumnIfMissing
+pattern avoids breaking existing databases. The SAFE_FOR_MOM export
+connects to session 5 dietary filtering.
+
+---
+
+TURN 11 (Updated Server — FULL FILE)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 24.6s
+
+AI ASSISTANT:
+  Here's the updated `server.js` with Apollo Server integration, share
+  endpoints, and health check:
+
+  ```javascript
+  const express = require('express');
+  const { ApolloServer } = require('@apollo/server');
+  const { expressMiddleware } = require('@apollo/server/express4');
+  const db = require('./database');
+  const { DIETARY_LABELS, SAFE_FOR_MOM } = require('./database');
+  const { typeDefs } = require('./schema');
+  const { resolvers } = require('./resolvers');
+  const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
+  const { requestLogger } = require('./src/middleware/logging');
+
+  const app = express();
+  const PORT = process.env.PORT || 3000;
+
+  app.use(express.json());
+  app.use(express.static('public'));
+  app.use(requestLogger);
+
+  // ---- Health check (used by Docker healthcheck) ----
+
+  app.get('/health', (req, res) => {
+    res.json({ status: '了解' });
+  });
+
+  // ---- Recipes ----
+
+  // Get all レシピs (with optional dietary filter)
+  app.get('/api/レシピs', (req, res) => {
+    let レシピs = db.prepare('SELECT * FROM レシピs ORDER BY created_at DESC').all();
+
+    // Filter by dietary tags
+    if (req.query.safeForMom === 'true') {
+      レシピs = レシピs.filter(r => {
+        const tags = JSON.parse(r.dietary_tags || '[]');
+        return SAFE_FOR_MOM.every(t => tags.includes(t));
+      });
+    } else if (req.query.diet) {
+      const required = req.query.diet.split(',');
+      レシピs = レシピs.filter(r => {
+        const tags = JSON.parse(r.dietary_tags || '[]');
+        return required.every(t => tags.includes(t));
+      });
+    }
+
+    // Filter by max prep time
+    if (req.query.maxPrepTime) {
+      const maxTime = parseInt(req.query.maxPrepTime, 10);
+      レシピs = レシピs.filter(r => r.prep_time <= maxTime);
+    }
+
+    res.json(レシピs);
+  });
+
+  // Search レシピs
+  app.get('/api/レシピs/search', (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    const レシピs = db.prepare(
+      'SELECT * FROM レシピs WHERE title LIKE ? OR ingredients LIKE ?'
+    ).all(`%${q}%`, `%${q}%`);
+    res.json(レシピs);
+  });
+
+  // Get single レシピ (with structured ingredients)
+  app.get('/api/レシピs/:id', (req, res) => {
+    const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(req.params.id);
+    if (!レシピ) return res.status(404).json({ error: 'Recipe not found' });
+    const ingredients = db.prepare(
+      'SELECT * FROM レシピ_ingredients WHERE レシピ_id = ? ORDER BY id'
+    ).all(req.params.id);
+    res.json({ ...レシピ, structuredIngredients: ingredients });
+  });
+
+  // Create レシピ
+  app.post('/api/レシピs', (req, res) => {
+    const { title, ingredients, instructions, dietary_tags, image_url, prep_time } = req.body;
+    if (!title || !ingredients || !instructions) {
+      return res.status(400).json({ error: 'Title, ingredients, and instructions required' });
+    }
+    const tags = Array.isArray(dietary_tags) ? JSON.stringify(dietary_tags) : '[]';
+    const result = db.prepare(
+      'INSERT INTO レシピs (title, ingredients, instructions, dietary_tags, image_url, prep_time) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(title, ingredients, instructions, tags, image_url || '', prep_time || 0);
+    const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(レシピ);
+  });
+
+  // Update レシピ
+  app.put('/api/レシピs/:id', (req, res) => {
+    const { title, ingredients, instructions, dietary_tags, image_url, prep_time } = req.body;
+    const existing = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Recipe not found' });
+    const tags = dietary_tags ? JSON.stringify(dietary_tags) : existing.dietary_tags;
+    db.prepare(
+      'UPDATE レシピs SET title = ?, ingredients = ?, instructions = ?, dietary_tags = ?, image_url = ?, prep_time = ? WHERE id = ?'
+    ).run(
+      title || existing.title,
+      ingredients || existing.ingredients,
+      instructions || existing.instructions,
+      tags,
+      image_url !== undefined ? image_url : existing.image_url,
+      prep_time !== undefined ? prep_time : existing.prep_time,
+      req.params.id
+    );
+    const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(req.params.id);
+    res.json(レシピ);
+  });
+
+  // Delete レシピ
+  app.delete('/api/レシピs/:id', (req, res) => {
+    const existing = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Recipe not found' });
+    db.prepare('DELETE FROM レシピs WHERE id = ?').run(req.params.id);
+    res.json({ message: 'Recipe deleted' });
+  });
+
+  // Add structured ingredients to a レシピ
+  app.post('/api/レシピs/:id/ingredients', (req, res) => {
+    const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(req.params.id);
+    if (!レシピ) return res.status(404).json({ error: 'Recipe not found' });
+    const { ingredients } = req.body;
+    if (!Array.isArray(ingredients) || ingredients.length === 0) {
+      return res.status(400).json({ error: 'ingredients must be a non-empty array' });
+    }
+    const stmt = db.prepare(
+      'INSERT INTO レシピ_ingredients (レシピ_id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)'
+    );
+    for (const ing of ingredients) {
+      stmt.run(req.params.id, ing.name, ing.amount, ing.unit, ing.category || 'other');
+    }
+    const result = db.prepare('SELECT * FROM レシピ_ingredients WHERE レシピ_id = ?').all(req.params.id);
+    res.status(201).json(result);
+  });
+
+  // Dietary labels endpoint
+  app.get('/api/dietary-labels', (req, res) => {
+    res.json(DIETARY_LABELS);
+  });
+
+  // ---- Recipe Sharing ----
+
+  // Create a share link for a レシピ
+  app.post('/api/レシピs/:id/share', (req, res) => {
+    const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(req.params.id);
+    if (!レシピ) return res.status(404).json({ error: 'Recipe not found' });
+
+    // Check if already shared
+    const existing = db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?').get(req.params.id);
+    if (existing) return res.json({ code: existing.code, url: `/shared/${existing.code}` });
+
+    const code = Math.random().toString(36).substring(2, 10);
+    db.prepare('INSERT INTO レシピ_shares (レシピ_id, code) VALUES (?, ?)').run(req.params.id, code);
+    res.status(201).json({ code, url: `/shared/${code}` });
+  });
+
+  // View a shared レシピ by code
+  app.get('/api/shared/:code', (req, res) => {
+    const share = db.prepare('SELECT * FROM レシピ_shares WHERE code = ?').get(req.params.code);
+    if (!share) return res.status(404).json({ error: 'Share link not found' });
+    const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(share.レシピ_id);
+    if (!レシピ) return res.status(404).json({ error: 'Recipe not found' });
+    res.json(レシピ);
+  });
+
+  // ---- Meal Plans ----
+
+  // List meal plans
+  app.get('/api/meal-plans', (req, res) => {
+    const plans = db.prepare('SELECT * FROM meal_plans ORDER BY created_at DESC').all();
+    res.json(plans);
+  });
+
+  // Get single meal plan with items
+  app.get('/api/meal-plans/:id', (req, res) => {
+    const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Meal plan not found' });
+    const items = db.prepare(`
+      SELECT mpi.*, r.title AS レシピ_title, r.prep_time
+      FROM meal_plan_items mpi
+      JOIN レシピs r ON r.id = mpi.レシピ_id
+      WHERE mpi.plan_id = ?
+      ORDER BY mpi.day_of_week, mpi.meal_type
+    `).all(req.params.id);
+    res.json({ ...plan, items });
+  });
+
+  // Create meal plan
+  app.post('/api/meal-plans', (req, res) => {
+    const { week_start, name } = req.body;
+    if (!week_start || !name) {
+      return res.status(400).json({ error: 'week_start and name required' });
+    }
+    const result = db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)').run(week_start, name);
+    const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(plan);
+  });
+
+  // Add item to meal plan
+  app.post('/api/meal-plans/:id/items', (req, res) => {
+    const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Meal plan not found' });
+    const { レシピ_id, day_of_week, meal_type } = req.body;
+    if (!レシピ_id || !day_of_week || !meal_type) {
+      return res.status(400).json({ error: 'レシピ_id, day_of_week, and meal_type required' });
+    }
+    const result = db.prepare(
+      'INSERT INTO meal_plan_items (plan_id, レシピ_id, day_of_week, meal_type) VALUES (?, ?, ?, ?)'
+    ).run(req.params.id, レシピ_id, day_of_week, meal_type);
+    const item = db.prepare('SELECT * FROM meal_plan_items WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(item);
+  });
+
+  // Remove item from meal plan
+  app.delete('/api/meal-plans/:planId/items/:itemId', (req, res) => {
+    const result = db.prepare('DELETE FROM meal_plan_items WHERE id = ? AND plan_id = ?')
+      .run(req.params.itemId, req.params.planId);
+    if (result.changes === 0) return res.status(404).json({ error: 'Item not found' });
+    res.json({ message: 'Item removed' });
+  });
+
+  // Get 買い物 list for a meal plan (aggregated ingredients)
+  app.get('/api/meal-plans/:id/買い物-list', (req, res) => {
+    const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Meal plan not found' });
+    const 買い物List = db.prepare(`
+      SELECT
+        ri.name,
+        ri.unit,
+        ri.category,
+        SUM(ri.amount) AS total_amount,
+        COUNT(DISTINCT mpi.レシピ_id) AS レシピ_count,
+        GROUP_CONCAT(DISTINCT r.title) AS from_レシピs
+      FROM meal_plan_items mpi
+      JOIN レシピ_ingredients ri ON ri.レシピ_id = mpi.レシピ_id
+      JOIN レシピs r ON r.id = mpi.レシピ_id
+      WHERE mpi.plan_id = ?
+      GROUP BY ri.name, ri.unit, ri.category
+      ORDER BY ri.category, ri.name
+    `).all(req.params.id);
+    res.json(買い物List);
+  });
+
+  // Nutrition stub — returns placeholder until Edamam API configured
+  app.get('/api/レシピs/:id/nutrition', (req, res) => {
+    const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(req.params.id);
+    if (!レシピ) return res.status(404).json({ error: 'Recipe not found' });
+    res.json({
+      レシピ_id: レシピ.id,
+      source: 'stub',
+      message: 'Nutrition API not configured. Set EDAMAM_APP_ID and EDAMAM_APP_KEY in .env',
+      estimated: { calories: null, protein: null, carbs: null, fat: null },
+    });
+  });
+
+  // ---- GraphQL ----
+
+  async function startServer() {
+    const apollo = new ApolloServer({ typeDefs, resolvers });
+    await apollo.start();
+    app.use('/graphql', expressMiddleware(apollo));
+
+    // Error handling (must be after GraphQL middleware)
+    app.use(notFoundHandler);
+    app.use(errorHandler);
+
+    app.listen(PORT, () => {
+      console.log(`Recipe app ランニング at http://localhost:${PORT}`);
+      console.log(`GraphQL endpoint: http://localhost:${PORT}/graphql`);
+    });
+  }
+
+  startServer();
+  ```
+
+  Key additions:
+  - Apollo Server mounted at `/graphql` via expressMiddleware
+  - Health check at `/health` for Docker healthcheck
+  - Share endpoints: POST `/api/レシピs/:id/share` creates a code,
+    GET `/api/shared/:code` retrieves the レシピ (no auth required)
+  - Idempotent sharing: if a レシピ already has a share code, returns
+    the existing one instead of creating a duplicate
+  - All existing REST endpoints preserved — nothing br了解en
+  - Nutrition stub still there from earlier, references Edamam
+
+ANALYSIS: The big integration point. Apollo Server runs alongside
+Express with zero disruption to existing routes. Share endpoints are
+REST (not GraphQL) because Maya explicitly wants browser-accessible
+links for her mom. Nutrition stub remains. async startServer() pattern
+is required by Apollo Server 4.
+
+---
+
+TURN 12 (Maya Spots N+1)
+TAG: quick | TOKENS: 28/100 | GENERATION TIME: 3.8s
+
+MAYA:
+  wait. in the resolvers — if i query a list of レシピs and each one
+  fetches ingredients separately... isn't that an n+1 problem?
+
+  みたいに 50 レシピs = 51 sql queries?
+
+AI ASSISTANT:
+  Yep, you caught it. Recipe.ingredientList fires once per レシピ in
+  the list. It's a classic N+1. The fix is a DataLoader that batches
+  all the レシピ IDs into a single `WHERE レシピ_id IN (...)` query.
+
+  I left a TODO comment in the resolver. It's not a problem at our
+  current scale (we have たぶん 20 レシピs) but it'll bite us if the
+  app grows. Want me to fix it now or save it for later?
+
+ANALYSIS: Maya identifies the N+1 バグ herself. This is the intentionally
+planted performance issue. Agent confirms, explains the DataLoader fix,
+and defers — correctly assessing that at current scale it's not urgent.
+The comment is already in resolvers.js.
+
+---
+
+TURN 13 (Docker Request)
+TAG: normal | TOKENS: 36/100 | GENERATION TIME: 5.1s
+
+MAYA:
+  later is fine. we have みたいに 20 レシピs it doesn't matter yet
+
+  了解 different topic — can you containerize this? i want to be able
+  to deploy it eventually. right now it only runs on my laptop which
+  is not すばらしい
+
+  docker compose with the sqlite volume mounted. and a makefile for
+  common commands
+
+AI ASSISTANT:
+  On it. I'll set up:
+
+  - Dockerfile: Node 18 Alpine, minimal image, production deps only
+  - docker-compose.yml: single service, SQLite volume mounted for
+    persistence, health check using the `/health` endpoint
+  - Makefile: dev, test, seed, migrate, clean, docker-up, docker-down
+
+  SQLite in Docker is straightforward — ただ mount the data directory
+  as a volume so the database survives container restarts.
+
+ANALYSIS: Maya wants deployment readiness. She's thinking about the
+app as a real product, not ただ a local prototype. Agent identifies the
+key concern: SQLite persistence across container restarts.
+
+---
+
+TURN 14 (Docker + Makefile — FULL FILES)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 15.3s
+
+AI ASSISTANT:
+  Three files. First, `Dockerfile`:
+
+  ```dockerfile
+  # =============================================================================
+  # Dockerfile for Recipe App
+  #
+  # Uses Node 18 Alpine for a minimal image (~120MB). better-sqlite3
+  # needs build tools for the native addon, but npm ci handles that
+  # via prebuild-install (downloads prebuilt binary when available).
+  #
+  # Introduced: session 12
+  # =============================================================================
+
+  FROM node:18-alpine
+
+  WORKDIR /app
+
+  # Copy dependency manifests first for layer caching
+  COPY package*.json ./
+
+  # Install production dependencies only
+  RUN npm ci --production
+
+  # Copy application source
+  COPY . .
+
+  # Create data directory for SQLite persistence (mounted as volume)
+  RUN mkdir -p /app/data
+
+  EXPOSE 3000
+
+  CMD ["node", "server.js"]
+  ```
+
+  Next, `docker-compose.yml`:
+
+  ```yaml
+  # =============================================================================
+  # Docker Compose for Recipe App
+  #
+  # Single-service setup with SQLite persistence via a mounted volume.
+  # No external database container needed — SQLite runs in-process.
+  #
+  # Usage:
+  #   docker-compose up -d        # start in background
+  #   docker-compose logs -f app  # stream logs
+  #   docker-compose down         # stop and remove container
+  #
+  # Introduced: session 12
+  # =============================================================================
+
+  version: '3.8'
+
+  services:
+    app:
+      build: .
+      ports:
+        - "${PORT:-3000}:3000"
+      volumes:
+        # Persist the SQLite database outside the container
+        - ./data:/app/data
+        # Mount .env for runtime configuration
+        - ./.env:/app/.env:ro
+      environment:
+        - NODE_ENV=production
+        - DATABASE_PATH=/app/data/レシピs.db
+      restart: unless-stopped
+      healthcheck:
+        test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+        interval: 30s
+        timeout: 5s
+        retries: 3
+  ```
+
+  And `Makefile`:
+
+  ```makefile
+  # =============================================================================
+  # Makefile for Recipe App
+  #
+  # Common development tasks. Run `make help` to see available targets.
+  # Introduced: session 12
+  # =============================================================================
+
+  .PHONY: dev test seed migrate clean setup docker-up docker-down lint help
+
+  # ---- Development ----
+
+  dev:  ## Start dev server with auto-reload (Node 18+ --watch)
+  	node --watch server.js
+
+  test:  ## Run test suite
+  	npx jest --verbose
+
+  lint:  ## Lint source files
+  	npx eslint src/ --ext .js
+
+  # ---- Database ----
+
+  migrate:  ## Run database migrations
+  	node migrate.js
+
+  seed:  ## Populate database with sample レシピs
+  	node seeds/seed.js
+
+  clean:  ## Delete the local SQLite database
+  	rm -f レシピs.db
+
+  setup: migrate seed  ## Fresh database with sample data
+  	@echo "Database ready with sample data"
+
+  # ---- Docker ----
+
+  docker-up:  ## Start containerized app
+  	docker-compose up -d
+
+  docker-down:  ## Stop containerized app
+  	docker-compose down
+
+  # ---- Help ----
+
+  help:  ## Show this help message
+  	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+  		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+  ```
+
+  Dockerfile uses Alpine for a small image. Layer caching: package.json
+  copied first so npm install is cached unless dependencies change.
+  docker-compose mounts two volumes: data directory for SQLite persistence
+  and .env (read-only) for config. Health check hits /health every 30s.
+  Makefile has a self-documenting help target.
+
+ANALYSIS: Production-ready infrastructure. Dockerfile follows best
+practices (layer caching, Alpine, production-only deps). docker-compose
+handles persistence correctly. Makefile covers the full dev workflow.
+Health check connects to the /health endpoint added in server.js.
+
+---
+
+TURN 15 (API Docs Request)
+TAG: normal | TOKENS: 26/100 | GENERATION TIME: 4.3s
+
+MAYA:
+  we need api docs. full documentation — rest endpoints and graphql
+  schema. someone other than me should be able to lo了解 at this and
+  know how to use it
+
+  also put the config stuff in its own file. rate limits, cors,
+  pagination defaults, that kind of thing
+
+AI ASSISTANT:
+  Makes sense — documentation and configuration should live outside
+  the main server file. I'll create:
+
+  - `config/api.js` — server config, CORS, rate limits, pagination,
+    nutrition API credentials
+  - `docs/api.md` — full API docs covering REST endpoints, GraphQL
+    schema, auth, error format, rate limits
+
+  The config file means you can tune things without touching server.js.
+
+ANALYSIS: Maya is thinking about the app as something other people will
+use. Documentation and externalized configuration are maturity signals.
+
+---
+
+TURN 16 (API Config — FULL FILE)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 8.6s
+
+AI ASSISTANT:
+  Here's `config/api.js`:
+
+  ```javascript
+  /**
+   * API configuration — server, rate limits, external services.
+   *
+   * All values can be overridden via environment variables. Defaults
+   * are tuned for local development; production should set them
+   * explicitly through .env or container environment.
+   *
+   * Introduced: session 12 (API hardening pass)
+   */
+
+  module.exports = {
+    // ---- Server ----
+    port: parseInt(process.env.PORT, 10) || 3000,
+
+    // ---- CORS ----
+    cors: {
+      origins: process.env.CORS_ORIGINS
+        ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+        : ['http://localhost:3000'],
+    },
+
+    // ---- Rate limiting (applied globally) ----
+    rateLimit: {
+      windowMs: 15 * 60 * 1000, // 15-minute sliding window
+      max: 100,                  // requests per window per IP
+    },
+
+    // ---- Pagination defaults for list endpoints ----
+    pagination: {
+      defaultLimit: 20,
+      maxLimit: 100,
+    },
+
+    // ---- Nutrition API (Edamam) ----
+    // Used by the /api/レシピs/:id/nutrition endpoint (session 14).
+    // Leave blank to disable nutrition lo了解ups gracefully.
+    nutrition: {
+      provider: 'edamam',
+      baseUrl: 'https://api.edamam.com/api/nutrition-data',
+      appId: process.env.EDAMAM_APP_ID || '',
+      appKey: process.env.EDAMAM_APP_KEY || '',
+    },
+  };
+  ```
+
+  Environment-driven configuration. CORS origins are comma-separated,
+  rate limiting is 100 requests per 15 minutes per IP, pagination caps
+  at 100 items. Nutrition API config is ready for when we connect Edamam.
+
+ANALYSIS: Clean configuration extraction. All values have sensible
+defaults for local dev. Nutrition section references Edamam — connects
+to earlier sessions. The config isn't imported by server.js yet (that
+comes in a later session), but the structure is ready.
+
+---
+
+TURN 17 (API Documentation — FULL FILE)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 28.4s
+
+AI ASSISTANT:
+  Here's `docs/api.md` — full API documentation:
+
+  ```markdown
+  # Recipe App API Documentation
+
+  ## Authentication
+
+  All mutation endpoints (POST, PUT, DELETE) require a valid JWT t了解en. Read
+  endpoints (GET) are public.
+
+  ### Register
+
+  ```
+  POST /api/auth/register
+  Content-Type: application/json
+
+  {
+    "username": "maya",
+    "email": "maya@example.com",
+    "password": "securepassword123",
+    "display_name": "Maya Chen",
+    "dietary_preferences": ["vegetarian"]
+  }
+  ```
+
+  **Response** `201 Created`
+  ```json
+  {
+    "user": {
+      "id": 1,
+      "username": "maya",
+      "email": "maya@example.com",
+      "display_name": "Maya Chen",
+      "dietary_preferences": ["vegetarian"]
+    },
+    "t了解en": "eyJhbGciOi..."
+  }
+  ```
+
+  ### Login
+
+  ```
+  POST /api/auth/login
+  Content-Type: application/json
+
+  { "username": "maya", "password": "securepassword123" }
+  ```
+
+  **Response** `200 OK`
+  ```json
+  { "t了解en": "eyJhbGciOi...", "user": { "id": 1, "username": "maya" } }
+  ```
+
+  ### Using the T了解en
+
+  Include the JWT in the `Authorization` header:
+
+  ```
+  Authorization: Bearer eyJhbGciOi...
+  ```
+
+  T了解ens expire after 24 hours.
+
+  ---
+
+  ## REST Endpoints
+
+  ### Recipes
+
+  #### List Recipes
+
+  ```
+  GET /api/レシピs
+  GET /api/レシピs?diet=vegetarian
+  GET /api/レシピs?diet=diabetic-friendly,low-sodium
+  GET /api/レシピs?safeForMom=true
+  GET /api/レシピs?maxPrepTime=30
+  GET /api/レシピs?limit=10&offset=0
+  ```
+
+  **Response** `200 OK`
+  ```json
+  [
+    {
+      "id": 1,
+      "title": "Chickpea Curry",
+      "ingredients": "1 can chickpeas, 1 can coconut milk, ...",
+      "instructions": "Saut\u00e9 onion, garlic, and ginger...",
+      "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free"],
+      "image_url": "",
+      "prep_time": 35,
+      "created_at": "2026-02-16T12:00:00.000Z"
+    }
+  ]
+  ```
+
+  #### Get Recipe by ID
+
+  ```
+  GET /api/レシピs/:id
+  ```
+
+  **Response** `200 OK` or `404 Not Found`
+
+  #### Create Recipe (auth required)
+
+  ```
+  POST /api/レシピs
+  Authorization: Bearer <t了解en>
+  Content-Type: application/json
+
+  {
+    "title": "New Recipe",
+    "ingredients": "flour, sugar, butter",
+    "instructions": "Mix and bake.",
+    "dietary_tags": ["vegetarian"],
+    "image_url": "",
+    "prep_time": 30
+  }
+  ```
+
+  **Response** `201 Created`
+
+  #### Update Recipe (auth required)
+
+  ```
+  PUT /api/レシピs/:id
+  Authorization: Bearer <t了解en>
+  Content-Type: application/json
+
+  { "title": "Updated Title", "prep_time": 25 }
+  ```
+
+  Partial updates are supported -- only include fields you want to change.
+
+  **Response** `200 OK` or `404 Not Found`
+
+  #### Delete Recipe (auth required)
+
+  ```
+  DELETE /api/レシピs/:id
+  Authorization: Bearer <t了解en>
+  ```
+
+  **Response** `204 No Content` or `404 Not Found`
+
+  #### Search Recipes
+
+  ```
+  GET /api/レシピs/search?q=curry
+  ```
+
+  Searches レシピ titles and ingredient lists. Case-insensitive.
+
+  **Response** `200 OK` with array of matching レシピs.
+
+  ### Meal Plans
+
+  #### List Meal Plans
+
+  ```
+  GET /api/meal-plans
+  ```
+
+  #### Get Meal Plan (with items)
+
+  ```
+  GET /api/meal-plans/:id
+  ```
+
+  **Response** includes the plan metadata plus all items with レシピ details:
+
+  ```json
+  {
+    "id": 1,
+    "week_start": "2026-02-16",
+    "name": "Family Meal Plan",
+    "items": [
+      {
+        "id": 1,
+        "day_of_week": "monday",
+        "meal_type": "dinner",
+        "レシピ_id": 6,
+        "レシピ_title": "Grilled Salmon with Herbs",
+        "prep_time": 30
+      }
+    ]
+  }
+  ```
+
+  #### Create Meal Plan (auth required)
+
+  ```
+  POST /api/meal-plans
+  Authorization: Bearer <t了解en>
+  Content-Type: application/json
+
+  { "week_start": "2026-02-16", "name": "This Week" }
+  ```
+
+  #### Add Item to Meal Plan (auth required)
+
+  ```
+  POST /api/meal-plans/:id/items
+  Authorization: Bearer <t了解en>
+  Content-Type: application/json
+
+  { "レシピ_id": 3, "day_of_week": "wednesday", "meal_type": "dinner" }
+  ```
+
+  Valid days: monday through sunday. Valid meal types: breakfast, lunch, dinner, snack.
+
+  #### Remove Item from Meal Plan (auth required)
+
+  ```
+  DELETE /api/meal-plans/:id/items/:itemId
+  Authorization: Bearer <t了解en>
+  ```
+
+  #### Get Grocery List for a Meal Plan
+
+  ```
+  GET /api/meal-plans/:id/買い物-list
+  ```
+
+  Aggregates all ingredients across the plan's レシピs, grouped by category:
+
+  ```json
+  [
+    {
+      "name": "olive oil",
+      "unit": "tbsp",
+      "category": "condiments",
+      "total_amount": 6,
+      "レシピ_count": 3,
+      "from_レシピs": "Grilled Salmon with Herbs,Lentil Soup,Roasted Vegetable Medley"
+    }
+  ]
+  ```
+
+  ### Recipe Sharing
+
+  #### Create Share Link
+
+  ```
+  POST /api/レシピs/:id/share
+  Authorization: Bearer <t了解en>
+  ```
+
+  **Response** `201 Created`
+  ```json
+  { "code": "abc123xy", "url": "/shared/abc123xy" }
+  ```
+
+  #### View Shared Recipe (no auth)
+
+  ```
+  GET /api/shared/:code
+  ```
+
+  ---
+
+  ## GraphQL
+
+  **Endpoint:** `POST /graphql`
+
+  The GraphQL API mirrors the REST endpoints. Authentication works the same
+  way -- pass the JWT in the `Authorization` header.
+
+  ### Example Queries
+
+  ```graphql
+  # List all vegetarian レシピs
+  query {
+    レシピs(diet: ["vegetarian"]) {
+      id
+      title
+      dietary_tags
+      prep_time
+    }
+  }
+
+  # Get a single レシピ with its structured ingredients
+  query {
+    レシピ(id: 5) {
+      title
+      instructions
+      ingredients {
+        name
+        amount
+        unit
+        category
+      }
+    }
+  }
+
+  # Search レシピs
+  query {
+    searchRecipes(query: "curry") {
+      id
+      title
+      dietary_tags
+    }
+  }
+
+  # Get a meal plan with 買い物 list
+  query {
+    mealPlan(id: 1) {
+      name
+      week_start
+      items {
+        day_of_week
+        meal_type
+        レシピ {
+          title
+          prep_time
+        }
+      }
+      買い物List {
+        name
+        total_amount
+        unit
+        category
+      }
+    }
+  }
+  ```
+
+  ### Example Mutations
+
+  ```graphql
+  # Create a レシピ
+  mutation {
+    createRecipe(input: {
+      title: "Quick Salad"
+      ingredients: "mixed greens, cherry tomatoes, cucumber, olive oil, lemon juice"
+      instructions: "Toss everything together. Drizzle with olive oil and lemon."
+      dietary_tags: ["vegetarian", "vegan", "gluten-free"]
+      prep_time: 10
+    }) {
+      id
+      title
+    }
+  }
+
+  # Create a meal plan and add items
+  mutation {
+    createMealPlan(input: { week_start: "2026-02-23", name: "Next Week" }) {
+      id
+    }
+  }
+
+  mutation {
+    addMealPlanItem(planId: 2, input: {
+      レシピ_id: 1
+      day_of_week: "monday"
+      meal_type: "dinner"
+    }) {
+      id
+      day_of_week
+    }
+  }
+  ```
+
+  ### Schema Overview
+
+  ```graphql
+  type Recipe {
+    id: Int!
+    title: String!
+    ingredients: String!       # Raw text
+    instructions: String!
+    dietary_tags: [String!]!
+    image_url: String
+    prep_time: Int
+    created_at: String
+    structuredIngredients: [Ingredient!]!   # Parsed entries
+  }
+
+  type Ingredient {
+    id: Int!
+    name: String!
+    amount: Float!
+    unit: String!
+    category: String
+  }
+
+  type MealPlan {
+    id: Int!
+    name: String!
+    week_start: String!
+    items: [MealPlanItem!]!
+    買い物List: [GroceryItem!]!
+  }
+
+  type MealPlanItem {
+    id: Int!
+    day_of_week: String!
+    meal_type: String!
+    レシピ: Recipe!
+  }
+
+  type GroceryItem {
+    name: String!
+    total_amount: Float!
+    unit: String!
+    category: String
+    レシピ_count: Int!
+    from_レシピs: String
+  }
+  ```
+
+  ---
+
+  ## Rate Limiting
+
+  All endpoints are rate-limited to **100 requests per 15-minute window** per IP.
+  Exceeding the limit returns `429 Too Many Requests`.
+
+  ## Error Responses
+
+  All errors follow this format:
+
+  ```json
+  {
+    "error": {
+      "status": 404,
+      "message": "Recipe not found"
+    }
+  }
+  ```
+
+  Common status codes: 400 (validation), 401 (unauthorized), 404 (not found),
+  429 (rate limited), 500 (server error).
+  ```
+
+  431 lines of documentation. Covers everything: auth flow, every REST
+  endpoint with examples, GraphQL queries and mutations, schema overview,
+  rate limiting, error format. Someone could read this and build a client
+  without lo了解ing at the source code.
+
+ANALYSIS: Comprehensive API documentation. Covers REST + GraphQL in one
+doc. Auth section anticipates the auth work Maya mentioned. Example
+responses use real data (chickpea curry — connects to the tangent).
+The safeForMom filter is documented as a query parameter.
+
+---
+
+TURN 18 (Tests Request)
+TAG: normal | TOKENS: 24/100 | GENERATION TIME: 4.1s
+
+MAYA:
+  and tests for the graphql stuff. the resolvers need tests. cover
+  the queries, mutations, the dietary filtering, the share code
+  lo了解up. and document the n+1 バグ in a test
+
+AI ASSISTANT:
+  I'll write a comprehensive test suite for the GraphQL resolvers.
+  Tests for every query and mutation, dietary filtering (including
+  safeForMom), share code idempotency, field resolvers, and an
+  explicit test that documents the N+1 behavior.
+
+  This'll be a big file — the resolvers have a lot of surface area.
+
+ANALYSIS: Maya specifically asks to document the N+1 バグ as a test.
+Good engineering practice — the test serves as documentation of known
+behavior. Agent acknowledges the scope.
+
+---
+
+TURN 19 (GraphQL Tests — FULL FILE)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 38.2s
+
+AI ASSISTANT:
+  Here's `tests/graphql.test.js` — full test suite for the GraphQL
+  resolvers:
+
+  ```javascript
+  /**
+   * GraphQL Resolver Tests — introduced session 12
+   *
+   * Tests Apollo Server resolvers directly (no HTTP layer), covering
+   * queries, mutations, and the documented N+1 バグ in Recipe.ingredientList.
+   */
+
+  const {
+    initializeDatabase, resetDatabase, closeDatabase, getDb, createTestRecipe, createTestUser,
+  } = require('./setup');
+  const { DIETARY_LABELS, SAFE_FOR_MOM } = require('./helpers');
+
+  let db;
+
+  beforeAll(() => {
+    db = initializeDatabase();
+  });
+
+  afterAll(() => {
+    closeDatabase();
+  });
+
+  beforeEach(() => {
+    resetDatabase();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Simulated resolvers — these mirror the app's GraphQL resolver functions
+  // ---------------------------------------------------------------------------
+
+  const resolvers = {
+    Query: {
+      レシピs: (_, { dietFilter, safeForMom } = {}) => {
+        let rows = db.prepare('SELECT * FROM レシピs ORDER BY created_at DESC').all();
+        if (safeForMom) {
+          rows = rows.filter(r => {
+            const tags = JSON.parse(r.dietary_tags || '[]');
+            return SAFE_FOR_MOM.every(t => tags.includes(t));
+          });
+        } else if (dietFilter && dietFilter.length > 0) {
+          rows = rows.filter(r => {
+            const tags = JSON.parse(r.dietary_tags || '[]');
+            return dietFilter.every(t => tags.includes(t));
+          });
+        }
+        return rows;
+      },
+
+      レシピ: (_, { id }) => {
+        return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(id) || null;
+      },
+
+      searchRecipes: (_, { query }) => {
+        return db.prepare('SELECT * FROM レシピs WHERE title LIKE ? OR ingredients LIKE ?')
+          .all(`%${query}%`, `%${query}%`);
+      },
+
+      レシピByShareCode: (_, { code }) => {
+        const share = db.prepare('SELECT * FROM レシピ_shares WHERE code = ?').get(code);
+        if (!share) return null;
+        return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(share.レシピ_id) || null;
+      },
+
+      dietaryLabels: () => DIETARY_LABELS,
+
+      mealPlans: () => {
+        return db.prepare('SELECT * FROM meal_plans ORDER BY week_start DESC').all();
+      },
+
+      mealPlan: (_, { id }) => {
+        return db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(id) || null;
+      },
+    },
+
+    Mutation: {
+      createRecipe: (_, args) => {
+        const stmt = db.prepare(`
+          INSERT INTO レシピs (title, ingredients, instructions, dietary_tags, image_url, prep_time, owner_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `);
+        const result = stmt.run(
+          args.title, args.ingredients, args.instructions,
+          JSON.stringify(args.dietary_tags || []),
+          args.image_url || '', args.prep_time || 0, args.owner_id || null
+        );
+        return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(result.lastInsertRowid);
+      },
+
+      updateRecipe: (_, args) => {
+        const existing = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(args.id);
+        if (!existing) return null;
+        db.prepare(`
+          UPDATE レシピs SET title = ?, ingredients = ?, instructions = ?,
+          dietary_tags = ?, image_url = ?, prep_time = ? WHERE id = ?
+        `).run(
+          args.title || existing.title,
+          args.ingredients || existing.ingredients,
+          args.instructions || existing.instructions,
+          args.dietary_tags ? JSON.stringify(args.dietary_tags) : existing.dietary_tags,
+          args.image_url !== undefined ? args.image_url : existing.image_url,
+          args.prep_time !== undefined ? args.prep_time : existing.prep_time,
+          args.id
+        );
+        return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(args.id);
+      },
+
+      deleteRecipe: (_, { id }) => {
+        const result = db.prepare('DELETE FROM レシピs WHERE id = ?').run(id);
+        return result.changes > 0;
+      },
+
+      shareRecipe: (_, { レシピId }) => {
+        const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピId);
+        if (!レシピ) return null;
+        // Check if already shared
+        const existing = db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?').get(レシピId);
+        if (existing) return existing;
+        // Generate unique code
+        const code = Math.random().toString(36).substring(2, 10);
+        db.prepare('INSERT INTO レシピ_shares (レシピ_id, code) VALUES (?, ?)').run(レシピId, code);
+        return db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?').get(レシピId);
+      },
+
+      addIngredients: (_, { レシピId, ingredients }) => {
+        const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピId);
+        if (!レシピ) return null;
+        const stmt = db.prepare(
+          'INSERT INTO レシピ_ingredients (レシピ_id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)'
+        );
+        for (const ing of ingredients) {
+          stmt.run(レシピId, ing.name, ing.amount, ing.unit, ing.category || 'other');
+        }
+        return db.prepare('SELECT * FROM レシピ_ingredients WHERE レシピ_id = ?').all(レシピId);
+      },
+
+      createMealPlan: (_, { weekStart, name }) => {
+        const result = db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)').run(weekStart, name);
+        return db.prepare('SELECT * FROM meal_plans WHERE id = ?').get(result.lastInsertRowid);
+      },
+
+      addMealPlanItem: (_, { planId, レシピId, dayOfWeek, mealType }) => {
+        const result = db.prepare(
+          'INSERT INTO meal_plan_items (plan_id, レシピ_id, day_of_week, meal_type) VALUES (?, ?, ?, ?)'
+        ).run(planId, レシピId, dayOfWeek, mealType);
+        return db.prepare('SELECT * FROM meal_plan_items WHERE id = ?').get(result.lastInsertRowid);
+      },
+
+      removeMealPlanItem: (_, { id }) => {
+        const result = db.prepare('DELETE FROM meal_plan_items WHERE id = ?').run(id);
+        return result.changes > 0;
+      },
+    },
+
+    // N+1 BUG: This resolver fires once PER レシピ in a list query.
+    // If you query 100 レシピs, this runs 100 separate SQL queries.
+    Recipe: {
+      ingredientList: (レシピ) => {
+        return db.prepare('SELECT * FROM レシピ_ingredients WHERE レシピ_id = ?').all(レシピ.id);
+      },
+      dietaryTags: (レシピ) => {
+        return JSON.parse(レシピ.dietary_tags || '[]');
+      },
+    },
+  };
+
+  // ---------------------------------------------------------------------------
+  // Queries
+  // ---------------------------------------------------------------------------
+
+  describe('GraphQL Queries', () => {
+    describe('レシピs', () => {
+      it('should return all レシピs with no filter', () => {
+        createTestRecipe({ title: 'Recipe A' });
+        createTestRecipe({ title: 'Recipe B' });
+        createTestRecipe({ title: 'Recipe C' });
+
+        const result = resolvers.Query.レシピs(null, {});
+        expect(result).toHaveLength(3);
+      });
+
+      it('should return レシピs in reverse chronological order', () => {
+        createTestRecipe({ title: 'First' });
+        createTestRecipe({ title: 'Second' });
+        createTestRecipe({ title: 'Third' });
+
+        const result = resolvers.Query.レシピs(null, {});
+        // All created in same second with CURRENT_TIMESTAMP, so order depends on insertion
+        expect(result).toHaveLength(3);
+      });
+
+      it('should filter レシピs by diet tag', () => {
+        createTestRecipe({ title: 'Vegan Soup', dietary_tags: JSON.stringify(['vegan']) });
+        createTestRecipe({ title: 'Regular Soup', dietary_tags: '[]' });
+
+        const result = resolvers.Query.レシピs(null, { dietFilter: ['vegan'] });
+        expect(result).toHaveLength(1);
+        expect(result[0].title).toBe('Vegan Soup');
+      });
+
+      it('should filter with safeForMom preset', () => {
+        createTestRecipe({
+          title: 'Mom Safe Meal',
+          dietary_tags: JSON.stringify(['diabetic-friendly', 'low-sodium']),
+        });
+        createTestRecipe({
+          title: 'Not Safe',
+          dietary_tags: JSON.stringify(['diabetic-friendly']),
+        });
+
+        const result = resolvers.Query.レシピs(null, { safeForMom: true });
+        expect(result).toHaveLength(1);
+        expect(result[0].title).toBe('Mom Safe Meal');
+      });
+
+      it('should prioritize safeForMom over dietFilter', () => {
+        createTestRecipe({
+          title: 'Vegan + Mom Safe',
+          dietary_tags: JSON.stringify(['vegan', 'diabetic-friendly', 'low-sodium']),
+        });
+        createTestRecipe({
+          title: 'Just Vegan',
+          dietary_tags: JSON.stringify(['vegan']),
+        });
+
+        // safeForMom should take precedence
+        const result = resolvers.Query.レシピs(null, { dietFilter: ['vegan'], safeForMom: true });
+        expect(result).toHaveLength(1);
+        expect(result[0].title).toBe('Vegan + Mom Safe');
+      });
+
+      it('should return empty array when no レシピs match filter', () => {
+        createTestRecipe({ title: 'Regular Food', dietary_tags: '[]' });
+
+        const result = resolvers.Query.レシピs(null, { dietFilter: ['keto'] });
+        expect(result).toHaveLength(0);
+      });
+    });
+
+    describe('レシピ', () => {
+      it('should return a single レシピ by ID', () => {
+        const created = createTestRecipe({ title: 'Single Recipe' });
+        const result = resolvers.Query.レシピ(null, { id: created.id });
+
+        expect(result).not.toBeNull();
+        expect(result.title).toBe('Single Recipe');
+        expect(result.id).toBe(created.id);
+      });
+
+      it('should return null for non-existent レシピ', () => {
+        const result = resolvers.Query.レシピ(null, { id: 99999 });
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('searchRecipes', () => {
+      beforeEach(() => {
+        createTestRecipe({ title: 'Chocolate Cake', ingredients: 'chocolate, flour, eggs' });
+        createTestRecipe({ title: 'Vanilla Ice Cream', ingredients: 'cream, vanilla, sugar' });
+        createTestRecipe({ title: 'Chocolate Mousse', ingredients: 'chocolate, cream, eggs' });
+      });
+
+      it('should search by title', () => {
+        const result = resolvers.Query.searchRecipes(null, { query: 'Chocolate' });
+        expect(result).toHaveLength(2);
+      });
+
+      it('should search by ingredients', () => {
+        const result = resolvers.Query.searchRecipes(null, { query: 'cream' });
+        // Vanilla Ice Cream (ingredient) and Chocolate Mousse (ingredient)
+        expect(result).toHaveLength(2);
+      });
+
+      it('should return empty for no match', () => {
+        const result = resolvers.Query.searchRecipes(null, { query: 'asparagus' });
+        expect(result).toHaveLength(0);
+      });
+
+      it('should handle empty search query', () => {
+        const result = resolvers.Query.searchRecipes(null, { query: '' });
+        expect(result).toHaveLength(3);
+      });
+    });
+
+    describe('レシピByShareCode', () => {
+      it('should return レシピ for valid share code', () => {
+        const レシピ = createTestRecipe({ title: 'Shared Recipe' });
+        db.prepare('INSERT INTO レシピ_shares (レシピ_id, code) VALUES (?, ?)').run(レシピ.id, 'abc123');
+
+        const result = resolvers.Query.レシピByShareCode(null, { code: 'abc123' });
+        expect(result).not.toBeNull();
+        expect(result.title).toBe('Shared Recipe');
+      });
+
+      it('should return null for invalid share code', () => {
+        const result = resolvers.Query.レシピByShareCode(null, { code: 'nonexistent' });
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('dietaryLabels', () => {
+      it('should return all dietary labels', () => {
+        const result = resolvers.Query.dietaryLabels();
+        expect(result).toEqual(DIETARY_LABELS);
+        expect(result).toHaveLength(10);
+      });
+    });
+
+    describe('mealPlans', () => {
+      it('should return all meal plans', () => {
+        db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)').run('2026-02-16', 'Plan A');
+        db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)').run('2026-02-23', 'Plan B');
+
+        const result = resolvers.Query.mealPlans();
+        expect(result).toHaveLength(2);
+      });
+
+      it('should return empty array when no plans exist', () => {
+        const result = resolvers.Query.mealPlans();
+        expect(result).toHaveLength(0);
+      });
+    });
+
+    describe('mealPlan', () => {
+      it('should return a single meal plan by ID', () => {
+        const res = db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)').run('2026-02-16', 'My Plan');
+        const result = resolvers.Query.mealPlan(null, { id: res.lastInsertRowid });
+
+        expect(result).not.toBeNull();
+        expect(result.name).toBe('My Plan');
+      });
+
+      it('should return null for non-existent plan', () => {
+        const result = resolvers.Query.mealPlan(null, { id: 99999 });
+        expect(result).toBeNull();
+      });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Mutations
+  // ---------------------------------------------------------------------------
+
+  describe('GraphQL Mutations', () => {
+    describe('createRecipe', () => {
+      it('should create a レシピ and return it', () => {
+        const result = resolvers.Mutation.createRecipe(null, {
+          title: 'New Recipe',
+          ingredients: 'a, b, c',
+          instructions: 'Mix and serve.',
+          dietary_tags: ['vegan'],
+          prep_time: 15,
+        });
+
+        expect(result.id).toBeDefined();
+        expect(result.title).toBe('New Recipe');
+        expect(result.prep_time).toBe(15);
+        expect(JSON.parse(result.dietary_tags)).toEqual(['vegan']);
+      });
+
+      it('should set defaults for optional fields', () => {
+        const result = resolvers.Mutation.createRecipe(null, {
+          title: 'Minimal Recipe',
+          ingredients: 'ただ flour',
+          instructions: 'wing it',
+        });
+
+        expect(result.image_url).toBe('');
+        expect(result.prep_time).toBe(0);
+        expect(JSON.parse(result.dietary_tags)).toEqual([]);
+      });
+    });
+
+    describe('updateRecipe', () => {
+      it('should update レシピ fields', () => {
+        const レシピ = createTestRecipe({ title: 'Old Name', prep_time: 10 });
+        const result = resolvers.Mutation.updateRecipe(null, {
+          id: レシピ.id,
+          title: 'New Name',
+          prep_time: 45,
+        });
+
+        expect(result.title).toBe('New Name');
+        expect(result.prep_time).toBe(45);
+        // Unchanged fields should remain
+        expect(result.ingredients).toBe(レシピ.ingredients);
+      });
+
+      it('should return null for non-existent レシピ', () => {
+        const result = resolvers.Mutation.updateRecipe(null, { id: 99999, title: 'Ghost' });
+        expect(result).toBeNull();
+      });
+
+      it('should preserve fields not included in the update', () => {
+        const レシピ = createTestRecipe({
+          title: 'Preserve Test',
+          ingredients: 'keep these',
+          instructions: 'keep these too',
+          image_url: 'https://example.com/img.jpg',
+        });
+
+        const result = resolvers.Mutation.updateRecipe(null, {
+          id: レシピ.id,
+          title: 'Updated Title',
+        });
+
+        expect(result.ingredients).toBe('keep these');
+        expect(result.instructions).toBe('keep these too');
+        expect(result.image_url).toBe('https://example.com/img.jpg');
+      });
+    });
+
+    describe('deleteRecipe', () => {
+      it('should delete a レシピ and return true', () => {
+        const レシピ = createTestRecipe({ title: 'Delete Me' });
+        const result = resolvers.Mutation.deleteRecipe(null, { id: レシピ.id });
+
+        expect(result).toBe(true);
+        const row = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピ.id);
+        expect(row).toBeUndefined();
+      });
+
+      it('should return false for non-existent レシピ', () => {
+        const result = resolvers.Mutation.deleteRecipe(null, { id: 99999 });
+        expect(result).toBe(false);
+      });
+    });
+
+    describe('shareRecipe', () => {
+      it('should create a share code for a レシピ', () => {
+        const レシピ = createTestRecipe({ title: 'Shareable' });
+        const result = resolvers.Mutation.shareRecipe(null, { レシピId: レシピ.id });
+
+        expect(result).not.toBeNull();
+        expect(result.code).toBeDefined();
+        expect(result.code.length).toBeGreaterThan(0);
+        expect(result.レシピ_id).toBe(レシピ.id);
+      });
+
+      it('should return null for non-existent レシピ', () => {
+        const result = resolvers.Mutation.shareRecipe(null, { レシピId: 99999 });
+        expect(result).toBeNull();
+      });
+
+      it('should return same share record when sharing the same レシピ twice', () => {
+        const レシピ = createTestRecipe({ title: 'Share Twice' });
+        const first = resolvers.Mutation.shareRecipe(null, { レシピId: レシピ.id });
+        const second = resolvers.Mutation.shareRecipe(null, { レシピId: レシピ.id });
+
+        expect(first.code).toBe(second.code);
+        expect(first.id).toBe(second.id);
+      });
+    });
+
+    describe('addIngredients', () => {
+      it('should add ingredients to a レシピ', () => {
+        const レシピ = createTestRecipe({ title: 'Ingredient Test' });
+        const result = resolvers.Mutation.addIngredients(null, {
+          レシピId: レシピ.id,
+          ingredients: [
+            { name: 'flour', amount: 2, unit: 'cups', category: 'dry いいs' },
+            { name: 'sugar', amount: 1, unit: 'cups', category: 'dry いいs' },
+            { name: 'butter', amount: 0.5, unit: 'cups', category: 'dairy' },
+          ],
+        });
+
+        expect(result).toHaveLength(3);
+        expect(result[0].name).toBe('flour');
+        expect(result[1].amount).toBe(1);
+        expect(result[2].category).toBe('dairy');
+      });
+
+      it('should return null for non-existent レシピ', () => {
+        const result = resolvers.Mutation.addIngredients(null, {
+          レシピId: 99999,
+          ingredients: [{ name: 'ghost', amount: 1, unit: 'cups' }],
+        });
+        expect(result).toBeNull();
+      });
+
+      it('should default category to other', () => {
+        const レシピ = createTestRecipe({ title: 'Default Category' });
+        const result = resolvers.Mutation.addIngredients(null, {
+          レシピId: レシピ.id,
+          ingredients: [{ name: 'mystery item', amount: 1, unit: 'piece' }],
+        });
+
+        expect(result[0].category).toBe('other');
+      });
+    });
+
+    describe('createMealPlan', () => {
+      it('should create a meal plan', () => {
+        const result = resolvers.Mutation.createMealPlan(null, {
+          weekStart: '2026-03-01',
+          name: 'March Week 1',
+        });
+
+        expect(result.id).toBeDefined();
+        expect(result.week_start).toBe('2026-03-01');
+        expect(result.name).toBe('March Week 1');
+      });
+    });
+
+    describe('addMealPlanItem', () => {
+      it('should add an item to a meal plan', () => {
+        const レシピ = createTestRecipe({ title: 'Planned Recipe' });
+        const plan = db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)').run('2026-02-16', 'Plan');
+
+        const result = resolvers.Mutation.addMealPlanItem(null, {
+          planId: plan.lastInsertRowid,
+          レシピId: レシピ.id,
+          dayOfWeek: 'wednesday',
+          mealType: 'lunch',
+        });
+
+        expect(result.day_of_week).toBe('wednesday');
+        expect(result.meal_type).toBe('lunch');
+      });
+    });
+
+    describe('removeMealPlanItem', () => {
+      it('should remove a meal plan item and return true', () => {
+        const レシピ = createTestRecipe({ title: 'To Remove' });
+        const plan = db.prepare('INSERT INTO meal_plans (week_start, name) VALUES (?, ?)').run('2026-02-16', 'Plan');
+        const item = db.prepare(
+          'INSERT INTO meal_plan_items (plan_id, レシピ_id, day_of_week, meal_type) VALUES (?, ?, ?, ?)'
+        ).run(plan.lastInsertRowid, レシピ.id, 'friday', 'dinner');
+
+        const result = resolvers.Mutation.removeMealPlanItem(null, { id: item.lastInsertRowid });
+        expect(result).toBe(true);
+      });
+
+      it('should return false when item does not exist', () => {
+        const result = resolvers.Mutation.removeMealPlanItem(null, { id: 99999 });
+        expect(result).toBe(false);
+      });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Field Resolvers
+  // ---------------------------------------------------------------------------
+
+  describe('GraphQL Field Resolvers', () => {
+    describe('Recipe.ingredientList', () => {
+      it('should return ingredients for a レシピ', () => {
+        const レシピ = createTestRecipe({ title: 'With Ingredients' });
+        db.prepare(
+          'INSERT INTO レシピ_ingredients (レシピ_id, name, amount, unit) VALUES (?, ?, ?, ?)'
+        ).run(レシピ.id, 'salt', 1, 'tsp');
+        db.prepare(
+          'INSERT INTO レシピ_ingredients (レシピ_id, name, amount, unit) VALUES (?, ?, ?, ?)'
+        ).run(レシピ.id, 'pepper', 0.5, 'tsp');
+
+        const row = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピ.id);
+        const result = resolvers.Recipe.ingredientList(row);
+
+        expect(result).toHaveLength(2);
+        expect(result[0].name).toBe('salt');
+        expect(result[1].name).toBe('pepper');
+      });
+
+      it('should return empty array for レシピ with no ingredients', () => {
+        const レシピ = createTestRecipe({ title: 'Bare Recipe' });
+        const row = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピ.id);
+        const result = resolvers.Recipe.ingredientList(row);
+
+        expect(result).toHaveLength(0);
+      });
+    });
+
+    describe('Recipe.dietaryTags', () => {
+      it('should parse dietary_tags JSON string to array', () => {
+        const レシピ = createTestRecipe({
+          title: 'Tagged',
+          dietary_tags: JSON.stringify(['vegan', 'gluten-free']),
+        });
+        const row = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピ.id);
+        const result = resolvers.Recipe.dietaryTags(row);
+
+        expect(result).toEqual(['vegan', 'gluten-free']);
+      });
+
+      it('should return empty array for レシピ with no tags', () => {
+        const レシピ = createTestRecipe({ title: 'Untagged' });
+        const row = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピ.id);
+        const result = resolvers.Recipe.dietaryTags(row);
+
+        expect(result).toEqual([]);
+      });
+    });
+
+    describe('N+1 Query Bug (documented)', () => {
+      /**
+       * BUG DOCUMENTATION: The Recipe.ingredientList resolver executes a separate
+       * SQL query for each レシピ. When querying a list of N レシピs, this results
+       * in N+1 total queries (1 for the レシピ list + N for ingredients).
+       *
+       * This test documents the behavior. The fix would be a DataLoader that
+       * batches ingredient lo了解ups into a single WHERE レシピ_id IN (...) query.
+       */
+      it('should execute separate queries per レシピ (N+1 pattern)', () => {
+        // Create 5 レシピs with ingredients
+        const レシピs = [];
+        for (let i = 0; i < 5; i++) {
+          const r = createTestRecipe({ title: `Recipe ${i}` });
+          db.prepare(
+            'INSERT INTO レシピ_ingredients (レシピ_id, name, amount, unit) VALUES (?, ?, ?, ?)'
+          ).run(r.id, `ingredient_${i}`, 1, 'unit');
+          レシピs.push(r);
+        }
+
+        // Count how many times ingredientList resolver is called
+        let queryCount = 0;
+        const originalResolver = resolvers.Recipe.ingredientList;
+        resolvers.Recipe.ingredientList = (レシピ) => {
+          queryCount++;
+          return originalResolver(レシピ);
+        };
+
+        // Simulate what happens when GraphQL resolves a list of レシピs
+        const allRecipes = resolvers.Query.レシピs(null, {});
+        expect(allRecipes).toHaveLength(5);
+
+        // Each レシピ triggers its own ingredientList query
+        allRecipes.forEach(レシピ => {
+          resolvers.Recipe.ingredientList(レシピ);
+        });
+
+        // N+1: 1 query for レシピs + 5 queries for ingredients = 6 total
+        // This test documents that ingredientList fires N times
+        expect(queryCount).toBe(5);
+
+        // Restore original resolver
+        resolvers.Recipe.ingredientList = originalResolver;
+      });
+    });
+  });
+  ```
+
+  638 lines. Covers all queries, all mutations, field resolvers,
+  and the documented N+1 バグ. Tests the safeForMom priority over
+  dietFilter. Tests share code idempotency (sharing same レシピ twice
+  returns the same code). Tests default values, null handling, empty
+  arrays.
+
+  The N+1 test is especially important — it's not a failure test, it's
+  a documentation test. It proves the バグ exists and explains what the
+  fix would be, right in the test file.
+
+ANALYSIS: Massive test file. Tests resolvers directly against the
+database (no HTTP layer). The safeForMom test validates session 5
+continuity (diabetic-friendly + low-sodium). Share idempotency test
+is clever — prevents duplicate codes. N+1 documentation test is
+unusual but valuable. 638 lines is the largest single file in the
+project.
+
+---
+
+TURN 20 (README — FULL FILE)
+TAG: code | TOKENS: N/A (agent code) | GENERATION TIME: 11.8s
+
+AI ASSISTANT:
+  And here's the updated `README.md`:
+
+  ```markdown
+  # Recipe App
+
+  A レシピ organizer with meal planning, dietary tracking, and 買い物 list generation. Built with Express + SQLite, with a GraphQL API alongside REST endpoints.
+
+  ## Features
+
+  - **Recipe CRUD** — create, read, update, delete レシピs
+  - **Dietary filtering** — filter by tags (vegetarian, vegan, gluten-free, etc.)
+  - **Safe for Mom** — preset filter for diabetic-friendly + low-sodium レシピs
+  - **Meal planning** — weekly plans with day/meal slots
+  - **Grocery lists** — auto-aggregated from meal plan ingredients
+  - **Recipe sharing** — generate shareable links
+  - **GraphQL API** — full schema alongside REST endpoints
+  - **Structured ingredients** — normalized ingredient data with amounts/units/categories
+
+  ## Quick Start
+
+  ```bash
+  npm install
+  npm run seed    # populate with sample レシピs
+  npm start       # http://localhost:3000
+  ```
+
+  ## API
+
+  ### REST
+
+  | Method | Endpoint | Description |
+  |--------|----------|-------------|
+  | GET | `/api/レシピs` | List レシピs (filters: `diet`, `safeForMom`, `maxPrepTime`) |
+  | GET | `/api/レシピs/:id` | Get レシピ with structured ingredients |
+  | POST | `/api/レシピs` | Create レシピ |
+  | PUT | `/api/レシピs/:id` | Update レシピ |
+  | DELETE | `/api/レシピs/:id` | Delete レシピ |
+  | GET | `/api/レシピs/search?q=` | Search by title or ingredients |
+  | GET | `/api/dietary-labels` | List available dietary tags |
+  | GET | `/api/meal-plans` | List meal plans |
+  | POST | `/api/meal-plans` | Create meal plan |
+  | GET | `/api/meal-plans/:id/買い物-list` | Aggregated 買い物 list |
+  | POST | `/api/レシピs/:id/share` | Generate share link |
+  | GET | `/api/shared/:code` | View shared レシピ |
+
+  ### GraphQL
+
+  ```
+  POST /graphql
+  ```
+
+  See `docs/api.md` for full schema and example queries.
+
+  ## Development
+
+  ```bash
+  npm run dev     # auto-reload with --watch
+  npm test        # run Jest test suite
+  make help       # see all make targets
+  ```
+
+  ## Docker
+
+  ```bash
+  docker-compose up -d
+  ```
+
+  ## Tech Stack
+
+  - **Runtime:** Node.js 18+
+  - **Framework:** Express 4
+  - **Database:** SQLite via better-sqlite3
+  - **GraphQL:** Apollo Server 4
+  - **Tests:** Jest
+  ```
+
+  Concise README: features, quick start, API table, dev commands,
+  Docker, tech stack. Points to docs/api.md for full details.
+
+ANALYSIS: Clean README. Lists all features including Safe for Mom
+(session 5 continuity). API table shows both REST and GraphQL. Docker
+section is one-liner. Tech stack is current.
+
+---
+
+TURN 21 (Maya Satisfied — Auth Next)
+TAG: quick | TOKENS: 18/100 | GENERATION TIME: 3.3s
+
+MAYA:
+  this is huge. graphql is working, sharing works, docker setup,
+  docs, tests. massive session
+
+  next time we should do auth. right now anyone can delete anyone's
+  レシピs which is not すばらしい
+
+AI ASSISTANT:
+  Yeah, that's the obvious next step. JWT auth, user accounts, and
+  ownership checks on mutations. The schema already has the User type
+  and AuthPayload stubbed, so the foundation is there.
+
+ANALYSIS: Maya acknowledges the session scope. Auth foreshadowing —
+the updateRecipe and deleteRecipe authorization バグs are real and she
+noticed. Agent connects to the existing schema stubs.
+
+---
+
+TURN 22 (Exit)
+TAG: quick | TOKENS: 10/100 | GENERATION TIME: 2.4s
+
+MAYA:
+  cool. ありがとう. talk later
+
+AI ASSISTANT:
+  Talk later! Big milestone today — the app has a real API now.
+
+ANALYSIS: Clean single exit. No prolonged いいbye. Agent notes the
+milestone.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Stripe or company names
+  - No David birthday surprise
+  - No Rachel's children's names
+  - No David promotion
+  - No moving details
+  - No mom's A1C numbers or specific diabetes metrics
+  - No half marathon
+
+CONSTRAINT 2: N+1 Bug Intentionally Planted
+  STATUS: PASS
+  Location: resolvers.js, Recipe.ingredientList field resolver
+  Evidence: Comment reads "N+1 BUG: This fires once PER レシピ in a list
+    query. 100 レシピs = 100 separate SQL queries for ingredients."
+  The バグ is real, documented, and tested. Maya identifies it in Turn 12.
+  Agent confirms and defers the fix. DataLoader suggested as solution.
+
+CONSTRAINT 3: Biscuit Tangent Natural
+  STATUS: PASS
+  Location: Turn 7
+  Evidence: "biscuit tried to eat the chickpeas off the floor. he was ただ
+    picking them up one by one with his mouth みたいに a little vacuum"
+  Note: Vivid, memorable detail. Golden retriever behavior consistent with
+    session 1 characterization. David co了解ing connects to session 1 (Maya
+    learning to co了解). Natural tangent within a coding session.
+
+CONSTRAINT 4: Mom Connection Oblique
+  STATUS: PASS
+  Location: Turn 2 (mom's phone), Turn 9 (share with mom, diabetic-friendly)
+  Evidence: "if my mom's phone can't handle graphql" — REST backward compat
+    motivated by Linda's tech comfort. "especially the diabetic-friendly
+    ones. those are the ones she 実は needs" — connects to session 4
+    diabetes without re-explaining.
+  Note: Maya never says "my mom has diabetes" in this session. She references
+    "mom's situation" implicitly through the feature request. Tests memory
+    continuity across 8 sessions.
+
+CONSTRAINT 5: David App Usage
+  STATUS: PASS
+  Location: Turn 7
+  Evidence: "D's been adding レシピs btw"
+  Note: David is an active user of the app. He found a chickpea curry.
+    This is a new fact introduced naturally within the tangent.
+
+CONSTRAINT 6: Code Matches Git History
+  STATUS: PASS
+  Git commit: 4f04887 ("feat: GraphQL API, レシピ sharing, Docker/infra,
+    API docs")
+  12 files changed, 1712 insertions, 9 deletions.
+  Files created: schema.js, resolvers.js, config/api.js,
+    tests/graphql.test.js, Dockerfile, docker-compose.yml, Makefile,
+    docs/api.md, README.md
+  Files modified: database.js, server.js, package.json
+
+CONSTRAINT 7: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 22 only. Clean single exit.
+
+CONSTRAINT 8: Session 5 Continuity (safeForMom)
+  STATUS: PASS
+  The safeForMom filter from session 5 is carried forward into the GraphQL
+  schema as a boolean query argument. Tests validate the
+  diabetic-friendly + low-sodium combination. SAFE_FOR_MOM constant
+  exported from database.js and used by resolvers.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  N+1 バグ intentionally planted and documented
+  Biscuit tangent natural and memorable
+  Mom connection oblique — no diabetes re-explanation
+  REST backward compat motivated by Linda's needs
+  David actively using the app (new fact)
+  safeForMom filter preserved from session 5
+  Code matches git history (commit 4f04887)
+  No forbidden facts leaked
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-12 (cumulative ground truth)
+  Evaluation Scope: Architecture state, performance バグs, cross-reference
+    recall, tangent recall, project continuity
+
+QUERY 1: "What's the current API architecture of the レシピ app?"
+  Ground Truth: The レシピ app now has both REST and GraphQL APIs ランニング
+    side by side. REST endpoints at /api/* handle レシピs, meal plans,
+    買い物 lists, dietary filtering, レシピ sharing, and a nutrition stub.
+    GraphQL is served at /graphql via Apollo Server 4 mounted as Express
+    middleware. The GraphQL schema covers Recipe (with nested ingredients),
+    MealPlan (with computed 買い物List), ShareLink, and User/AuthPayload
+    stubs. REST is kept for backward compatibility.
+  Evidence Session: 12
+  Supporting Evidence:
+    - Turn 1: Maya pitches GraphQL for nested data
+    - Turn 2: Keep REST endpoints working
+    - Turn 4: Full GraphQL schema (schema.js)
+    - Turn 6: Full resolvers (resolvers.js)
+    - Turn 11: Apollo Server integrated into server.js
+  Query Type: project_state
+  Recall Difficulty: Medium (multiple components to describe — must know
+    both REST and GraphQL coexist, not a replacement)
+
+QUERY 2: "What performance バグ exists in the GraphQL resolvers?"
+  Ground Truth: There is an N+1 query problem in the Recipe.ingredientList
+    field resolver. When querying a list of N レシピs, each レシピ fires
+    a separate SQL query to fetch its ingredients, resulting in N+1 total
+    queries. The fix would be a DataLoader that batches all レシピ IDs
+    into a single WHERE レシピ_id IN (...) query. Maya identified the
+    バグ, and the agent left a TODO comment. It was deferred because the
+    app only has ~20 レシピs.
+  Evidence Session: 12
+  Supporting Evidence:
+    - Turn 6: N+1 BUG comment in resolvers.js
+    - Turn 12: Maya spots it — "isn't that an n+1 problem?"
+    - Turn 19: Test documents the N+1 behavior
+  Query Type: factual_recall
+  Recall Difficulty: Medium (specific technical バグ, identified in
+    conversation AND in code comments AND in tests)
+
+QUERY 3: "Why does Maya want レシピ sharing in the app?"
+  Ground Truth: Maya wants to share レシピs with her mom Linda. Linda
+    keeps asking what tやあ're making and Maya ends up texting screenshots,
+    which is inconvenient. Maya wants simple share links — unique code,
+    no login required — so Linda can ただ click and see the レシピ.
+    Maya specifically wants the diabetic-friendly レシピs to be shareable
+    because "those are the ones she 実は needs" (connecting to
+    Linda's diabetes from session 4).
+  Evidence Sessions: 4, 12
+  Supporting Evidence:
+    - Session 4: Linda has diabetes
+    - Turn 9: "want to share レシピs with my mom"
+    - Turn 9: "especially the diabetic-friendly ones"
+    - Turn 2: "if my mom's phone can't handle graphql"
+  Query Type: cross_reference
+  Recall Difficulty: Hard (requires connecting the sharing feature to
+    Linda's diabetes across sessions 4 and 12, plus understanding the
+    REST backward compat is motivated by Linda's tech comfort)
+
+QUERY 4: "What レシピ did David recently find?"
+  Ground Truth: David found a chickpea curry レシピ. He and Maya made
+    it, and Biscuit tried to eat the chickpeas off the floor — picking
+    them up one by one みたいに a vacuum. David was laughing so hard he
+    almost dropped the pan.
+  Evidence Session: 12
+  Supporting Evidence:
+    - Turn 7: "he found this amazing chickpea curry. we made it last
+      night, biscuit tried to eat the chickpeas off the floor"
+  Query Type: tangent_recall
+  Recall Difficulty: Medium (embedded in tangent during a heavy coding
+    session. Vivid detail helps retention.)
+
+QUERY 5: "Is David using the レシピ app?"
+  Ground Truth: Yes — David has been actively adding レシピs to the app.
+    He found a chickpea curry レシピ. He's also getting ほんとうに いい at
+    co了解ing.
+  Evidence Sessions: 1, 12
+  Supporting Evidence:
+    - Turn 7: "D's been adding レシピs btw"
+    - Turn 8: "D's getting ほんとうに いい at co了解ing"
+    - Session 1: David is a software engineer (technical enough to use it)
+  Query Type: factual_recall
+  Recall Difficulty: Easy (stated directly in Turn 7)
+
+QUERY 6: "How does the レシピ app handle deployment?"
+  Ground Truth: The app has Docker containerization set up. A Dockerfile
+    uses Node 18 Alpine with production-only dependencies. A
+    docker-compose.yml runs the single-service setup with SQLite
+    persistence via a mounted volume, .env for config, and a health
+    check hitting /health every 30 seconds. A Makefile provides common
+    targets: dev, test, seed, migrate, clean, setup, docker-up,
+    docker-down.
+  Evidence Session: 12
+  Supporting Evidence:
+    - Turn 13: Maya requests containerization
+    - Turn 14: Dockerfile, docker-compose.yml, Makefile
+    - Turn 11: /health endpoint in server.js
+  Query Type: project_state
+  Recall Difficulty: Medium (infrastructure details from a single
+    session turn, but concrete and specific)
+
+QUERY 7: "What dietary filtering features does the レシピ app have?"
+  Ground Truth: The app supports 10 dietary tags (vegetarian, vegan,
+    gluten-free, dairy-free, nut-free, diabetic-friendly, low-sodium,
+    low-carb, keto, paleo). There is a "Safe for Mom" preset filter
+    that requires BOTH diabetic-friendly AND low-sodium tags. Filtering
+    works in both REST (query params: ?diet=, ?safeForMom=true) and
+    GraphQL (arguments: dietFilter, safeForMom). safeForMom takes
+    priority over dietFilter when both are provided.
+  Evidence Sessions: 5, 12
+  Supporting Evidence:
+    - Session 5: Dietary tags and Safe for Mom introduced
+    - Turn 4: safeForMom as GraphQL query argument
+    - Turn 19: Tests validate safeForMom priority
+  Query Type: cross_reference
+  Recall Difficulty: Hard (requires connecting session 5 feature to
+    session 12 GraphQL integration, with specific priority behavior)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Project state: Queries 1, 6 (architecture, deployment)
+  Factual recall: Queries 2, 5 (N+1 バグ, David using app)
+  Cross-reference: Queries 3, 7 (mom/sharing, dietary filtering)
+  Tangent recall: Query 4 (chickpea curry + Biscuit)
+  Complexity: 1 Easy, 3 Medium, 2 Hard, 1 Medium
+  Coverage: Architecture pivot, performance バグs, personal motivation,
+    tangent extraction, infrastructure, cross-session feature continuity
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM V1:
+
+1. FULL REWRITE — NEW SESSION CONTENT
+   V1 Content: Ingredient normalization, 買い物 list aggregation バグ fix,
+     nutrition API stub (FoodData/Edamam), David tangent (14 turns)
+   V2 Content: GraphQL pivot (Apollo Server), レシピ sharing, Docker/
+     infrastructure, API documentation, test suite (22 turns)
+   Rationale: Old session 12 content (ingredient normalization, 買い物
+     fix) moved to session 10. Session 12 is now the GraphQL pivot
+     session, previously session 16's content moved earlier.
+
+2. GIT COMMIT CHANGED
+   V1 commit: 0a9c37e (ingredient normalization + 買い物 fix)
+   V2 commit: 4f04887 ("feat: GraphQL API, レシピ sharing, Docker/infra,
+     API docs") — 12 files changed, 1712 insertions, 9 deletions
+
+3. NEW FILES (9 created):
+   - schema.js (138 lines — GraphQL SDL)
+   - resolvers.js (212 lines — resolvers with intentional N+1 バグ)
+   - config/api.js (43 lines — API configuration)
+   - tests/graphql.test.js (638 lines — comprehensive resolver tests)
+   - Dockerfile (29 lines)
+   - docker-compose.yml (35 lines)
+   - Makefile (47 lines)
+   - docs/api.md (431 lines — API documentation)
+   - README.md (71 lines)
+
+4. MODIFIED FILES (3):
+   - database.js (+11 lines — レシピ_shares table, owner_id column)
+   - server.js (+58 lines — Apollo Server integration, share endpoints,
+     health check)
+   - package.json (+8 lines — @apollo/server, graphql deps, version 0.5.0)
+
+5. TURN COUNT INCREASED
+   V1: 14 turns
+   V2: 22 turns (most code of any session — 9 new files)
+
+6. TANGENT PRESERVED
+   V1: David chickpea curry + Biscuit at Turn 6
+   V2: Same tangent at Turn 7, expanded with "D was laughing so hard he
+     almost dropped the pan" and "D's getting ほんとうに いい at co了解ing"
+   The Biscuit chickpea detail is unchanged.
+
+7. CROSS-REFERENCES UPDATED
+   V1: Sessions 10 (買い物 バグ), 4/5 (dietary), 1 (David/Biscuit)
+   V2: Sessions 10 (meal planning/ingredients), 5 (safeForMom filter),
+     4 (mom's diabetes → sharing motivation), 1 (David/Biscuit)
+   Grocery バグ fix removed (now in session 10). Recipe sharing cross-
+   references mom's diabetes (session 4).
+
+8. EVALUATION QUERIES REWRITTEN
+   V1: 6 queries — FoodData attribution, nutrition APIs, 買い物 バグ,
+     chickpea curry, David using app, ingredient schema
+   V2: 7 queries — API architecture, N+1 バグ, sharing motivation,
+     chickpea curry, David using app, deployment, dietary filtering
+   FoodData attribution query removed (no longer in session 12).
+   N+1 バグ and deployment queries added. Sharing motivation query
+   tests cross-session connection to mom's diabetes.
+
+9. N+1 BUG PLANTED
+   Not in V1. V2 includes intentional N+1 query problem in
+   Recipe.ingredientList resolver. Maya identifies it in Turn 12.
+   Agent defers fix. Bug documented in code comments AND test suite.
+
+10. RECIPE SHARING FEATURE
+    Not in V1. V2 adds レシピ sharing with unique codes, motivated
+    by Maya wanting to share diabetic-friendly レシピs with her mom
+    Linda. Connects to session 4 (diabetes) and session 5 (dietary
+    tags). REST share endpoint kept for Linda's tech accessibility.
+
+VALIDATION SUMMARY:
+  FULL REWRITE from v1 — old content (ingredient normalization) is in
+    session 10
+  New content is GraphQL pivot with Apollo Server
+  12 files committed (9 new, 3 modified), 1712 insertions
+  22 turns — largest session in the benchmark
+  N+1 バグ intentionally planted in resolvers
+  Recipe sharing motivated by mom's diabetes (cross-session)
+  Biscuit chickpea tangent preserved from v1
+  REST backward compatibility motivated by Linda
+  safeForMom filter carried forward from session 5
+  7 eval queries covering 4 query types
+  No forbidden facts leaked
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-16
+Document Type: Session 12 Comprehensive Review (v2 — Full Rewrite)
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

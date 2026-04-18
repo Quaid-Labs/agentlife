@@ -1,0 +1,160 @@
+================================================================================
+FILLER SESSION F081 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 19 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F081 (Filler — Recipe App Micro)
+Date: 2026-04-26 21:00
+Topic: 'favorites' 機能を追加したい。どのテーブルが必要？
+Turn Count: 14
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F081
+  Track: filler
+  Timestamp: 2026-04-26 21:00:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  レシピアプリに 'favorites' 機能を追加したいんだけど、そのためにはどのテーブルが必要？
+
+AI ASSISTANT:
+  favorites 機能には、ユーザーとお気に入りレシピを結びつける中間テーブルが必要です。追加すべきスキーマはこちらです:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  うん、ルートも見せて。それと、そのマイグレーションの実行方法も教えて
+
+AI ASSISTANT:
+  マイグレーションの実行方法とルートハンドラはこちらです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  いいね。でもその認証ミドルウェアがまだないんだよね笑。見せてくれる？
+
+AI ASSISTANT:
+  必要な認証ミドルウェアはこちらです:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  マイグレーションを走らせたら "Error: SQLITE_ERROR: no such table: users" って出た。どうすればいい？
+
+AI ASSISTANT:
+  まず users テーブルを作る必要があります！ favorites のマイグレーションはそれを参照していますが、まだ存在していません。完全なマイグレーション順はこちらです:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  うん、直った。じゃあこれをどうテストする？ favorites ルートの Jest テストがほしい
+
+AI ASSISTANT:
+  favorites ルート用の完全なテストスイートはこちらです:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  テストで "TypeError: Cannot read property 'id' of undefined" が beforeAll で出る。何がまずいの？
+
+AI ASSISTANT:
+  問題は `db.run` が非同期なのに、ちゃんと待っていないことです。コールバックが Promise の解決後に走るので、テスト開始時点では `testUser` がまだ undefined なんです。修正版はこちらです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  完璧、これで動いた！ じゃあ frontend にお気に入りの切り替えボタンを追加するにはどうする？
+
+AI ASSISTANT:
+  トグル機能付きのお気に入りボタンの React コンポーネントはこちらです:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  うん、recipes エンドポイントに `is_favorited` を追加する方法も見せて
+
+AI ASSISTANT:
+  `is_favorited` フラグを含めるように recipes エンドポイントを修正する方法はこちらです:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  いいね！ もう一つ、お気に入りだけ表示する favorites ページを作るには？
+
+AI ASSISTANT:
+  フロントエンドとバックエンドの両方を含む完全な favorites ページはこちらです:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  完璧！ でも unfavorite の callback が動かない。RecipeCard に onUnfavorite prop がないみたい
+
+AI ASSISTANT:
+  その通りです！ `RecipeCard` コンポーネントを unfavorite callback に対応するよう更新する必要があります。修正版はこちらです:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  最高、全部動いた！ 最後に nav に favorites の件数バッジを追加してくれる？
+
+AI ASSISTANT:
+  ナビゲーション用の favorites 件数バッジはこちらです:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  いいね！ 完璧に動いてる。D も明日アプリを試したら気に入るはず笑
+
+AI ASSISTANT:
+  いいですね！ David は favorites 機能にきっと感心するはずです。見せる前に、いくつか簡単な注意点があります:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

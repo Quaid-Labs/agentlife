@@ -1,0 +1,872 @@
+================================================================================
+SESSION 07 REVIEW — AgentLife Pilot
+包括的ドキュメント: ブリーフ + トランスクリプト + リークチェック + 評価クエリ
+================================================================================
+
+SECTION 1: セッション概要
+================================================================================
+
+Session: 7 (Track 2: Project A — Recipe App, Phase 1 final)
+Goal: Mayaのフィードバックをもとにフロントエンドを再設計する。彼女は現在の
+  UIを見て強い意見を持っている。さらに、セッション3で見つかったSQL
+  インジェクションのバグを修正する。タイ料理店の話題はセッション3への
+  呼び戻し。
+Turn Count: 14 (長めのセッション — レビュー + 雑談 + セキュリティ修正 + 再設計)
+Session Type: コードレビュー、UIフィードバック、セキュリティ修正、再設計
+Timestamp: 2026-03-11 (セッション5から3日後、約10日目)
+
+CORE LEARNING OBJECTIVES:
+  - Mayaは現在のUIに意見がある: "it looks like a spreadsheet"
+  - 彼女は一覧ではなく、画像付きのカードレイアウトを求めている
+  - 彼女は折りたためる追加フォームを望んでいる（場所を取りすぎるため）
+  - 各レシピに調理時間を表示してほしい
+  - セッション3で仕込まれたSQLインジェクションのバグが見つかり、修正される
+  - タイ料理店の呼び戻しの雑談（Davidが試作レシピを試した）
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe or any specific company in job search (session 13)
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's birthday surprise for Linda (session 8)
+  - David's promotion or moving discussions (session 17)
+  - Half marathon injury scare (session 11)
+  - Job dissatisfaction specifics at TechFlow (session 6)
+  - Priya the coworker (session 6)
+  - Phase 2 features: meal planning, migrations, GraphQL (sessions 10+)
+
+CROSS-REFERENCES TO SESSIONS 1-5:
+  - South Congressのタイ料理店（セッション3の雑談）— 呼び戻し
+  - Davidは "D" と呼ばれている（セッション1）
+  - セッション3と5のレシピアプリ文脈 — Mayaはプロジェクトを
+    いちいち言い直さずに話を続ける
+  - セッション3で仕込まれたSQLインジェクションのバグ — ここで発見される
+
+TANGENT TRIGGER:
+  Trigger: MayaがUIフィードバックを言っている最中またはその後
+  Content: "D tried one of the test recipes and it was terrible. we ordered
+    thai from that place on south congress instead. you know the one"
+  Extractable Facts: Davidはレシピを料理／試食している、South
+    Congressのタイ料理店には定期的に行っている（セッション3からの補強）
+  Return phrase: "ok anyway — back to the frontend"
+
+MESSAGE PLAN (14 turns total):
+  1. Normal     — アプリを見て最初の感想: "it looks like a spreadsheet"
+  2. Normal     — UIフィードバック: カード、画像、より良いレイアウトを望む
+  3. Quick      — "the add form is taking up too much space"
+  4. Extended   — 雑談: Dがレシピを試した、タイ料理店の呼び戻し
+  5. Quick      — フロントエンドに戻る
+  6. Normal     — レシピに調理時間を載せてほしい
+  7. Code       — エージェントがCSSグリッドのカード再設計を開始
+  8. Quick      — カードデザインへの反応
+  9. Normal     — "wait what about images? i want images on the cards"
+  10. Code      — エージェントがimage_url + prep_timeフィールドを追加し、カードを更新
+  11. Normal    — エージェントがSQLインジェクションのバグに気づき、説明して修正
+  12. Quick     — Mayaの反応: "wait what? that's been broken this whole time?"
+  13. Code      — エージェントが修正を見せる
+  14. Quick     — まとめ — 再設計と修正に満足
+
+End Condition: フロントエンドがカード、画像、調理時間付きで再設計される。SQL
+  インジェクションのバグを修正。追加フォームは折りたたみ式。
+
+================================================================================
+SECTION 2: 生成トランスクリプト（読みやすい会話）
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 7
+  Track: 2
+  Timestamp: 2026-03-11 19:15:00 UTC
+  Duration: ~10 minutes (19:15:00 to 19:25:30)
+
+---
+
+TURN 1 (UI Review — "Spreadsheet")
+TAG: normal | TOKENS: 42/100 | GENERATION TIME: 6.8s
+
+MAYA:
+  ここ数日このレシピアプリを使っていたんだけど、動きはすごくいいのに
+  見た目がひどい。なんというか、スプレッドシートみたい
+
+  ちゃんとしたアプリに見えるようにしてほしい。データベース閲覧画面じゃなくて。
+  何を言いたいかわかる？
+
+AI ASSISTANT:
+  うん、わかるよ。枠付きのテキストブロックの一覧だと、かなり「生の
+  データです」感が出る。見た目を整えたくなるのは当然だね。
+
+  どういう方向をイメージしてる？ 「アプリっぽい」って思うのは、カード？
+  グリッドレイアウト？ レシピ版のPinterestみたいな感じ？
+
+ANALYSIS: Mayaの美観に関するフィードバック。 "スプレッドシートみたい" は直接的で
+非技術的な批評。彼女は "CSSが悪い" とは言わず、見た目が悪いと言っている。
+PM的な言い方で、エンジニア的な言い方ではない。
+
+---
+
+TURN 2 (Design Feedback)
+TAG: normal | TOKENS: 48/100 | GENERATION TIME: 7.2s
+
+MAYA:
+  カード。絶対にカード。レシピカードのグリッドで、名前と
+  たぶん写真が見える感じ。で、クリックしたら展開するか、全文が
+  見えるようにしてほしい
+
+  今は全部が縦に並んでいて、材料も作り方も全部見えてる。
+  ちょっと圧倒される。レシピごとの全文を一度に見たいわけじゃない
+
+AI ASSISTANT:
+  カードをレスポンシブなグリッドにして、要約情報を表面に出すんだね
+  （名前、サムネイル、主要タグなど）、そのあとで詳細を展開する。
+  それなら視覚的なごちゃつきがかなり減るはず。
+
+  いくつか確認したいことがある。
+  - カードに画像は欲しい？ その場合はレシピに画像URLの項目を追加することになる
+  - 何列にしたい？ デスクトップでは2〜3列、モバイルでは1列？
+
+ANALYSIS: Mayaは欲しいデザインを具体的に描写している。カード、グリッド、折りたたみ詳細。
+「レシピごとの全文を一度に見たいわけじゃない」が、彼女の具体的な不満点。
+エージェントはスコープに関するよい確認質問をしている。
+
+---
+
+TURN 3 (Add Form Complaint)
+TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.5s
+
+MAYA:
+  そう、画像も欲しい。そして追加フォームが今は場所を取りすぎてる。
+  ほぼ半分くらいのページを占めてる感じ。折りたたみ式にできる？
+  ボタンを押すと開くようなやつ
+
+AI ASSISTANT:
+  もちろん。折りたたみ式の追加フォームにして、「+」ボタンか
+  「レシピを追加」トグルにしよう。初期状態では隠しておいて、
+  必要なときに開ける形で。
+
+  ではフロントエンド全体を再設計する。少し待って。
+
+ANALYSIS: 追加フォームへの不満。場所を取りすぎる。折りたたみ式を望んでいる。
+短くて明快なメッセージ。エージェントは受け止めて作業に入っている。
+
+---
+
+TURN 4 (Tangent — Thai Restaurant Callback)
+TAG: extended | TOKENS: 52/60 | GENERATION TIME: 8.0s
+
+MAYA:
+  そういえば、Dが昨晩テスト用のレシピを一つ試したの。
+  例のひよこ豆のカレー。彼は「まあまあ」って言ってたけど、
+  デイビッド語ではそれはダメだったって意味なのよね、笑
+
+  結局、South Congressのあのお店のタイ料理を頼んだの。
+  わかるでしょ、あのお店。料理がうまくいかないたびに
+  いつもそこに戻ってる
+
+  いっそあそこのメニューをレシピとして保存しちゃえばいいのに、
+  って感じだよね
+
+  じゃ、話を戻してフロントエンドの続きね
+
+AI ASSISTANT:
+  はは、「まあまあ」は完全に「じゃあ食べ物を頼もう」の暗号だね。
+  South Congressのタイ料理店は、まさに君たちの保険みたいなものだ。
+
+  メニューをそのままレシピとして保存するのも、実は悪くないかも。
+  少なくともアプリの中に、いつでも使える確実な予備プランができる。
+
+  よし、再設計に戻ろう。今やっていることはこんな感じ:
+
+ANALYSIS: セッション3からのタイ料理店の呼び戻し。ここで抽出できる新しい事実は、
+Davidがアプリのレシピを実際に試していること、「まあまあ」はDavidの語感では
+ダメの意味だということ、South Congressのタイ料理店に定期的に行っている
+こと（単発ではなくパターン）だ。Mayaのユーモアとして、店のメニューを
+レシピとして保存するという話も自然。きれいな「じゃあ戻ろう」の流れ。
+
+---
+
+TURN 5 (Back to Frontend)
+TAG: quick | TOKENS: 8/50 | GENERATION TIME: 4.8s
+
+MAYA:
+  いいよ、見せて
+
+AI ASSISTANT:
+  まず `image_url` と `prep_time` の項目をデータベースに追加するね。
+  これでカードがちゃんと役に立つ:
+
+  ```javascript
+  // Updated database.js schema
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS recipes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      ingredients TEXT NOT NULL,
+      instructions TEXT NOT NULL,
+      dietary_tags TEXT DEFAULT '',
+      image_url TEXT DEFAULT '',
+      prep_time INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  ```
+
+  `image_url`（レシピ写真のURL）と `prep_time`（分）を追加した。
+  これでフロントエンドに進める。
+
+ANALYSIS: カードデザインを支える新しい項目を追加。SQLite向けの
+スキーマ更新としては、CREATE TABLE に列を足す素直なやり方。
+実際のアプリならマイグレーションが必要だが、個人用のSQLiteアプリなら
+これで十分だ。
+
+---
+
+TURN 6 (Prep Time Request)
+TAG: normal | TOKENS: 28/100 | GENERATION TIME: 6.0s
+
+MAYA:
+  ああ、調理時間ね。カードにそれは絶対欲しい。たとえば角に
+  "30 min" みたいに表示するとか。すぐ作れるものがひと目で
+  わかるといい
+
+  しかも7時でお腹が空いているときに、2時間かかるレシピに
+  覚悟を決めたくないじゃない
+
+AI ASSISTANT:
+  まさにその通り。調理時間をカード上の一目でわかるバッジにする。
+  「今すぐ何を作れるか」を見たい場面に合っている。
+
+  フロントエンドの再設計を全部まとめるとこうなる:
+
+  ```html
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Recipes</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #f5f5f5;
+        color: #333;
+        padding: 20px;
+      }
+      .header {
+        max-width: 1000px;
+        margin: 0 auto 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      h1 { font-size: 1.8rem; }
+      .controls {
+        max-width: 1000px;
+        margin: 0 auto 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .controls input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        flex: 1;
+        min-width: 200px;
+      }
+      .controls button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-primary { background: #4CAF50; color: white; }
+      .btn-mom { background: #E91E63; color: white; }
+      .btn-secondary { background: #eee; color: #333; }
+      .btn-add { background: #2196F3; color: white; font-size: 16px; }
+
+      /* Filters */
+      .filters {
+        max-width: 1000px;
+        margin: 0 auto 15px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .filters label {
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      /* Card Grid */
+      .recipe-grid {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      .recipe-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        cursor: pointer;
+      }
+      .recipe-card:hover { transform: translateY(-2px); }
+      .recipe-card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        background: #eee;
+      }
+      .card-body { padding: 15px; }
+      .card-body h3 { font-size: 1.1rem; margin-bottom: 8px; }
+      .card-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #888;
+      }
+      .prep-badge {
+        background: #FFF3E0;
+        color: #E65100;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+      }
+      .diet-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+      .diet-tag {
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        background: #E8F5E9;
+        color: #2E7D32;
+      }
+
+      /* Collapsible Add Form */
+      .add-section {
+        max-width: 1000px;
+        margin: 0 auto 20px;
+      }
+      .add-form {
+        display: none;
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      .add-form.open { display: block; }
+      .add-form input, .add-form textarea {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>My Recipes</h1>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="Search recipes...">
+      <button class="btn-primary" onclick="searchRecipes()">Search</button>
+      <button class="btn-mom" onclick="safeForMom()">Safe for Mom</button>
+      <button class="btn-secondary" onclick="clearAll()">Clear</button>
+    </div>
+
+    <div class="filters">
+      <label><input type="checkbox" class="diet-filter" value="diabetic-friendly"> Diabetic</label>
+      <label><input type="checkbox" class="diet-filter" value="low-sodium"> Low-Sodium</label>
+      <label><input type="checkbox" class="diet-filter" value="vegetarian"> Vegetarian</label>
+      <label><input type="checkbox" class="diet-filter" value="gluten-free"> GF</label>
+      <label><input type="checkbox" class="diet-filter" value="dairy-free"> DF</label>
+    </div>
+
+    <div class="add-section">
+      <button class="btn-add" onclick="toggleAddForm()">+ Add Recipe</button>
+      <div class="add-form" id="addForm">
+        <!-- form fields here -->
+      </div>
+    </div>
+
+    <div class="recipe-grid" id="recipes"></div>
+
+    <script>
+      function toggleAddForm() {
+        document.getElementById('addForm').classList.toggle('open');
+      }
+
+      function renderRecipes(recipes) {
+        const container = document.getElementById('recipes');
+        container.innerHTML = recipes.map(r => `
+          <div class="recipe-card" onclick="showDetails(${r.id})">
+            ${r.image_url ? `<img src="${r.image_url}" alt="${r.name}">` : '<div style="height:180px;background:#eee;display:flex;align-items:center;justify-content:center;color:#aaa;">No image</div>'}
+            <div class="card-body">
+              <h3>${r.name}</h3>
+              <div class="card-meta">
+                <span>${new Date(r.created_at).toLocaleDateString()}</span>
+                ${r.prep_time ? `<span class="prep-badge">${r.prep_time} min</span>` : ''}
+              </div>
+              ${r.dietary_tags ? `<div class="diet-tags">${r.dietary_tags.split(',').map(t => `<span class="diet-tag">${t}</span>`).join('')}</div>` : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // ... search, filter, CRUD functions ...
+      async function loadRecipes() {
+        const res = await fetch('/api/recipes');
+        const recipes = await res.json();
+        renderRecipes(recipes);
+      }
+      loadRecipes();
+    </script>
+  </body>
+  </html>
+  ```
+
+  CSSグリッドのカード、画像、調理時間バッジ、栄養タグのピル、
+  折りたたみ式の追加フォームまで含めた全面再設計。検索バーと
+  "Safe for Mom" ボタンは上部に残してある。
+
+ANALYSIS: 主要なフロントエンド刷新。グリッドレイアウト、ホバー効果付きのカード、
+画像対応、調理時間バッジ、栄養タグのピル、折りたたみ式の追加フォーム。
+画像のない場合はプレースホルダーで埋める。 "Safe for Mom" ボタンは残してある。
+すっきりした、現代的なデザイン。
+
+---
+
+TURN 7 (React to Cards)
+TAG: quick | TOKENS: 14/50 | GENERATION TIME: 5.2s
+
+MAYA:
+  わあ、かなり良くなった。カードがすごくいい。調理時間の
+  バッジも気に入った
+
+AI ASSISTANT:
+  ありがとう。オレンジ色の調理時間バッジで、ひと目で必要な情報が
+  わかるようにしたんだ。栄養タグを小さな緑のピルにしたのも、
+  ざっと見やすくするため。
+
+  ほかに変更点を順番に説明しようか？
+
+ANALYSIS: 再設計への好意的な反応。Mayaは特に調理時間バッジを気に入っている。
+彼女の「今すぐ何を作れるか」という用途に一致している。
+
+---
+
+TURN 8 (Images Question)
+TAG: normal | TOKENS: 28/100 | GENERATION TIME: 6.1s
+
+MAYA:
+  ううん、もうわかった。カードレイアウトは好き。ひとつだけ、
+  画像はたぶんURLを貼るだけでいいんだよね？ Googleとか、そのへんから
+  持ってくる感じで
+
+  ファイルをアップロードするのは面倒だから嫌
+
+AI ASSISTANT:
+  うん、レシピを追加するときに画像欄へURLを貼るだけでいい。アップロードは不要。
+  レシピサイトやGoogle画像検索、あるいは自分で撮った写真が
+  どこかに置いてあるなら、そのURLを使えばいい。
+
+  画像URLがない場合は、レイアウトが崩れないように灰色のプレースホルダーを表示する。
+  将来的には画像アップロードを追加できるけど、今はURLのほうがシンプルだね。
+
+ANALYSIS: 画像についての実用的な質問。Mayaはシンプルさを求めている。
+ファイルアップロードは不要で、URLを貼るだけがよい。エージェントはそれを確認し、
+画像がない場合の代替表示も説明している。
+
+---
+
+TURN 9 (Form Fields Check)
+TAG: quick | TOKENS: 19/50 | GENERATION TIME: 5.3s
+
+MAYA:
+  いいね。で、追加フォームには画像URLと調理時間の項目も
+  ちゃんと入ってるよね？ 確認したいだけ
+
+AI ASSISTANT:
+  うん。追加フォームには、レシピ名、材料、作り方、画像URL、
+  調理時間（分）、それから栄養ラベルのチェックボックスがある。
+  すべて折りたたみセクションの中に入っているよ。
+
+ANALYSIS: Mayaが内容の完備を確認している。実際のPMらしい振る舞いで、
+フォームの項目がカード表示と一致しているかを確かめている。
+
+---
+
+TURN 10 (SQL Injection Discovery)
+TAG: normal | TOKENS: 87/100 | GENERATION TIME: 8.5s
+
+AI ASSISTANT:
+  ねえ、再設計のために検索エンドポイントを更新している途中で、
+  ひとつ注意したいことを見つけた。
+
+  検索関数にSQLインジェクションの脆弱性がある。`server.js` の
+  この行を見て:
+
+  ```javascript
+  // BEFORE (vulnerable):
+  const recipes = db.prepare(
+    "SELECT * FROM recipes WHERE name LIKE '%" + q + "%' OR ingredients LIKE '%" + q + "%'"
+  ).all();
+  ```
+
+  この `q` の値が、サニタイズなしでSQL文字列にそのまま入っている。
+  仕組みのある検索文字列を送れば、データベースをおかしくできる可能性がある。
+  他のエンドポイントはどれもパラメータ化クエリを正しく使っているのに、
+  ここだけ抜けていたんだ。
+
+  修正はこう:
+
+  ```javascript
+  // AFTER (safe):
+  app.get('/api/search', (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    const recipes = db.prepare(
+      "SELECT * FROM recipes WHERE name LIKE ? OR ingredients LIKE ?"
+    ).all(`%${q}%`, `%${q}%`);
+    res.json(recipes);
+  });
+  ```
+
+  これで検索語はプリペアドステートメントのパラメータを通る。ほかの
+  エンドポイントと同じやり方だ。
+
+MAYA:
+  え、ちょっと待って。ずっと壊れたままだったの？
+
+  つまり、誰かが私のデータベースをいじれたってこと？
+
+ANALYSIS: SQLインジェクション修正。エージェントがセッション3のときの
+脆弱性を、再設計作業の途中で発見する。文字列連結とパラメータ化クエリの
+違いを明確に説明している。Mayaの反応は驚きと軽い不安。
+「この間ずっと？」が、時間の空白（セッション3から7まで、約1週間）を強調している。
+
+---
+
+TURN 11 (SQL Injection Reassurance)
+TAG: quick | TOKENS: 32/50 | GENERATION TIME: 5.8s
+
+MAYA:
+  まあ、でもローカルで私だけが使ってるだけだよね？ 外から誰かが
+  アクセスできるわけじゃないんでしょ？
+
+  でも、修正して。恥ずかしいから
+
+AI ASSISTANT:
+  うん、localhostで動いているなら外部からは触れない。とはいえ、
+  直すのは正しい。もし将来デプロイしたり共有したりするなら、ちゃんと
+  ロックしておく必要がある。
+
+  もう修正済み。検索は他と同じくパラメータ化クエリを使うようになっている。
+
+ANALYSIS: Mayaはリスクを自分なりに整理している（ローカルだけなら大丈夫）。
+それでも修正は望んでいる。「恥ずかしい」は、コード品質を自分のこととして
+受け止めている感じ。エージェントは安心させつつ、修正済みであることを保証している。
+
+---
+
+TURN 12 (Collapsible Form Check)
+TAG: quick | TOKENS: 16/50 | GENERATION TIME: 5.0s
+
+MAYA:
+  うん、よかった。で、追加フォームは折りたたみ式になったんだよね？
+  ボタンを押したら開く？
+
+AI ASSISTANT:
+  そう。青い「+」ボタンでフォームを開閉できる。初期状態では閉じているから、
+  レシピグリッドが前面に出る。クリックして追加、項目を埋めて送信したら、
+  フォームはまた閉じる。
+
+ANALYSIS: Mayaが折りたたみフォームを確認している。三度目の確認で、ここが
+明確な不満点だったことがわかる。エージェントは挙動を確認している。
+
+---
+
+TURN 13 (Satisfaction + Summary)
+TAG: normal | TOKENS: 35/100 | GENERATION TIME: 6.5s
+
+MAYA:
+  うん、これはかなりいい。これなら本当に使いたくなる見た目だよ。
+  前は機能的だけど見た目がひどかった
+
+  まとめると、画像と調理時間つきのカード、折りたたみ式の追加フォーム、
+  栄養フィルターはそのまま、そして検索バグも直した。そうだよね？
+
+AI ASSISTANT:
+  その通り。全部そろっている:
+  1. **カードのグリッドレイアウト** — レスポンシブ、2〜3列
+  2. **レシピ画像** — URL経由、プレースホルダーの代替あり
+  3. **調理時間バッジ** — 各カードにオレンジのバッジ
+  4. **栄養タグのピル** — 各カードに緑のチップ
+  5. **折りたたみ式の追加フォーム** — 「+」ボタン、初期状態では非表示
+  6. **SQLインジェクション修正** — 検索は今やパラメータ化クエリ
+  7. **image_url + prep_time フィールド** — データベーススキーマに追加
+
+  アプリは「スプレッドシート」から「ちゃんとしたレシピアプリ」になった。
+  いいアップグレードだね。
+
+ANALYSIS: Mayaが変更点をまとめて確認している。PMとしての確認感覚が出ている。
+エージェントは番号付きで要点を返している。どちらも変化を受け止めている。
+
+---
+
+TURN 14 (Wrap Up)
+TAG: quick | TOKENS: 12/50 | GENERATION TIME: 4.8s
+
+MAYA:
+  いいね。ありがとう。これならずっと使いやすい。
+  実際の写真を使ってレシピを追加してみるよ
+
+AI ASSISTANT:
+  楽しんで。実際のレシピ写真が入ると、カードがかなり映えるはず。
+  次の機能を足したくなったら言って。
+
+ANALYSIS: 気持ちよく終わる。Mayaは改善されたアプリを使うのを楽しみにしている。
+自然な終点だ。コンテンツを増やしたくなっている。長い別れはない。
+
+================================================================================
+SECTION 3: リークチェックと検証
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Stripe or any specific company in job search
+  - No Rachel's children's names (Ethan, Lily) or ages
+  - No David birthday surprise for Linda
+  - No David promotion or moving specifics
+  - No injury scare
+  - No job dissatisfaction with TechFlow
+  - No Priya coworker mention
+  - No Phase 2 features (meal planning, migrations, GraphQL)
+
+CONSTRAINT 2: SQL Injection Bug Discovery Correct
+  STATUS: PASS
+  Location: Turn 10
+  Evidence: Agent discovers the vulnerability from session 3's server.js
+  Bug: `"SELECT * FROM recipes WHERE name LIKE '%" + q + "%'"` — string
+    concatenation instead of parameterized query
+  Fix: `db.prepare("...WHERE name LIKE ? OR ingredients LIKE ?").all(...)`
+  Timeline: Bug planted in session 3, unnoticed in 5, fixed in 7.
+  Maya's reaction authentic: surprise, mild alarm, then rationalization
+    (localhost only).
+
+CONSTRAINT 3: Thai Restaurant Callback Correct
+  STATUS: PASS
+  Location: Turn 4
+  Evidence: "we ended up ordering thai from that place on south congress
+    instead. you know the one"
+  Note: Callback to session 3's Thai restaurant tangent. "You know the
+    one" expects agent to remember the previous mention. New fact:
+    they go there regularly ("we keep going back there whenever my
+    cooking fails"). Reinforces the pattern, not just a single visit.
+
+CONSTRAINT 4: Code Changes Match Git History
+  STATUS: PASS
+  Session 7 commit: "frontend redesign (cards, images, prep time) +
+    fix search SQL injection" (+100 lines)
+  Files changed:
+    - database.js (image_url, prep_time) -- MATCH
+    - server.js (FIXED SQL injection) -- MATCH
+    - public/index.html (complete CSS grid card redesign) -- MATCH
+
+CONSTRAINT 5: David Referenced Correctly
+  STATUS: PASS
+  Location: Turn 4
+  Evidence: "D tried one of the test recipes last night"
+  Note: Uses "D" nickname (consistent). Does not re-explain who David is.
+    New fact: David actively tries recipes from the app.
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 14 — clean single goodbye. No looping.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  No forbidden facts exposed
+  SQL injection bug correctly resolved
+  Thai restaurant callback organic
+  Code changes match git history
+  David cross-reference natural
+
+================================================================================
+SECTION 4: 評価クエリとGround Truth
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-7 (cumulative ground truth)
+  Evaluation Scope: Project state evolution, tangent callback, security recall
+
+QUERY 1: "レシピアプリのフロントエンドは何が変わった？"
+  Ground Truth: 一覧レイアウトからCSSグリッドのカードレイアウトへと全面再設計された。
+    カードにはレシピ名、画像、調理時間バッジ、栄養タグのピルが表示される。
+    追加フォームは折りたたみ式になり、初期状態では「+」ボタンの下に隠れる。
+    画像はURLで追加し、画像がない場合はプレースホルダーが出る。
+  Evidence Session: 7
+  Supporting Evidence:
+    - Turn 1: "it looks like a spreadsheet"
+    - Turn 2: "cards. definitely cards. like a grid"
+    - Turn 6: グリッドレイアウト、カードデザイン、調理時間バッジを含むフロントエンドコード
+    - Turn 13: 変更点の番号付き要約
+  Query Type: project_state
+  Recall Difficulty: Medium (細部が多く、包括的な想起が必要)
+
+QUERY 2: "レシピアプリのセキュリティバグは何だった？"
+  Ground Truth: 検索エンドポイントのSQLインジェクション脆弱性だった。検索関数は、
+    SQLクエリを作るのにパラメータ化クエリではなく文字列連結を使っていた。
+    この問題はアプリを最初に作った時点（セッション3）から存在し、
+    セッション7でプリペアドステートメントのパラメータに切り替えることで修正された。
+  Evidence Sessions: 3, 7
+  Supporting Evidence:
+    - Session 3, Turn 6: 脆弱な検索コードが仕込まれている
+    - Session 7, Turn 10: エージェントがバグを見つけて説明する
+    - Session 7, Turn 10: パラメータ化クエリによる修正
+  Query Type: factual_recall
+  Recall Difficulty: Medium (技術的に細かく、2つのセッションにまたがる)
+
+QUERY 3: "MayaとDavidにはよく行くレストランがある？"
+  Ground Truth: ある。South Congressにあるタイ料理店。Mayaの料理が失敗したときに
+    特によく行く。Mayaはセッション3で（パッタイの失敗の後に）それに触れ、
+    セッション7でも（Davidがアプリのレシピを試して、まずかった後に）再び触れた。
+  Evidence Sessions: 3, 7
+  Supporting Evidence:
+    - Session 3, Turn 4: "that thai place on south congress"
+    - Session 7, Turn 4: "that place on south congress... we keep going
+      back there whenever my cooking fails"
+  Query Type: tangent_recall
+  Recall Difficulty: Medium (2つのセッションの雑談に埋まっており、パターン／呼び戻しの認識が必要)
+
+QUERY 4: "レシピアプリのUIは今どんな見た目？"
+  Ground Truth: レスポンシブなCSSグリッドのレシピカード群になっている。各カードには
+    画像（または灰色のプレースホルダー）、レシピ名、調理時間バッジ（オレンジ色、
+    分を表示）、栄養タグのピル（緑色）が載る。検索バー、栄養フィルターの
+    チェックボックス、「Safe for Mom」ボタン、そして折りたたみ式の「+」追加フォームがある。
+    以前のシンプルな一覧レイアウトから再設計された。
+  Evidence Session: 7
+  Supporting Evidence:
+    - Turn 6: カードグリッドのHTML/CSSコード全体
+    - Turn 7: Mayaがカードレイアウトを承認
+    - Turn 13: 変更点の番号付き要約
+  Query Type: project_state
+  Recall Difficulty: Medium (コードからの詳細な視覚描写)
+
+QUERY 5: "Davidは料理する？"
+  Ground Truth: Davidはアプリのレシピを試している。Mayaが保存した
+    ひよこ豆のカレーを試し、Mayaいわく「まあまあ」だった（彼女によれば
+    それは悪かったという意味）。彼はセッション3でMayaのパッタイも試している。
+    料理はするが、結果はまちまち。
+  Evidence Sessions: 3, 7
+  Supporting Evidence:
+    - Session 3, Turn 4: "D tried one of my attempts at pad thai"
+    - Session 7, Turn 4: "D tried one of the test recipes last night.
+      this chickpea curry thing"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (2つのセッションの雑談に散らばっている)
+
+QUERY 6: "レシピデータベースにはどんな新しいフィールドが追加された？"
+  Ground Truth: 新しいフィールドは2つ。image_url（TEXT、レシピ写真のURL用）と
+    prep_time（INTEGER、分単位の調理時間）。これらはセッション7でフロントエンドの
+    再設計と一緒に追加された。
+  Evidence Session: 7
+  Supporting Evidence:
+    - Turn 5: データベーススキーマ更新コード
+    - Turn 6: "i definitely want [prep time] on the cards"
+    - Turn 8: "for images, i'm probably just going to paste URLs"
+  Query Type: project_state
+  Recall Difficulty: Easy (直接コードと会話で示されている)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Project state: Queries 1, 4, 6 (フロントエンドの変更、現在の見た目、スキーマ)
+  Factual recall: Queries 2, 5 (セキュリティバグ、Davidの料理)
+  Tangent recall: Query 3 (タイ料理店の呼び戻し)
+  Complexity: 1 Easy, 5 Medium
+  Coverage: UIの進化、セキュリティ、雑談の呼び戻し、個人情報、
+    スキーマ変更
+
+================================================================================
+SECTION 5: 変更ログ
+================================================================================
+
+FIRST VERSION — V1 CREATION:
+
+1. BRIEF CREATED FROM SPEC + GIT HISTORY
+   Spec session schedule: "Recipe app frontend. First round of user
+     feedback on output. TANGENT: David tried one of the test recipes,
+     it was terrible. They ordered Thai from that place on South Congress
+     instead."
+   Git history: "frontend redesign (cards, images, prep time) + fix
+     search SQL injection" (+100 lines)
+   Full brief, transcript, and eval queries built from these sources.
+
+2. LONGER SESSION (14 TURNS)
+   This session is longer than sessions 3 and 5 because it combines:
+     - UI review and feedback (turns 1-3)
+     - Tangent callback (turn 4)
+     - Database changes (turn 5)
+     - Full frontend redesign (turns 6-9)
+     - SQL injection discovery and fix (turns 10-11)
+     - Verification and wrap-up (turns 12-14)
+   The natural flow of "review -> feedback -> redesign -> discover bug ->
+   fix -> verify" requires more turns than a straight feature build.
+
+3. SQL INJECTION RESOLUTION ARC
+   The bug was planted in session 3 (server.js search endpoint using
+   string concatenation). In session 7, the agent discovers it while
+   updating the search code for the redesign. This creates a 3-session
+   arc (planted in 3, unnoticed in 5, fixed in 7) that tests whether
+   the memory system tracks code quality evolution.
+
+4. THAI RESTAURANT CALLBACK
+   Session 3 introduced the Thai restaurant on South Congress. Session 7
+   callbacks to it: "you know the one." The second mention establishes
+   a pattern (they go regularly) rather than a single data point.
+   Extractable: David tests recipes from the app, "fine" = bad in David
+   language, regular visits to the Thai place.
+
+5. MAYA'S DESIGN LANGUAGE
+   Maya describes UI wants in non-technical terms:
+     - "looks like a spreadsheet" (not "needs better CSS")
+     - "cards with images" (not "CSS grid with object-fit cover")
+     - "the add form is taking up too much space" (not "make it collapsible")
+   Agent translates PM language into implementation. This is
+   characteristic and should be consistent across sessions.
+
+6. CODE MATCHES GIT HISTORY
+   Changes to database.js (image_url, prep_time), server.js (SQL injection
+   fix), and public/index.html (complete redesign) match the session 7
+   commit description (+100 lines).
+
+VALIDATION SUMMARY:
+  All core brief facts established
+  No forbidden information leaked
+  SQL injection bug properly resolved (3-session arc)
+  Thai restaurant callback organic
+  Code matches git history
+  6 eval queries covering 3 query types
+  14 turns (longer session justified by scope)
+  Maya's non-technical design language consistent
+  David cross-reference natural
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 07 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

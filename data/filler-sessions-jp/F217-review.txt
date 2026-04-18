@@ -1,0 +1,71 @@
+================================================================================
+FILLER SESSION F217 — AgentLife Densification
+Category: E (Cross-Reference Reinforcer)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F217 (Filler — 参照クロスリファレンス強化)
+Date: 2026-04-23 14:51
+Topic: Priya が Datadog で面接を受けることになった！
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F217
+  Track: filler
+  Timestamp: 2026-04-23 14:51:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  やば、Priya が Datadog で面接を受けることになった！！ きっと大活躍するよ、笑
+
+AI ASSISTANT:
+  それはすごい！ たしかバックエンド職を見ていたんだっけ？ Datadog は彼女にぴったりだね
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  うん、まさにそう。あそこはオブザーバビリティ基盤だから、彼女の得意分野ど真ん中なんだよね。面接はたしか来週
+
+AI ASSISTANT:
+  いいね、これはいける。準備は手伝ってる？ それとも彼女一人で進めてるの？
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  LeetCode のリストは送ったけど、本人はかなり準備できてるっぽい。むしろ今は自分の認証フローのほうが心配なんだよね、笑
+
+AI ASSISTANT:
+  はは、まあそれはあるね。レシピアプリをしっかり固めないと。Stripe の認証パターンは役に立ってる？
+
+---
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+QUERY 1: "Maya は「Priya が Datadog で面接を受けることになった！」について何と言った？"
+  Ground Truth: Priya が Datadog で面接を受けることになった！
+  Evidence Session: F217
+  Query Type: cross_reference
+  Recall Difficulty: Medium (filler session callback)
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

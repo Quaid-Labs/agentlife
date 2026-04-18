@@ -1,0 +1,204 @@
+================================================================================
+FILLER SESSION F143 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 6 and 7
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F143 (Filler — Recipe App Micro)
+Date: 2026-03-14 11:41
+Topic: ユーザーが編集履歴を見られるようにレシピのバージョン管理を実装したい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F143
+  Track: filler
+  Timestamp: 2026-03-14 11:41:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  ねえ、レシピアプリに履歴機能を追加するのを手伝ってくれる？ レシピをいつ編集したかと、何が変わったかをユーザーが見られるようにしたいんだ
+
+AI ASSISTANT:
+  もちろんです！ `recipe_versions` テーブルを追加して変更を追跡する必要があります。マイグレーションはこちらです:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いいね。毎回保存すべき？ それとも特定のフィールドが変わったときだけ？
+
+AI ASSISTANT:
+  いい質問です。title、ingredients、instructions が変わったときだけ保存するのがいいでしょう。更新エンドポイントはこちらです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  試してるんだけど、まだ編集されていないレシピを更新すると `TypeError: Cannot read properties of null (reading 'title')` が出る
+
+AI ASSISTANT:
+  ああ、`old` はレシピが存在しないと null かもしれません。チェックを追加しましょう:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  直った、ありがとう！ ユーザーにバージョン履歴をどう見せればいい？ レシピの全バージョンを返す GET エンドポイントみたいな感じで
+
+AI ASSISTANT:
+  こちらです:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  いいね。バージョン間の diff を表示したい場合は？ 何が実際に変わったかハイライトする感じ
+
+AI ASSISTANT:
+  diff ライブラリが必要です。`diff` をインストールしてください:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  テストファイルなのに `Cannot find module 'diff'` が出るんだけど、インストールしたのに
+
+AI ASSISTANT:
+  テスト用の dev dependency としてインストールする必要があります:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~29
+
+MAYA:
+  あ、`npm install` を間違ったディレクトリでやってた笑。今は動くけど、diff の出力がちょっと読みにくい。オブジェクトがずらっと並ぶだけ
+
+AI ASSISTANT:
+  そうです。`diffWords` と `diffLines` は change オブジェクトの配列を返します。各要素には `value`、`added`、`removed` プロパティがあります。フロントエンド側で描画する必要があります。出力例はこちらです:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  いや、わかった。復元機能を追加できる？ バージョンをクリックしてレシピをその状態に戻す感じ
+
+AI ASSISTANT:
+  もちろん、復元エンドポイントを追加しましょう:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  待って、それって復元前に現在のバージョンを保存するよね？ 失いたくないから
+
+AI ASSISTANT:
+  その通りです。復元前に現在の状態をスナップショットするので、いつでも戻せます。復元するたびに新しいバージョンが作成されるので、完全な監査ログになります。
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  完璧。これのテストってどう書くの？ たとえば restore エンドポイントの Jest テスト
+
+AI ASSISTANT:
+  こちらがテストです:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  これを実行すると `Error: connect ECONNREFUSED 127.0.0.1:3000` が出る
+
+AI ASSISTANT:
+  テストでサーバーを起動していません。どちらかです:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  あー、app を import し忘れてた笑。今はテスト通った。`recipe_versions` にインデックスを張るべきかな？ バージョンが増えると遅くなりそう
+
+AI ASSISTANT:
+  その判断は正しいです。こちらのインデックスを追加してください:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  できた。もう1つ - 制限をつけられる？ たとえば各レシピの最新10バージョンだけ残して容量を節約するとか
+
+AI ASSISTANT:
+  はい、新しいバージョンを保存したあとにクリーンアップを追加しましょう:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  待って、それだとバージョン番号が壊れない？ 1〜5を消したら、6が最初のバージョンみたいになるけど番号は6のままだよね
+
+AI ASSISTANT:
+  いい指摘です。バージョン番号はそのままです（6, 7, 8... のように欠番ができます）。連番にしたいなら削除のたびに振り直す必要がありますが、それは高コストで参照も壊します。
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  なるほどね。最後に本当に最後 - バージョンにラベルを付けたいんだけど。たとえば「糖尿病対応前」とか
+
+AI ASSISTANT:
+  `label` 列を追加しましょう:
+
+---
+
+TURN 16 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  完璧、それがまさに欲しかったやつ。母の糖尿病向けレシピに入れて、何が効いたか追えるようにするよ。ありがとう D
+
+AI ASSISTANT:
+  いいですね！ かなり思いやりのある使い方です。バージョン履歴があれば、どのレシピの調整が実際に役立ったかを追えます。何か問題があれば教えてください！
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

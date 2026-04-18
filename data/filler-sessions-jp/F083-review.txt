@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F083 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 19 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F083 (Filler — Recipe App Micro)
+Date: 2026-04-27 20:06
+Topic: ヘルスチェックのエンドポイントを追加できる？
+Turn Count: 15
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F083
+  Track: filler
+  Timestamp: 2026-04-27 20:06:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  レシピアプリにヘルスチェックのエンドポイントを追加できる？ 会社のロードバランサーで必要でさ。ついでにここにも足しておこうと思って
+
+AI ASSISTANT:
+  API とデータベースの両方が動いているかを確認するヘルスチェックのエンドポイントを追加します。ロードバランサーや監視ツールには必須です。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  いいね、これのテストも追加してくれる？
+
+AI ASSISTANT:
+  ヘルスエンドポイント用の完全なテストスイートはこちらです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  テストが失敗してる。テストファイルで app が定義されてないって言われる
+
+AI ASSISTANT:
+  問題は Express の app インスタンスを正しく export する必要があることです。アプリのセットアップを修正します:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  テストは通ったけど、本番ではヘルスチェックが 503 を返す。DB 接続は大丈夫なんだけど
+
+AI ASSISTANT:
+  おそらくデータベース接続の await が不十分か、クエリがタイムアウトしています。デバッグしましょう:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  それで直った！ じゃあ k8s の liveness probe 用に /health/live も追加できる？
+
+AI ASSISTANT:
+  もちろんです！ liveness probe は readiness check よりシンプルで、プロセスが動いていてデッドロックしていないかだけを確認します:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  いいね。ところで、これらのエンドポイントって api docs にも載せるべき？ 今 Swagger を使ってるんだけど
+
+AI ASSISTANT:
+  いい質問です。ヘルスエンドポイントは必ず文書化すべきですが、メインの API docs とは分けておくべきです。Swagger での設定方法はこちらです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  いいね。ヘルスエンドポイントにメトリクスも追加できる？ request count と平均応答時間みたいなやつ
+
+AI ASSISTANT:
+  リクエスト数と応答時間を追跡するシンプルな metrics ミドルウェアを追加します:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  いいけど、メトリクスの応答時間がおかしい。ほとんどのリクエストが 0ms になってる
+
+AI ASSISTANT:
+  問題は、metrics ミドルウェアが動く時点では `req.route.path` が利用できないことです。それと、0ms の応答時間は解像度が粗すぎることを意味します。両方直します:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  完璧。じゃあ Prometheus 形式のメトリクスも出したい。Stripe は監視に Prometheus を使ってるし
+
+AI ASSISTANT:
+  いい考えです！ JSON のヘルスチェックに加えて、Prometheus 形式のメトリクスも追加しましょう:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いいね！ もう一つ、DB マイグレーションがまだ実行されてなかったら起動時に失敗するチェックを追加できる？
+
+AI ASSISTANT:
+  いい着眼点です！ 必要なテーブルとスキーマバージョンをチェックする起動時検証を追加しましょう:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  すごくいいけど、テスト環境で起動が止まっちゃう。テストは自分で DB を作るから
+
+AI ASSISTANT:
+  いい指摘です！ テストモードでは起動時チェックをスキップする必要があります。修正はこちらです:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  完璧。最後にもう一つだけ、ヘルスエンドポイントにメモリや CPU 使用率も入れられる？
+
+AI ASSISTANT:
+  もちろんです！ ヘルスチェックにシステムリソースのメトリクスを追加しましょう:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  最高。これで必要なものは全部だ。明日デプロイする。ありがとう！
+
+AI ASSISTANT:
+  いいですね！ ざっとしたデプロイ前チェックリストはこちらです:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ありがと！ ところで、デバッグ用にテーブル件数を出す /health/db を追加したほうがいいかな？
+
+AI ASSISTANT:
+  デバッグには良いアイデアです！ 本番で情報を出しすぎないよう、安全策を入れつつ追加しましょう:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

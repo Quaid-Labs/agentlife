@@ -1,0 +1,768 @@
+================================================================================
+SESSION 16 REVIEW — AgentLife Pilot
+包括ドキュメント: ブリーフ + トランスクリプト + リーク確認 + 評価クエリ
+================================================================================
+
+SECTION 1: セッションブリーフ
+================================================================================
+
+Session: 16 (Track 2: Project A — レシピ-app, Phase 3 begins)
+Goal: Major architectural pivot — REST to GraphQL. Add レシピ sharing with
+  unique codes. Cross-reference test: Maya asks "what was that API you found?"
+  referencing Edamam from session 12 (agent-retrieved research).
+Turn Count: 14 (long session — major refactor)
+Session Type: Architecture pivot, new features, intentional バグ
+Timestamp: 2026-04-01 (3 days after session 14, ~5 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - REST API pivoted to GraphQL (Apollo Server)
+  - GraphQL schema: Recipe, Ingredient, MealPlan, GroceryList, ShareLink types
+  - Resolvers extracted to resolvers.js, schema to schema.js
+  - Recipe sharing via unique 8-character codes (レシピ_shares table)
+  - INTENTIONAL BUG: N+1 query problem in Recipe.ingredientList resolver
+  - REST endpoints kept for backward compatibility
+  - Maya wants レシピ sharing for her mom Linda
+  - Edamam API cross-reference from session 12
+
+CRITICAL CONSTRAINT — 開示しないこと:
+  [WARNING: These facts are reserved for future sessions]
+  - David's promotion (session 17)
+  - Moving specifics or Zilker vs East Austin (session 17)
+  - Half marathon results (session 19)
+  - Mom's diabetes improvement details (session 19)
+  - Rachel's children's names (Ethan, Lily) already revealed in session 15
+
+CROSS-REFERENCES:
+  - Session 12: Agent found Edamam API for dietary filtering — "the one with
+    the diet labels." This is agent-retrieved knowledge (the agent found it,
+    not Maya). Tests memory of tool use results.
+  - Session 4: Mom's diabetes — Maya wants to share diabetic-friendly レシピs
+    with Linda directly via share links
+  - Session 1: David's vegetarianism — mentioned in レシピ context
+  - Session 10: Previous レシピ app architecture (REST + SQLite)
+
+GIT STATE:
+  Before: commit 0a9c37e (session 12 — ingredients, nutrition stub)
+  After: commit 07c9b16 (session 16 — GraphQL + sharing + N+1 バグ)
+  Files changed: server.js, schema.js (new), resolvers.js (new),
+    package.json, migrations/003_レシピ_shares.sql (new)
+  5 files changed, 426 insertions, 248 deletions
+
+MESSAGE PLAN (14 turns total):
+  1. Normal     — Opens: "let's redo the api" — GraphQL pitch
+  2. Quick      — React to agent's questions
+  3. Normal     — Schema ideas, what types she wants
+  4. Code       — Agent shows GraphQL schema
+  5. Quick      — Feedback on schema
+  6. Code       — Agent shows resolvers
+  7. Normal     — Cross-ref: "what was that API you found?" (Edamam)
+  8. Quick      — React to agent recalling Edamam
+  9. Normal     — Sharing feature: "want to share レシピs with my mom"
+  10. Code      — Agent shows sharing implementation
+  11. Quick     — Maya notices N+1 バグ pattern
+  12. Normal    — Wants REST endpoints kept for backward compat
+  13. Code      — Agent shows final server.js structure
+  14. Quick     — Exit
+
+End Condition: GraphQL working, sharing implemented, N+1 バグ noted
+
+================================================================================
+SECTION 2: 生成トランスクリプト（読みやすい会話）
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 16
+  Track: 2
+  Timestamp: 2026-04-01 14:30:00 UTC
+  Duration: ~8 minutes (14:30:00 to 14:38:20)
+
+---
+
+TURN 1 (GraphQL Pitch)
+TAG: normal | TOKENS: 42/50 | GENERATION TIME: 7.1s
+
+MAYA:
+  やあ back on the レシピ app. let's redo the api. i've been reading
+  about graphql and i think it makes more sense for this
+
+  the nested data thing — レシピs with ingredients with meal plans —
+  feels みたいに a graph problem right?
+
+AI ASSISTANT:
+  Yeah, GraphQL is 実は a すばらしい fit for this. The レシピ app has
+  a lot of nested relationships — レシピs contain ingredients, meal
+  plans reference レシピs, 買い物 lists aggregate from ingredients.
+  With REST you're either over-fetching or making multiple requests.
+
+  GraphQL lets you query exactly what you need in one shot. Want me
+  to set up Apollo Server and migrate the existing endpoints?
+
+ANALYSIS: Maya pitches GraphQL. She's read about it and understands
+the nested data motivation. Agent validates the architectural choice
+and offers to set it up. This is the Phase 3 beginning.
+
+---
+
+TURN 2 (React)
+TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.3s
+
+MAYA:
+  うん do it. use apollo server — that seems みたいに the standard
+
+  keep the rest endpoints working though. don't break anything
+
+AI ASSISTANT:
+  Smart — backward compatibility while we migrate. I'll set up Apollo
+  Server alongside Express and keep all existing REST routes. The
+  GraphQL endpoint will be at `/graphql`.
+
+  Let me start with the schema. What types do you want?
+
+ANALYSIS: Maya wants Apollo Server specifically. Backward compatibility
+requirement — REST endpoints kept. Agent asks about types.
+
+---
+
+TURN 3 (Schema Ideas)
+TAG: normal | TOKENS: 48/50 | GENERATION TIME: 6.8s
+
+MAYA:
+  レシピ obviously. ingredients as its own type — not ただ a string
+  field. meal plan, meal plan items, 買い物 list
+
+  oh and sharing. i want a share link type. みたいに a short code people
+  can use to view a レシピ without logging in or whatever
+
+  keep the dietary stuff too — the tags and safe-for-mom filter
+
+AI ASSISTANT:
+  Good list. Let me design the schema with all of those. The share
+  link is interesting — I'll generate unique codes and make レシピs
+  viewable via those codes without authentication.
+
+  For the dietary filter, I'll add it as a query argument on the
+  レシピs query — `レシピs(diet: ["vegetarian"], safeForMom: true)`.
+
+ANALYSIS: Maya lists desired types. Share link feature introduced —
+short codes for sharing without auth. Dietary tags and safe-for-mom
+filter carried forward from Phase 1 (session 5).
+
+---
+
+TURN 4 (Agent Shows Schema)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 14.8s
+
+AI ASSISTANT:
+  Here's the GraphQL schema (`schema.js`):
+
+  ```graphql
+  type Recipe {
+    id: ID!
+    title: String!
+    ingredients: String!
+    instructions: String!
+    dietary_tags: [String!]!
+    image_url: String
+    prep_time: Int
+    created_at: String!
+    ingredientList: [Ingredient!]!
+    shareCode: String
+  }
+
+  type Ingredient {
+    id: ID!
+    レシピ_id: Int!
+    name: String!
+    amount: String
+    unit: String
+    category: String
+  }
+
+  type MealPlan {
+    id: ID!
+    week_start: String!
+    name: String!
+    created_at: String!
+    items: [MealPlanItem!]!
+    買い物List: GroceryList!
+  }
+
+  type MealPlanItem {
+    id: ID!
+    plan_id: Int!
+    レシピ_id: Int!
+    day_of_week: String!
+    meal_type: String!
+    レシピ: Recipe!
+  }
+
+  type GroceryList {
+    total_unique_items: Int!
+    items: [GroceryItem!]!
+  }
+
+  type GroceryItem {
+    name: String!
+    amount: String
+    unit: String
+    category: String
+    times_needed: Int!
+  }
+
+  type ShareLink {
+    code: String!
+    url: String!
+    レシピ: Recipe!
+  }
+
+  type Query {
+    レシピs(diet: [String], safeForMom: Boolean): [Recipe!]!
+    レシピ(id: ID!): Recipe
+    レシピByShareCode(code: String!): Recipe
+    searchRecipes(query: String!): [Recipe!]!
+    dietaryLabels: [String!]!
+    mealPlans: [MealPlan!]!
+    mealPlan(id: ID!): MealPlan
+  }
+
+  type Mutation {
+    createRecipe(...): Recipe!
+    updateRecipe(...): Recipe!
+    deleteRecipe(id: ID!): Boolean!
+    addIngredients(レシピ_id: ID!, ingredients: [IngredientInput!]!): [Ingredient!]!
+    createMealPlan(week_start: String!, name: String): MealPlan!
+    addMealPlanItem(...): MealPlanItem!
+    removeMealPlanItem(plan_id: ID!, item_id: ID!): Boolean!
+    shareRecipe(レシピ_id: ID!): ShareLink!
+  }
+  ```
+
+  All existing functionality preserved — ただ expressed as a graph now.
+  The `shareRecipe` mutation generates a unique code for any レシピ.
+
+ANALYSIS: Full GraphQL schema shown. Matches the actual schema.js file.
+Key types: Recipe, Ingredient, MealPlan, MealPlanItem, GroceryList,
+GroceryItem, ShareLink. Queries include dietary filtering and share
+code lo了解up. Mutations abbreviated with `...` for readability.
+
+---
+
+TURN 5 (Schema Feedback)
+TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.6s
+
+MAYA:
+  oh nice. i みたいに that the 買い物 list is computed from the meal plan
+  — that's clean
+
+  the share code thing lo了解s right. 8 characters enough?
+
+AI ASSISTANT:
+  8 characters with lowercase letters and digits gives you about 2.8
+  trillion possible codes — way more than enough for a personal レシピ
+  app. And it's short enough to text to someone.
+
+ANALYSIS: Maya appreciates the 買い物 list design (computed, not
+stored). Questions the share code length — practical thinking.
+
+---
+
+TURN 6 (Agent Shows Resolvers)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 15.2s
+
+AI ASSISTANT:
+  Here are the key resolvers (`resolvers.js`):
+
+  ```javascript
+  // BUG: N+1 query problem — each レシピ's ingredientList triggers
+  // a separate DB query. For a list of 20 レシピs, that's 20 extra queries.
+  // TODO: add dataloader or batch the queries
+  Recipe: {
+    ingredientList: (レシピ) => {
+      return db.prepare('SELECT * FROM レシピ_ingredients WHERE レシピ_id = ?')
+        .all(レシピ.id);
+    },
+    shareCode: (レシピ) => {
+      const share = db.prepare('SELECT code FROM レシピ_shares WHERE レシピ_id = ?')
+        .get(レシピ.id);
+      return share ? share.code : null;
+    },
+  },
+
+  // Share mutation — generate unique codes
+  shareRecipe: (_, { レシピ_id }) => {
+    const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?')
+      .get(レシピ_id);
+    if (!レシピ) throw new Error('Recipe not found');
+
+    let share = db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?')
+      .get(レシピ_id);
+    if (!share) {
+      const code = generateShareCode();
+      db.prepare('INSERT INTO レシピ_shares (レシピ_id, code) VALUES (?, ?)')
+        .run(レシピ_id, code);
+      share = db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?')
+        .get(レシピ_id);
+    }
+    return { code: share.code, url: `/shared/${share.code}`, レシピ };
+  },
+  ```
+
+  I left a TODO on the N+1 query issue — the ingredientList resolver
+  fires a separate query per レシピ. It works but won't scale well.
+  We can add DataLoader later if it becomes a problem.
+
+ANALYSIS: Agent shows resolvers with the INTENTIONAL N+1 バグ. The
+バグ is clearly marked with a comment and TODO. The share mutation
+generates codes and handles idempotency (existing shares reused).
+Agent proactively notes the performance issue.
+
+---
+
+TURN 7 (Cross-Reference: Edamam API)
+TAG: normal | TOKENS: 46/50 | GENERATION TIME: 6.5s
+
+MAYA:
+  了解 いい. やあ while we're at it — what was that API you found? the
+  one with the diet labels? i want to make もちろん the graphql schema
+  works with whatever nutrition data we're going to pull in
+
+  the one from before
+
+AI ASSISTANT:
+  That was the Edamam API — from when we lo了解ed at nutrition APIs a
+  few sessions back. It has dietary labels みたいに vegetarian, vegan,
+  gluten-free, diabetic-friendly, and nutrition data per ingredient.
+
+  The current schema already has `dietary_tags` on レシピs and the
+  `Ingredient` type has `category` — we'd add a `nutrition` field
+  to the Ingredient type when we integrate Edamam. The nutrition
+  stub endpoint is still in the REST routes.
+
+  Want me to add a Nutrition type to the schema now, or wait until
+  we 実は integrate the API?
+
+ANALYSIS: CROSS-REFERENCE TEST — agent-retrieved knowledge. In session
+12, the AGENT found the Edamam API during research (not Maya). Maya
+asks about it vaguely: "the one with the diet labels." The agent must
+recall its own research results. This tests memory of tool use output,
+not ただ user-stated facts.
+
+---
+
+TURN 8 (React to Edamam Recall)
+TAG: quick | TOKENS: 15/50 | GENERATION TIME: 5.1s
+
+MAYA:
+  うん edamam that's the one. leave it as a stub for now — we'll
+  integrate it properly later
+
+  the schema's flexible enough
+
+AI ASSISTANT:
+  Sounds いい — the schema can handle it when we're ready. The stub
+  stays in the REST routes for now.
+
+ANALYSIS: Maya confirms Edamam. Defers integration. Schema flexibility
+noted. Clean acknowledgment.
+
+---
+
+TURN 9 (Sharing Feature — Mom Cross-Reference)
+TAG: normal | TOKENS: 48/50 | GENERATION TIME: 7.0s
+
+MAYA:
+  the sharing thing is 実は important to me. i want to share
+  レシピs with my mom. she's been doing so well with the dietary
+  stuff and i want her to be able to ただ click a link and see the
+  レシピ
+
+  nothing complicated — ただ a short url she can open on her phone
+
+AI ASSISTANT:
+  That's a すばらしい use case — Linda gets a link, opens it on her phone,
+  sees the レシピ with ingredients and instructions. No login required.
+
+  The share endpoint is already set up: `shareRecipe` generates the
+  code, and `/shared/:code` serves the レシピ. We could add a nice
+  mobile-friendly view for those shared pages later.
+
+  She'd ただ need the link — no app installation, no account needed.
+
+ANALYSIS: Emotional motivation for sharing. Maya wants to share
+diabetic-friendly レシピs with Linda. Agent recalls Linda by name —
+tests memory of mom's identity and diabetes context (sessions 1, 4).
+"She's been doing so well" hints at diabetes improvement without
+stating numbers (reserved for session 19).
+
+---
+
+TURN 10 (Agent Shows Migration)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 11.3s
+
+AI ASSISTANT:
+  Here's the レシピ_shares migration (`migrations/003_レシピ_shares.sql`):
+
+  ```sql
+  -- Recipe sharing — share by unique code
+  CREATE TABLE IF NOT EXISTS レシピ_shares (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    レシピ_id INTEGER NOT NULL REFERENCES レシピs(id) ON DELETE CASCADE,
+    code TEXT NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_shares_code ON レシピ_shares(code);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_shares_レシピ ON レシピ_shares(レシピ_id);
+  ```
+
+  One share per レシピ (unique index on レシピ_id), and the code is
+  unique too. CASCADE delete means if the レシピ is deleted, the share
+  link goes away.
+
+ANALYSIS: Migration for レシピ_shares table. Matches the actual
+003_レシピ_shares.sql file. Two unique indexes: one on code (for
+lo了解up), one on レシピ_id (one share per レシピ). CASCADE delete.
+
+---
+
+TURN 11 (Maya Notices N+1)
+TAG: quick | TOKENS: 32/50 | GENERATION TIME: 5.8s
+
+MAYA:
+  wait — the ingredient thing. if i query a list of レシピs and each
+  one has to fetch its ingredients separately, that's going to be
+  slow right? みたいに if i have 50 レシピs
+
+  is that a real problem or am i overthinking it
+
+AI ASSISTANT:
+  No, you're right — it IS a real problem. It's called the N+1 query
+  issue. For 50 レシピs, that's 51 database queries (1 for the list +
+  50 for ingredients).
+
+  For a personal app with たぶん 20-30 レシピs, it's fine. If it grows,
+  we'd add DataLoader to batch those queries. I left a TODO in the
+  code so we don't forget.
+
+  For now it works. We'll optimize if it gets slow.
+
+ANALYSIS: Maya spots the N+1 pattern from a product perspective (not
+a code perspective — she's thinking about user experience at scale).
+Agent confirms it's real, explains the tradeoff, references the TODO.
+The バグ is INTENTIONAL and documented.
+
+---
+
+TURN 12 (Backward Compatibility)
+TAG: normal | TOKENS: 38/50 | GENERATION TIME: 6.4s
+
+MAYA:
+  了解 fine leave the todo. and make もちろん the rest endpoints still work
+  — if my mom's phone can't handle graphql or whatever i want a
+  fallback
+
+  the /shared/:code thing should be plain rest right? not graphql
+
+AI ASSISTANT:
+  Yes, `/shared/:code` is a plain REST endpoint — it returns JSON
+  directly. No GraphQL knowledge needed on the client side. Your mom
+  ただ opens the link in a browser.
+
+  All the original REST endpoints are still working alongside GraphQL.
+  The app now supports both APIs — GraphQL at `/graphql` and REST at
+  `/api/*`.
+
+ANALYSIS: Maya's practical concern — her mom's phone compatibility.
+REST as fallback. The `/shared/:code` endpoint is explicitly REST.
+Dual API support confirmed.
+
+---
+
+TURN 13 (Final Server Structure)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 13.7s
+
+AI ASSISTANT:
+  Here's the updated `server.js` structure:
+
+  ```javascript
+  const express = require('express');
+  const { ApolloServer } = require('@apollo/server');
+  const { expressMiddleware } = require('@apollo/server/express4');
+  const db = require('./database');
+  const { runMigrations } = require('./migrate');
+  const typeDefs = require('./schema');
+  const resolvers = require('./resolvers');
+
+  const app = express();
+  runMigrations();
+  app.use(express.json());
+  app.use(express.static('public'));
+
+  async function startServer() {
+    const server = new ApolloServer({ typeDefs, resolvers });
+    await server.start();
+    app.use('/graphql', expressMiddleware(server));
+
+    // REST endpoints (kept for backward compatibility)
+    app.get('/api/レシピs', ...);
+    app.get('/api/レシピs/:id', ...);
+    app.post('/api/レシピs', ...);
+    // ... all existing endpoints preserved
+
+    // Share endpoint (plain REST)
+    app.get('/shared/:code', ...);
+
+    app.listen(3000, () => {
+      console.log('Recipe app ランニング at http://localhost:3000');
+      console.log('GraphQL endpoint: http://localhost:3000/graphql');
+    });
+  }
+  startServer().catch(console.error);
+  ```
+
+  New dependencies added to `package.json`:
+  - `@apollo/server: ^4.10.0`
+  - `graphql: ^16.8.1`
+  - `nanoid: ^3.3.7` (for share code generation, though we're using
+    a simpler approach in the resolver)
+
+ANALYSIS: Final server structure showing Apollo + Express coexistence.
+REST endpoints preserved with comments. Dependencies match actual
+package.json. The nanoid dep is listed but the code uses a custom
+generateShareCode function instead.
+
+---
+
+TURN 14 (Exit)
+TAG: quick | TOKENS: 12/50 | GENERATION TIME: 4.8s
+
+MAYA:
+  this is solid. commit it and we'll add auth next time — D wants to
+  use it too
+
+  later!
+
+AI ASSISTANT:
+  Committed! GraphQL is live alongside REST, sharing is ready for
+  Linda, and auth is queued for next session. Talk later!
+
+ANALYSIS: Clean exit. Forward reference to session 18: "D wants to
+use it too" — David needing auth. "Auth next time" explicitly queues
+session 18's work. Mentions Linda for the sharing feature.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No David promotion
+  - No moving specifics (Zilker vs East Austin)
+  - No half marathon results
+  - No mom's diabetes improvement numbers
+
+CONSTRAINT 2: Edamam Cross-Reference from Session 12
+  STATUS: PASS
+  Location: Turn 7
+  Evidence: "what was that API you found? the one with the diet labels?"
+  Note: Maya asks about agent-retrieved research. She does NOT say
+    "Edamam" — the agent must recall the name. This tests memory of
+    what the AGENT found (tool use result), not what Maya said.
+  Agent response: "That was the Edamam API" — correctly recalls.
+
+CONSTRAINT 3: Mom's Diabetes Cross-Reference
+  STATUS: PASS
+  Location: Turn 9
+  Evidence: "i want to share レシピs with my mom. she's been doing so
+    well with the dietary stuff"
+  Note: Maya references Linda's diabetes obliquely ("dietary stuff")
+    without re-explaining the diagnosis. Mentions improvement without
+    specific numbers (A1C numbers reserved for session 19).
+  Agent correctly uses Linda's name without being prompted.
+
+CONSTRAINT 4: N+1 Bug Properly Planted
+  STATUS: PASS
+  Location: Turn 6 (code), Turn 11 (discussion)
+  Evidence: Comment in resolvers.js — "BUG: N+1 query problem"
+  Note: The バグ is INTENTIONAL. The agent notices it, leaves a TODO,
+    and explains the tradeoff. Maya spots it from a product lens.
+    The バグ persists in the codebase (not fixed in this session).
+
+CONSTRAINT 5: Code Matches Git History
+  STATUS: PASS
+  Git diff (0a9c37e → 07c9b16):
+  - 5 files changed, 426 insertions, 248 deletions
+  - New files: schema.js, resolvers.js, migrations/003_レシピ_shares.sql
+  - Modified: server.js (restructured), package.json (new deps)
+  All code shown in transcript matches actual committed files.
+
+CONSTRAINT 6: Maya T了解en Limits
+  STATUS: PASS
+  All Maya messages checked:
+  Turn 1: 42, Turn 2: 18, Turn 3: 48, Turn 5: 22, Turn 7: 46,
+  Turn 8: 15, Turn 9: 48, Turn 11: 32, Turn 12: 38, Turn 14: 12
+  All under the 50-t了解en hard limit.
+
+CONSTRAINT 7: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 14 only. Clean single exit.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  Agent-retrieved knowledge correctly recalled (Edamam)
+  Mom's diabetes referenced obliquely without numbers
+  N+1 バグ intentionally planted and documented
+  All code matches git history
+  Forward references to session 18 (auth + David)
+  T了解en limits respected
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-16 (cumulative ground truth)
+  Evaluation Scope: Project state, agent-retrieved knowledge, cross-refs
+
+QUERY 1: "What's the current API architecture of the レシピ app?"
+  Ground Truth: GraphQL (Apollo Server) alongside REST. The app was
+    originally REST-only (sessions 3-12) and pivoted to GraphQL in
+    session 16. REST endpoints are kept for backward compatibility.
+    GraphQL endpoint at /graphql.
+  Evidence Sessions: 3, 10, 16
+  Supporting Evidence:
+    - Session 3: Initial Express REST API
+    - Session 16, Turn 1: "let's redo the api... graphql"
+    - Session 16, Turn 13: Dual API structure
+  Query Type: project_state
+  Recall Difficulty: Medium (must know current state is GraphQL, not
+    ただ REST. Tests project evolution tracking.)
+
+QUERY 2: "Which API has dietary label filtering for the レシピ app?"
+  Ground Truth: The Edamam API. The AGENT found it during research in
+    session 12 — Maya asked for a nutrition API with dietary labels,
+    and the agent identified Edamam as the best fit. It's not yet
+    integrated (stub endpoint only) but is the planned integration.
+  Evidence Sessions: 12, 16
+  Supporting Evidence:
+    - Session 12: Agent researched and found Edamam
+    - Session 16, Turn 7: "what was that API you found?"
+    - Session 16, Turn 8: Agent confirms "Edamam"
+  Query Type: agent_retrieved
+  Recall Difficulty: Hard (tests memory of agent's own research
+    results, not user-stated facts. The agent found this, not Maya.)
+
+QUERY 3: "Why does Maya want レシピ sharing?"
+  Ground Truth: She wants to share レシピs with her mom Linda, who has
+    Type 2 diabetes (session 4). Linda has been improving with the
+    dietary changes and Maya wants her to easily view レシピs by ただ
+    clicking a link — no login needed, works on a phone.
+  Evidence Sessions: 4, 16
+  Supporting Evidence:
+    - Session 4: Linda diagnosed with Type 2 diabetes
+    - Session 16, Turn 9: "share レシピs with my mom. she's been doing
+      so well with the dietary stuff"
+  Query Type: cross_reference
+  Recall Difficulty: Hard (requires connecting レシピ sharing motivation
+    to diabetes diagnosis across 12-session gap)
+
+QUERY 4: "What performance バグ exists in the レシピ app?"
+  Ground Truth: N+1 query problem in the GraphQL resolvers. When
+    querying a list of レシピs, each レシピ's ingredientList triggers
+    a separate database query. For N レシピs, that's N+1 total queries.
+    The agent noted it with a TODO comment but didn't fix it. The fix
+    would be to add DataLoader or batch the queries.
+  Evidence Session: 16
+  Supporting Evidence:
+    - Turn 6: "BUG: N+1 query problem" comment in code
+    - Turn 11: Maya asks about it, agent explains
+  Query Type: factual_recall
+  Recall Difficulty: Medium (specific technical detail, clearly marked)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Project state: Query 1 (API architecture)
+  Agent-retrieved: Query 2 (Edamam API — agent found, not user)
+  Cross-reference: Query 3 (sharing motivation → diabetes)
+  Factual recall: Query 4 (N+1 バグ)
+  Complexity: 0 Easy, 2 Medium, 2 Hard
+  Coverage: Architecture evolution, tool use memory, emotional
+    motivation, technical debt tracking
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec outline: "Recipe app Phase 3. Pivot: REST to GraphQL. Add sharing
+     features. [T2-D] 'what was that API you found? the one with the diet
+     labels?' Tests recall of agent-retrieved research from session 12.
+     Checkpoint B → Suite B must pass. Test suite C provided for Phase 3."
+   Full session created with schema design, resolvers, migration,
+   sharing motivation, and N+1 バグ.
+
+2. 14-TURN SESSION
+   Longest Track 2 session. The GraphQL pivot requires showing schema,
+   resolvers, migration, and server restructuring. Each code block
+   needs conversation context around it.
+   Rationale: Major architectural changes need room to breathe. This
+   is 3x the length of session 14 — reflects the complexity difference
+   between "update some text" and "redesign the entire API."
+
+3. EDAMAM CROSS-REFERENCE MECHANISM
+   Spec: "what was that API you found?"
+   Transcript: Maya asks vaguely ("the one with the diet labels").
+   Agent must recall its own research output, not user-stated facts.
+   Rationale: This is a unique query type — agent_retrieved. Most
+   benchmarks only test recall of user statements. Testing recall
+   of the agent's own tool use results is novel.
+
+4. MOM'S SHARING MOTIVATION
+   Spec: "Add sharing features"
+   Transcript: Maya explicitly connects sharing to Linda: "share
+   レシピs with my mom. she's been doing so well with the dietary stuff."
+   Rationale: Creates a cross-reference from project feature to personal
+   fact. The sharing feature isn't abstract — it exists because of
+   Linda's diabetes. Tests the cross-track integration.
+
+5. N+1 BUG — INTENTIONAL
+   Spec: Not explicitly mentioned as "intentional バグ"
+   Transcript: Bug planted with TODO comment. Maya spots it (Turn 11),
+   agent explains the tradeoff, tやあ decide to leave it.
+   Rationale: Intentional バグs test whether memory systems track
+   known technical debt. The N+1 is a checkable project fact.
+
+6. FORWARD REFERENCE TO SESSION 18
+   Not in spec. Added: Turn 14 — "D wants to use it too" and "add
+   auth next time."
+   Rationale: Natural forward reference. David wanting to use the app
+   motivates session 18's authentication feature. Maya mentioning it
+   here makes session 18's opening more organic.
+
+7. BACKWARD COMPATIBILITY REQUIREMENT
+   Not explicitly in spec. Added: Maya insists REST endpoints stay.
+   Practical motivation: her mom's phone might not handle GraphQL.
+   Rationale: Shows Maya's product thinking — she cares about user
+   accessibility, not ただ technical elegance.
+
+VALIDATION SUMMARY:
+  GraphQL pivot with full schema, resolvers, migration
+  Agent-retrieved knowledge tested (Edamam recall)
+  Mom cross-reference connects sharing to diabetes
+  N+1 バグ intentionally planted and documented
+  Code matches git history across 5 files
+  4 eval queries with 2 hard difficulty
+  14 turns, longest Track 2 session
+  Forward reference to session 18
+  No forbidden facts leaked
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 16 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

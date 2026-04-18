@@ -1,0 +1,204 @@
+================================================================================
+FILLER SESSION F142 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 5 and 6
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F142 (Filler — Recipe App Micro)
+Date: 2026-03-12 17:56
+Topic: レシピ全体を対象にハイライト付きの全文検索を追加したい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F142
+  Track: filler
+  Timestamp: 2026-03-12 17:56:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  ねえ、レシピアプリに検索を追加するのを手伝ってくれる？ 名前、材料、手順、全部を検索したいし、マッチ箇所もハイライトしたい
+
+AI ASSISTANT:
+  はい、SQLite の全文検索に FTS5 を追加しましょう。まず、recipes をミラーする仮想テーブルを作成します:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~5
+
+MAYA:
+  うん、トリガーを見せて
+
+AI ASSISTANT:
+  FTS テーブルを同期するトリガーはこちらです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  いいね。じゃあ実際にどう検索するの？ /api/recipes/search?q=chicken みたいなエンドポイントがほしい
+
+AI ASSISTANT:
+  このルートを Express アプリに追加してください:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  検索しようとしたらエラーになる - "fts5: syntax error near \"chicken\""
+
+AI ASSISTANT:
+  それは FTS5 が特殊なクエリ構文を使うからです。誰かが "chicken soup" と検索したら、`chicken AND soup` か、フレーズとしては `"chicken soup"` にする必要があります。
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  うーん、それは動くけど、今度は "chicken" で "chickens" がヒットしない - ステミングか何か必要だよね
+
+AI ASSISTANT:
+  FTS5 に組み込みのステミングはありませんが、プレフィックス検索は使えます。sanitize 関数をこう変えてください:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  うん、でも誰かが "low carb" と入力したら、それは `low* AND carb*` になって厳しすぎるよね？
+
+AI ASSISTANT:
+  いい指摘です。こういう場合は複数語クエリに OR を使いたいはずです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  いや OR は緩すぎる。AND を使いつつ閾値を下げるのは？ たとえば3語中2語に一致したらいいとか
+
+AI ASSISTANT:
+  FTS5 はしきい値マッチングをネイティブにはサポートしていません。選択肢はあります:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  bm25 って何？ なんでスコアが負になるの？
+
+AI ASSISTANT:
+  BM25 はランキングアルゴリズムです。`Best Matching 25` の略で、用語の出現頻度と文書の長さに基づいて各結果の関連度をスコア化します。
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  なるほど、OR にした。じゃあフロントエンドでハイライトをどう出すの？ snippet 関数が3つも別のフィールドを返してくるんだけど
+
+AI ASSISTANT:
+  いくつか方法があります:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  待って、snippet の `...` が変な場所に出るんだけど、文の途中で切れてるみたい。調整できる？
+
+AI ASSISTANT:
+  はい、`snippet()` の5番目の引数が省略記号トークンで、6番目が表示する最大トークン数です。15トークンに設定できます。
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  本番でこれが出る - Error: database is locked。複数の検索が同時に来ると起きる
+
+AI ASSISTANT:
+  SQLite には単一の書き込みロックがあります。`better-sqlite3` のデフォルトの同期モードなら読み取りの同時実行は問題ないはずですが、誰かが書き込みロックを保持しています。
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  WAL を追加したらかなり良くなった。でも今度は大きいレシピセットで検索がかなり遅いのに気づいた。クエリによっては800msくらい
+
+AI ASSISTANT:
+  800ms は FTS5 としてはかなり遅いです。確認してください:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  あ、そうか、LIMIT してなかった。`LIMIT 20` を入れたら50msくらいになった。かなり良いね、ありがとう
+
+AI ASSISTANT:
+  いいですね！ 検索結果は必ずページネーションしましょう。offset を追加してページ分けできます:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  完璧。最後に - これをどうテストする？ 検索エンドポイントのテストを書きたい
+
+AI ASSISTANT:
+  Jest と supertest を使ったテストはこちらです:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  テストごとに別の test DB を使うべき？ それとも毎回クリーンアップする？
+
+AI ASSISTANT:
+  別の test DB のほうがきれいです。テスト設定でこうします:
+
+---
+
+TURN 16 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  いいね。テスト通った。明日出すよ。ありがとう！
+
+AI ASSISTANT:
+  素晴らしいですね！ 既存のレシピがあるなら、FTS インデックスを再構築するのを忘れないでください:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

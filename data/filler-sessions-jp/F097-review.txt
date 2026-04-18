@@ -1,0 +1,116 @@
+================================================================================
+FILLER SESSION F097 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F097 (Filler — Work Session)
+Date: 2026-04-20 11:28
+Topic: マネージャーとの 1:1 の話すポイントを準備したい
+Turn Count: 12
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F097
+  Track: filler
+  Timestamp: 2026-04-20 11:28:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  明日の David との 1:1 の準備を手伝ってくれる？ recipe app の auth 移行について報告したいんだ
+
+AI ASSISTANT:
+  もちろんです。今の状況と、特に強調したいことは何ですか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  新しい auth システムへの移行がだいたい 60% 完了。先週 token refresh の perf 問題があったけど、今は解消した
+
+AI ASSISTANT:
+  了解です。話すポイントを作りましょうか？ 進捗、perf 問題と解決、完了までのタイムライン、ブロッカーあたりを入れるイメージです。
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  うん、それでいい。あと Q3 の人員についても聞きたい。ここまでのペースが続くなら backend をもう 1 人必要になりそう
+
+AI ASSISTANT:
+  ではドラフトはこちらです:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  いいけど、stripe connect の統合の話も入れてくれる？ それは次のスプリントで出るし、D は絶対聞いてくる
+
+AI ASSISTANT:
+  更新しました:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  完璧。payout flow を ship する前に Rach に見てもらうよう、短いメールも作れる？
+
+AI ASSISTANT:
+  こちらです:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  うん、それでいい。あと一つ、週ごとにどれくらいユーザーを移行できたかのデータを取ってくれる？ D に推移を見せたい
+
+AI ASSISTANT:
+  それなら SQL クエリを書くお手伝いができます。users テーブルの構造を教えてください。auth 移行の状態と移行完了日のフィールド名が必要です。
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  テーブルは `users`。フィールドは `id`, `migrated_to_new_auth`（boolean）, `migration_completed_at`（timestamp）, `created_at`
+
+AI ASSISTANT:
+  クエリはこちらです:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  いいね、ありがとう。これで明日の準備はできた気がする lol
+
+AI ASSISTANT:
+  ばっちりです！ 進捗の数字、perf 改善、今後のリリース予定、Q3 人員の相談まで揃っています。1:1、うまくいくといいですね！
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

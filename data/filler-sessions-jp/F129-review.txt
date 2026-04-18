@@ -1,0 +1,180 @@
+================================================================================
+FILLER SESSION F129 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 3 and 4
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F129 (Filler — Work Session)
+Date: 2026-03-06 09:54
+Topic: JMeter シナリオ付きの負荷テスト計画を作りたい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F129
+  Track: filler
+  Timestamp: 2026-03-06 09:54:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  recipe app を scale up する前に負荷テストが必要なんだ。JMeter を使おうと思ってるけど、正直どこから始めればいいかわからない。どんなシナリオをテストすればいい？
+
+AI ASSISTANT:
+  recipe app なら、まずはこの主要シナリオに絞るのがいいよ:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  たとえば同時接続 1000 ユーザーとか？ それが現実的なのかもわからない、笑。レシピには写真があるから、画像読み込みも考えないといけないよね
+
+AI ASSISTANT:
+  同時接続 1000 は十分いい目標だよ。画像はたいていボトルネックになるから、別に分けてテストするのが確実だね。
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  その組み合わせなら納得できる。実際の JMeter test plan を作ってくれる？ どんな thread group と sampler が必要か知りたい
+
+AI ASSISTANT:
+  もちろん。基本的な JMeter 構成はこんな感じ:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  ぜひ。assertion は何を入れるべき？ response code だけ？ それとも他にも？
+
+AI ASSISTANT:
+  こんなものを追加するといいよ:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  うん、それでいい。画像読み込みのテストはどうする？ viewer group に入れるべき、それとも別にする？
+
+AI ASSISTANT:
+  何が壊れているかを見やすくするために、別にしたほうがいいね:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  なるほど。テストデータはどう用意すればいい？ 実際の recipe id とかが必要だよね
+
+AI ASSISTANT:
+  うん、現実的なデータが必要だよ。セットアップはこんな感じ:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  うん、画像のやつを見せて。あと、staging DB でやるべき？ それとも別の test DB を作るべき？
+
+AI ASSISTANT:
+  完全に別の test DB にすべきだね。load test が staging のデータを壊すのは避けたい。
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  なるほど。結果を追うにはどの listener を追加すればいい？ response times と error rates を見たいんだ
+
+AI ASSISTANT:
+  こんな listener 構成を使うといいよ:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  なるほどね。実際に何を重視すればいい？ pass と fail の基準は？
+
+AI ASSISTANT:
+  成功条件はこんな感じだよ:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  納得。これって自分の laptop で回すべき？ それとも別マシンが必要？
+
+AI ASSISTANT:
+  断然別マシンだね。ローカルで JMeter を動かすと結果が歪む（laptop 自体がボトルネックになる）から。
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  なるほど、non-GUI mode のこと知らなかった。フル実行のときはどんな flags を使えばいい？
+
+AI ASSISTANT:
+  フルコマンドはこれだよ:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  完璧。あとひとつ - server side も監視すべき？ それとも JMeter の metrics だけでいい？
+
+AI ASSISTANT:
+  もちろん server-side も監視して。JMeter は client からの視点しか見えないからね。
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  最高、めちゃくちゃ助かる。今日セットアップするよ。diabetes filtering feature もテストすべき？ それとも今はシンプルにしておく？
+
+AI ASSISTANT:
+  最初のテストではシンプルにしよう。core CRUD と browsing だけでいい。まずは baseline の性能を取ろう。
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いや、今は大丈夫。まず基本のテストを回して、何が壊れるか見てみるよ、笑。ありがとう D!
+
+AI ASSISTANT:
+  はは、いいね！ まずは 100 ユーザーのテストを回そう。そうすれば 1000 で大惨事になる前にデバッグできる 😄
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

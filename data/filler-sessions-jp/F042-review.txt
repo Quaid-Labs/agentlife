@@ -1,0 +1,61 @@
+================================================================================
+FILLER SESSION F042 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 14 and 15
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F042 (Filler — Quick Question)
+Date: 2026-04-06 10:39
+Topic: Google スプレッドシートから CSV を書き出すにはどうするの
+Turn Count: 3
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F042
+  Track: filler
+  Timestamp: 2026-04-06 10:39:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  Google スプレッドシートから CSV を書き出すにはどうするの
+
+AI ASSISTANT:
+  ファイル → ダウンロード → カンマ区切り値（.csv）です。既定のフォルダにダウンロードされます。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  ありがとう！ 数式は残る？ それとも値だけ？
+
+AI ASSISTANT:
+  値だけです。数式は計算結果に変わります。数式を残したいなら、代わりに Excel（.xlsx）でダウンロードしてください。
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  それで十分、ちょうど欲しかったやつ
+
+AI ASSISTANT:
+  いいね！ CSV はきれいにまとまって、必要な場所へそのまま取り込めるよ。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

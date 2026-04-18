@@ -1,0 +1,70 @@
+================================================================================
+FILLER SESSION F207 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F207 (Filler — Quick Question)
+Date: 2026-04-22 15:26
+Topic: CSSでmarginとpaddingの違いは何か
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F207
+  Track: filler
+  Timestamp: 2026-04-22 15:26:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  ちょっと初歩的な質問なんだけど、marginとpaddingの実際の違いって何だっけ。いつも忘れちゃう
+
+AI ASSISTANT:
+  margin は要素の境界線の*外側*の余白だよ（ほかの要素を押しのける）
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  なるほど。じゃあ、2つのdivの間に空白を作りたいならmarginってこと？
+
+AI ASSISTANT:
+  その通り！ margin は要素同士の間隔を作る。padding は div の内側を広げるだけで、要素間の隙間には影響しないよ。
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  padding は背景色が広がるやつだよね？ テキストのまわりみたいな
+
+AI ASSISTANT:
+  そう！ padding は要素の内側だから背景色も広がる。margin は外側だから、常に透明なんだ。
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  完璧、ありがと。これでだいぶわかりやすくなった
+
+AI ASSISTANT:
+  どういたしまして！ ボックスモデルの図も役に立つよ。必要になったら開発者ツールで要素を見れば、margin と padding の層が表示される。
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

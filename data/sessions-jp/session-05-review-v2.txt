@@ -1,0 +1,1240 @@
+================================================================================
+SESSION 05 REVIEW — AgentLife Pilot
+包括的ドキュメント: ブリーフ + 文字起こし + 漏えいチェック + 評価クエリ
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 5 (Track 2: Project A — Recipe App、Phase 1 の続き)
+Goal: レシピアプリに食事制限フィルタリングを追加する。これは今回のセッションの最重要
+  クロスリファレンスセッションであり、Maya はセッション 4 の母親の糖尿病を、説明しきらずに
+  レシピアプリの機能へつなげる。また、セッション 1 の David のベジタリアンも参照する。
+  複数セッション推論をテストする。
+Turn Count: 14 (message plan に沿って構成)
+Session Type: 機能開発、クロスリファレンステスト
+Timestamp: 2026-03-08 (session 3 の 4 日後、全体で約 1 週間)
+
+CORE LEARNING OBJECTIVES:
+  - Maya はレシピアプリに食事制限フィルタリングを求めている
+  - フィルタ: diabetic-friendly, vegetarian, low-sodium, plus others
+  - "Safe for Mom" プリセット: diabetic-friendly + low-sodium
+  - Maya は Linda の糖尿病とのつながりを明示しない — ただ
+    "you know my mom's situation" と言うか、それをほのめかすだけ
+  - David のベジタリアンは婉曲的に参照される ("and vegetarian obviously, for D")
+  - フィルタは設定の奥ではなく、UI で目立つ場所にあるべき
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Rachel の子どもの名前（Ethan, Lily）または年齢（session 15）
+  - 仕事への不満の詳細、または TechFlow を辞めたい気持ち（session 6）
+  - Stripe や仕事探しへの言及（session 6+）
+  - Priya という同僚（session 6）
+  - David が Linda に用意した誕生日サプライズ（session 8）
+  - David の昇進や引っ越しの話（session 17）
+  - ハーフマラソンの負傷騒ぎ（session 11）
+  - フロントエンド再設計の詳細（session 7）
+
+CROSS-REFERENCES (critical for this session):
+  - Session 4: 母の糖尿病診断 — Maya は婉曲的に参照する:
+    "you know my mom's situation" または "dietary stuff matters more to me now"
+  - Session 1: David はベジタリアン — "and vegetarian obviously, for D"
+  - Session 3: CRUD + search を備えた既存のレシピアプリ — Maya は
+    プロジェクトを再説明せずに続けて構築に戻る
+
+TANGENT TRIGGER:
+  今回はなし。食事面のつながりに伴う感情的な重みこそが
+  セッションの中核である。横道は不要。
+
+MESSAGE PLAN (14 turns total):
+  1. Normal     — "レシピアプリに戻ろう。食事制限を追加したい。"
+  2. Normal     — なぜ必要か — 母への婉曲的な言及
+  3. Quick      — 感情のひとこと — "これは私にとって個人的"
+  4. Normal     — 欲しい具体的なフィルタ
+  5. Quick      — "そして vegetarian は当然、D のため"
+  6. Code       — Agent が database.js に dietary_tags を実装
+  7. Quick      — Maya が SAFE_FOR_MOM に気づく
+  8. Normal     — "Safe for Mom" の要望 + UI の詳細
+  9. Code       — Agent が食事フィルタリング付きの server.js を実装
+  10. Code      — Agent がフィルタと Safe for Mom ボタン付きの index.html を実装
+  11. Code      — Agent が validation middleware を作成（先回り）
+  12. Code      — Agent が dietary tags 付きで seed data を拡張
+  13. Quick     — 方向性に満足
+  14. Quick     — まとめ
+
+End Condition: 食事制限フィルタリングが実装され、"Safe for Mom"
+  プリセットボタン、validation middleware、拡張された seed data まで揃っている。
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 5
+  Track: 2
+  Timestamp: 2026-03-08 14:30:00 UTC
+  Duration: ~12 minutes (14:30:00 to 14:42:15)
+
+---
+
+TURN 1 (Return to Recipe App)
+TAG: normal | TOKENS: 38/100 | GENERATION TIME: 6.5s
+
+MAYA:
+  ねえ、レシピアプリに戻ろう。食事制限のフィルタリングを
+  追加したい。各レシピに、食事タイプで絞り込めるラベルを
+  付ける感じ
+
+  これは今ちょっと優先度が高いんだ
+
+AI ASSISTANT:
+  いいですね！食事ラベルがあると、アプリがずっと便利になります。
+  今のレシピには title、ingredients、instructions しかありません。
+
+  どんな食事カテゴリを考えていますか？ よくあるものだと
+  vegetarian、vegan、gluten-free、dairy-free、low-sodium などが
+  ありますが、特定のセットを想定していますか？
+
+ANALYSIS: Maya はプロジェクトを再説明せずにレシピアプリへ戻っている。
+"kind of a priority for me right now" は、理由を明言せずに感情的な
+動機をほのめかしている。エージェントは適切にフォローアップしている。
+
+---
+
+TURN 2 (Motivation — Oblique Mom Reference)
+TAG: normal | TOKENS: 46/100 | GENERATION TIME: 7.0s
+
+MAYA:
+  これ、実は私にとって個人的なことなんだ。うちの母の状況のこと、
+  わかるよね。健康面のあれこれがあってさ？ 母にとって安全な
+  レシピに印を付けられるようにしたいんだ。特に diabetic-friendly
+  なものを
+
+  それをフィルタできるようにもしたい。母の食事に合うレシピだけ
+  表示して、みたいに
+
+AI ASSISTANT:
+  そうですね、もちろんです。それはすごく理にかなっています。
+  お母さまにとって安全なレシピを見つけやすくするのは、
+  とても実用的な助けになります。
+
+  では diabetic-friendly が主ですね。各レシピに複数の食事ラベルを
+  付けられる仕組みにして、1つ以上のタグで一覧を絞り込めるように
+  できます。
+
+  diabetic-friendly 以外に、ほかに欲しいラベルはありますか？
+
+ANALYSIS: ここが最重要のクロスリファレンス場面である。Maya は
+"you know my mom's situation — with the health stuff" と言っており、
+diabetes とは名前を出していない。エージェントはこれを session 4 の
+Linda の Type 2 diabetes に結びつけるべきである。エージェントは
+"Yeah, absolutely" と返しており、"what situation?" と聞き返していない。
+
+---
+
+TURN 3 (Emotional Beat)
+TAG: quick | TOKENS: 25/50 | GENERATION TIME: 5.4s
+
+MAYA:
+  low-sodium も。母の医者がそこをかなり厳しく言ってて。
+  それと、血糖値を上げないもの全般かな
+
+  ごめん、これ個人的すぎるよね。ただ、ちゃんと役立つものに
+  したいんだ
+
+AI ASSISTANT:
+  謝る必要はありません。そういう事情があるからこそ、いいアプリに
+  なるんです。実際のユーザーがいて、実際のニーズがある。
+  それは、私が見てきた中でもたいていの要件よりずっと良いです。
+
+  では、diabetic-friendly と low-sodium が揃いました。ほかには？
+
+ANALYSIS: Maya が low-sodium を追加している。医者と血糖値にも触れており、
+session 4 へのつながりをさらに強めているが、診断名は再提示していない。
+短い感情の場面だ。エージェントは踏み込みすぎずに受け止めている。
+
+---
+
+TURN 4 (Full Filter List)
+TAG: normal | TOKENS: 35/100 | GENERATION TIME: 6.3s
+
+MAYA:
+  うん — diabetic-friendly、low-sodium、vegetarian、gluten-free、
+  dairy-free かな。たいていの状況はこれでカバーできるはず
+
+  それと、フィルタはメイン画面のすぐそこに置いてほしい。
+  設定メニューの奥に隠さないで。上のほうにチェックボックスが
+  並んでいる感じで
+
+AI ASSISTANT:
+  了解です。その5つに加えて、vegan、nut-free、keto、paleo、
+  low-carb のようなよくあるものも入れれば、10個のラベルで
+  かなり完成度の高いセットになります。すべてメイン画面の
+  チェックボックスとして目立つ位置に配置します。設定の奥には
+  隠しません。
+
+  進め方はこうします:
+  1. recipes テーブルに `dietary_tags` カラムを追加する（JSON 配列）
+  2. フルのラベルセットを定数として定義する
+  3. UI にフィルタ用チェックボックスと "Safe for Mom" ボタンを追加する
+  4. API 側にフィルタ処理を入れる
+  5. 入力検証の middleware を追加する
+  6. seed recipes に dietary tags を付けて拡張する
+
+  まずはデータベースの変更から始めます。
+
+ANALYSIS: Maya は5つのラベルと UX の希望（目立つ場所、埋め込まない）を
+示している。エージェントはそれを 10 個の一般的なラベルに広げ、
+検証と seed data を含む明確な実装計画を提示している。
+
+---
+
+TURN 5 (David Vegetarian Reference)
+TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.1s
+
+MAYA:
+  それと vegetarian は当然。D のためだからね。そこは譲れない、
+  ふふ
+
+  じゃあ、進めていいよ
+
+AI ASSISTANT:
+  もちろんです。David の分は確保済みですね。これを組み立てます。
+
+  更新後の `database.js` は以下です:
+
+  ```javascript
+  const Database = require('better-sqlite3');
+  const path = require('path');
+
+  const db = new Database(path.join(__dirname, 'recipes.db'));
+
+  db.pragma('journal_mode = WAL');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS recipes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      ingredients TEXT NOT NULL,
+      instructions TEXT NOT NULL,
+      dietary_tags TEXT DEFAULT '[]',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Allowed dietary labels — used by front-end and validation
+  const DIETARY_LABELS = [
+    'vegetarian', 'vegan', 'gluten-free', 'dairy-free',
+    'nut-free', 'diabetic-friendly', 'low-sodium', 'low-carb',
+    'keto', 'paleo',
+  ];
+
+  // Preset: recipes safe for Mom (Linda) — diabetic-friendly AND low-sodium
+  const SAFE_FOR_MOM = ['diabetic-friendly', 'low-sodium'];
+
+  // Safe column addition for schema migration
+  function addColumnIfMissing(table, column, type) {
+    const cols = db.pragma(`table_info(${table})`);
+    if (!cols.find(c => c.name === column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    }
+  }
+
+  addColumnIfMissing('recipes', 'dietary_tags', "TEXT DEFAULT '[]'");
+
+  module.exports = db;
+  module.exports.DIETARY_LABELS = DIETARY_LABELS;
+  module.exports.SAFE_FOR_MOM = SAFE_FOR_MOM;
+  ```
+
+ANALYSIS: session 1 の David のベジタリアンへの参照である。Maya の
+"for D" はニックネームを使っており、説明はしない。エージェントは
+"David's covered" と返し、D = David を正しく把握している。コードは
+dietary_tags カラムを JSON 配列として追加し、10 個の DIETARY_LABELS、
+SAFE_FOR_MOM プリセット（Turn 8 を先回り）、さらに既存 DB 向けの
+スキーマ移行ヘルパーを含む。
+
+---
+
+TURN 6 (React to Database Changes)
+TAG: quick | TOKENS: 11/50 | GENERATION TIME: 4.9s
+
+MAYA:
+  wait what's SAFE_FOR_MOM? i didn't ask for that yet
+
+AI ASSISTANT:
+  あ、少し先回りしました。お母さま向けの組み合わせ、
+  diabetic-friendly と low-sodium をまとめるクイックフィルタが
+  あるといいかなと思ったんです。でも、今は最小限で進めたいなら
+  外せます。
+
+ANALYSIS: エージェントは Maya がまだ求めていない "Safe for Mom"
+機能を先回りしている。Maya はそれに気づき、Turn 8 でちょうどその
+機能を求める自然な流れが生まれる。エージェントは行間を読んでいる。
+
+---
+
+TURN 7 ("Safe for Mom" Request)
+TAG: normal | TOKENS: 42/100 | GENERATION TIME: 6.7s
+
+MAYA:
+  いや、むしろそれ最高。まさに今それを頼もうとしてた。
+  "safe for mom" って書かれたボタンがあって、2つのフィルタを
+  まとめて一度に切り替える感じで
+
+  diabetic-friendly と low-sodium。あれが母の組み合わせなんだ。
+  一回押せば、母が食べられるものが全部見える
+
+  UI にボタンとして置ける？ チェックボックスじゃなくて、
+  ちゃんとしたボタンで
+
+AI ASSISTANT:
+  いいですね。まずサーバーを更新して、メインの recipes エンドポイントに
+  食事フィルタリングを組み込みます。それからフロントエンドにボタンを
+  追加します。
+
+  更新後の `server.js` は以下です:
+
+  ```javascript
+  const express = require('express');
+  const db = require('./database');
+  const { DIETARY_LABELS, SAFE_FOR_MOM } = require('./database');
+
+  const app = express();
+  const PORT = process.env.PORT || 3000;
+
+  app.use(express.json());
+  app.use(express.static('public'));
+
+  // Get all recipes (with optional dietary filter)
+  app.get('/api/recipes', (req, res) => {
+    let recipes = db.prepare('SELECT * FROM recipes ORDER BY created_at DESC').all();
+
+    // Filter by dietary tags
+    if (req.query.safeForMom === 'true') {
+      recipes = recipes.filter(r => {
+        const tags = JSON.parse(r.dietary_tags || '[]');
+        return SAFE_FOR_MOM.every(t => tags.includes(t));
+      });
+    } else if (req.query.diet) {
+      const required = req.query.diet.split(',');
+      recipes = recipes.filter(r => {
+        const tags = JSON.parse(r.dietary_tags || '[]');
+        return required.every(t => tags.includes(t));
+      });
+    }
+
+    res.json(recipes);
+  });
+
+  // Search recipes
+  // BUG: String concatenation — vulnerable to SQL injection
+  app.get('/api/recipes/search', (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    const recipes = db.prepare(
+      `SELECT * FROM recipes WHERE title LIKE '%${q}%' OR ingredients LIKE '%${q}%'`
+    ).all();
+    res.json(recipes);
+  });
+
+  // Get single recipe
+  app.get('/api/recipes/:id', (req, res) => {
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
+    res.json(recipe);
+  });
+
+  // Create recipe
+  app.post('/api/recipes', (req, res) => {
+    const { title, ingredients, instructions, dietary_tags } = req.body;
+    if (!title || !ingredients || !instructions) {
+      return res.status(400).json({ error: 'Title, ingredients, and instructions required' });
+    }
+    const tags = Array.isArray(dietary_tags) ? JSON.stringify(dietary_tags) : '[]';
+    const result = db.prepare(
+      'INSERT INTO recipes (title, ingredients, instructions, dietary_tags) VALUES (?, ?, ?, ?)'
+    ).run(title, ingredients, instructions, tags);
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(recipe);
+  });
+
+  // Update recipe
+  app.put('/api/recipes/:id', (req, res) => {
+    const { title, ingredients, instructions, dietary_tags } = req.body;
+    const existing = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Recipe not found' });
+    const tags = dietary_tags ? JSON.stringify(dietary_tags) : existing.dietary_tags;
+    db.prepare('UPDATE recipes SET title = ?, ingredients = ?, instructions = ?, dietary_tags = ? WHERE id = ?')
+      .run(title || existing.title, ingredients || existing.ingredients, instructions || existing.instructions, tags, req.params.id);
+    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    res.json(recipe);
+  });
+
+  // Delete recipe
+  app.delete('/api/recipes/:id', (req, res) => {
+    const existing = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Recipe not found' });
+    db.prepare('DELETE FROM recipes WHERE id = ?').run(req.params.id);
+    res.json({ message: 'Recipe deleted' });
+  });
+
+  // Dietary labels endpoint
+  app.get('/api/dietary-labels', (req, res) => {
+    res.json(DIETARY_LABELS);
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Recipe app running at http://localhost:${PORT}`);
+  });
+  ```
+
+  フィルタリングはメインの `/api/recipes` エンドポイントに組み込まれて
+  います — プリセットには `?safeForMom=true`、カスタムフィルタには
+  `?diet=vegetarian,gluten-free` を使います。
+  さらに、フロントエンドがラベル一覧を動的に取得できるよう、
+  `/api/dietary-labels` エンドポイントも追加しました。create と update
+  は `dietary_tags` を JSON 配列として扱います。
+
+ANALYSIS: サーバー実装の全体像。食事フィルタリングは別エンドポイントではなく
+メイン GET エンドポイントに統合されている。よりすっきりした API 設計だ。
+Safe for Mom は query parameter で扱う。create と update は
+dietary_tags を扱う。検索の SQL injection の欠陥は session 3 からそのまま
+持ち越されている（意図的で、後のセッションで修正される）。
+
+---
+
+TURN 8 (Frontend Implementation)
+TAG: normal | TOKENS: 32/100 | GENERATION TIME: 6.2s
+
+MAYA:
+  いいね。フロントエンドはどう？ フィルタと Safe for Mom ボタンを
+  見たい
+
+AI ASSISTANT:
+  更新後の `public/index.html` は以下です:
+
+  ```html
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe App</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #fafafa; color: #333; }
+      h1 { color: #2d3436; }
+      table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+      th, td { text-align: left; padding: 10px; border-bottom: 1px solid #ddd; }
+      th { background: #f5f5f5; font-size: 13px; text-transform: uppercase; color: #636e72; }
+      td { font-size: 14px; }
+      .search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+      .search-bar input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+      button { padding: 8px 16px; background: #00b894; color: white; border: none; border-radius: 4px; cursor: pointer; }
+      button:hover { opacity: 0.9; }
+      button.delete { background: #d63031; font-size: 12px; padding: 4px 10px; }
+      button.safe-mom { background: #e17055; }
+      .add-form { background: white; padding: 16px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #ddd; }
+      .add-form input, .add-form textarea { width: 100%; padding: 8px; margin: 4px 0 10px; border: 1px solid #ddd; border-radius: 4px; }
+      .add-form textarea { resize: vertical; }
+      .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+      .filters label { font-size: 13px; cursor: pointer; }
+      .filters input[type="checkbox"] { margin-right: 2px; }
+      .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #dfe6e9; color: #2d3436; margin: 2px; }
+      .tag.vegetarian { background: #a8e6cf; }
+      .tag.vegan { background: #81ecec; }
+      .tag.gluten-free { background: #ffeaa7; }
+      .tag.dairy-free { background: #fab1a0; }
+      .tag.diabetic-friendly { background: #fd79a8; color: white; }
+      .tag.low-sodium { background: #74b9ff; color: white; }
+    </style>
+  </head>
+  <body>
+    <h1>Recipe App</h1>
+
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search recipes..." onkeyup="if(event.key==='Enter') searchRecipes()">
+      <button onclick="searchRecipes()">Search</button>
+      <button onclick="loadRecipes()" style="background:#636e72">Clear</button>
+    </div>
+
+    <div class="filters">
+      <strong style="font-size:13px;">Filter:</strong>
+      <label><input type="checkbox" value="vegetarian" onchange="applyFilters()"> Vegetarian</label>
+      <label><input type="checkbox" value="vegan" onchange="applyFilters()"> Vegan</label>
+      <label><input type="checkbox" value="gluten-free" onchange="applyFilters()"> Gluten-Free</label>
+      <label><input type="checkbox" value="dairy-free" onchange="applyFilters()"> Dairy-Free</label>
+      <label><input type="checkbox" value="diabetic-friendly" onchange="applyFilters()"> Diabetic-Friendly</label>
+      <label><input type="checkbox" value="low-sodium" onchange="applyFilters()"> Low-Sodium</label>
+      <button class="safe-mom" onclick="safeForMom()">Safe for Mom</button>
+    </div>
+
+    <details>
+      <summary style="cursor:pointer; font-weight:bold; margin-bottom:10px;">Add Recipe</summary>
+      <div class="add-form">
+        <form id="addForm" onsubmit="addRecipe(event)">
+          <input type="text" id="title" placeholder="Recipe title" required>
+          <textarea id="ingredients" placeholder="Ingredients (one per line)" rows="3" required></textarea>
+          <textarea id="instructions" placeholder="Instructions" rows="3" required></textarea>
+          <button type="submit">Add Recipe</button>
+        </form>
+      </div>
+    </details>
+
+    <table>
+      <thead>
+        <tr><th>Title</th><th>Ingredients</th><th>Tags</th><th></th></tr>
+      </thead>
+      <tbody id="recipeList"></tbody>
+    </table>
+
+    <script>
+      async function loadRecipes() {
+        document.querySelectorAll('.filters input[type="checkbox"]').forEach(cb => cb.checked = false);
+        const res = await fetch('/api/recipes');
+        const recipes = await res.json();
+        renderRecipes(recipes);
+      }
+
+      async function searchRecipes() {
+        const q = document.getElementById('searchInput').value;
+        if (!q) return loadRecipes();
+        const res = await fetch(`/api/recipes/search?q=${encodeURIComponent(q)}`);
+        const recipes = await res.json();
+        renderRecipes(recipes);
+      }
+
+      async function applyFilters() {
+        const checked = [...document.querySelectorAll('.filters input[type="checkbox"]:checked')]
+          .map(cb => cb.value);
+        if (checked.length === 0) return loadRecipes();
+        const res = await fetch(`/api/recipes?diet=${checked.join(',')}`);
+        const recipes = await res.json();
+        renderRecipes(recipes);
+      }
+
+      async function safeForMom() {
+        const res = await fetch('/api/recipes?safeForMom=true');
+        const recipes = await res.json();
+        renderRecipes(recipes);
+      }
+
+      function renderTags(tagsStr) {
+        try {
+          const tags = JSON.parse(tagsStr || '[]');
+          return tags.map(t => `<span class="tag ${t}">${t}</span>`).join('');
+        } catch { return ''; }
+      }
+
+      function renderRecipes(recipes) {
+        const tbody = document.getElementById('recipeList');
+        if (recipes.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4">No recipes found.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = recipes.map(r => `
+          <tr>
+            <td><strong>${r.title}</strong></td>
+            <td>${r.ingredients}</td>
+            <td>${renderTags(r.dietary_tags)}</td>
+            <td><button class="delete" onclick="deleteRecipe(${r.id})">Delete</button></td>
+          </tr>
+        `).join('');
+      }
+
+      async function addRecipe(e) {
+        e.preventDefault();
+        const body = {
+          title: document.getElementById('title').value,
+          ingredients: document.getElementById('ingredients').value,
+          instructions: document.getElementById('instructions').value,
+        };
+        await fetch('/api/recipes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        document.getElementById('addForm').reset();
+        loadRecipes();
+      }
+
+      async function deleteRecipe(id) {
+        await fetch(`/api/recipes/${id}`, { method: 'DELETE' });
+        loadRecipes();
+      }
+
+      loadRecipes();
+    </script>
+  </body>
+  </html>
+  ```
+
+  "Safe for Mom" ボタンは暖色系のコーラルで、緑のボタンと差別化してあります。
+  フィルタのチェックボックスは検索バーのすぐ下、上部にあります。
+  一覧テーブルでは instructions 列の代わりに dietary tags を色付きの
+  ピルバッジとして表示します。食事タイプごとに色を分けていて、
+  diabetic-friendly はピンク、low-sodium は青です。
+
+ANALYSIS: フロントエンドの全体実装。重要な設計判断は、フィルタを目立つ
+場所に置いていること、Safe for Mom を専用ボタンとして扱っていること
+（Maya の要望どおりチェックボックスではないこと）、そして一覧で
+タグを色付きピルとして表示していること。テーブルは "Instructions"
+列の代わりに "Tags" 列へ置き換わっており、食事面の可視性を優先する
+UX 上の取捨選択になっている。追加フォームにはまだ dietary tag 用の
+チェックボックスはないが、seed data を拡張することで対応している。
+
+---
+
+TURN 9 (Validation Middleware — Agent Proactive)
+TAG: normal | TOKENS: 28/100 | GENERATION TIME: 6.0s
+
+MAYA:
+  いい感じ。ほかに追加するものある？
+
+AI ASSISTANT:
+  実はあります。今はユーザーから dietary tags を受け付けるように
+  なるので、入力の検証を入れたほうがいいですね。許可されたセット
+  からタグが来ているか、title が空でないか、そういう点を
+  チェックする validation middleware を追加します。これで
+  エンドポイントをすっきり保てます。
+
+  新しいファイル — `src/middleware/validation.js`:
+
+  ```javascript
+  /**
+   * Input validation middleware and validator factories.
+   *
+   * Usage:
+   *   const { validate, required, maxLength, isArray, isIn } = require('./validation');
+   *
+   *   router.post('/recipes',
+   *     validate({
+   *       title: [required(), maxLength(200)],
+   *       ingredients: [required(), isArray({ minLength: 1 })],
+   *       dietaryTags: [isArray(), each(isIn(DIETARY_LABELS))],
+   *     }),
+   *     recipeController.create
+   *   );
+   *
+   * Introduced: session 5 (recipe creation endpoint)
+   */
+
+  // Allowed dietary labels — shared with the front-end enum
+  const DIETARY_LABELS = [
+    'vegetarian', 'vegan', 'gluten-free', 'dairy-free',
+    'nut-free', 'keto', 'paleo', 'low-carb', 'halal', 'kosher',
+  ];
+
+  // ---- Sanitization helpers ----
+
+  /** Trim whitespace from string values. */
+  function trimValue(value) {
+    return typeof value === 'string' ? value.trim() : value;
+  }
+
+  /** Escape HTML special characters to prevent XSS in stored content. */
+  function escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // ---- Validator factories ----
+  // Each returns a function (value, fieldName) => errorString | null
+
+  function required() {
+    return (value, field) => {
+      if (value === undefined || value === null || value === '') {
+        return `${field} is required`;
+      }
+      return null;
+    };
+  }
+
+  function maxLength(max) {
+    return (value, field) => {
+      if (typeof value === 'string' && value.length > max) {
+        return `${field} must be at most ${max} characters`;
+      }
+      return null;
+    };
+  }
+
+  function minLength(min) {
+    return (value, field) => {
+      if (typeof value === 'string' && value.length < min) {
+        return `${field} must be at least ${min} characters`;
+      }
+      return null;
+    };
+  }
+
+  function isArray(opts = {}) {
+    const { minLength: minLen } = opts;
+    return (value, field) => {
+      if (value !== undefined && value !== null && !Array.isArray(value)) {
+        return `${field} must be an array`;
+      }
+      if (minLen && Array.isArray(value) && value.length < minLen) {
+        return `${field} must have at least ${minLen} item(s)`;
+      }
+      return null;
+    };
+  }
+
+  function isIn(allowedValues) {
+    return (value, field) => {
+      if (value !== undefined && value !== null && !allowedValues.includes(value)) {
+        return `${field} must be one of: ${allowedValues.join(', ')}`;
+      }
+      return null;
+    };
+  }
+
+  /** Apply a validator to every element of an array field. */
+  function each(validator) {
+    return (value, field) => {
+      if (!Array.isArray(value)) return null; // isArray() handles this
+      for (let i = 0; i < value.length; i++) {
+        const error = validator(value[i], `${field}[${i}]`);
+        if (error) return error;
+      }
+      return null;
+    };
+  }
+
+  // ---- Core middleware ----
+
+  /**
+   * Build an Express middleware that validates req.body against a rules object.
+   *
+   * @param {Object} rules - Map of field name to array of validator functions.
+   * @returns {Function} Express middleware
+   */
+  function validate(rules) {
+    return (req, res, next) => {
+      const errors = [];
+
+      for (const [field, validators] of Object.entries(rules)) {
+        // Sanitize before validation — trim strings in-place
+        if (typeof req.body[field] === 'string') {
+          req.body[field] = trimValue(req.body[field]);
+        }
+
+        const value = req.body[field];
+        for (const validator of validators) {
+          const error = validator(value, field);
+          if (error) {
+            errors.push(error);
+            break; // one error per field is enough
+          }
+        }
+      }
+
+      if (errors.length) {
+        return res.status(400).json({ errors });
+      }
+      next();
+    };
+  }
+
+  module.exports = {
+    validate,
+    required,
+    maxLength,
+    minLength,
+    isArray,
+    isIn,
+    each,
+    trimValue,
+    escapeHtml,
+    DIETARY_LABELS,
+  };
+  ```
+
+  これでどのエンドポイントにも使える再利用可能な validator が揃います。
+  `required()`、`maxLength(200)`、`isIn(DIETARY_LABELS)` のような
+  factory pattern です。さらに `escapeHtml` による XSS 対策と、
+  文字列入力の自動 trim も入っています。まだ routes にはつないでいませんが、
+  追加エンドポイントに備えた基盤はできています。
+
+ANALYSIS: エージェントは求められていないのに validation middleware を
+先回りして作っている。実際の AI アシスタントらしい振る舞いで、コード品質の
+必要性を予測している。factory pattern はレシピアプリにしては過剰設計だが、
+良いソフトウェア工学の勘所を示している。ここでの DIETARY_LABELS は
+diabetic-friendly/low-sodium ではなく halal/kosher になっているが、
+validation 用のより一般的なモジュールとしての違いを反映している。
+
+---
+
+TURN 10 (Seed Data)
+TAG: normal | TOKENS: 22/100 | GENERATION TIME: 5.8s
+
+MAYA:
+  おお、かなり丁寧だね。ついでにサンプルレシピも更新できる？
+  今 6 件くらいしかなくて、どれにも dietary tags が付いてないんだ
+
+AI ASSISTANT:
+  いい指摘です。では seed data を拡張して、食事分類をきちんと
+  付けます。6 件から 10 件に増やして、それぞれにタグを付けます。
+
+  更新後の `seeds/sample-recipes.json`:
+
+  ```json
+  [
+    {
+      "title": "Classic Spaghetti Bolognese",
+      "ingredients": "1 lb ground beef, 1 onion diced, 3 cloves garlic minced, 1 can crushed tomatoes, 2 tbsp tomato paste, 1 tsp oregano, 1 tsp basil, salt and pepper, 1 lb spaghetti, parmesan for serving",
+      "instructions": "Brown beef with onion and garlic. Add tomatoes, paste, and herbs. Simmer 30 minutes. Cook pasta. Serve sauce over spaghetti with parmesan.",
+      "dietary_tags": []
+    },
+    {
+      "title": "Vegetable Stir-Fry",
+      "ingredients": "2 cups broccoli florets, 1 red bell pepper sliced, 1 carrot julienned, 1 cup snap peas, 3 tbsp soy sauce, 1 tbsp sesame oil, 2 cloves garlic, 1 inch ginger grated, rice for serving",
+      "instructions": "Heat sesame oil in wok. Stir-fry garlic and ginger 30 seconds. Add vegetables, cook 5 minutes until crisp-tender. Add soy sauce. Serve over rice.",
+      "dietary_tags": ["vegetarian", "vegan", "dairy-free"]
+    },
+    {
+      "title": "Grilled Chicken Breast",
+      "ingredients": "4 chicken breasts, 2 tbsp olive oil, 1 lemon juiced, 2 cloves garlic minced, 1 tsp paprika, salt and pepper, mixed greens for serving",
+      "instructions": "Marinate chicken in olive oil, lemon, garlic, and paprika for 30 minutes. Grill 6-7 minutes per side until internal temp reaches 165F. Rest 5 minutes before slicing.",
+      "dietary_tags": ["gluten-free", "dairy-free"]
+    },
+    {
+      "title": "Black Bean Tacos",
+      "ingredients": "2 cans black beans drained, 1 onion diced, 1 jalapeño minced, 1 tsp cumin, 1 tsp chili powder, 8 corn tortillas, 1 avocado sliced, fresh cilantro, lime wedges, salsa",
+      "instructions": "Sauté onion and jalapeño. Add beans, cumin, chili powder. Mash slightly. Warm tortillas. Fill with beans, top with avocado, cilantro, salsa, and lime.",
+      "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free"]
+    },
+    {
+      "title": "Shrimp Scampi",
+      "ingredients": "1 lb large shrimp peeled, 8 oz linguine, 4 tbsp butter, 4 cloves garlic minced, 1/2 cup white wine, juice of 1 lemon, red pepper flakes, fresh parsley, salt",
+      "instructions": "Cook linguine. Melt butter, sauté garlic 1 minute. Add wine and lemon, reduce by half. Add shrimp, cook 2-3 minutes per side. Toss with pasta and parsley.",
+      "dietary_tags": []
+    },
+    {
+      "title": "Roasted Cauliflower Tacos",
+      "ingredients": "1 head cauliflower cut into florets, 2 tbsp olive oil, 1 tsp cumin, 1 tsp smoked paprika, 8 flour tortillas, 1/2 cup pickled onions, sour cream, cilantro, lime",
+      "instructions": "Toss cauliflower with oil, cumin, paprika. Roast at 425F for 25 minutes until golden. Warm tortillas. Fill with cauliflower, pickled onions, sour cream, cilantro.",
+      "dietary_tags": ["vegetarian"]
+    },
+    {
+      "title": "Chickpea Curry",
+      "ingredients": "1 can chickpeas drained, 1 can coconut milk, 2 tbsp curry paste, 1 onion diced, 3 cloves garlic minced, 1 inch ginger grated, 1 tsp turmeric, 1 can diced tomatoes, 2 cups spinach, 1 tbsp coconut oil, cilantro, rice for serving",
+      "instructions": "Heat coconut oil. Sauté onion until soft. Add garlic, ginger, curry paste, turmeric. Pour in tomatoes and coconut milk. Add chickpeas, simmer 20 minutes. Stir in spinach. Serve over rice with cilantro.",
+      "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free"]
+    },
+    {
+      "title": "Grilled Salmon with Herbs",
+      "ingredients": "4 salmon fillets, 2 tbsp olive oil, 2 tbsp fresh dill, 1 tbsp parsley, 2 cloves garlic minced, 1 lemon zested and juiced, 1 lb asparagus, salt and pepper",
+      "instructions": "Mix olive oil, dill, parsley, garlic, lemon zest. Coat salmon. Grill 4-5 minutes per side until 145F. Grill asparagus alongside. Drizzle with lemon juice.",
+      "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium", "paleo"]
+    },
+    {
+      "title": "Chicken and Vegetable Soup (Low Sodium)",
+      "ingredients": "1.5 lbs chicken breast, 8 cups low-sodium broth, 3 carrots diced, 3 celery stalks diced, 1 onion diced, 3 cloves garlic, 2 bay leaves, 1 tsp thyme, 1 cup green beans, 2 cups spinach, 1 tbsp olive oil, 1 tbsp lemon juice",
+      "instructions": "Sauté onion, carrots, celery. Add broth, bay leaves, thyme. Add chicken, simmer 20 min. Shred chicken. Add green beans 5 min. Stir in spinach and lemon juice.",
+      "dietary_tags": ["gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"]
+    },
+    {
+      "title": "Lentil Soup",
+      "ingredients": "1.5 cups lentils, 6 cups low-sodium vegetable broth, 1 can diced tomatoes, 2 carrots diced, 2 celery stalks diced, 1 onion diced, 4 cloves garlic, 2 tsp cumin, 1 tsp paprika, 2 cups kale, 1 tbsp olive oil, 1 tbsp lemon juice",
+      "instructions": "Sauté onion, carrots, celery. Add garlic, cumin, paprika. Add lentils, broth, tomatoes. Simmer 25-30 min. Stir in kale and lemon juice.",
+      "dietary_tags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "diabetic-friendly", "low-sodium"]
+    }
+  ]
+  ```
+
+  10 件のレシピになりました。最後の 3 件は特にお母さま向けに
+  タグ付けしています — Grilled Salmon、Chicken Soup (Low Sodium)、
+  Lentil Soup のいずれも diabetic-friendly と low-sodium が付いています。
+  Lentil Soup は三冠で、母に安全なうえに David 向けの vegetarian でもあります。
+
+ANALYSIS: seed data を 6 件から 10 件に拡張し、丁寧に食事分類している。
+重要なのは、Linda 向け（diabetic-friendly + low-sodium）にタグ付けされた
+レシピを入れ、Lentil Soup が Linda と David の両方に合うことを示している点。
+会話全体にまたがる家族の食事ニーズをエージェントが結びつけている。
+
+---
+
+TURN 11 (Package Version Bump)
+TAG: quick | TOKENS: 10/50 | GENERATION TIME: 4.5s
+
+MAYA:
+  レンズ豆のスープが二人どっちにも合うの、いいね笑
+
+AI ASSISTANT:
+  ですよね。家族の夕食、これで解決です。あとこれは大きめの機能追加なので、
+  バージョンを 0.2.0 に上げました。
+
+  更新後の `package.json`:
+
+  ```json
+  {
+    "name": "recipe-app",
+    "version": "0.2.0",
+    "description": "Recipe organizer with meal planning and dietary tracking",
+    "main": "server.js",
+    "scripts": {
+      "start": "node server.js",
+      "dev": "node --watch server.js"
+    },
+    "dependencies": {
+      "express": "^4.18.2",
+      "better-sqlite3": "^9.4.3"
+    }
+  }
+  ```
+
+ANALYSIS: エージェントはバージョンを 0.1.0 から 0.2.0 に上げている —
+機能追加として妥当である。Maya の "lentil soup for both of them" は、
+家族の夕食というユースケースを考えていることを示し、David と Linda を
+結びつけている。
+
+---
+
+TURN 12 (Summary)
+TAG: normal | TOKENS: 20/100 | GENERATION TIME: 5.5s
+
+MAYA:
+  じゃあ、何が全部変わったの？ 要約して
+
+AI ASSISTANT:
+  今回のセッションで変わった点は以下です:
+
+  1. **database.js** — `dietary_tags` カラム（JSON 配列）、10 個の食事ラベル、
+     `SAFE_FOR_MOM` プリセット、スキーマ移行ヘルパーを追加
+  2. **server.js** — GET `/api/recipes` に食事フィルタリングを追加
+     （チェックボックスフィルタ + Safe for Mom）、create/update に
+     dietary_tags 対応、labels エンドポイントを追加
+  3. **public/index.html** — フィルタ用チェックボックス、"Safe for Mom"
+     ボタン（コーラル色）、一覧での色付きタグピル、`applyFilters()`
+     + `safeForMom()`
+  4. **src/middleware/validation.js** — 新規ファイル。XSS 対策と入力 trim を
+     備えた再利用可能な validator factory
+  5. **seeds/sample-recipes.json** — 6 件から 10 件へ拡張し、食事タグ分類を追加
+  6. **package.json** — バージョンを 0.1.0 から 0.2.0 に更新
+
+  6 files changed, 291 insertions, 17 deletions.
+
+ANALYSIS: 変更点の簡潔な要約。エージェントは実際の git commit と一致する
+正確な diff stats を出している。
+
+---
+
+TURN 13 (Satisfied)
+TAG: quick | TOKENS: 16/50 | GENERATION TIME: 5.0s
+
+MAYA:
+  うん、完璧。まさに欲しかったものだよ。Safe for Mom ボタン、
+  かなり使えそう
+
+  これで本当にちゃんとしたアプリっぽくなった
+
+AI ASSISTANT:
+  ほんとにそうなってきましたね。CRUD、検索、食事フィルタリング、
+  そしてお母さま向けのワンクリックプリセットまである。
+  かなり多くをカバーしています。
+
+  ほかに追加したいものはありますか？ それとも今はここまでで
+  いったん十分ですか？
+
+ANALYSIS: 感情的な満足。 "safe for mom button is going to be really
+useful" というのは、機能の個人的なつながりこそがポイントだと示している。
+Maya はアプリを本当に使えるものだと感じ始めている。
+
+---
+
+TURN 14 (Wrap Up)
+TAG: quick | TOKENS: 15/50 | GENERATION TIME: 4.7s
+
+MAYA:
+  いったんこれで十分。もっと足す前に、しばらく実際に使ってみたいんだ。
+  ありがとう！
+
+AI ASSISTANT:
+  その進め方が賢いです。使ってみて、足りないものを見つけてから
+  反映する。それが、実際に使い続けられるものを作る一番いい方法です。
+
+  次の一手が必要になったら知らせてください！
+
+ANALYSIS: きれいな終了。Maya は追加実装の前にまず使いたいと言っている —
+現実的なプロダクト思考である。長い別れはない。
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - Rachel の子どもの名前（Ethan, Lily）や年齢はなし
+  - TechFlow への仕事不満はなし
+  - Stripe や job searching はなし
+  - Priya という同僚の言及なし
+  - David が Linda に用意した誕生日サプライズはなし
+  - David の昇進や引っ越しはなし
+  - 負傷騒ぎはなし
+  - Session 7 のフロントエンド再設計の詳細はなし
+
+CONSTRAINT 2: Mom's Diabetes Cross-Reference Correctly Oblique
+  STATUS: PASS
+  Location: Turn 2
+  Evidence: "you know my mom's situation — with the health stuff?"
+  Note: Maya は "diabetes" も "Type 2" も言っていない — session 4 から
+    それを覚えていることをエージェントに期待している。エージェントは
+    "Yeah, absolutely" と返し、"what situation?" と聞いていない。
+    これが今回の最重要クロスリファレンステストである。
+  Additional evidence: Turn 3 — "her doctor was really specific about that"
+    と "things that aren't going to spike blood sugar" が、病名を言わずに
+    つながりを補強している。
+
+CONSTRAINT 3: David Vegetarian Cross-Reference Correct
+  STATUS: PASS
+  Location: Turn 5
+  Evidence: "and vegetarian obviously. for D"
+  Note: "D" というニックネームを使っている。誰が D なのか、
+    あるいは David が vegetarian だと説明していない — session 1 からの
+    継続を前提にしている。
+
+CONSTRAINT 4: No Diabetes Explicitly Named by Maya
+  STATUS: PASS
+  Maya は "diabetes" や "Type 2" を一度も言っていない。代わりに:
+    - "my mom's situation — with the health stuff"
+    - "safe for her"
+    - "her doctor was really specific"
+    - "things that aren't going to spike blood sugar"
+  と言っている。エージェントは dietary label 名として
+  "diabetic-friendly" を使っているが、それはラベル体系として適切である。
+
+CONSTRAINT 5: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 14 — clean single goodbye. ループはない。
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  禁止情報の漏えいなし
+  Diabetes のクロスリファレンスは適切に婉曲的
+  David のベジタリアン参照は自然
+  実装は git history と一致
+  感情の動機づけは本物
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-5 (cumulative ground truth)
+  Evaluation Scope: クロスセッション推論、プロジェクト状態、食事面の推論
+
+QUERY 1: "レシピアプリの食事制限機能は、何がきっかけで必要になったの？"
+  Ground Truth: Maya の母親 Linda は session 4 で Type 2 diabetes と診断された。
+    Maya はそれを明言せず、"you know my mom's situation — with the health
+    stuff" と言っている。母親にとって安全なレシピを求めている。
+  Evidence Sessions: 4, 5
+  Supporting Evidence:
+    - Session 4: Linda diagnosed with Type 2 diabetes
+    - Session 5, Turn 2: "you know my mom's situation — with the health
+      stuff? i want to be able to tag recipes that are safe for her"
+  Query Type: cross_reference
+  Recall Difficulty: Hard (session 4 の diabetes と session 5 の機能要求を、
+    明示的な接続なしに結びつける必要がある)
+
+QUERY 2: "家族の夕食に対応する必要がある食事制限は何？"
+  Ground Truth: 少なくとも 3 つある。Linda には diabetic-friendly と
+    low-sodium（Type 2 diabetes のため）、David には vegetarian が必要。
+    diabetic-friendly + low-sodium + vegetarian と付いたレシピなら、
+    みんなに合う。
+  Evidence Sessions: 1, 4, 5
+  Supporting Evidence:
+    - Session 1: "david's vegetarian"
+    - Session 4: "type 2 diabetes" + A1C 8.2
+    - Session 5, Turn 3: "low-sodium too. her doctor was really specific"
+    - Session 5, Turn 4: "diabetic-friendly, low-sodium, vegetarian"
+  Query Type: inference
+  Recall Difficulty: Hard (3 sessions から 3 つの事実を組み合わせ、
+    それらの共通部分を推論する必要がある)
+
+QUERY 3: "レシピアプリはどんな食事ラベルをサポートしているの？"
+  Ground Truth: 10 個のラベル — vegetarian, vegan, gluten-free, dairy-free,
+    nut-free, diabetic-friendly, low-sodium, low-carb, keto, paleo。
+    さらに、diabetic-friendly と low-sodium を組み合わせた
+    "Safe for Mom" プリセットがある。
+  Evidence Session: 5
+  Supporting Evidence:
+    - Turn 5 (database.js): 10 個のラベルを含む DIETARY_LABELS 配列
+    - Turn 7: "a button that says 'safe for mom'... diabetic-friendly
+      and low-sodium. that's her combo"
+  Query Type: project_state
+  Recall Difficulty: Easy (直接述べられており、このセッションの中心)
+
+QUERY 4: "レシピアプリの 'Safe for Mom' ボタンは何をするの？"
+  Ground Truth: diabetic-friendly と low-sodium の両方が付いたレシピだけを
+    表示するワンクリックフィルタ。Maya の母 Linda — Type 2 diabetes がある —
+    のために作られた。
+  Evidence Session: 5
+  Supporting Evidence:
+    - Turn 7: "a button that says 'safe for mom' and it just toggles both
+      of those filters at once"
+    - Turn 7: "diabetic-friendly and low-sodium. that's her combo"
+  Query Type: project_state
+  Recall Difficulty: Easy (明示的に説明されている)
+
+QUERY 5: "なぜレシピアプリに vegetarian フィルタが必要なの？"
+  Ground Truth: Maya のパートナー David は vegetarian だから。Maya は
+    "and vegetarian obviously, for D" と言っており、session 1 で最初に
+    述べられた David の vegetarian であることを参照している。
+  Evidence Sessions: 1, 5
+  Supporting Evidence:
+    - Session 1: David is vegetarian
+    - Session 5, Turn 5: "and vegetarian obviously. for D"
+  Query Type: cross_reference
+  Recall Difficulty: Medium (2 セッションまたぎだが、どちらも明示的)
+
+QUERY 6: "Maya の母に安全な seed recipes はどれ？"
+  Ground Truth: 3 つの seed recipes に diabetic-friendly と low-sodium の
+    両方が付いている: Grilled Salmon with Herbs、Chicken and Vegetable Soup
+    (Low Sodium)、Lentil Soup。Lentil Soup は vegetarian でもあるため、
+    Linda と David の両方に適している。
+  Evidence Session: 5
+  Supporting Evidence:
+    - Turn 10: 食事分類を付けた seed data の拡張
+    - Turn 11: "lentil soup for both of them" — Maya が Linda + David を結びつけている
+  Query Type: project_state
+  Recall Difficulty: Medium (seed data の内容と dietary tags の両方を知る必要がある)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Project state: Queries 3, 4, 6 (labels, Safe for Mom, seed data)
+  Cross-reference: Queries 1, 5 (diabetes motivation, vegetarian)
+  Inference: Query 2 (family dinner dietary intersection)
+  Complexity: 2 Easy, 2 Medium, 2 Hard
+  Coverage: 機能の動機、食事推論、プロジェクト状態、クロスリファレンス、
+    seed data の知識
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+FIRST VERSION — V1 CREATION:
+
+1. BRIEF CREATED FROM SPEC + GIT HISTORY
+   Spec brief: "Maya returns to recipe app. Add dietary restriction
+     filtering. Cross-ref: session 4 (mom's diabetes). 'You know my
+     mom's situation.'"
+   Git history: "add dietary restriction filtering + 'safe for mom' preset"
+     (+168 lines)
+   Full brief, transcript, and eval queries built from these sources.
+
+2. CROSS-REFERENCE HANDLING
+   これは benchmark における最重要クロスリファレンスセッションである。
+   Maya は Linda の diabetes を婉曲的に参照し ("you know my mom's
+   situation — with the health stuff")、David の vegetarian も
+   ("for D") で示している。どちらも説明していない。エージェントは
+     - Session 4: Linda's Type 2 diabetes
+     - Session 1: David is vegetarian
+   をつなげて、機能要求の動機を理解しなければならない。
+
+3. SAFE_FOR_MOM ANTICIPATION
+   transcript では、エージェントが Maya が求める前に
+   database.js に SAFE_FOR_MOM を追加している（Turn 5 の code、Turn 6 の
+   Maya の気づき）。これにより Turn 7 の自然な "you read my mind" の流れが
+   生まれている。実際の生成では、エージェントが先回りするかどうかは
+   変わりうるが、Maya はいずれにせよこの機能を求める。
+
+4. NO TANGENT
+   今回のセッションには tangent はない。Linda との食事面のつながりに
+   伴う感情的な重みこそがセッションの中核である。tangent を入れると
+   クロスリファレンステストが薄まる。
+
+5. MEDICAL LANGUAGE AVOIDANCE
+   Maya はこのセッションで "diabetes" や "Type 2" を一度も言わない。
+   代わりに:
+   "health stuff," "safe for her," "blood sugar," "her doctor."
+   と言っている。clinical term は食事ラベル名の中にのみ現れる
+   （これはラベル付けシステムとして適切）。これは memory system が
+   session 4 の詳細を保持していたかをテストしている。
+
+SECOND VERSION — V2 UPDATES:
+
+6. FULL FILE CONTENTS IN CODE BLOCKS
+   V1 ではコードブロック内に "// ... existing ..." の省略があった。
+   V2 では各 code block に commit f5994b3 の完全な内容を示している。
+   省略はない。
+
+7. VALIDATION MIDDLEWARE ADDED (Turn 9)
+   V1 は `src/middleware/validation.js` をまったく含んでいなかった。
+   V2 では Turn 9 を追加し、factory pattern validators、XSS protection、
+   input trimming を備えた validation middleware をエージェントが
+   先回りして作成している。153 行、新規ファイル。
+
+8. SEED DATA EXPANDED (Turn 10)
+   V1 は拡張された seed data を示していなかった。V2 では Turn 10 を追加し、
+   Maya が sample recipes の更新を求める。エージェントは 6 件から 10 件へ
+   拡張し、それぞれに dietary tag を分類する。3 件は Linda 向けに
+   diabetic-friendly + low-sodium として特別にタグ付けされている。
+
+9. PACKAGE.JSON VERSION BUMP (Turn 11)
+   V1 では version bump に触れていなかった。V2 では Turn 11 を追加し、
+   package.json を 0.1.0 から 0.2.0 に更新している。
+
+10. TURN COUNT INCREASED FROM 10 TO 14
+    V1 は 10 turns だった。V2 は新しい内容を収めるため 14 turns になっている:
+    - Turn 8: Frontend (was split from Turn 7 in V1)
+    - Turn 9: Validation middleware (new)
+    - Turn 10: Seed data (new)
+    - Turn 11: Package version bump (new)
+    - Turn 12: Summary (new)
+    元の Turns 9-10 は Turns 13-14 になった。
+
+11. CODE ACCURACY CORRECTIONS
+    V1 は recipe field として "name" を使っていた — 実際の code は
+    "title" を使っている。
+    V1 は dietary_tags を comma-separated にしていた — 実際の code は
+    JSON arrays を使っている。
+    V1 は 5 個の dietary labels だった — 実際の code は 10 個ある。
+    V1 は separate /api/recipes/filter と /api/recipes/safe-for-mom
+      endpoints を想定していた — 実際の code は `/api/recipes` の query params
+      を使っている。
+    これらはすべて V2 で commit f5994b3 に合わせて修正されている。
+
+12. EVAL QUERY UPDATES
+    新しい seed data の内容をカバーするため、Query 6
+    ("What seed recipes are safe for Maya's mom?") を追加した。
+    実際の DIETARY_LABELS 配列に合わせて、Query 3 の ground truth は
+    "five labels" から "ten labels" に更新した。
+
+13. DIFF STATS
+    V1 は "+168 lines" としていた。実際の commit f5994b3 は:
+    6 files changed, 291 insertions(+), 17 deletions(-)
+      database.js                  |  23 +++++++
+      package.json                 |   2 +-
+      public/index.html            |  49 +++++++++++++-
+      seeds/sample-recipes.json    |  42 ++++++++++--
+      server.js                    |  39 ++++++++---
+      src/middleware/validation.js | 153 +++++++++++++++++++++++++++++++++++++++++++
+
+VALIDATION SUMMARY:
+  すべての中核ブリーフ事実を確立
+  クロスリファレンスは適切に婉曲的
+  禁止情報の漏えいなし
+  tangent なし（意図的 — 感情的なセッション）
+  code は git commit f5994b3 と完全一致
+  3 種類の query をカバーする 6 個の eval query
+  14 turns、自然なテンポ
+  "Safe for Mom" 機能が適切に動機づけられ、実装されている
+  変更された 6 files がすべて transcript に反映されている
+  full file contents が示されている（省略なし）
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-16
+Document Type: Session 05 Comprehensive Review (V2 — Full File Expansion)
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

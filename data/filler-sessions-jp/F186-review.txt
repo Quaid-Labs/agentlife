@@ -1,0 +1,61 @@
+================================================================================
+FILLER SESSION F186 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F186 (Filler — Quick Question)
+Date: 2026-04-19 10:11
+Topic: git commit を元に戻すには
+Turn Count: 4
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F186
+  Track: filler
+  Timestamp: 2026-04-19 10:11:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  変更を失わずに git commit を元に戻すにはどうすればいい？
+
+AI ASSISTANT:
+  `git reset --soft HEAD~1` を使ってください。これでコミットは取り消されますが、変更はすべてステージされたまま残るので、そのまま再コミットできます。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  でも、もう push しちゃってたら？
+
+AI ASSISTANT:
+  その場合は `git revert <commit-hash>` を使います。変更を打ち消す新しいコミットが作られます。まだ誰も pull していないなら `git push --force` もできますが、共有ブランチでは危険です。
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  まだ push はしてない。間違ったブランチに commit しちゃっただけなんだよね笑
+
+AI ASSISTANT:
+  それなら `git reset --soft HEAD~1` でコミットを取り消して、次に `git checkout <correct-branch>` してそこで commit すれば大丈夫です。変更はステージされたままなので、そのまま移せます。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

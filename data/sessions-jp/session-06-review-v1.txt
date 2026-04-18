@@ -1,0 +1,558 @@
+================================================================================
+SESSION 06 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 6 (Track 1: Personal — Job frustration at TechFlow)
+Goal: MayaのTechFlowに対する不満が強まっていることを示す。仕事探しの
+  物語の種をまく。Priyaを導入する（ミスリード — 同僚であり、家族ではない）。
+Turn Count: 10
+Session Type: Venting, career dissatisfaction, life logistics
+Timestamp: 2026-03-17 (1 week after session 4, ~3.5 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Maya is increasingly unhappy at TechFlow
+  - Her manager doesn't listen / leadership is frustrating
+  - She's thinking about leaving but hasn't decided
+  - She does NOT name Stripe or any specific company yet
+  - Coworker Priya is mentioned in passing (NOT family — red herring
+    for graph traversal tests that might misclassify her as family)
+  - Austin traffic complaint + thinking about moving closer to downtown
+  - David is supportive of whatever she decides
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe or any specific company name (session 13)
+  - Any interview activity or job applications (later)
+  - Rachel's children's names (Ethan, Lily) or ages (session 15)
+  - David's birthday surprise for Linda (session 8)
+  - David's promotion (session 17)
+  - Moving specifics or Zilker vs East Austin (session 17)
+  - Half marathon injury scare (session 11)
+  - Recipe app dietary connection to mom (sessions 3/5)
+
+CROSS-REFERENCES TO SESSIONS 1-4:
+  - TechFlow referenced without explanation (session 1)
+  - David referenced as "D" naturally
+  - May reference the diabetes situation briefly in passing ("everything
+    with mom" or similar) but don't dwell — session 4 covered it
+
+TANGENT TRIGGER:
+  Trigger: After job frustration discussion
+  Content: Maya complains about Austin traffic — her commute is getting
+    worse, she's been thinking about moving closer to downtown. Brief,
+    not detailed. Just plants the "moving" concept for session 17.
+  Extractable Facts: Maya の通勤はひどく、ダウンタウンの近くに
+    引っ越すことを考えている
+  Return phrase: "ugh anyway"
+
+MESSAGE PLAN (10 turns total):
+  1. Normal     — Opens frustrated, bad day at work
+  2. Normal     — Specific complaints about TechFlow/management
+  3. Quick      — React to agent's response
+  4. Extended   — Deeper frustration: why she's thinking about leaving
+  5. Quick      — Mention Priya agrees (red herring intro)
+  6. Normal     — Traffic tangent
+  7. Quick      — Back from tangent
+  8. Normal     — What David thinks about the situation
+  9. Quick      — React, acknowledges she needs to think
+  10. Quick     — Exits
+
+End Condition: Maya has vented about TechFlow and mentioned considering leaving
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 6
+  Track: 1
+  Timestamp: 2026-03-17 17:45:00 UTC
+  Duration: ~5 minutes (17:45:00 to 17:50:15)
+
+---
+
+TURN 1 (Frustrated Opening)
+TAG: normal | TOKENS: 68/100
+
+MAYA:
+  うわ
+
+  ごめん。今日は仕事が最悪。というか今月ずっと最悪。もう本当に限界
+
+  今日もまた会議で、上司が1時間ずっと私の話を遮ってきた。
+  こっちは製品戦略を全部説明したのに、あの人は
+  「いいね。でも、[さっき私がそのまま説明したこと]はどうなの？」
+  みたいな感じでさ
+
+  もう無理
+
+AI ASSISTANT:
+  それは本当にイライラしますね。ちゃんと準備してやっているのに
+  話を遮られるのは、かなり消耗します。しかも、それを支えるべき
+  相手からだと余計につらいです。
+
+  これは毎回そうなんですか。それとも今日は特にひどかったんですか？
+
+ANALYSIS: 強い感情の入り口。具体的な不満として、上司が話を遮る、
+聞いていないという点がある。1か月にわたる不満の蓄積。
+大文字の「UGH」に相当する勢いが Maya の話し方に合っている。
+
+---
+
+TURN 2 (Specific Complaints)
+TAG: normal | TOKENS: 89/100
+
+MAYA:
+  完全にいつも。1月の再編からずっとあんな感じなんだよね。製品チームの半分が
+  入れ替わって、今は自分たちのことを理解していない人が
+  管理してる
+
+  だって私はPMだよ。ユーザーに何が必要か分かってるし、TechFlowには
+  2年いる。なのにあの人、私の仕事なのに
+  「プロダクトビジョンを見直す」って理由で関係ないコンサルを
+  どんどん入れてくるの
+
+  前は本当にあそこで働くのが好きだった。チームは良かったし、
+  製品は地味だけど安定してた。今は全部めちゃくちゃで、実際に
+  製品を分かってる人の声が誰にも届いてない
+
+AI ASSISTANT:
+  ああ、再編後の混乱ですね。それが優秀な人が辞める典型的な理由のひとつです。
+  仕事そのものより、管理体制の変化で仕事が成り立たなくなるんです。
+
+  「誰にも届いてない」というのは、上司だけの問題ですか。それとも
+  もっと広いレベルでのリーダーシップの問題ですか？ 1人だけなら
+  まだ修正の余地がありますが、文化そのものが変わっているなら
+  かなり厳しいです。
+
+ANALYSIS: Maya は TechFlow に 2 年いる。1月の再編で管理職が入れ替わった。
+上司はPMを理解していない。自分の仕事をするためにコンサルを入れている。
+以前は好きだった。核心の不満は、話を聞いてもらえないこと。
+
+---
+
+TURN 3 (React)
+TAG: quick | TOKENS: 35/50
+
+MAYA:
+  正直、文化の問題だね。CEOが新しいプロダクトVPを連れてきて、その人が
+  「AI最優先で全部」みたいなことに取りつかれてて、みんな
+  方針転換でてんてこまいなんだよ
+
+  でも実際のユーザーは、分析がちゃんと正しく動くことを
+  求めてるだけなのにね lol
+
+AI ASSISTANT:
+  典型的な「AIへの大転換」騒ぎですね。今のB2B企業あるあるです。
+
+  リーダーが、実際にユーザーが必要としているものと合わない方向に
+  突っ走っているなら、それは構造的な問題です。PMの立場だけでは
+  どうにもなりません。
+
+ANALYSIS: CEO/VP レベルの問題。AI最優先への転換が、B2B分析企業で
+起きている。Maya はリーダーの描く方向とユーザーのニーズのズレを見ている。
+ユーモアは対処法として機能している。
+
+---
+
+TURN 4 (Considering Leaving)
+TAG: extended | TOKENS: 152/200
+
+MAYA:
+  そう、それをずっと考えてる。つまり……この戦いを続けたいのかな？
+  それとも、ちゃんとプロダクト人材を評価してくれる場所に行くべきかなって
+
+  TechFlow には、オースティンに引っ越してすぐからいるんだよね。ここで
+  最初に入った仕事だった。David の仕事のほうが先に決まって、私があとから
+  ついてきた。TechFlow はそのとき取れた一番いいオファーだったし、
+  まあ、給料のための仕事って感じだった
+
+  でも今は……「まあまあ」で十分なのかなって思ってる。私は34歳だし、
+  もし動くならたぶん早いほうがいいよね？ くつろぎすぎる前に
+
+  ちょっと周りを見始めてはいる。応募とかはしてないよ。ただ……
+  見てるだけ。何があるのか眺めてる。面白そうなのもあるけど、
+  もっとひどいところに飛び込みたくはないんだよね
+
+  はあ。大人になるのって最悪
+
+AI ASSISTANT:
+  いいえ、状況をちゃんと見て「もう自分には合っていない」と
+  気づける大人のほうが、むしろかなり成熟しています。面倒だからと
+  そのまま居続ける人のほうが多いですから。
+
+  「まあまあ」は、安定が必要でオースティンがまだ新しかった頃なら
+  十分でした。でも今は安定はあるように見えます。あなたと David は
+  落ち着いているし、この街も分かっている。じゃあ TechFlow が
+  給料以外に何を与えてくれているのか、という話です。
+
+  情報収集として眺めるのはいいことです。焦る必要はありません。
+  何かしっくりくるものがあれば、そのとき分かります。
+
+  どんな会社が気になっているんですか？ それとも、特定の会社というより
+  役割や文化のほうですか？
+
+ANALYSIS: 深いキャリアの振り返り。TechFlow はオースティンでの最初の仕事で、
+David に続いて来た。安心できるが満たされない、という感覚がある。
+応募はまだせず、見ている段階。年齢（34歳）への意識もある。
+エージェントは、Maya が Stripe を挙げないまま興味の対象を尋ねている。
+
+---
+
+TURN 5 (Priya Introduction — RED HERRING)
+TAG: quick | TOKENS: 41/50
+
+MAYA:
+  正直、まだ分からない。ただ、PMがちゃんと仕事できるところかな
+
+  Priya は同じチームなんだけど、あの子も探してるみたい。
+  昼ごはんのときにほぼ毎日、その話で愚痴ってるよ lol。
+  この調子だと、先に辞めるのはあの子かもしれない
+
+AI ASSISTANT:
+  同じチームの複数人が同時に外を見始めているなら、それだけで環境の
+  状況が分かりますね。あなたが単にこだわりすぎているわけではなく、
+  その場所に本当に問題があるんです。
+
+  でも、愚痴を言える相手がいるのは助かりますね。少なくとも
+  ひとりでぐるぐるしなくて済みます。
+
+ANALYSIS: Priya を導入。TechFlow の同じチームの同僚で、彼女も転職を
+検討している。重要: Priya は家族ではない。graph traversal テストで
+家族や個人的関係と誤分類されないようにするためのミスリード。
+
+---
+
+TURN 6 (Traffic Tangent)
+TAG: normal | TOKENS: 74/100
+
+MAYA:
+  そう、Priya がいると助かる
+
+  それで、嫌なことの話なんだけど——今日の帰りの渋滞が
+  ものすごかったの。I-35 が、もう……全部の先まで詰まってて。
+  オフィスから家まで50分かかったんだけど、普段は20分くらいなのに
+
+  もっとダウンタウンの近くに住もうかって、ずっと考えてるんだよね。
+  今はサウス・オースティンだけど、場所はいいのに通勤がつらすぎる。
+  たとえば Zilker あたりとかに住めたらいいのかも
+
+  でもそれはまた別の話。オースティンの家賃、ほんとにひどいし
+
+AI ASSISTANT:
+  I-35 は、もうオースティンの終わりのない悩みですね。しかも
+  South Austin から downtown への通勤は、本当に日によります。
+  すんなり行く日もあれば、ひどい日もある。
+
+  Zilker あたりなら通勤はかなり楽になりますが、そのぶん家賃は
+  上がりますね。あの辺りはすごく高くなっています。
+
+  でも、まずは仕事のほうを先にしましょう。会社を変えるなら、
+  理想の場所も変わるかもしれませんし。
+
+ANALYSIS: 指定どおりの交通の脱線話。Maya は South Austin に住み、
+downtown に通勤していて、I-35 が問題だと分かる。Zilker を希望地域として
+最初に言及している。session 17 で Maya が Zilker、David が East Austin を
+望むという対立の種をまいている。エージェントは仕事を先に進めるよう
+賢く促している。
+
+---
+
+TURN 7 (Back from Tangent)
+TAG: quick | TOKENS: 18/50
+
+MAYA:
+  うん、まあね。そうだよね。ひとつずつ
+
+  ただ、私が本当に何か行動するのか、それとも
+  文句を言い続けるのか、決めないといけないんだよね
+
+AI ASSISTANT:
+  その両方は同時にできますよ。愚痴るのは気持ちの整理になりますし、
+  そのあいだにこっそり機会を見ておくこともできます。
+
+  すぐに決める必要はありません。情報を集める段階はごく普通です。
+
+ANALYSIS: きれいに脱線から戻っている。Maya は、文句を言うだけなのか
+行動するのかを自覚している。エージェントは、探索の段階を肯定している。
+
+---
+
+TURN 8 (David's Perspective)
+TAG: normal | TOKENS: 67/100
+
+MAYA:
+  うん。D はそのへん、ちゃんと理解してくれてる。彼は
+  「もしつらいなら、本気で探し始めなよ。少し空白ができても
+  生活は大丈夫だから」って言ってくれて。ありがたいよね
+
+  彼は自分の仕事には満足してるから、こっちのイライラは
+  完全には分からないんだろうけど、ちゃんと聞いてくれる。
+  仕事終わりの愚痴も文句ひとつ言わずに聞いてくれるし、
+  それが愛ってやつなのかな lol
+
+  さて、私はそろそろ気分転換したほうがよさそう。今日は
+  いろいろありすぎた。母のこともあったし、これもあるし
+
+AI ASSISTANT:
+  David はかなりしっかりしたパートナーですね。「少し空白ができても
+  大丈夫」というのは、焦らずに本当の決断をしやすくする
+  ちょうどいい支えです。
+
+  いったん気分転換してください。あなたはいくつも抱えています。
+  お母さんの体調、仕事の不満、ハーフマラソンの練習。
+  その全部を回していることを、もっと自分で認めていいです。
+
+ANALYSIS: David は支援的。空白期間があっても生活できるだけの
+経済的余裕がある。David 自身は仕事に満足している（対照）。
+「母のこと」に軽く触れており、session 4 の内容を再説明せずに
+参照している。複数の論点をつなぐ力が見える。
+
+---
+
+TURN 9 (Acknowledges + Pre-exit)
+TAG: quick | TOKENS: 24/50
+
+MAYA:
+  ああ、そうやって並べると、たしかにいろいろあるね
+
+  よし、くだらないNetflixを見て、Biscuit をなでてくる。
+  それが私のセラピー計画
+
+AI ASSISTANT:
+  Biscuit セラピーは、科学的に見ても一番いいやつです。楽しんで。
+
+ANALYSIS: 退出前の軽い応答。Biscuit は癒やし（ゴールデンレトリバーの
+セラピー的存在）。Netflix はストレス解消。重い会話のあとに
+雰囲気が少し戻っている。
+
+---
+
+TURN 10 (Exit)
+TAG: quick | TOKENS: 5/50
+
+MAYA:
+  じゃあね lol
+
+AI ASSISTANT:
+  またね、Maya。明日は少しでも良くなりますように。
+
+ANALYSIS: きれいな退出。エージェントは温かい願いを添えている。
+最小限で、雰囲気にも合っている。
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No Stripe or any specific company named
+  - No actual job applications or interviews
+  - No Rachel's children's names (Ethan, Lily) or ages
+  - No David birthday surprise for Linda
+  - No David promotion or moving specifics
+  - No Zilker vs East Austin debate (just Zilker mentioned as idea)
+  - No injury scare
+  - No recipe app connection
+
+CONSTRAINT 2: Priya Correctly Introduced as COWORKER
+  STATUS: PASS
+  Location: Turn 5
+  Evidence: "priya — she's on my team — she's been looking too"
+  Classification: Coworker/colleague. Explicitly "on my team."
+  NOT introduced as: friend, family, personal relationship
+  Red Herring Status: Correctly planted. Graph traversal tests should
+    NOT classify Priya as family or personal contact.
+
+CONSTRAINT 3: Job Search Scope Correct
+  STATUS: PASS
+  Evidence:
+    - "i've been looking around a little. not applying or anything"
+    - "just... browsing. seeing what's out there"
+    - Does NOT name Stripe or any specific company
+    - Does NOT describe interviews or applications
+  Scope: General frustration + exploratory browsing only
+
+CONSTRAINT 4: Traffic Tangent Seeds Session 17
+  STATUS: PASS
+  Location: Turn 6
+  Evidence: "maybe if we were in like the zilker area or something"
+  Note: Plants Zilker as Maya's preference. Session 17 will have
+    David wanting East Austin — creating the contested fact.
+    Maya's preference is established here, making session 17's
+    conflict natural.
+
+CONSTRAINT 5: Mom Reference Without Re-explaining
+  STATUS: PASS
+  Location: Turn 8
+  Evidence: "everything with mom and now this"
+  Note: Brief reference without re-stating the diabetes diagnosis.
+    Tests whether the agent connects "everything with mom" to
+    session 4's emotional conversation.
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 9 pre-exit → Turn 10 final goodbye. Clean.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  No forbidden facts exposed
+  Priya correctly classified as coworker
+  Job frustration established without naming alternatives
+  Traffic/moving tangent plants future facts
+  Mom cross-reference is organic and brief
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-6 (cumulative ground truth)
+  Evaluation Scope: Career, relationships, red herring classification
+
+QUERY 1: "Mayaは仕事に満足していますか？"
+  Ground Truth: いいえ。TechFlow に対する不満がだんだん強くなっている。上司は彼女の話を遮り、
+    リーダー層は彼女の仕事をやり直すためにコンサルを入れ、1月の再編でさらに悪化した。
+    彼女は別の機会を見始めているが、まだどこにも応募していない。
+  Evidence Sessions: 1, 6
+  Supporting Evidence:
+    - Session 6, Turn 1: "仕事が最悪の月。もう無理"
+    - Session 6, Turn 2: "関係ないコンサルをどんどん入れてくる"
+    - Session 6, Turn 4: "ちょっと周りを見始めてはいる"
+  Query Type: evolution
+  Recall Difficulty: Medium (session 1 の「ただの仕事だよ lol」という中立さと
+    今の不満の対比が必要)
+
+QUERY 2: "Priya は誰ですか？"
+  Ground Truth: Priya は Maya の TechFlow の同僚。彼女と同じチームにいる。
+    家族でも個人的な友人でもなく、Maya がランチで愚痴を言うだけの同僚。
+    Priya も TechFlow を辞めることを考えている。
+  Evidence Session: 6
+  Supporting Evidence:
+    - Turn 5: "Priya は同じチームなんだ"
+    - Turn 5: "昼ごはんのときにほぼ毎日、その話で愚痴ってる"
+  Query Type: factual_recall (with red herring classification test)
+  Recall Difficulty: Medium (coworker と正しく分類しないといけない。
+    graph traversal 系では friend/family と誤分類されやすい)
+
+QUERY 3: "Maya はオースティンのどこに住んでいますか？"
+  Ground Truth: South Austin。彼女は downtown に通勤していて、I-35 の交通がひどい。
+    downtown の近く、たとえば Zilker あたりに引っ越したいと考えている。
+  Evidence Session: 6
+  Supporting Evidence:
+    - Turn 6: "今は South Austin に住んでる"
+    - Turn 6: "たとえば Zilker あたりとかに住めたらいいのかも"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (直接述べられている)
+
+QUERY 4: "David は Maya の仕事の状況をどう思っていますか？"
+  Ground Truth: David は協力的。Maya に「つらいなら、本気で探し始めなよ。
+    少し空白ができても生活は大丈夫だから」と言った。
+    David 自身は自分の仕事に満足している。
+  Evidence Sessions: 1, 6
+  Supporting Evidence:
+    - Turn 8: "D はそのへん、ちゃんと理解してくれてる...『つらいなら、本気で探し始めなよ。少し空白ができても大丈夫だから』"
+    - Turn 8: "彼は自分の仕事には満足してる"
+  Query Type: speaker_attribution
+  Recall Difficulty: Medium (David の意見と Maya の状況を
+    正しく切り分ける必要がある)
+
+QUERY 5: "Maya は TechFlow でどのくらい働いていますか？"
+  Ground Truth: 約2年。彼女は Maya と David がオースティンに最初に
+    引っ越したときに入社した。オースティンでの最初の仕事だった。
+  Evidence Session: 6
+  Supporting Evidence:
+    - Turn 2: "TechFlow には 2 年いる"
+    - Turn 4: "そのとき取れた一番いいオファーだった"
+    - Turn 4: "オースティンに引っ越してすぐからいる"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (直接述べられていて、複数回補強されている)
+
+QUERY 6: "Priya は Maya の家族の一員ですか？"
+  Ground Truth: いいえ。Priya は TechFlow の同僚で、家族でも個人的な友人でもない。
+    Maya の職場のチームにいる。
+  Evidence Session: 6
+  Supporting Evidence:
+    - Turn 5: "Priya は同じチームにいる"
+  Query Type: negative (red herring test)
+  Recall Difficulty: Easy (ただし graph classification の精度を試す)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Factual recall: Queries 3, 5 (location, tenure)
+  Evolution: Query 1 (job satisfaction arc)
+  Speaker attribution: Query 4 (David's supportive stance)
+  Negative/red herring: Queries 2, 6 (Priya classification)
+  Complexity: 3 Easy, 3 Medium
+  Coverage: Career arc, relationships, location, red herring
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec のスケジュールには、1行の説明しかない:
+     "Job frustration at TechFlow. Considering leaving. Doesn't name
+      Stripe yet. TANGENT: Austin traffic, moving closer to downtown.
+      Mentions coworker Priya in passing."
+   この要約、会話記録、評価用クエリはすべてこのアウトラインから生成した。
+
+2. SPECIFIC FRUSTRATIONS DETAILED
+   Spec: 一般的な「仕事への不満」
+   Transcript: 上司が話を遮る、1月の再編、コンサル導入、
+     CEO/VP の「AI最優先」転換、ユーザーニーズの無視
+   Rationale: より具体的な不満にすることで、実感が出て、テスト用に
+     抽出できる事実も増える。
+
+3. TECHFLOW TENURE ESTABLISHED
+   Spec の outline にはない。追加した内容: Maya は TechFlow に 2 年いて、
+   それはオースティンでの最初の仕事だった。David のあとを追って
+   オースティンに来た、という流れも入れた。
+   Rationale: 「安定しているが満たされない」という流れを作るため。
+     David が先に移動し、Maya がそれについてきたという関係性も加わる。
+
+4. ZILKER SEED FOR SESSION 17
+   Spec: "ダウンタウンの近くに引っ越そうかと考えている"
+   Transcript: 希望エリアとして Zilker を明確に挙げている
+   Rationale: Session 17 では、Maya=Zilker vs David=East Austin
+     という競合する事実が出てくる。ここで Maya の好みを種として
+     置いておくことで、17回目のセッションの対立が不自然ではなくなる。
+
+5. PRIYA INTRODUCTION CAREFULLY SCOPED
+   Spec: "同僚の Priya をさりげなく出す（家族ではない）"
+   Transcript: 「Priya は同じチームにいる」――チーム所属を明示し、
+     ランチで愚痴る文脈もあり、仕事探しにも触れている
+   Rationale: 同僚だと正しく分類するのに十分な文脈を入れた。
+     線を曖昧にする個人的な詳細は入れていない。
+
+6. MOM CROSS-REFERENCE
+   Spec の outline にはない。追加した内容: Turn 8 の
+   「母のこともあったし、これもあるし」を session 4 への
+   短い呼び戻しとして入れた。
+   Rationale: 複数のストレスを抱える人なら自然な反応。
+     ただし再説明せずに参照をつなげられるかを試せる。
+
+VALIDATION SUMMARY:
+  仕様で必要な事実はすべて確立済み
+  禁止情報の漏えいなし
+  Priya はミスリードとして正しく配置
+  交通の脱線話が session 17 の種をまいている
+  Stripe を名指しせずにキャリアの流れを開始
+  5種類をカバーする 6 件の評価クエリ
+  10ターンで自然なテンポ
+  session 1-4 への相互参照も自然
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 06 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

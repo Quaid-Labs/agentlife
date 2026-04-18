@@ -1,0 +1,76 @@
+================================================================================
+FILLER SESSION F101 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F101 (Filler — Recipe App Micro)
+Date: 2026-03-18 16:07
+Topic: recipe 作成 endpoint の入力検証を追加したい
+Turn Count: 10
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F101
+  Track: filler
+  Timestamp: 2026-03-18 16:07:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  package.json に追加して、validation のテストも書いて
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  いいけど、テストを実行すると "Cannot find module '../app'" って出る
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  うん、テストは通った。次は recipe を実際に保存する db ロジックを入れて
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  うーん、「Error: SQLITE_BUSY: database is locked」って出てる
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  完璧、それで動いた。次は全部の recipes を取る GET エンドポイントがほしい
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  いや、まだいい。get エンドポイントのテストを書いてくれる？
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  テストは通ったけど、sqlite cleanup の警告が出る。気にするべき？
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  lol かなり速くなったね。ありがと、これで solid だ
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

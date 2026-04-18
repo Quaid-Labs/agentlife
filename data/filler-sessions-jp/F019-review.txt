@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F019 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 10 and 11
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F019 (Filler — Work Session)
+Date: 2026-03-18 20:51
+Topic: ユーザーオンボーディングで何を計測すべき？
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F019
+  Track: filler
+  Timestamp: 2026-03-18 20:51:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  ねえ、レシピアプリのユーザーオンボーディングで何を計測すべきか整理するのを手伝って。見せかけの指標じゃなくて、本当に重要なものって何？
+
+AI ASSISTANT:
+  ノイズと信号を分けるオンボーディング指標の枠組みはこちら：
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  なるほど、すごく助かる。TTFVの現実的な目標ってどれくらい？ 2分未満とかにすべき？
+
+AI ASSISTANT:
+  **TTFV Targets by Action Type:**
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  了解。これってどうやって実装計測すればいい？ ちゃんとした分析基盤を組む必要がある？ それとも最初はシンプルでいい？
+
+AI ASSISTANT:
+  **Start Simple, Scale Later:**
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  はは、いいね。あと一つ——サインアップフローの離脱ポイントも追うべき？ メール認証とかプロフィール設定とか
+
+AI ASSISTANT:
+  **Yes, but keep it minimal:**
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  ちょっと待って、それってメール認証を最初に必須にしない方がいいってこと？ それはちょっと危なくない？
+
+AI ASSISTANT:
+  **You're right to be cautious, but here's the tradeoff:**
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  うん、その理屈はわかる。じゃあリテンションカーブは？ D7リテンションが良いのか、まあまあなのかどう判断する？
+
+AI ASSISTANT:
+  **Recipe App Retention Benchmarks:**
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  すごく参考になる。リテンションは獲得チャネル別に分けるべき？ たとえばオーガニック、広告、紹介で
+
+AI ASSISTANT:
+  **Yes, absolutely - but start with just 3 segments:**
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  なるほど。アクティベーションしたユーザー1人あたりのコストってどう計算するの？ それってCPAをアクティベーション率で割るだけ？
+
+AI ASSISTANT:
+  **Almost, but there's a critical nuance:**
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  じゃあ、アプリが新しくてLTVデータがまだない場合、最初の1か月で何を最適化すべき？
+
+AI ASSISTANT:
+  **First Month Optimization Hierarchy:**
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  なるほど。コホート分析は必要？ それとも1か月目にはやりすぎ？
+
+AI ASSISTANT:
+  **Cohort analysis is NOT overkill - it's essential even at day 1.**
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  よし最後の質問、ほんとに最後笑。毎朝必ず確認すべき指標って何？ ヘルスチェック用の数字みたいなやつ
+
+AI ASSISTANT:
+  **The North Star Metric for Recipe Apps:**
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  完璧、まさに欲しかったやつ。明日これ全部設定する。ありがとう！！
+
+AI ASSISTANT:
+  **Quick Setup Checklist for Tomorrow:**
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ちょっと待って、もう一つだけ——レシピ閲覧数を保存数とは別で追うべき？ それとも細かすぎる？
+
+AI ASSISTANT:
+  **Track views, but don't optimize for them yet.**
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  うん、あとで宣伝に活かすために、人気レシピを追うべきなんだよね？
+
+AI ASSISTANT:
+  **Yes, but with important caveats:**
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  ああ、レシピごとのリテンション改善までは考えてなかった。なるほどね。よし、もう本当に大丈夫
+
+AI ASSISTANT:
+  **Awesome! Here's your complete metrics stack in one place:**
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -24,6 +24,7 @@ DRY_RUN=false
 SKIP_LOCAL_CHECKS=false
 PARALLEL="${BENCHMARK_PARALLEL:-6}"
 SCALE="${BENCHMARK_SCALE:-s}"
+DATASET="${BENCHMARK_DATASET:-canonical}"
 RUN_NOTE=""
 LOOSE_TIMEOUTS=false
 
@@ -48,6 +49,7 @@ Options:
   --skip-local-checks              Skip local compile/test gate before sync+launch
   --parallel N                     Parallel workers hint (default: 6)
   --scale s|l                      AgentLife scale for naming/env (default: s)
+  --dataset canonical|jp           Dataset variant (default: canonical)
   --loose-timeouts                 Apply benchmark loose-timeout profile for local/provider-variance runs
   --note TEXT                      Short dashboard note for this run (optional)
   -h, --help                       Show help
@@ -70,6 +72,7 @@ while [[ $# -gt 0 ]]; do
     --skip-local-checks) SKIP_LOCAL_CHECKS=true; shift ;;
     --parallel) PARALLEL="$2"; shift 2 ;;
     --scale) SCALE="$2"; shift 2 ;;
+    --dataset) DATASET="$2"; shift 2 ;;
     --loose-timeouts) LOOSE_TIMEOUTS=true; shift ;;
     --note) RUN_NOTE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -90,6 +93,10 @@ if ! [[ "$PARALLEL" =~ ^[0-9]+$ ]] || [[ "$PARALLEL" -lt 1 ]]; then
 fi
 if [[ "$SCALE" != "s" && "$SCALE" != "l" ]]; then
   echo "ERROR: --scale must be one of: s, l" >&2
+  exit 1
+fi
+if [[ "$DATASET" != "canonical" && "$DATASET" != "jp" ]]; then
+  echo "ERROR: --dataset must be one of: canonical, jp" >&2
   exit 1
 fi
 
@@ -531,6 +538,9 @@ fi
 if [[ -n "${BENCHMARK_CAPTURE_CHUNK_MAX_LINES:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_CAPTURE_CHUNK_MAX_LINES=$(printf %q "$BENCHMARK_CAPTURE_CHUNK_MAX_LINES")"$'\n'
 fi
+if [[ -n "${BENCHMARK_EXTRACTION_PROMPT_APPENDIX:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_EXTRACTION_PROMPT_APPENDIX=$(printf %q "$BENCHMARK_EXTRACTION_PROMPT_APPENDIX")"$'\n'
+fi
 if [[ -n "${BENCHMARK_EVAL_CONTEXT_PROFILE:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_EVAL_CONTEXT_PROFILE=$(printf %q "$BENCHMARK_EVAL_CONTEXT_PROFILE")"$'\n'
 fi
@@ -661,6 +671,12 @@ if [[ -n "$RUN_NOTE" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_RUN_NOTE=$(printf %q "$RUN_NOTE")"$'\n'
 fi
 OPTIONAL_BENCH_ENV+="export BENCHMARK_SCALE=$(printf %q "$SCALE")"$'\n'
+OPTIONAL_BENCH_ENV+="export BENCHMARK_DATASET=$(printf %q "$DATASET")"$'\n'
+if [[ -n "${BENCHMARK_ASSETS_DIR:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_ASSETS_DIR_RAW=$(printf %q "$BENCHMARK_ASSETS_DIR")"$'\n'
+elif [[ -n "${AGENTLIFE_ASSETS_DIR:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_ASSETS_DIR_RAW=$(printf %q "$AGENTLIFE_ASSETS_DIR")"$'\n'
+fi
 if [[ "$SCALE" == "l" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_INCLUDE_FILLER=1"$'\n'
   if [[ -n "${BENCHMARK_FILLER_DIR:-}" ]]; then
@@ -696,9 +712,23 @@ $OPTIONAL_BENCH_ENV
 if [[ -n \"\${BENCHMARK_FILLER_DIR_RAW:-}\" ]]; then
   export BENCHMARK_FILLER_DIR=\$(resolve_remote_path \"\$BENCHMARK_FILLER_DIR_RAW\")
 elif [[ \"\${BENCHMARK_INCLUDE_FILLER:-0}\" == \"1\" ]]; then
-  export BENCHMARK_FILLER_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/filler-sessions\"
+  if [[ \"\${BENCHMARK_DATASET:-canonical}\" == \"jp\" ]]; then
+    export BENCHMARK_FILLER_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/filler-sessions-jp\"
+  else
+    export BENCHMARK_FILLER_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/filler-sessions\"
+  fi
 fi
-export AGENTLIFE_ASSETS_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/sessions\"
+if [[ -n \"\${BENCHMARK_ASSETS_DIR_RAW:-}\" ]]; then
+  export BENCHMARK_ASSETS_DIR=\$(resolve_remote_path \"\$BENCHMARK_ASSETS_DIR_RAW\")
+else
+  if [[ \"\${BENCHMARK_DATASET:-canonical}\" == \"jp\" ]]; then
+    export BENCHMARK_ASSETS_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/sessions-jp\"
+  else
+    export BENCHMARK_ASSETS_DIR=\"\$REMOTE_BENCH_ROOT_RESOLVED/data/sessions\"
+  fi
+fi
+export AGENTLIFE_ASSETS_DIR=\"\$BENCHMARK_ASSETS_DIR\"
+echo \"Benchmark dataset: \${BENCHMARK_DATASET:-canonical} assets=\$BENCHMARK_ASSETS_DIR filler=\${BENCHMARK_FILLER_DIR:-none}\"
 BENCHMARK_OAUTH_TOKEN="\${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}"
 if [[ $(printf %q "$BACKEND_ARG") == "vllm" || $(printf %q "$BACKEND_ARG") == "llama-cpp" || $(printf %q "$BACKEND_ARG") == "codex" || $(printf %q "$BACKEND_ARG") == "openai" ]]; then
   echo \"Benchmark Anthropic OAuth: not required for backend=$(printf %q "$BACKEND_ARG")\"
@@ -775,10 +805,71 @@ else
 fi
 "
 
+OLLAMA_PREFLIGHT_URL="${BENCHMARK_OLLAMA_URL:-http://127.0.0.1:11434}"
+EMBED_PREFLIGHT_MODEL="${BENCHMARK_EMBEDDING_MODEL:-nomic-embed-text}"
+EMBED_PREFLIGHT_DIM="${BENCHMARK_EMBEDDING_DIM:-768}"
+EMBED_PREFLIGHT_PROVIDER="${BENCHMARK_EMBEDDINGS_PROVIDER:-ollama}"
+REMOTE_OLLAMA_PREFLIGHT_CMD="
+set -euo pipefail
+$OPTIONAL_BENCH_ENV
+OLLAMA_URL=$(printf %q "$OLLAMA_PREFLIGHT_URL")
+EMBED_MODEL=$(printf %q "$EMBED_PREFLIGHT_MODEL")
+EMBED_DIM=$(printf %q "$EMBED_PREFLIGHT_DIM")
+EMBED_PROVIDER=$(printf %q "$EMBED_PREFLIGHT_PROVIDER")
+if [[ \"\$EMBED_PROVIDER\" != \"ollama\" ]]; then
+  echo \"ERROR: benchmark embedding policy requires BENCHMARK_EMBEDDINGS_PROVIDER=ollama; got \$EMBED_PROVIDER\" >&2
+  exit 1
+fi
+if [[ \"\$EMBED_MODEL\" != \"nomic-embed-text\" ]]; then
+  echo \"ERROR: benchmark embedding policy requires BENCHMARK_EMBEDDING_MODEL=nomic-embed-text; got \$EMBED_MODEL\" >&2
+  exit 1
+fi
+if [[ \"\$EMBED_DIM\" != \"768\" ]]; then
+  echo \"ERROR: benchmark embedding policy requires BENCHMARK_EMBEDDING_DIM=768; got \$EMBED_DIM\" >&2
+  exit 1
+fi
+echo \"Preflight: ollama embeddings at \$OLLAMA_URL (provider=\$EMBED_PROVIDER model=\$EMBED_MODEL dim=\$EMBED_DIM)\"
+TAGS=\$(curl -sS \"\$OLLAMA_URL/api/tags\" || true)
+if [[ -z \"\$TAGS\" ]]; then
+  echo \"ERROR: Ollama tags endpoint unavailable at \$OLLAMA_URL/api/tags\" >&2
+  exit 1
+fi
+python3 - \"\$TAGS\" \"\$EMBED_MODEL\" <<'PY'
+import json, sys
+payload = json.loads(sys.argv[1])
+target = sys.argv[2]
+names = set()
+for row in payload.get('models', []):
+    if isinstance(row, dict):
+        for key in ('name', 'model'):
+            val = str(row.get(key) or '').strip()
+            if val:
+                names.add(val)
+                if val.endswith(':latest'):
+                    names.add(val[:-7])
+if target not in names:
+    preview = ', '.join(sorted(names)[:12]) or '<none>'
+    raise SystemExit(f'Missing embedding model {target!r} in ollama tags: {preview}')
+PY
+EMBED=\$(curl -sS -X POST \"\$OLLAMA_URL/api/embed\" -H 'Content-Type: application/json' -d \"{\\\"model\\\":\\\"\$EMBED_MODEL\\\",\\\"input\\\":\\\"preflight cache check\\\"}\" || true)
+python3 - \"\$EMBED\" \"\$EMBED_DIM\" <<'PY'
+import json, sys
+payload = json.loads(sys.argv[1])
+target_dim = int(sys.argv[2])
+emb = payload.get('embeddings') or []
+if not emb or not isinstance(emb[0], list) or not emb[0]:
+    raise SystemExit('Ollama /api/embed did not return embeddings')
+actual_dim = len(emb[0])
+if actual_dim != target_dim:
+    raise SystemExit(f'Ollama /api/embed returned dim {actual_dim}, expected {target_dim}')
+PY
+echo \"Preflight OK: ollama embeddings\"
+"
+run_cmd_redacted "ssh ${SSH_OPTS[*]} $REMOTE [remote ollama embedding preflight]" \
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "$REMOTE_OLLAMA_PREFLIGHT_CMD"
+
 if [[ "$BACKEND_ARG" == "llama-cpp" ]]; then
   LLAMA_PREFLIGHT_URL="${BENCHMARK_LLAMA_CPP_URL:-http://127.0.0.1:30001}"
-  OLLAMA_PREFLIGHT_URL="${BENCHMARK_OLLAMA_URL:-http://127.0.0.1:11434}"
-  EMBED_PREFLIGHT_MODEL="${BENCHMARK_EMBEDDING_MODEL:-nomic-embed-text}"
   ENFORCE_PARALLEL_MATCH="${BENCHMARK_ENFORCE_LLAMA_PARALLEL_MATCH:-1}"
   ENFORCE_THREADS_MATCH="${BENCHMARK_ENFORCE_LLAMA_THREADS_MATCH:-1}"
   MIN_CTX_PER_SLOT="${BENCHMARK_MIN_CTX_PER_SLOT:-35000}"
@@ -787,8 +878,6 @@ set -euo pipefail
 export BENCHMARK_PARALLEL=$(printf %q "$PARALLEL")
 $OPTIONAL_BENCH_ENV
 LLAMA_URL=$(printf %q "$LLAMA_PREFLIGHT_URL")
-OLLAMA_URL=$(printf %q "$OLLAMA_PREFLIGHT_URL")
-EMBED_MODEL=$(printf %q "$EMBED_PREFLIGHT_MODEL")
 ENFORCE_MATCH=$(printf %q "$ENFORCE_PARALLEL_MATCH")
 ENFORCE_THREADS=$(printf %q "$ENFORCE_THREADS_MATCH")
 MIN_CTX_SLOT=$(printf %q "$MIN_CTX_PER_SLOT")
@@ -873,39 +962,7 @@ EOF
     exit 1
   fi
 fi
-
-echo \"Preflight: ollama embeddings at \$OLLAMA_URL (model=\$EMBED_MODEL)\"
-TAGS=\$(curl -sS \"\$OLLAMA_URL/api/tags\" || true)
-if [[ -z \"\$TAGS\" ]]; then
-  echo \"ERROR: Ollama tags endpoint unavailable at \$OLLAMA_URL/api/tags\" >&2
-  exit 1
-fi
-python3 - \"\$TAGS\" \"\$EMBED_MODEL\" <<'PY'
-import json, sys
-payload = json.loads(sys.argv[1])
-target = sys.argv[2]
-names = set()
-for row in payload.get('models', []):
-    if isinstance(row, dict):
-        for key in ('name', 'model'):
-            val = str(row.get(key) or '').strip()
-            if val:
-                names.add(val)
-                if val.endswith(':latest'):
-                    names.add(val[:-7])
-if target not in names:
-    preview = ', '.join(sorted(names)[:12]) or '<none>'
-    raise SystemExit(f'Missing embedding model {target!r} in ollama tags: {preview}')
-PY
-EMBED=\$(curl -sS -X POST \"\$OLLAMA_URL/api/embed\" -H 'Content-Type: application/json' -d \"{\\\"model\\\":\\\"\$EMBED_MODEL\\\",\\\"input\\\":\\\"preflight cache check\\\"}\" || true)
-python3 - \"\$EMBED\" <<'PY'
-import json, sys
-payload = json.loads(sys.argv[1])
-emb = payload.get('embeddings') or []
-if not emb or not isinstance(emb[0], list) or not emb[0]:
-    raise SystemExit('Ollama /api/embed did not return embeddings')
-PY
-echo \"Preflight OK: llama.cpp + ollama embeddings\"
+echo \"Preflight OK: llama.cpp runtime\"
 "
   run_cmd_redacted "ssh ${SSH_OPTS[*]} $REMOTE [remote llama-cpp preflight]" \
     ssh "${SSH_OPTS[@]}" "$REMOTE" "$REMOTE_LLAMA_PREFLIGHT_CMD"

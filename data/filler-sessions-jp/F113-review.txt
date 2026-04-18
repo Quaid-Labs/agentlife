@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F113 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 6 and 7
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F113 (Filler — Work Session)
+Date: 2026-03-14 16:38
+Topic: REST から gRPC への移行 RFC を書きたい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F113
+  Track: filler
+  Timestamp: 2026-03-14 16:38:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  recipe API を REST から gRPC に移行する RFC を書くのを手伝ってほしい。月曜に D に出したいんだ
+
+AI ASSISTANT:
+  もちろんです。まず基本からいきましょう。何がこの移行を後押ししていますか？ performance、typing、それとも別の理由ですか？ それと、今の規模はどれくらいですか。1 日あたり何リクエストくらい？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  どちらかというと performance かな。今 1 日 50 万リクエストくらいで、response time がつらい。mobile team も payload size についてずっと文句を言ってる
+
+AI ASSISTANT:
+  了解です。ではこれを下書きします。問題の説明と goal から始めましょう。段階的 rollout を含めますか？ それとも一気に移行する想定ですか？
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  もちろん phased で。D は big bang なんて絶対に通さないと思う。まずは一番重い recipe search endpoint から始めるべきかな？
+
+AI ASSISTANT:
+  いい判断です。最初の下書きを作ります:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  うん、risk の section も足して。Rach は backward compatibility をいつも聞いてくるから
+
+AI ASSISTANT:
+  追加しました:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いいね。じゃあ timeline は？ 2 人のエンジニアで phase 1 をやるとしたら、どれくらいかかる？
+
+AI ASSISTANT:
+  phase 1 を 2 人でやるなら、こんな見積もりです:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  いいね。infrastructure の変更コストも簡単に入れてくれる？
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  ここまでかなり良さそう。alternatives considered を入れるべき？ graphql とか
+
+AI ASSISTANT:
+  絶対入れた方がいいです。Rach はそこを聞いてくるはずです。こちらが alternatives section です:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  いいね。もう一つ、既存 API docs はどうなる？ swagger に 50 個くらい endpoint があるんだよね
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  最高。D に database changes の話をされたらどうする？ これは api layer だけで、db は変わらないんだよね？
+
+AI ASSISTANT:
+  その通りです。DB 変更はゼロです。これは純粋に API/transport layer の話です。Postgres の schema、queries、ORM models は全部そのままです。
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~30
+
+MAYA:
+  うん、その note も入れて。あと、mobile team の反発がちょっと不安なんだよね。うちの母の diabetes 用 dietary 機能ですでに手一杯だし
+
+AI ASSISTANT:
+  追加しました:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  それいいね。team impact と、チームごとの effort estimate も入れてくれる？
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  じゃあ最後の質問。開始前に整理すべき open questions セクションも入れてくれる？
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  ありがとう！ これを全部ひと塊で出してくれたら、Confluence に貼れるんだけど
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  ほんと助かる。少し整えてから今夜 D に送るよ
+
+AI ASSISTANT:
+  問題ありません！ 月曜の発表、うまくいくといいですね。D が technical details について聞いたり、timeline 調整を求めたりしたら、すぐ言ってください。phased approach の方が通しやすいはずです。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

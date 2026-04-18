@@ -1,0 +1,414 @@
+================================================================================
+SESSION 02 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 2 (Track 1: Personal — Half marathon training)
+Goal: Maya のランニング/フィットネスの流れを作り、参照可能な事実を埋め込む
+Turn Count: 8 (structured per message plan)
+Session Type: フィットネス、トレーニング、ライフスタイルに関する気軽な雑談
+Timestamp: 2026-03-03 (session 1 の2日後)
+
+CORE LEARNING OBJECTIVES:
+  - Maya は Austin Half マラソンのトレーニング中
+  - Maya はレースが4月だと思っている（間違い。session 11 で5月と訂正）
+  - Maya は去年 David と10K を走った
+  - Maya は週3〜4回走る
+  - 長距離走のあいだに退屈するので、ポッドキャストのおすすめが欲しい
+  - Maya は暑い中で走るのが嫌い
+  - Maya はトレッドミルより屋外ラン派
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: これらの事実は将来のセッション用に予約されています]
+  - Linda の糖尿病診断やその他の健康状態（session 4）
+  - レシピアプリのような具体的なアプリやプロジェクト案（session 3）
+  - Rachel の子どもの名前（Ethan, Lily）や年齢（session 15）
+  - TechFlow を辞めたいなどの仕事不満の具体的内容（session 6）
+  - Stripe や転職活動に関する言及（session 6+）
+  - 同僚 Priya（session 6）
+  - Linda への David の誕生日サプライズ（session 8）
+  - David の昇進や引っ越しの話（session 17）
+  - ケガの不安（session 11）
+
+CROSS-REFERENCES TO SESSION 1:
+  - David は再導入なしでさりげなく言及する（"D and I did that 10K"）
+  - Biscuit には軽く触れてよい
+
+TANGENT TRIGGER:
+  Trigger: ランニングの話をしたあと
+  Content: Maya は Austin の暑さについて文句を言う。もう暖かくなってきていて、
+    暑い中で走るのが嫌い。トレッドミルのためにジム会員になることも少し考えるが、
+    やっぱりやめる。外を走るほうが好きだから。
+  Extractable Facts: Maya は暑い中で走るのが嫌い、屋外ランのほうが好き
+  Return phrase: "ok but anyway about the podcasts"
+
+MESSAGE PLAN (8 turns total):
+  1. Normal     — ランニング/トレーニングに触れ、ハーフマラソンの話を出す
+  2. Quick      — レース日程や詳細のフォローアップ
+  3. Extended   — 暑さの脱線: Austin の暑さ、ジム vs 屋外
+  4. Quick      — 本題に戻る
+  5. Normal     — 長距離走向けのポッドキャストを質問
+  6. Quick      — おすすめへの प्रतिक्रिया
+  7. Normal     — トレーニング習慣や David + 10K の話をさらに
+  8. Quick      — まとめ
+
+End Condition: Maya がトレーニングについて話し、ポッドキャストを尋ねている
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 2
+  Track: 1
+  Timestamp: 2026-03-03 18:30:00 UTC
+  Duration: ~4 minutes (18:30:00 to 18:34:10)
+
+---
+
+TURN 1 (Running/Training Intro)
+TAG: normal | TOKENS: 72/100
+
+MAYA:
+  やあ、また来たよ
+
+  ちょっと聞きたかったんだけど、ランニングのトレーニングプランってどれくらい知ってる？ ハーフマラソンに出るんだ。オースティンのハーフ
+
+  しばらく走ってはいるけど、ちゃんとしたレースで10Kより長いのはまだ走ったことなくて。正直ちょっと緊張してる
+
+AI ASSISTANT:
+  やあマヤ！ それはすごいね。ハーフマラソンは10Kからかなり伸びるけど、ちゃんとした計画があれば十分いけるよ。
+
+  レースまでどれくらいある？ それと、今の週あたりの走行距離はどれくらい？ それがわかると、合うプランを考えやすい。
+
+ANALYSIS: Maya がハーフマラソンに触れて切り出す。session 1 のあとに自然に戻ってきた流れ。
+自分の紹介はし直さず、継続性が前提になっている。
+
+---
+
+TURN 2 (Race Date + Current State)
+TAG: quick | TOKENS: 38/50
+
+MAYA:
+  たしか4月？ いや、4月後半かも。今は週3〜4回走ってて、だいたい3〜5マイルくらい
+
+  最長は去年 D と一緒に走ったあの10K だよ
+
+AI ASSISTANT:
+  じゃあ週15〜20マイルくらいで、最長距離は約6マイルか。かなりいい土台だね。
+
+  レースが4月後半なら、あと7〜8週間くらいある。典型的なハーフのプランなら、ロングランを毎週1マイルずつ伸ばして、レースの2週間前くらいに10〜11マイルまで行って、そのあとテーパーに入る感じ。
+
+  ざっくりした週間プラン、作ってみようか？
+
+ANALYSIS: 重要な事実を埋め込んでいる。4月という日付（session 11 で訂正される誤り）、
+週3〜4回のランニング、David + 10K の言及を含む。
+
+---
+
+TURN 3 (Heat Tangent)
+TAG: extended | TOKENS: 134/200
+
+MAYA:
+  うん、それいいかも。でも今いちばんの問題は、正直この暑さなんだよね
+
+  3月なのに昼はもう85度くらいあるし。昨日の午後に走ったら、ほぼ死ぬかと思った。文字通りじゃないけど、かなり近かった
+
+  早朝ランにしようとしてるんだけど、私、朝が本当に苦手なんだよね。全然。デイビッドは朝6時に起きて元気いっぱいのタイプで、こっちは物を投げつけたくなる
+
+  暑い日に備えてジム会員になって、トレッドミル使えばいいかなとも思った。でも、うーん、トレッドミルってほんと退屈だよね。外なら見るものがあるし。ビスケットも私が置いていくと悲しむし — 短い距離なら一緒に走れるんだ
+
+  で、ポッドキャストの話に戻るけど、ロングランで聞くものが欲しいんだ。プレイリストも飽きてきててさ
+
+AI ASSISTANT:
+  ああ、オースティンの暑さは3月でもきついよね。早朝が本当に正解だけど、痛みはある。夏はだいたい5〜6時台にずらす人が多いよ。まずは長距離の日だけ早めにしてみるのはどう？
+
+  それに、トレッドミルは嫌だよね。そこは全然恥じゃない。朝のランに耐えられるなら、嫌々のトレッドミルよりずっといい。
+
+  ビスケットが短い距離で一緒に走るの、かわいい。
+
+  ポッドキャストなら、どんな感じが好き？ 真実の犯罪、コメディ、ストーリー系、特定のジャンル？ それとも、考えすぎずに距離を飛ばせるやつがいい？
+
+ANALYSIS: 暑さの文句、朝が苦手なこと、トレッドミル嫌い、Biscuit が一緒に走る話、
+ポッドキャストへの移行までを扱っている。重要な事実は、暑さが嫌い、屋外ラン派であること。
+
+---
+
+TURN 4 (Back to Podcasts)
+TAG: quick | TOKENS: 22/50
+
+MAYA:
+  正直、時間が早く過ぎるやつなら何でも。コメディか、ストーリー系かな
+
+  あんまり重いのは無理。死にかけてると、まともに考えられないし
+
+AI ASSISTANT:
+  了解。ランナーに人気がありそうなやつをいくつか挙げるね。
+
+  - **Conan O'Brien Needs a Friend** — 軽くて笑えて、オートパイロットの距離向き
+  - **Heavyweight** — ジョナサン・ゴールドスタインの、すごく満足感のある個人ストーリー。走りのテンポに合う
+  - **Smartless** — セレブのインタビューだけど、ちゃんと面白い。退屈じゃない
+
+  60〜90分みたいな長めのランなら、**Radiolab** や **This American Life** もいいよ。ストーリー系だけど引き込まれる。
+
+  どれか合いそう？
+
+ANALYSIS: 短いやり取りで、脱線から自然に本題へ戻している。AI アシスタントは関連するおすすめを出している。
+
+---
+
+TURN 5 (Podcast Reaction + Training Details)
+TAG: normal | TOKENS: 55/100
+
+MAYA:
+  Heavyweight いいかも。あと Conan も好きだし
+
+  じゃあトレーニングの話に戻るけど。ロングランを毎週伸ばすって言ってたよね。他のランはどうしたらいい？ ふだんは、気持ちよく走れるペースで適当に走ってるだけなんだけど
+
+  スピード練習とか、やるべき？
+
+AI ASSISTANT:
+  初めてのハーフなら、正直、まずは走る量を増やすのが一番大事。とはいえ、少し構造を持たせたいなら、こんな感じかな。
+
+  - **イージーランを2回**（3〜4マイル、会話できるペース）
+  - **ミドルランを1回**（4〜5マイル、少し速め）
+  - **ロングランを1回**（7、8、9、10、11と伸ばしていって、最後はテーパー）
+
+  今はスピード練習は省いていいよ。ケガのリスクに対して、今の段階では得るものがあまりない。半分を終えてもっと速くなりたくなったら、そのときインターバルをやればいい。
+
+  いちばんやりがちなのは、イージーの日も速く走りすぎること。イージーは、ちょっと恥ずかしいくらい遅くていい。
+
+ANALYSIS: 自然な会話の流れ。Maya が以前のトレーニングの質問を掘り下げている。
+走り方について役立つ助言につながっている。
+
+---
+
+TURN 6 (React to Training Advice)
+TAG: quick | TOKENS: 28/50
+
+MAYA:
+  恥ずかしいくらい遅いの、得意分野かもw
+
+  それならできそう。毎日走れとか言われるのかと思ってた
+
+AI ASSISTANT:
+  ううん、休養日はすごく大事だよ。特に距離を伸ばしていく時期はね。体が適応するのは走っている最中じゃなくて、休んでいる日のほうだから。
+
+  もしよければ、オフの日にクロストレーニングしてもいい。自転車でも、水泳でも、ヨガでも。でも、何もしなくても全然大丈夫。
+
+ANALYSIS: さっと受け止めている。Maya は、無理のないプランだと安心している。
+自分のペースについて少し自虐的なユーモアもある。
+
+---
+
+TURN 7 (David + Running History)
+TAG: normal | TOKENS: 62/100
+
+MAYA:
+  うん、ヨガはなし。1回やったけど嫌いだった。私、そわそわしすぎるんだよね
+
+  去年の10K は楽しかったけど。私と D で一緒に出たんだ —
+  彼のほうが速いけど、私に合わせてくれて、それが嬉しかった。
+  ハーフにも出るかもしれないけど、まだ決めてないみたい
+
+  正直、完走できればそれでいい。タイムはどうでもいい。最後の3マイルを情けなく歩きたくないだけ
+
+AI ASSISTANT:
+  その心構えで正解だよ。初めてのハーフなら、完走こそが目標だし。
+  それに、途中で歩く人なんてほとんどいる。情けないんじゃなくて、ペース配分の戦略だよ。
+
+  David が一緒に出るかもしれないのもいいね。誰かと一緒に練習すると、長いランがずっと楽になる。
+
+  これでかなりいいプランができたね。週ごとのざっくりした流れも作ってみようか？
+
+ANALYSIS: 追加の事実として、Maya はヨガが嫌い（そわそわする）、David のほうが速い、
+10K では David が一緒にいてくれた（いい話）、David はハーフに出るかもしれない、が含まれている。
+目的は競争ではなく、完走すること。
+
+---
+
+TURN 8 (Wrap-up)
+TAG: quick | TOKENS: 18/50
+
+MAYA:
+  うん、また今度でいいかな — 夕飯作らなきゃ。というか、夕飯を注文するかも。どれくらい気合いがあるか次第だね
+
+  ありがと！
+
+AI ASSISTANT:
+  それは永遠の夕飯問題だね。どっちでもうまくいくといいな。
+
+  またね、マヤ！
+
+ANALYSIS: きれいに終わる退出。session 1 の料理テーマを軽く呼び戻しているが、
+無理には押し付けていない。別れのループもない。
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - Linda の健康情報（糖尿病/持病）はなし
+  - レシピアプリやプロジェクト案はなし
+  - Rachel の子どもの名前（Ethan, Lily）や年齢はなし
+  - TechFlow への仕事不満はなし
+  - Stripe や転職活動はなし
+  - 同僚 Priya の言及はなし
+  - Linda への David の誕生日サプライズはなし
+  - David の昇進や引っ越しはなし
+  - ケガの不安はなし
+
+CONSTRAINT 2: Cross-References Natural
+  STATUS: PASS
+  - David は再導入なしで "D" として言及されている（Turn 2, 3, 7）
+  - Biscuit は軽く触れられている（Turn 3 — 短い距離なら一緒に走る）
+  - session 1 の事実を無理に説明し直していない
+
+CONSTRAINT 3: April Date Correctly Planted
+  STATUS: PASS
+  Location: Turn 2
+  Evidence: "たしか4月？ いや、4月後半かも"
+  Note: "たしか" が自然な曖昧さを加えていて、session 11 での訂正につながりやすい。
+
+CONSTRAINT 4: Single Goodbye Cycle
+  STATUS: PASS
+  Exit pattern:
+    - Turn 8: "夕飯作らなきゃ。というか、夕飯を注文するかも"
+    - Turn 8 Response: "またね、マヤ！"
+  Pattern: きれいに一度だけ終わっていて、ループしていない
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  禁止情報の漏えいなし
+  4月の日付は自然な曖昧さつきで埋め込まれている
+  session 1 への参照も不自然ではない
+  ランニング/フィットネスの新しい事実も自然に入っている
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: すべて session 1-2 の Ground Truth
+  Evaluation Scope: ランニング/フィットネスの事実 + セッションをまたぐ記憶の再現
+
+QUERY 1: "What race is Maya training for?"
+  Ground Truth: The Austin Half marathon
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 1: "i'm doing a half marathon. the austin half"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (明示的に述べられている、セッションの主題)
+
+QUERY 2: "When does Maya think the half marathon is?"
+  Ground Truth: April (she's wrong — she corrects to May in session 11)
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 2: "it's in april i think? maybe late april"
+  Query Type: temporal_current
+  Recall Difficulty: Medium (曖昧さつきで述べられており、後で更新される)
+
+QUERY 3: "Does Maya prefer running indoors or outdoors?"
+  Ground Truth: Outdoors — she considered a gym membership for treadmill
+    running but decided against it. She finds treadmills boring and
+    prefers being outside where there's stuff to look at.
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 3: "treadmills are so boring. at least outside there's stuff
+      to look at"
+    - Turn 3: "i thought about getting a gym membership... but ugh"
+  Query Type: tangent_recall
+  Recall Difficulty: Medium (脱線の中に埋まっている、好みの推論が必要)
+
+QUERY 4: "How often does Maya run?"
+  Ground Truth: 3-4 times a week, usually 3-5 miles per run
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 2: "i run like 3-4 times a week right now, usually 3-5 miles"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (直接述べられている)
+
+QUERY 5: "Have Maya and David done any races together?"
+  Ground Truth: Yes, they ran a 10K together last year. David is faster
+    but stayed with Maya during the race.
+  Evidence Session: 2
+  Supporting Evidence:
+    - Turn 2: "longest run was that 10K D and I did last year"
+    - Turn 7: "me and D did it together — he's faster than me but he
+      stayed with me which was nice"
+  Query Type: multi_session_synthesis
+  Recall Difficulty: Medium (session 1 の David と session 2 のランニング仲間をつなげる必要がある)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Factual recall: Queries 1, 4 (race name, frequency)
+  Temporal: Query 2 (April date — session 11 での更新追跡をテストする)
+  Tangent recall: Query 3 (heat の脱線から indoor/outdoor の好みを拾う)
+  Multi-session: Query 5 (David との関係 + ランニング履歴)
+  Complexity: 2 Easy, 3 Medium
+  Coverage: ランニングの流れ、好み、David へのクロスリファレンス
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM PILOT BRIEF (session-02.yaml):
+
+1. TIMESTAMP PLACEMENT
+   Before: Brief に具体的なタイムスタンプなし
+   After: 2026-03-03 18:30 UTC（夕方、session 1 の2日後）
+   Rationale: Maya の "夕飯を作らなきゃ" という退出が夜の時間帯と合う。
+     2日空けると、新しい AI アシスタントを試している人として自然に見える。
+
+2. TANGENT ENHANCEMENT
+   Before: Brief は暑さへの文句 + ジムの検討だけを指定
+   After: David の朝型対比、Biscuit のラン仲間、ヨガ拒否
+     ("1回やったけど嫌いだった") を追加
+   Rationale: 情報の詰め込みではなく、より抽出しやすい性格情報を増やすため。
+     ヨガ嫌いは session 11 のストレッチ習慣の話につながる。
+
+3. ADDITIONAL FACTS EMBEDDED
+   Before: Brief には 5 つの new_information 項目
+   After: Transcript には 3 つのボーナス事実を追加:
+     - Maya は朝型ではない
+     - David は朝型（対比）
+     - David もハーフに出るかもしれない（まだ未定）
+     - Maya はヨガが嫌い（そわそわする）
+     - Biscuit は短いランで一緒に走る
+   Rationale: 自然な会話は、最小限より多くの事実を生む。
+     これらは抽出可能だが、brief の "required" リストには入っていない。
+
+4. EVAL QUERY EXPANSION
+   Before: Brief では 3 問のクエリ
+   After: 5 問に拡張（ランニング頻度、David + レースを追加）
+   Rationale: より包括的な評価にするため。Query 5 は
+     セッション 1 の David と session 2 のランニングをまたぐ再帰をテストする。
+
+5. COOKING CALLBACK
+   Before: Brief にはなし
+   After: Turn 8 の退出で夕飯/料理に触れる
+   Rationale: session 1 の料理テーマへのさりげない呼び戻し。無理に作ったものではなく、
+     自然な終了文として入れている。継続性をシステムが拾えるかを試している。
+
+VALIDATION SUMMARY:
+  すべての core brief facts を抽出済み
+  禁止情報の漏えいなし
+  自然な会話の流れを維持
+  脱線は拡張内容つきで適切に実行
+  単一のきれいな退出を達成
+  5 つすべての eval query に答えられる
+  8 turn の件数を確認済み
+  session 1 へのクロスリファレンスも自然
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 02 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

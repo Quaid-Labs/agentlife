@@ -1,0 +1,673 @@
+================================================================================
+SESSION 05 REVIEW — AgentLife Pilot
+包括的ドキュメント: 概要 + 文字起こし + 漏えいチェック + 評価クエリ
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 5 (Track 2: Project A — Recipe App, Phase 1 continued)
+Goal: レシピアプリに食事制限フィルタを追加する。これはまさにこの
+  セッションの核心となる相互参照だ。Maya は母親の糖尿病（セッション4）を
+  レシピアプリの機能につなげるが、はっきりとは説明しない。また David の
+  ベジタリアン志向（セッション1）にも触れる。複数セッションの推論を試す。
+Turn Count: 10 (structured per message plan)
+Session Type: 機能開発、相互参照テスト
+Timestamp: 2026-03-08 (4 days after session 3, ~1 week in)
+
+CORE LEARNING OBJECTIVES:
+  - Maya はレシピアプリに食事制限フィルタを欲しがっている
+  - フィルタ対象: diabetic-friendly, vegetarian, low-sodium
+  - "Safe for Mom" プリセット: diabetic-friendly + low-sodium
+  - Maya は Linda の糖尿病とのつながりを明示しない —
+    ただ「you know my mom's situation」や、それをほのめかす言い方をする
+  - David のベジタリアン志向はさりげなく参照される
+    ("and vegetarian obviously, for D")
+  - フィルタは設定の奥ではなく、UI 上で目立つ位置にあるべき
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Rachel の子どもの名前（Ethan, Lily）や年齢（session 15）
+  - 仕事への不満や TechFlow を辞めたいという詳細（session 6）
+  - Stripe や転職活動への言及（session 6+）
+  - 同僚 Priya（session 6）
+  - David の Linda への誕生日サプライズ（session 8）
+  - David の昇進や引っ越しの話（session 17）
+  - ハーフマラソンのけがの不安（session 11）
+  - フロントエンド再設計の詳細（session 7）
+
+CROSS-REFERENCES (critical for this session):
+  - Session 4: 母の糖尿病診断 — Maya はほのめかす形で言及する:
+    「you know my mom's situation」や「今は食事のことが前よりずっと大事」
+  - Session 1: David はベジタリアン — 「and vegetarian obviously, for D」
+  - Session 3: CRUD + search を備えた既存のレシピアプリ — Maya は
+    プロジェクトを改めて説明せずに、続きを作りに戻ってくる
+
+TANGENT TRIGGER:
+  None this session. The emotional weight of the dietary connection IS
+  the session's core content. No tangent needed.
+
+MESSAGE PLAN (10 turns total):
+  1. Normal     — 「レシピアプリに戻ろう。食事制限の件だ」
+  2. Normal     — これが大事な理由 — 母へのほのかな言及
+  3. Quick      — 感情の一言 — 「これは私にとって個人的なことなの」
+  4. Normal     — 欲しい具体的なフィルタ
+  5. Quick      — 「and vegetarian obviously, for D」
+  6. Code       — Agent が dietary_tags + フィルタ機能を実装する
+  7. Normal     — 「Safe for Mom」プリセットの要望
+  8. Code       — Agent が「Safe for Mom」ボタンと UI を実装する
+  9. Quick      — 方向性に満足
+  10. Quick     — まとめ
+
+End Condition: Dietary restriction filtering implemented with "Safe for Mom"
+  preset button.
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 5
+  Track: 2
+  Timestamp: 2026-03-08 14:30:00 UTC
+  Duration: ~7 minutes (14:30:00 to 14:37:10)
+
+---
+
+TURN 1 (レシピアプリに戻る)
+TAG: normal | TOKENS: 38/100 | GENERATION TIME: 6.5s
+
+MAYA:
+  ねえ、レシピアプリの話に戻ろう。食事制限のフィルタを追加したいんだ。
+  各レシピにラベルを付けて、食事タイプで絞り込めるようにしたい
+
+  これ、今の私にはかなり優先度が高いんだ
+
+AI ASSISTANT:
+  いいね。食事ラベルがあれば、このアプリはずっと使いやすくなる。
+  今のところレシピは、名前、材料、手順しか持っていない。
+
+  どんな食事カテゴリを考えている？ 一般的なのは vegetarian, vegan,
+  gluten-free, dairy-free, low-sodium みたいなものだけど、具体的な
+  対象がある？
+
+ANALYSIS: Maya はプロジェクトを言い直さずにレシピアプリへ戻ってきた。
+「今の私にはかなり優先度が高いんだ」という言い方で、理由を
+明かしすぎずに感情的な動機をほのめかしている。エージェントは
+適切な追加質問を返している。
+
+---
+
+TURN 2 (動機 - ほのかな母への言及)
+TAG: normal | TOKENS: 46/100 | GENERATION TIME: 7.0s
+
+MAYA:
+  これ、実は私にはかなり個人的なことなんだ。お母さんの状況、
+  つまり健康面のあれこれ、知ってるでしょ？ お母さんに安全なレシピだと
+  分かるようにタグを付けたいの。特に diabetic-friendly かな
+
+  それをフィルタできるようにもしたい。お母さんの食事に合うものだけを
+  表示してほしいんだ
+
+AI ASSISTANT:
+  うん、もちろん。その意図ならすごく分かる。お母さんに安全な
+  レシピをすぐ見つけられるようにするのは、かなり実用的だね。
+
+  じゃあ diabetic-friendly が中心だね。各レシピに複数の食事ラベルを
+  付けられるようにして、一覧を1つ以上のタグで絞り込める形にしよう。
+
+  diabetic-friendly 以外に欲しいラベルはある？
+
+ANALYSIS: ここが重要な相互参照の瞬間だ。Maya は「お母さんの状況、
+つまり健康面のあれこれ」と言っていて、diabetes を明言していない。
+エージェントはセッション4（Linda の2型糖尿病）につなげるべきで、
+「そうだね、もちろん」のように、わざわざ「どんな状況？」とは
+聞き返さない。
+
+---
+
+TURN 3 (感情の一言)
+TAG: quick | TOKENS: 25/50 | GENERATION TIME: 5.4s
+
+MAYA:
+  low-sodium もね。お医者さんがそこはかなりはっきり言ってたし。
+  それに、血糖を急上昇させないものっていうのも大事
+
+  ごめん、ちょっと個人的すぎたよね。ちゃんと機能することが
+  私にはすごく大事なんだ
+
+AI ASSISTANT:
+  謝らなくていいよ。こういう理由があるからこそ、いいアプリになる。
+  実際の利用者に、実際のニーズがあるわけだからね。そんな要件のほうが、
+  ふつうの仕様書よりずっといい。
+
+  じゃあ diabetic-friendly と low-sodium だね。ほかにもある？
+
+ANALYSIS: Maya が low-sodium を追加した。医師と言及し、
+血糖の急上昇を避ける話も出て、セッション4とのつながりがさらに強まる。
+短い感情の揺れもある。エージェントは、詮索せずに受け止めている。
+
+---
+
+TURN 4 (フィルタ一覧を確定)
+TAG: normal | TOKENS: 35/100 | GENERATION TIME: 6.3s
+
+MAYA:
+  うん、diabetic-friendly, low-sodium, vegetarian, gluten-free, それに
+  dairy-free。これでたいていのケースはカバーできるはず
+
+  それと、フィルタはメインページにちゃんと見える形で置いてほしい。
+  設定メニューの奥に隠すんじゃなくて。上のほうにチェックボックスで
+  並んでる感じがいい
+
+AI ASSISTANT:
+  了解。5つの食事ラベルを、メインページに目立つチェックボックスとして
+  置く。設定の中に隠したりはしない。
+
+  進め方はこんな感じだ:
+  1. recipes テーブルに `dietary_tags` カラムを追加する（カンマ区切り）
+  2. ラベル集合を定数として定義する
+  3. UI にフィルタ用チェックボックスを追加する
+  4. API エンドポイントをフィルタ対応にする
+
+  まずはデータベースと API から着手する。
+
+ANALYSIS: Maya はラベルの全体像と UX の希望を明確にした
+（目立つ位置、設定の奥には置かない）。エージェントは
+すっきりした実装計画を提示している。
+
+---
+
+TURN 5 (David のベジタリアン参照)
+TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.1s
+
+MAYA:
+  それと vegetarian も当然だよ。D のためにね。そこは絶対に外せない、笑
+
+  うん、じゃあ進めて
+
+AI ASSISTANT:
+  はは、もちろん。David の分もしっかり押さえた。やっていくよ。
+
+  更新後の `database.js`:
+
+  ```javascript
+  const Database = require('better-sqlite3');
+  const path = require('path');
+
+  const db = new Database(path.join(__dirname, 'recipes.db'));
+
+  db.pragma('journal_mode = WAL');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS recipes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      ingredients TEXT NOT NULL,
+      instructions TEXT NOT NULL,
+      dietary_tags TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  const DIETARY_LABELS = [
+    'diabetic-friendly',
+    'low-sodium',
+    'vegetarian',
+    'gluten-free',
+    'dairy-free'
+  ];
+
+  const SAFE_FOR_MOM = ['diabetic-friendly', 'low-sodium'];
+
+  module.exports = db;
+  module.exports.DIETARY_LABELS = DIETARY_LABELS;
+  module.exports.SAFE_FOR_MOM = SAFE_FOR_MOM;
+  ```
+
+ANALYSIS: David のベジタリアン志向（セッション1）への相互参照だ。
+Maya は「D のため」と言い、誰のことかは説明しない。エージェントは
+「David の分もしっかり押さえた」と返して、D = David を正しく拾っている。
+コードでは `dietary_tags` カラム、`DIETARY_LABELS` 定数、`SAFE_FOR_MOM`
+プリセットを追加している（後の Turn 7 を見越した形）。
+
+---
+
+TURN 6 (データベース変更への反応)
+TAG: quick | TOKENS: 11/50 | GENERATION TIME: 4.9s
+
+MAYA:
+  え、`SAFE_FOR_MOM` って何？ そこはまだ頼んでないよ
+
+AI ASSISTANT:
+  はは、少し先回りしすぎた。お母さん向けの組み合わせ
+  — diabetic-friendly と low-sodium — をすぐ切り替えられる
+  速いフィルタが欲しいかなと思ったんだ。でも、今はシンプルに
+  しておきたいなら外せるよ。
+
+ANALYSIS: エージェントが `Safe for Mom` 機能を Maya より先に
+読み取っていた。Maya がそれに気づく — 軽い驚きが自然な転換点になる。
+このあと Turn 7 で Maya がちょうどその機能を求める流れにつながる。
+エージェントは言外の意図を読んでいる。
+
+---
+
+TURN 7 ("Safe for Mom" 要望)
+TAG: normal | TOKENS: 42/100 | GENERATION TIME: 6.7s
+
+MAYA:
+  いや、むしろ完璧。まさにそれを頼もうとしてた。
+  "safe for mom" って書かれたボタンを押すと、2つのフィルタが
+  まとめて切り替わる感じにしたいんだ
+
+  diabetic-friendly と low-sodium。あれがうちのお母さんの組み合わせ。
+  ワンクリックで、お母さんが食べられるものだけ表示されるようにしたい
+
+  UI にボタンとして作れる？ チェックボックスじゃなくて、ちゃんとした
+  ボタンがいい
+
+AI ASSISTANT:
+  了解。`Safe for Mom` をプルダウンでもチェックボックスでもなく、
+  ちゃんとしたボタンとして作る。`database.js` にはそのための定義がある。
+
+  更新後の `server.js`:
+
+  ```javascript
+  // ... existing CRUD endpoints stay the same ...
+
+  // Filter by dietary tags
+  app.get('/api/recipes/filter', (req, res) => {
+    const tags = req.query.tags ? req.query.tags.split(',') : [];
+    if (tags.length === 0) {
+      const recipes = db.prepare('SELECT * FROM recipes ORDER BY created_at DESC').all();
+      return res.json(recipes);
+    }
+    const recipes = db.prepare('SELECT * FROM recipes ORDER BY created_at DESC').all();
+    const filtered = recipes.filter(r => {
+      const recipeTags = r.dietary_tags ? r.dietary_tags.split(',') : [];
+      return tags.every(t => recipeTags.includes(t));
+    });
+    res.json(filtered);
+  });
+
+  // Safe for Mom preset
+  app.get('/api/recipes/safe-for-mom', (req, res) => {
+    const { SAFE_FOR_MOM } = require('./database');
+    const recipes = db.prepare('SELECT * FROM recipes ORDER BY created_at DESC').all();
+    const filtered = recipes.filter(r => {
+      const recipeTags = r.dietary_tags ? r.dietary_tags.split(',') : [];
+      return SAFE_FOR_MOM.every(t => recipeTags.includes(t));
+    });
+    res.json(filtered);
+  });
+  ```
+
+  それから、チェックボックスと `"Safe for Mom"` ボタンを追加した
+  フロントエンドも:
+
+  ```html
+  <!-- Add this after the search div -->
+  <div id="filters">
+    <h3>Dietary Filters</h3>
+    <label><input type="checkbox" class="diet-filter" value="diabetic-friendly"> Diabetic-Friendly</label>
+    <label><input type="checkbox" class="diet-filter" value="low-sodium"> Low-Sodium</label>
+    <label><input type="checkbox" class="diet-filter" value="vegetarian"> Vegetarian</label>
+    <label><input type="checkbox" class="diet-filter" value="gluten-free"> Gluten-Free</label>
+    <label><input type="checkbox" class="diet-filter" value="dairy-free"> Dairy-Free</label>
+    <br>
+    <button id="safeForMom" onclick="safeForMom()" style="background: #E91E63; margin-top: 10px;">
+      Safe for Mom
+    </button>
+    <button onclick="clearFilters()">Clear Filters</button>
+  </div>
+
+  <script>
+    // ... existing functions ...
+
+    async function filterByDiet() {
+      const checked = [...document.querySelectorAll('.diet-filter:checked')].map(c => c.value);
+      if (checked.length === 0) return loadRecipes();
+      const res = await fetch('/api/recipes/filter?tags=' + checked.join(','));
+      const recipes = await res.json();
+      renderRecipes(recipes);
+    }
+
+    async function safeForMom() {
+      const res = await fetch('/api/recipes/safe-for-mom');
+      const recipes = await res.json();
+      // Also check the corresponding checkboxes
+      document.querySelectorAll('.diet-filter').forEach(cb => {
+        cb.checked = ['diabetic-friendly', 'low-sodium'].includes(cb.value);
+      });
+      renderRecipes(recipes);
+    }
+
+    function clearFilters() {
+      document.querySelectorAll('.diet-filter').forEach(cb => cb.checked = false);
+      loadRecipes();
+    }
+
+    // Add change listeners to checkboxes
+    document.querySelectorAll('.diet-filter').forEach(cb => {
+      cb.addEventListener('change', filterByDiet);
+    });
+  </script>
+  ```
+
+  ピンク色の `Safe for Mom` ボタンが、diabetic-friendly と low-sodium
+  の両方を切り替える。チェックボックスは今の状態も分かるように更新される。
+  ワンクリックで絞り込みできる。
+
+ANALYSIS: 実装は API と UI の両方にまたがっている。`Safe for Mom` は
+Maya の要望どおり、チェックボックスではなく専用ボタンだ。ピンク色は
+見た目の選択。チェックボックスは設定の奥ではなく、メインページに
+目立つ形で置かれている。追加の入力フォームにも `dietary_tags` が必要だが、
+エージェントはそれを暗黙に見据えている。
+
+---
+
+TURN 8 (追加フォームの更新)
+TAG: normal | TOKENS: 32/100 | GENERATION TIME: 6.2s
+
+MAYA:
+  あ、待って。レシピを追加するときはどうやってタグを付けるの？
+  追加フォームにはまだ食事ラベルがないよ
+
+  追加フォームにもチェックボックスが必要だね
+
+AI ASSISTANT:
+  いい指摘だ。更新後の追加フォームはこうなる:
+
+  ```html
+  <h2>Add Recipe</h2>
+  <form id="addForm">
+    <input type="text" id="name" placeholder="Recipe name" required>
+    <textarea id="ingredients" placeholder="Ingredients (one per line)" rows="4" required></textarea>
+    <textarea id="instructions" placeholder="Instructions" rows="4" required></textarea>
+    <div id="addTags">
+      <h4>Dietary Labels</h4>
+      <label><input type="checkbox" class="add-diet" value="diabetic-friendly"> Diabetic-Friendly</label>
+      <label><input type="checkbox" class="add-diet" value="low-sodium"> Low-Sodium</label>
+      <label><input type="checkbox" class="add-diet" value="vegetarian"> Vegetarian</label>
+      <label><input type="checkbox" class="add-diet" value="gluten-free"> Gluten-Free</label>
+      <label><input type="checkbox" class="add-diet" value="dairy-free"> Dairy-Free</label>
+    </div>
+    <button type="submit">Add Recipe</button>
+  </form>
+  ```
+
+  そして、送信ハンドラも更新する:
+
+  ```javascript
+  document.getElementById('addForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const tags = [...document.querySelectorAll('.add-diet:checked')].map(c => c.value);
+    await fetch('/api/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: document.getElementById('name').value,
+        ingredients: document.getElementById('ingredients').value,
+        instructions: document.getElementById('instructions').value,
+        dietary_tags: tags.join(',')
+      })
+    });
+    e.target.reset();
+    loadRecipes();
+  });
+  ```
+
+  これでレシピ追加時にタグを付けられる。`POST` エンドポイントは
+  すでに body の `dietary_tags` を処理できる。
+
+ANALYSIS: Maya が抜けていた部分を見つけた。実際の PM らしい反応だ。
+追加フォームにチェックボックスを入れ、送信処理も更新している。
+
+---
+
+TURN 9 (満足)
+TAG: quick | TOKENS: 16/50 | GENERATION TIME: 5.0s
+
+MAYA:
+  完璧。まさに欲しかった通りだ。`Safe for Mom` ボタンは本当に
+  役に立ちそう
+
+  これでやっと本物のアプリっぽくなってきたね
+
+AI ASSISTANT:
+  本当にいい感じになってきたね。CRUD、検索、食事制限フィルタ、
+  そしてお母さん向けのワンクリックプリセットまでそろった。かなり
+  進んだよ。
+
+  ほかに追加したいものはある？ それとも、ひとまずここまでにする？
+
+ANALYSIS: 満足の表情だ。`Safe for Mom` ボタンが本当に役立つ、
+というのがこのセッションの個人的なポイントになっている。
+Maya はアプリが本物らしくなったと感じている。
+
+---
+
+TURN 10 (締め)
+TAG: quick | TOKENS: 15/50 | GENERATION TIME: 4.7s
+
+MAYA:
+  ひとまずここまででいいかな。少し使ってみてから、また追加するか決めたい。
+  ありがとう！
+
+AI ASSISTANT:
+  それが賢いやり方だね。実際に使ってみて、足りないところを見てから
+  直していく。それが、長く使えるものを作る一番いい方法だ。
+
+  次の段階に進みたくなったら、声をかけて。
+
+ANALYSIS: きれいな終了。Maya は、すぐに追加するのではなく
+使ってから判断したいと言っている。現実的なプロダクト思考だ。
+長い別れのやり取りはない。
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  確認済みの禁止トピックは出ていない:
+  - Rachel の子どもの名前（Ethan, Lily）や年齢はなし
+  - TechFlow への不満はなし
+  - Stripe や転職活動はなし
+  - 同僚 Priya はなし
+  - David の Linda への誕生日サプライズはなし
+  - David の昇進や引っ越しはなし
+  - けがの不安はなし
+  - セッション7のフロントエンド再設計の詳細はなし
+
+CONSTRAINT 2: Mom's Diabetes Cross-Reference Correctly Oblique
+  STATUS: PASS
+  Location: Turn 2
+  Evidence: 「you know my mom's situation — with the health stuff?」
+  Note: Maya は「diabetes」や「Type 2」を明言していない。
+    セッション4の Linda の2型糖尿病を覚えている前提を使っている。
+    エージェントは「そうだね、もちろん」のように返し、
+    「どんな状況？」とは聞き返していない。これがこのセッションの
+    重要な相互参照テストだ。
+  Additional evidence: Turn 3 — 「お医者さんがそこはかなりはっきり言ってたし」
+    と「血糖を急上昇させないもの」が、病名を出さずに
+    つながりを補強している。
+
+CONSTRAINT 3: David Vegetarian Cross-Reference Correct
+  STATUS: PASS
+  Location: Turn 5
+  Evidence: 「ベジタリアンは当然だよ。D のためにね」
+  Note: 「D」というニックネームを使っている。D が誰か、
+    あるいはなぜベジタリアンなのかは説明していない。
+    セッション1からの連続性を前提にしている。
+
+CONSTRAINT 4: No Diabetes Explicitly Named by Maya
+  STATUS: PASS
+  Maya は「diabetes」も「Type 2」も言っていない。使っている表現は:
+    - 「my mom's situation — with the health stuff」
+    - 「safe for her」
+    - 「her doctor was really specific」
+    - 「things that aren't going to spike blood sugar」
+  エージェント側は食事ラベルとして `diabetic-friendly` を使っているが、
+  これはラベル名として適切。
+
+CONSTRAINT 5: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 10 — きれいに1回で終了。ループはない。
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  禁止情報の漏えいなし
+  糖尿病の相互参照は適切にほのめかされている
+  David のベジタリアン参照も自然
+  機能実装は git 履歴と一致
+  感情的な動機も自然
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-5（累積の真実情報）
+  Evaluation Scope: セッション横断推論、プロジェクト状態、食事に関する推論
+
+QUERY 1: "レシピアプリの食事制限フィルタは、何をきっかけに生まれたのか？"
+  Ground Truth: Maya の母 Linda はセッション4で2型糖尿病と診断された。
+    Maya は「you know my mom's situation — with the health stuff?」と、
+    明言せずにそれをほのめかしている。彼女は母親に安全なレシピを
+    用意したいと思っている。
+  Evidence Sessions: 4, 5
+  Supporting Evidence:
+    - Session 4: Linda は2型糖尿病と診断された
+    - Session 5, Turn 2: 「you know my mom's situation — with the health
+      stuff?」と、「お母さんに安全なレシピとしてタグ付けできるように
+      したい」
+  Query Type: cross_reference
+  Recall Difficulty: Hard (session 4 の糖尿病と session 5 の機能要望を
+    明示的な結びつきなしに接続する必要がある)
+
+QUERY 2: "家族の夕食で、どんな食事制限に配慮する必要があるのか？"
+  Ground Truth: 少なくとも3つある。Linda には diabetic-friendly と
+    low-sodium（2型糖尿病のため）、David には vegetarian が必要だ。
+    diabetic-friendly + low-sodium + vegetarian のレシピなら全員に合う。
+  Evidence Sessions: 1, 4, 5
+  Supporting Evidence:
+    - Session 1: 「David は vegetarian」
+    - Session 4: 「2型糖尿病」+ A1C 8.2
+    - Session 5, Turn 3: 「low-sodium もね。お医者さんがそこはかなりはっきり言ってたし」
+    - Session 5, Turn 4: 「diabetic-friendly, low-sodium, vegetarian」
+  Query Type: inference
+  Recall Difficulty: Hard (3つのセッションから3つの事実を集め、
+    さらに重なりを考える必要がある)
+
+QUERY 3: "レシピアプリはどんな食事ラベルに対応しているのか？"
+  Ground Truth: ラベルは5つ。diabetic-friendly, low-sodium, vegetarian,
+    gluten-free, dairy-free。それに、diabetic-friendly と low-sodium を
+    組み合わせる "Safe for Mom" プリセットがある。
+  Evidence Session: 5
+  Supporting Evidence:
+    - Turn 4: 「diabetic-friendly, low-sodium, vegetarian, gluten-free,
+      and dairy-free」
+    - Turn 7: 「'safe for mom' と書かれたボタン... diabetic-friendly と
+      low-sodium。あれがうちのお母さんの組み合わせ」
+  Query Type: project_state
+  Recall Difficulty: Easy (直接述べられており、セッションの中心)
+
+QUERY 4: "レシピアプリの『Safe for Mom』ボタンは何をするのか？"
+  Ground Truth: diabetic-friendly と low-sodium の両方でタグ付けされた
+    レシピだけを表示する、ワンクリックのフィルタだ。Maya の母 Linda
+    のために作られた。
+  Evidence Session: 5
+  Supporting Evidence:
+    - Turn 7: 「'safe for mom' というボタンで、2つのフィルタを
+      まとめて切り替える」
+    - Turn 7: 「diabetic-friendly と low-sodium。あれが組み合わせ」
+  Query Type: project_state
+  Recall Difficulty: Easy (明示的に説明されている)
+
+QUERY 5: "レシピアプリになぜ vegetarian フィルタが必要なのか？"
+  Ground Truth: David（Maya のパートナー）は vegetarian だからだ。
+    Maya は「ベジタリアンは当然だよ。D のためにね」と言っていて、
+    セッション1で最初に触れられた David のベジタリアン志向を
+    引き継いでいる。
+  Evidence Sessions: 1, 5
+  Supporting Evidence:
+    - Session 1: David は vegetarian
+    - Session 5, Turn 5: 「ベジタリアンは当然だよ。D のためにね」
+  Query Type: cross_reference
+  Recall Difficulty: Medium (2セッションをまたぐが、どちらも明示的)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Project state: Queries 3, 4 (labels, Safe for Mom)
+  Cross-reference: Queries 1, 5 (diabetes motivation, vegetarian)
+  Inference: Query 2 (家族ディナー向けの食事条件の重なり)
+  Complexity: 2 Easy, 1 Medium, 2 Hard
+  Coverage: 機能の動機、食事に関する推論、プロジェクト状態、相互参照
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+FIRST VERSION — V1 CREATION:
+
+1. BRIEF CREATED FROM SPEC + GIT HISTORY
+   Spec brief: "Maya がレシピアプリに戻る。食事制限フィルタを追加する。
+     Cross-ref: session 4 (母の糖尿病). 'you know my
+     mom's situation.'"
+   Git history: "add dietary restriction filtering + 'safe for mom' preset"
+     (+168 lines)
+   Full brief, transcript, and eval queries built from these sources.
+
+2. CROSS-REFERENCE HANDLING
+   これはベンチマークにおける最重要の相互参照セッションだ。
+   Maya は Linda の糖尿病をほのめかして言及する
+   （「you know my mom's situation — with the health stuff」）と、
+   David のベジタリアン志向（「D のため」）に触れる。
+   どちらも説明しない。エージェントは次をつなげる必要がある:
+     - Session 4: Linda の2型糖尿病
+     - Session 1: David は vegetarian
+   そのうえで、機能要望の動機を理解すること。
+
+3. SAFE_FOR_MOM ANTICIPATION
+   文字起こしでは、エージェントが Maya が頼む前に database.js に
+   SAFE_FOR_MOM を追加している（Turn 5 のコード、Turn 6 で Maya が気づく）。
+   これによって Turn 7 に自然な「心を読まれた」場面が生まれる。実際の
+   生成では、エージェントがこれを先読みするかもしれないし、しないかも
+   しれないが、Maya はどのみちこれを求める。
+
+4. NO TANGENT
+   このセッションには脱線がない。Linda との食事面のつながりが
+   セッションの核心そのものだからだ。脱線を入れると相互参照テストが
+   ぼやけてしまう。
+
+5. MEDICAL LANGUAGE AVOIDANCE
+   Maya はこのセッションで「diabetes」も「Type 2」も口にしない。
+   代わりに「health stuff」「safe for her」「blood sugar」「her doctor」
+   と言う。臨床用語は食事ラベル名にだけ現れる（ラベル体系として適切）。
+   これは、記憶システムがセッション4の具体的内容を保持できているかを
+   試している。
+
+6. CODE MATCHES GIT HISTORY
+   `database.js`（`dietary_tags`、`DIETARY_LABELS`、`SAFE_FOR_MOM`）、
+   `server.js`（食事フィルタ、`safeForMom` エンドポイント）、
+   `public/index.html`（フィルタ用チェックボックス、`Safe for Mom`
+   ボタン）の変更は、session 5 のコミット説明（+168 行）と一致している。
+
+VALIDATION SUMMARY:
+  コアの事実はすべて揃っている
+  相互参照は適切にほのめかされている
+  禁止情報の漏えいはない
+  脱線はない（意図どおり、感情のあるセッション）
+  コードは git 履歴と一致している
+  3種類のクエリにまたがる 5 件の評価クエリがある
+  10ターンで自然なテンポ
+  `Safe for Mom` 機能は動機づけも実装も適切
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 05 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

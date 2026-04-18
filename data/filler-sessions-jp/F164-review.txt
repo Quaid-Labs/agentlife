@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F164 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 9 and 8
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F164 (Filler — Recipe App Micro)
+Date: 2026-03-16 11:09
+Topic: USDA API を使った完全な栄養成分計算システムを追加したい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F164
+  Track: filler
+  Timestamp: 2026-03-16 11:09:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ねえ、レシピアプリに栄養成分を追加できる？ カロリー、タンパク質とかの実際の USDA データで
+
+AI ASSISTANT:
+  もちろんです！ USDA FoodData Central API を使えます。各材料が自動で栄養情報を引く形に統合したいですか、それとも手動で検索したいですか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  自動が最高。設定はどれくらい大変？
+
+AI ASSISTANT:
+  それほど大変ではありません。fdc.nal.usda.gov で無料のAPIキーを取得すれば、データを取得するサービスを追加できます。基本のラッパーはこちらです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  よし、それでいこう。じゃあ材料テーブルには USDA の食品を追跡するための新しいカラムが必要だよね？
+
+AI ASSISTANT:
+  その通りです！ USDA の食品項目を追跡するために `fdc_id` を追加してください:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  よし、マイグレーションは走らせた。材料エンドポイントとはどうつなぐの？
+
+AI ASSISTANT:
+  USDA の食品を検索して紐づける新しいエンドポイントを追加してください:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  いいね。じゃあレシピ全体の栄養はどうやって計算するの？
+
+AI ASSISTANT:
+  各材料の栄養素を分量に応じて足し合わせます。計算関数はこちらです:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  待って、単位が合わない場合は？ たとえば材料がカップで、USDA の基準がグラムとか
+
+AI ASSISTANT:
+  いい指摘です。単位変換が必要になります。ヘルパーはこちらです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  なるほど、かなり複雑になってきた笑。レート制限を避けるために USDA のレスポンスをキャッシュしたほうがいい？
+
+AI ASSISTANT:
+  もちろんです。前に示した nutrition_facts テーブルはそのキャッシュ用です。キャッシュ処理はこちらです:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  了解。USDA のレスポンスのパースはどうするの？ 形式が変なんだけど
+
+AI ASSISTANT:
+  はい、かなりネストされています。主要な栄養素を抜き出すパーサーはこちらです:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  いいね。じゃあレシピの栄養を取得するエンドポイントが必要だね？
+
+AI ASSISTANT:
+  その通りです！ こちらがそのエンドポイントです:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  毎回再計算すべき？ それともキャッシュする？ 材料が変わることもありそうだし
+
+AI ASSISTANT:
+  いい指摘です。基本は必要時に再計算しつつ、`nutrition_updated_at` タイムスタンプを追加するのがよいです。材料が前回計算以降に変わった場合だけ再計算してください:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  了解。あと、1食分じゃなくて1レシピあたりの栄養は1食分表示にしたい
+
+AI ASSISTANT:
+  その通りです！ レシピテーブルに servings を追加して、合計を割ってください:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  いいね。これのテストも追加できる？ エッジケースが多そうだし
+
+AI ASSISTANT:
+  もちろんです。まずはこのテストスイートから始めましょう:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  テストすると `TypeError: Cannot read property 'grams' of undefined` が `convertToGrams` で出る
+
+AI ASSISTANT:
+  それは、単位が変換表にないときに起きています。フォールバックを追加してください:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  直った。最後に、フロントエンドではどう見せる？ いい感じの栄養ラベルがほしい
+
+AI ASSISTANT:
+  栄養成分パネル用の React コンポーネントはこちらです:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  これで完璧、まさに欲しかったものだ。いくつかのレシピで試してみるよ、ありがとう！
+
+AI ASSISTANT:
+  いいですね！ うまくいくことを願っています。USDA の検索で特定の材料がうまく一致しない場合は、あとで手動上書き機能を追加できます。うまくいきますように！
+
+================================================================================
+---
+
+END OF FILLER SESSION
+================================================================================

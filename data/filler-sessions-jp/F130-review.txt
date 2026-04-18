@@ -1,0 +1,180 @@
+================================================================================
+FILLER SESSION F130 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 4 and 5
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F130 (Filler — Work Session)
+Date: 2026-03-10 09:24
+Topic: API バージョニング戦略ドキュメントのドラフトを手伝ってほしい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F130
+  Track: filler
+  Timestamp: 2026-03-10 09:24:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  ねえ、recipe app の API バージョニング戦略ドキュメントを作るのを手伝ってくれる？ 明日 D に説明する必要があるんだ
+
+AI ASSISTANT:
+  もちろん。まずはシンプルなやり方から始めよう。URL バージョニング（たとえば `/v1/recipes`）を考えてる？ それとも header ベース？ それと、複数バージョンを同時にサポートしたい？ それとも早めに廃止したい？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  たぶん URL バージョニングかな。そっちのほうがシンプルそう。うん、同時に 2 バージョンくらいまでサポートして、そのあと 6 か月くらいで古いほうを非推奨にしたい
+
+AI ASSISTANT:
+  完璧。基本戦略の doc を作るよ:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  うん、移行の話も足して。あと、何が breaking change で何が non-breaking なのかも文書化したほうがいいかな？ 絶対その話になる気がする
+
+AI ASSISTANT:
+  その判断は正しいね。更新版はこうだよ:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  いいね。API 全体を versioning するべき？ それとも resource ごと？ たとえば recipes は v2 だけど ingredients は v1、みたいなこともあり得る？
+
+AI ASSISTANT:
+  API 全体をまとめて versioning するのを勧めるよ。resource ごとの versioning はすぐに複雑になる。`/v1/recipes` が `/v2/ingredients` を呼ぶみたいになって、クライアントが互換性マトリクスを管理しないといけなくなる。変更が recipes だけでも、全体をまとめて bump するほうがずっとシンプルだね。
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  なるほど、笑。sunset header のやつって、実際にはどう見えるの？
+
+AI ASSISTANT:
+  もちろん。仕組みはこうだよ:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  おお、あれって標準なんだ。じゃあ migration guide の部分はどうする？ code example も入れるべき？ それとも変更点だけ文書化する？
+
+AI ASSISTANT:
+  両方だね。before/after の code で実際の差分を見せよう:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  完璧。それで error response はどうする？ バージョンごとに変える？ それとも全体で揃える？
+
+AI ASSISTANT:
+  error format は全バージョンで揃えよう。移行の途中で error structure が変わると、クライアントの error handling が地獄になる。1 つの標準形式にしたい:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  なるほど、それはわかりやすい。semantic versioning にする？ それとも整数だけ？ たとえば v1.2.3 か v1, v2 か
+
+AI ASSISTANT:
+  major version だけにしよう（v1, v2）。semantic versioning（1.2.3）は library 向けで、API 向けじゃない。クライアントは minor / patch なんて気にしないし、壊れるかどうかだけ知ればいい。シンプルな整数のほうが URL も見やすく、期待値もはっきりするよ。
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  なるほど。backwards compatibility の補助機能はどうする？ たとえば v2 が旧 `cook_time` フィールドを受け取って自動変換するとか
+
+AI ASSISTANT:
+  いや、それはやめよう。隠れた挙動になって、デバッグがひどくなる。v2 は古い形式をはっきり拒否すべきだよ:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  いいね、笑。じゃあ deprecated な機能について、API レスポンス自体に warning を出すセクションを入れようか？
+
+AI ASSISTANT:
+  そうしよう。deprecated features 用の warnings array を追加しよう:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  それいいね。最後にひとつ - DB ではどう扱う？ version ごとに別テーブル？ それとも API 層だけで処理する？
+
+AI ASSISTANT:
+  API 層だけで処理しよう。DB テーブルは 1 セットで、version ごとの serializer / transformer を分ける形だね:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  なるほど、完璧。じゃあ今話した内容を全部入れた最終版をまとめてくれる？
+
+AI ASSISTANT:
+  こちらが完全版の strategy doc だよ:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  すごくいい！ ひとつだけ聞くね - version ごとの rate limiting も入れるべき？ それとも別扱い？
+
+AI ASSISTANT:
+  rate limiting は別にしておこう。普通は version 間で同じだからね。でも、もし違う上限にしたいなら、短く追記するといい:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  いや、今は同じにしておこう。うん、これで完璧。ありがとう！ きれいに整えて D に送るよ
+
+AI ASSISTANT:
+  いいね！ 明日の説明、うまくいくといいよ。David から質問が来たり、strategy に修正が欲しいと言われたら教えて。
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

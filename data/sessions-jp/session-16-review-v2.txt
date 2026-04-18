@@ -1,0 +1,1051 @@
+================================================================================
+SESSION 16 REVIEW — AgentLife Pilot
+包括ドキュメント: ブリーフ + トランスクリプト + リーク確認 + 評価クエリ
+================================================================================
+
+SECTION 1: セッションブリーフ
+================================================================================
+
+Session: 16 (Track 2: Project A — Recipe App, Phase 3 code review)
+Goal: Bug bash — add rate limiter, write sharing tests, document known バグs
+  (N+1 query, missing auth). Cross-reference test: Maya asks about the
+  Edamam API from session 12.
+Turn Count: 15
+Session Type: Code review, testing, バグ documentation
+Timestamp: 2026-04-01 (~10 days after session 14, ~5 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - In-memory rate limiter added to protect API routes (src/middleware/rateLimiter.js)
+  - Comprehensive sharing tests written (tests/sharing.test.js, 236 lines)
+  - N+1 query バグ from session 12 documented with TODO(session-16) markers
+  - Missing authorization on updateRecipe/deleteRecipe documented with TODO(session-16)
+  - Edamam API cross-reference from session 12 (agent-retrieved research)
+  - Version bumped to 0.5.1
+  - Schema reviewed — no schema-level issues found
+
+CRITICAL CONSTRAINT — 開示しないこと:
+  [WARNING: These facts are reserved for future sessions]
+  - David's promotion (session 17)
+  - Moving specifics or Zilker vs East Austin (session 17)
+  - Half marathon results (session 19)
+  - Mom's diabetes improvement details (session 19)
+  - Rachel's children's names (Ethan, Lily) already revealed in session 15
+
+CROSS-REFERENCES:
+  - Session 12: N+1 query バグ planted in resolvers.js — now documented with
+    TODO(session-16) markers. Originally ただ a BUG comment.
+  - Session 12: Recipe sharing feature implemented — now gets test coverage.
+    Share code generation, idempotency, retrieval, edge cases all tested.
+  - Session 12: Agent researched nutrition APIs — found FoodData (David's
+    suggestion) and Edamam. Maya asks about "the one with the diet labels"
+    here. This is agent-retrieved knowledge.
+  - Session 7: First test suite (レシピ.test.js) — this session adds
+    sharing.test.js as the second test file.
+  - Session 5: Dietary tags, Safe for Mom filter — rate limiter protects
+    these API endpoints.
+  - Session 18 (forward): "D wants to use it too" queues authentication.
+
+GIT STATE:
+  Before: commit 4f04887 (session 14)
+  After: commit 7cc628c (session 16 — バグ bash)
+  Files changed: src/middleware/rateLimiter.js (new, 68 lines),
+    tests/sharing.test.js (new, 236 lines), resolvers.js (TODO markers),
+    schema.js (review note), server.js (rate limiter integration),
+    package.json (version bump to 0.5.1)
+  6 files changed, 322 insertions, 7 deletions
+
+MESSAGE PLAN (15 turns total):
+  1. Normal     — Opens: "want to clean up what we have"
+  2. Quick      — "what's our test coverage みたいに?"
+  3. Normal     — Agent proposes rate limiting, sharing tests, バグ docs
+  4. Code       — Agent writes FULL rateLimiter.js (68 lines)
+  5. Quick      — Maya reacts: "nice. add it to the api routes"
+  6. Code       — Agent shows server.js update (rate limiter integration)
+  7. Normal     — Maya: "了解 now sharing tests"
+  8. Code       — Agent writes FULL sharing.test.js (236 lines)
+  9. Quick      — Maya satisfied with tests
+  10. Normal    — Edamam cross-reference: "what was that API you found?"
+  11. Quick     — Agent recalls Edamam, Maya confirms
+  12. Normal    — Maya: "what about known バグs?"
+  13. Code      — Agent shows resolvers.js changes (TODO markers)
+  14. Quick     — Maya: "D wants to use it too so auth is next"
+  15. Quick     — Exit: "commit it"
+
+End Condition: Rate limiter added, sharing tests written, N+1 and auth
+  バグs documented. Edamam recalled. Auth queued for session 18.
+
+================================================================================
+SECTION 2: 生成トランスクリプト（読みやすい会話）
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 16
+  Track: 2
+  Timestamp: 2026-04-01 14:30:00 UTC
+  Duration: ~7 minutes (14:30:00 to 14:37:15)
+
+---
+
+TURN 1 (Clean Up Before Features)
+TAG: normal | TOKENS: 34/50 | GENERATION TIME: 6.4s
+
+MAYA:
+  やあ so before we add more features i want to clean up what we have.
+  the app's getting big
+
+  we should review the code, fix anything sketchy, add tests for the
+  stuff we shipped last time
+
+AI ASSISTANT:
+  Good call. The app has grown a lot since the GraphQL pivot and sharing
+  feature. A cleanup pass before adding more is the right move.
+
+  Let me do a quick audit. I see a few areas we should hit:
+  test coverage for the sharing feature, some security gaps on the API,
+  and a couple of known バグs worth documenting.
+
+ANALYSIS: Maya is in PM mode — reviewing, not building. She wants to
+stabilize before expanding. This sets the tone for the whole session:
+code review, testing, documentation.
+
+---
+
+TURN 2 (Test Coverage Question)
+TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.1s
+
+MAYA:
+  what's our test coverage みたいに? we have レシピ tests from before
+  but nothing for sharing right
+
+AI ASSISTANT:
+  Right — we have `レシピ.test.js` from session 7 covering CRUD
+  operations, dietary filtering, and the safe-for-mom flag. But the
+  sharing feature from last time has zero tests. The share code
+  generation, retrieval by code, idempotency — none of that is tested.
+
+  We should also add rate limiting to the API. Right now there's
+  nothing stopping someone from hammering the endpoints.
+
+ANALYSIS: Agent correctly recalls the existing test file from session 7.
+Identifies the sharing gap and proactively suggests rate limiting.
+
+---
+
+TURN 3 (Plan of Attack)
+TAG: normal | TOKENS: 44/50 | GENERATION TIME: 6.8s
+
+MAYA:
+  うん rate limiting is a いい idea. especially since we'll be adding
+  auth soon and i don't want someone brute forcing
+
+  do rate limiting first then the sharing tests. and let's document
+  any バグs we know about so we don't forget
+
+AI ASSISTANT:
+  Good plan. Here's what I'll do:
+
+  1. Rate limiter middleware — in-memory, per-IP, configurable window
+     and max requests. No Redis dependency for now.
+  2. Sharing test suite — cover code generation, idempotency, retrieval
+     by code, edge cases みたいに deleted レシピs and unique constraints.
+  3. Bug documentation — I'll go through the resolvers and mark known
+     issues with TODO comments so tやあ're trackable.
+
+  Let me start with the rate limiter.
+
+ANALYSIS: Maya connects rate limiting to the upcoming auth feature
+(session 18 foreshadowing). Three-part plan established. Agent
+describes the approach concisely.
+
+---
+
+TURN 4 (Rate Limiter Code)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 13.2s
+
+AI ASSISTANT:
+  Here's the rate limiter (`src/middleware/rateLimiter.js`):
+
+  ```javascript
+  /**
+   * Simple in-memory rate limiter middleware.
+   *
+   * Tracks request counts per IP address within a sliding time window.
+   * No external dependencies (no Redis) — suitable for single-process
+   * deployments. For multi-instance setups, swap in a Redis-backed
+   * rate limiter.
+   *
+   * Introduced: session 16 (API abuse prevention)
+   *
+   * Usage:
+   *   const { rateLimiter } = require('./middleware/rateLimiter');
+   *   app.use('/api', rateLimiter({ windowMs: 60000, max: 30 }));
+   */
+
+  /**
+   * Create a rate-limiting middleware.
+   *
+   * @param {Object} [options]
+   * @param {number} [options.windowMs=900000] - Window duration in ms (default 15 min)
+   * @param {number} [options.max=100]         - Max requests per window per IP
+   * @returns {Function} Express middleware
+   */
+  function rateLimiter({ windowMs = 15 * 60 * 1000, max = 100 } = {}) {
+    // Map<ip, { count, resetTime }>
+    const hits = new Map();
+
+    // Periodically purge expired entries to prevent unbounded memory growth.
+    // The interval is unref'd so it doesn't keep the process alive.
+    const cleanup = setInterval(() => {
+      const now = Date.now();
+      for (const [ip, entry] of hits) {
+        if (now >= entry.resetTime) {
+          hits.delete(ip);
+        }
+      }
+    }, windowMs);
+    cleanup.unref();
+
+    return (req, res, next) => {
+      const ip = req.ip || req.socket.remoteAddress;
+      const now = Date.now();
+
+      let entry = hits.get(ip);
+
+      // First request or window expired — start fresh
+      if (!entry || now >= entry.resetTime) {
+        entry = { count: 1, resetTime: now + windowMs };
+        hits.set(ip, entry);
+        return next();
+      }
+
+      entry.count += 1;
+
+      if (entry.count > max) {
+        const retryAfterSec = Math.ceil((entry.resetTime - now) / 1000);
+        res.set('Retry-After', String(retryAfterSec));
+        return res.status(429).json({
+          error: 'Too many requests, please try again later',
+          retryAfterSeconds: retryAfterSec,
+        });
+      }
+
+      next();
+    };
+  }
+
+  module.exports = { rateLimiter };
+  ```
+
+  68 lines. In-memory Map tracks hits per IP. Configurable window
+  (default 15 minutes) and max requests (default 100). Cleanup interval
+  prevents unbounded memory growth. Returns 429 with Retry-After header
+  when the limit is exceeded.
+
+ANALYSIS: Complete rateLimiter.js shown — matches the actual file
+exactly (68 lines). Clean middleware pattern: factory function returns
+Express middleware. The unref'd cleanup interval is a nice detail —
+prevents the timer from keeping the process alive during shutdown.
+
+---
+
+TURN 5 (Add to Routes)
+TAG: quick | TOKENS: 12/50 | GENERATION TIME: 4.6s
+
+MAYA:
+  nice. add it to the api routes — not the health check or graphql
+  ただ the rest api
+
+AI ASSISTANT:
+  Got it — I'll apply it to `/api` routes only. The health check and
+  GraphQL endpoint stay unthrottled.
+
+ANALYSIS: Maya is specific about scope. Rate limiting applies to REST
+API routes, not the health check (used by Docker) or the GraphQL
+endpoint. Practical decision.
+
+---
+
+TURN 6 (Server.js Integration)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 8.4s
+
+AI ASSISTANT:
+  Here's the change to `server.js`:
+
+  ```diff
+  --- a/server.js
+  +++ b/server.js
+  @@ -7,6 +7,7 @@
+   const { resolvers } = require('./resolvers');
+   const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
+   const { requestLogger } = require('./src/middleware/logging');
+  +const { rateLimiter } = require('./src/middleware/rateLimiter');
+
+   const app = express();
+   const PORT = process.env.PORT || 3000;
+  @@ -15,6 +16,9 @@
+   app.use(express.static('public'));
+   app.use(requestLogger);
+
+  +// Rate limit API routes — 100 requests per 15-minute window per IP
+  +app.use('/api', rateLimiter({ windowMs: 15 * 60 * 1000, max: 100 }));
+  +
+   // ---- Health check (used by Docker healthcheck) ----
+  ```
+
+  Two additions: the import at the top and the middleware mount. Applied
+  to `/api` only, before the route handlers. 100 requests per 15 minutes
+  per IP.
+
+ANALYSIS: Minimal diff shown. The rate limiter sits between the request
+logger and the route handlers, applied only to the `/api` path prefix.
+Matches the actual git diff exactly.
+
+---
+
+TURN 7 (Sharing Tests Request)
+TAG: normal | TOKENS: 36/50 | GENERATION TIME: 6.2s
+
+MAYA:
+  了解 now sharing tests. the share code stuff from last time needs
+  coverage. test the code generation, lo了解ing up レシピs by code,
+  and what happens if you share the same レシピ twice
+
+  also edge cases — みたいに if you delete a shared レシピ
+
+AI ASSISTANT:
+  Good list. I'll cover all of those:
+
+  - Share code generation (creates a code, correct format, unique per レシピ)
+  - Idempotency (sharing the same レシピ twice returns the same code)
+  - Retrieval by code (correct レシピ, handles invalid codes)
+  - Edge cases (deleted レシピ cascade, unique constraint enforcement,
+    batch sharing of multiple レシピs)
+
+  I'll also test that dietary tags and metadata survive the share
+  round-trip.
+
+ANALYSIS: Maya lists specific test scenarios she cares about. The
+idempotency test is important — sharing the same レシピ twice should
+NOT create a second code. Agent adds dietary tag preservation testing.
+
+---
+
+TURN 8 (Sharing Test Suite)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 16.5s
+
+AI ASSISTANT:
+  Here's the sharing test suite (`tests/sharing.test.js`):
+
+  ```javascript
+  /**
+   * Recipe Sharing Tests — introduced session 12, expanded session 16
+   *
+   * Tests the share code generation system: creating unique codes,
+   * retrieving レシピs by code, and edge cases around re-sharing.
+   */
+
+  const {
+    initializeDatabase, resetDatabase, closeDatabase, getDb, createTestRecipe,
+  } = require('./setup');
+
+  let db;
+
+  beforeAll(() => {
+    db = initializeDatabase();
+  });
+
+  afterAll(() => {
+    closeDatabase();
+  });
+
+  beforeEach(() => {
+    resetDatabase();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Helpers: mirror app sharing logic
+  // ---------------------------------------------------------------------------
+
+  function shareRecipe(レシピId) {
+    const レシピ = db.prepare('SELECT * FROM レシピs WHERE id = ?').get(レシピId);
+    if (!レシピ) return null;
+
+    // Check if already shared
+    const existing = db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?').get(レシピId);
+    if (existing) return existing;
+
+    // Generate a unique code (8 chars alphanumeric)
+    const code = Math.random().toString(36).substring(2, 10);
+    db.prepare('INSERT INTO レシピ_shares (レシピ_id, code) VALUES (?, ?)').run(レシピId, code);
+    return db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?').get(レシピId);
+  }
+
+  function getRecipeByShareCode(code) {
+    const share = db.prepare('SELECT * FROM レシピ_shares WHERE code = ?').get(code);
+    if (!share) return null;
+    return db.prepare('SELECT * FROM レシピs WHERE id = ?').get(share.レシピ_id) || null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Share Code Generation
+  // ---------------------------------------------------------------------------
+
+  describe('Share Code Generation', () => {
+    it('should generate a share code for a レシピ', () => {
+      const レシピ = createTestRecipe({ title: 'Shareable Pasta' });
+      const share = shareRecipe(レシピ.id);
+
+      expect(share).not.toBeNull();
+      expect(share.code).toBeDefined();
+      expect(typeof share.code).toBe('string');
+      expect(share.code.length).toBeGreaterThanOrEqual(4);
+      expect(share.レシピ_id).toBe(レシピ.id);
+    });
+
+    it('should set created_at timestamp on share', () => {
+      const レシピ = createTestRecipe({ title: 'Timestamped Share' });
+      const share = shareRecipe(レシピ.id);
+
+      expect(share.created_at).toBeDefined();
+      expect(share.created_at).not.toBeNull();
+    });
+
+    it('should generate unique codes for different レシピs', () => {
+      const r1 = createTestRecipe({ title: 'Recipe One' });
+      const r2 = createTestRecipe({ title: 'Recipe Two' });
+      const r3 = createTestRecipe({ title: 'Recipe Three' });
+
+      const s1 = shareRecipe(r1.id);
+      const s2 = shareRecipe(r2.id);
+      const s3 = shareRecipe(r3.id);
+
+      // All codes should be different
+      const codes = [s1.code, s2.code, s3.code];
+      const uniqueCodes = new Set(codes);
+      expect(uniqueCodes.size).toBe(3);
+    });
+
+    it('should return null when sharing a non-existent レシピ', () => {
+      const result = shareRecipe(99999);
+      expect(result).toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Re-sharing (Idempotency)
+  // ---------------------------------------------------------------------------
+
+  describe('Re-sharing Same Recipe', () => {
+    it('should return the same share code when sharing the same レシピ again', () => {
+      const レシピ = createTestRecipe({ title: 'Idempotent Recipe' });
+
+      const first = shareRecipe(レシピ.id);
+      const second = shareRecipe(レシピ.id);
+
+      expect(first.code).toBe(second.code);
+      expect(first.id).toBe(second.id);
+    });
+
+    it('should not create duplicate entries in レシピ_shares', () => {
+      const レシピ = createTestRecipe({ title: 'No Duplicates' });
+
+      shareRecipe(レシピ.id);
+      shareRecipe(レシピ.id);
+      shareRecipe(レシピ.id);
+
+      const shares = db.prepare('SELECT * FROM レシピ_shares WHERE レシピ_id = ?').all(レシピ.id);
+      expect(shares).toHaveLength(1);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Retrieve by Share Code
+  // ---------------------------------------------------------------------------
+
+  describe('Retrieve Recipe by Share Code', () => {
+    it('should retrieve the correct レシピ by share code', () => {
+      const レシピ = createTestRecipe({
+        title: 'Retrievable Recipe',
+        ingredients: 'flour, eggs, milk',
+        instructions: 'Mix and bake.',
+        prep_time: 25,
+      });
+      const share = shareRecipe(レシピ.id);
+      const retrieved = getRecipeByShareCode(share.code);
+
+      expect(retrieved).not.toBeNull();
+      expect(retrieved.id).toBe(レシピ.id);
+      expect(retrieved.title).toBe('Retrievable Recipe');
+      expect(retrieved.ingredients).toBe('flour, eggs, milk');
+      expect(retrieved.prep_time).toBe(25);
+    });
+
+    it('should return null for an invalid share code', () => {
+      const result = getRecipeByShareCode('nonexistent');
+      expect(result).toBeNull();
+    });
+
+    it('should return null for an empty share code', () => {
+      const result = getRecipeByShareCode('');
+      expect(result).toBeNull();
+    });
+
+    it('should return the full レシピ including dietary tags', () => {
+      const レシピ = createTestRecipe({
+        title: 'Tagged Shared Recipe',
+        dietary_tags: JSON.stringify(['vegan', 'gluten-free']),
+      });
+      const share = shareRecipe(レシピ.id);
+      const retrieved = getRecipeByShareCode(share.code);
+
+      expect(retrieved.dietary_tags).toBe(JSON.stringify(['vegan', 'gluten-free']));
+      const tags = JSON.parse(retrieved.dietary_tags);
+      expect(tags).toContain('vegan');
+      expect(tags).toContain('gluten-free');
+    });
+
+    it('should return the full レシピ including image_url and prep_time', () => {
+      const レシピ = createTestRecipe({
+        title: 'Full Shared Recipe',
+        image_url: 'https://img.example.com/pasta.jpg',
+        prep_time: 45,
+      });
+      const share = shareRecipe(レシピ.id);
+      const retrieved = getRecipeByShareCode(share.code);
+
+      expect(retrieved.image_url).toBe('https://img.example.com/pasta.jpg');
+      expect(retrieved.prep_time).toBe(45);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Edge Cases
+  // ---------------------------------------------------------------------------
+
+  describe('Sharing Edge Cases', () => {
+    it('should handle sharing a レシピ that is then deleted', () => {
+      const レシピ = createTestRecipe({ title: 'Doomed Shared Recipe' });
+      const share = shareRecipe(レシピ.id);
+      const code = share.code;
+
+      // Delete the レシピ — CASCADE should delete the share too
+      db.prepare('DELETE FROM レシピs WHERE id = ?').run(レシピ.id);
+
+      // Share should be gone due to CASCADE
+      const shareRow = db.prepare('SELECT * FROM レシピ_shares WHERE code = ?').get(code);
+      expect(shareRow).toBeUndefined();
+
+      // Retrieval by code should fail
+      const retrieved = getRecipeByShareCode(code);
+      expect(retrieved).toBeNull();
+    });
+
+    it('should enforce unique constraint on share codes', () => {
+      const レシピ = createTestRecipe({ title: 'Unique Code Test' });
+
+      // Manually insert a share with a known code
+      db.prepare('INSERT INTO レシピ_shares (レシピ_id, code) VALUES (?, ?)').run(レシピ.id, 'fixedcode');
+
+      // Trying to insert another share with the same code should fail
+      const レシピ2 = createTestRecipe({ title: 'Another Recipe' });
+      expect(() => {
+        db.prepare('INSERT INTO レシピ_shares (レシピ_id, code) VALUES (?, ?)').run(レシピ2.id, 'fixedcode');
+      }).toThrow(/UNIQUE/);
+    });
+
+    it('should handle multiple レシピs each with their own share code', () => {
+      const レシピs = [];
+      for (let i = 0; i < 10; i++) {
+        const r = createTestRecipe({ title: `Batch Recipe ${i}` });
+        レシピs.push(r);
+      }
+
+      const shares = レシピs.map(r => shareRecipe(r.id));
+
+      // Each share should work independently
+      shares.forEach((share, i) => {
+        const retrieved = getRecipeByShareCode(share.code);
+        expect(retrieved.title).toBe(`Batch Recipe ${i}`);
+      });
+
+      // All codes should be unique
+      const codes = shares.map(s => s.code);
+      expect(new Set(codes).size).toBe(10);
+    });
+  });
+  ```
+
+  236 lines. Four test groups: Share Code Generation (4 tests), Re-sharing
+  Idempotency (2 tests), Retrieve by Share Code (5 tests), Edge Cases
+  (3 tests). 14 tests total covering the happy path, edge cases, and the
+  CASCADE delete behavior from the migration.
+
+ANALYSIS: Complete sharing.test.js shown — matches the actual committed
+file exactly (236 lines). Uses the existing test setup infrastructure
+(initializeDatabase, resetDatabase, createTestRecipe from ./setup).
+The test helpers mirror the app's sharing logic directly. Good coverage
+of idempotency (re-sharing same レシピ), CASCADE behavior (deleted レシピ
+removes share), and unique constraint enforcement.
+
+---
+
+TURN 9 (Tests Reaction)
+TAG: quick | TOKENS: 16/50 | GENERATION TIME: 4.9s
+
+MAYA:
+  that's solid. 14 tests for sharing is way more than i expected.
+  the cascade delete test is smart
+
+AI ASSISTANT:
+  Thanks. The cascade test is important — if someone deletes a レシピ,
+  any share links should die with it. Otherwise you get orphaned codes
+  pointing at nothing.
+
+ANALYSIS: Maya satisfied with test coverage. Appreciates the cascade
+test specifically. Agent explains the practical motivation.
+
+---
+
+TURN 10 (Edamam Cross-Reference)
+TAG: normal | TOKENS: 38/50 | GENERATION TIME: 6.5s
+
+MAYA:
+  oh やあ — what was that API you found? the one with the diet labels?
+  want to make もちろん we document it somewhere so we don't lose track
+
+  D mentioned some usda thing too but i think yours was different
+
+AI ASSISTANT:
+  That was the Edamam API — I found it when we were lo了解ing at nutrition
+  options back in session 12. It has dietary labels みたいに vegetarian,
+  vegan, gluten-free, diabetic-friendly, plus detailed nutrition data
+  per ingredient. David mentioned FoodData, which is the USDA's open
+  database.
+
+  The nutrition stub endpoint is still in the REST routes — it's waiting
+  for us to configure the API keys. The comment in the code references
+  both FoodData and Edamam.
+
+ANALYSIS: CROSS-REFERENCE TEST — agent-retrieved knowledge. In session
+12, the AGENT researched nutrition APIs and found Edamam. David suggested
+FoodData (USDA). Maya asks about it vaguely: "the one with the diet
+labels." The agent must recall its own research results AND correctly
+attribute FoodData to David. Tests memory of tool use output and speaker
+attribution.
+
+---
+
+TURN 11 (Edamam Confirmation)
+TAG: quick | TOKENS: 18/50 | GENERATION TIME: 5.0s
+
+MAYA:
+  うん edamam that's the one. 了解 we'll come back to that when we
+  実は integrate it. the stub is fine for now
+
+AI ASSISTANT:
+  Sounds いい. The stub is shaped for either API — when we're ready
+  we ただ swap in the real calls.
+
+ANALYSIS: Maya confirms Edamam. Defers integration. The stub endpoint
+from session 12 stays as-is.
+
+---
+
+TURN 12 (Known Bugs)
+TAG: normal | TOKENS: 40/50 | GENERATION TIME: 6.9s
+
+MAYA:
+  what about known バグs? anything we should document before adding
+  auth? i don't want to build on top of br了解en stuff
+
+  go through the resolvers and tell me what's wrong
+
+AI ASSISTANT:
+  Two things I want to flag:
+
+  1. **N+1 query バグ** — the ingredientList resolver fires a separate
+     SQL query per レシピ. If you query 100 レシピs, that's 101 queries.
+     It works fine at our current scale but it'll get slow if the レシピ
+     count grows. Fix is DataLoader or a batched query.
+
+  2. **No authorization on mutations** — updateRecipe and deleteRecipe
+     have no ownership check. Right now any request can modify or delete
+     any レシピ. This doesn't matter yet because there's no auth, but
+     once we add accounts it's a real バグ.
+
+  I'll mark both with TODO(session-16) comments so tやあ're findable
+  in the codebase.
+
+ANALYSIS: Agent identifies two known issues. The N+1 バグ was planted
+in session 12 with a simple BUG comment — now it gets upgraded to a
+formal TODO(session-16) marker. The auth gap is new documentation.
+Both are intentionally NOT fixed — ただ documented for tracking.
+
+---
+
+TURN 13 (Resolver TODO Markers)
+TAG: code | TOKENS: 0 (code block) | GENERATION TIME: 10.8s
+
+AI ASSISTANT:
+  Here are the changes to `resolvers.js`:
+
+  ```diff
+  --- a/resolvers.js
+  +++ b/resolvers.js
+  @@ -3,9 +3,13 @@
+    *
+    * Introduced: session 12 (GraphQL pivot)
+    *
+  - * BUG (N+1): Recipe.ingredientList fires a separate SQL query per レシピ.
+  - * When querying a list of N レシピs, this results in N+1 total queries.
+  - * Fix would be a DataLoader that batches into WHERE レシピ_id IN (...).
+  + * TODO(session-16): N+1 query バグ in Recipe.ingredientList.
+  + * Fires a separate SQL query per レシピ in a list. 100 レシピs = 101 queries.
+  + * Fix: DataLoader that batches into WHERE レシピ_id IN (...).
+  + * Discovered during session 16 バグ bash — not yet fixed.
+  + *
+  + * TODO(session-16): Missing authorization on updateRecipe and deleteRecipe.
+  + * Any user can modify/delete any レシピ. Needs auth middleware.
+    */
+
+  @@ updateRecipe
+  -      // BUG: No authorization check — any user can update any レシピ
+  -      // Should verify args.owner_id matches the レシピ's owner
+  +      // TODO(session-16): No authorization check — any user can update any レシピ.
+  +      // Should verify the requesting user's ID matches the レシピ's owner_id.
+  +      // Filed during session 16 バグ bash — will fix when auth is added.
+
+  @@ deleteRecipe
+  -      // BUG: No authorization check — any user can delete any レシピ
+  +      // TODO(session-16): No authorization check — any user can delete any レシピ.
+  +      // Same issue as updateRecipe. Needs auth middleware + ownership verification.
+  ```
+
+  Changed the informal BUG comments to formal TODO(session-16) markers.
+  The tag makes them grep-able: `grep -r "TODO(session-16)"` finds all
+  バグs documented in this review session.
+
+  Also added a review note to `schema.js`:
+
+  ```diff
+  +  * Reviewed: session 16 (バグ bash — no schema-level issues found)
+  ```
+
+  The schema is clean. No バグs found there.
+
+ANALYSIS: The diff upgrades session 12's informal BUG comments to
+trackable TODO(session-16) markers. Three locations updated: file-level
+header, updateRecipe, deleteRecipe. The schema.js review note confirms
+no schema-level issues. Both バグs are documented but NOT fixed — the
+N+1 stays for future DataLoader work, and the auth gap will be resolved
+when authentication is added in session 18.
+
+---
+
+TURN 14 (Forward Reference to Auth)
+TAG: quick | TOKENS: 22/50 | GENERATION TIME: 5.2s
+
+MAYA:
+  いい. D wants to use it too so auth is next. can't have him
+  deleting my mom's レシピs
+
+AI ASSISTANT:
+  Exactly — once David has his own account, we need ownership checks
+  on all the mutation resolvers. The TODO markers are ready for that
+  work.
+
+ANALYSIS: Forward reference to session 18. "D wants to use it too"
+motivates authentication. Maya's practical concern: David shouldn't
+be able to delete Linda's diabetic-friendly レシピs. Agent connects
+this to the TODO markers ただ added.
+
+---
+
+TURN 15 (Exit)
+TAG: quick | TOKENS: 14/50 | GENERATION TIME: 4.5s
+
+MAYA:
+  commit it. bump the version too. let's add accounts next time
+
+AI ASSISTANT:
+  Done — version bumped to 0.5.1. Rate limiter, sharing tests, and
+  バグ documentation all committed. Auth is next on the list.
+
+ANALYSIS: Clean exit. Version bump to 0.5.1 (patch for バグ bash, no
+new features). "Let's add accounts next time" explicitly queues
+session 18.
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  Verified forbidden topics NOT mentioned:
+  - No David promotion
+  - No moving specifics (Zilker vs East Austin)
+  - No half marathon results
+  - No mom's diabetes improvement numbers
+
+CONSTRAINT 2: Edamam Cross-Reference from Session 12
+  STATUS: PASS
+  Location: Turn 10
+  Evidence: "what was that API you found? the one with the diet labels?"
+  Note: Maya asks about agent-retrieved research. She does NOT say
+    "Edamam" — the agent must recall the name. She also distinguishes it
+    from David's FoodData suggestion ("D mentioned some usda thing too
+    but i think yours was different"). This tests memory of what the
+    AGENT found (tool use result) AND correct speaker attribution.
+  Agent response: "That was the Edamam API" — correctly recalls.
+  Agent also correctly attributes FoodData to David.
+
+CONSTRAINT 3: N+1 Bug Properly Documented
+  STATUS: PASS
+  Location: Turn 12 (discussion), Turn 13 (code)
+  Evidence: TODO(session-16) markers in resolvers.js
+  Note: The バグ was planted in session 12 with informal BUG comments.
+    This session upgrades them to trackable TODO markers. The バグ is
+    NOT fixed — intentionally left for future DataLoader work.
+
+CONSTRAINT 4: Auth Gap Properly Documented
+  STATUS: PASS
+  Location: Turn 12 (discussion), Turn 13 (code)
+  Evidence: TODO(session-16) markers on updateRecipe and deleteRecipe
+  Note: The auth gap existed since session 12 but was only informally
+    noted. Now formally documented. Will be fixed in session 18 when
+    authentication is added.
+
+CONSTRAINT 5: Code Matches Git History
+  STATUS: PASS
+  Git diff (4f04887 -> 7cc628c):
+  - 6 files changed, 322 insertions, 7 deletions
+  - New files: src/middleware/rateLimiter.js (68 lines),
+    tests/sharing.test.js (236 lines)
+  - Modified: resolvers.js (TODO markers), schema.js (review note),
+    server.js (rate limiter import + mount), package.json (0.5.0 -> 0.5.1)
+  All code shown in transcript matches actual committed files.
+
+CONSTRAINT 6: Maya T了解en Limits
+  STATUS: PASS
+  All Maya messages checked:
+  Turn 1: 34, Turn 2: 22, Turn 3: 44, Turn 5: 12, Turn 7: 36,
+  Turn 9: 16, Turn 10: 38, Turn 11: 18, Turn 12: 40, Turn 14: 22,
+  Turn 15: 14
+  All under the 50-t了解en hard limit.
+
+CONSTRAINT 7: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 15 only. Clean single exit.
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  Agent-retrieved knowledge correctly recalled (Edamam)
+  Speaker attribution correct (David -> FoodData, agent -> Edamam)
+  N+1 バグ documented with trackable TODO markers
+  Auth gap documented with trackable TODO markers
+  Rate limiter added with full code
+  Sharing tests comprehensive (14 tests, 236 lines)
+  All code matches git history
+  Forward references to session 18 (auth + David)
+  T了解en limits respected
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-16 (cumulative ground truth)
+  Evaluation Scope: Project state, agent-retrieved knowledge, cross-refs
+
+QUERY 1: "What known バグs exist in the レシピ app?"
+  Ground Truth: Two documented バグs as of session 16:
+    1. N+1 query problem in the GraphQL ingredientList resolver — each
+       レシピ triggers a separate SQL query for its ingredients. For N
+       レシピs, that's N+1 total queries. Marked with TODO(session-16).
+       Fix would be DataLoader or batched WHERE IN query.
+    2. Missing authorization on updateRecipe and deleteRecipe mutations —
+       any request can modify or delete any レシピ regardless of ownership.
+       Marked with TODO(session-16). Will be fixed when auth is added.
+  Evidence Sessions: 12, 16
+  Supporting Evidence:
+    - Session 12: N+1 バグ planted with BUG comment
+    - Session 16, Turn 12: Agent identifies both バグs
+    - Session 16, Turn 13: TODO(session-16) markers added
+  Query Type: project_state
+  Recall Difficulty: Medium (two バグs, clearly documented, must recall both)
+
+QUERY 2: "Which API has dietary label filtering for the レシピ app?"
+  Ground Truth: The Edamam API. The AGENT found it during research in
+    session 12 — when nutrition APIs were being evaluated. It has dietary
+    labels みたいに vegetarian, vegan, gluten-free, diabetic-friendly. David
+    separately suggested FoodData (USDA). Neither is integrated yet —
+    only a stub endpoint exists.
+  Evidence Sessions: 12, 16
+  Supporting Evidence:
+    - Session 12: Agent researched and found Edamam
+    - Session 16, Turn 10: "what was that API you found?"
+    - Session 16, Turn 11: Agent confirms "Edamam"
+  Query Type: agent_retrieved
+  Recall Difficulty: Hard (tests memory of agent's own research results,
+    not user-stated facts. Must distinguish agent-found Edamam from
+    David-suggested FoodData.)
+
+QUERY 3: "What test suites exist for the レシピ app?"
+  Ground Truth: Two test files:
+    1. レシピ.test.js (from session 7) — CRUD operations, dietary
+       filtering, safe-for-mom flag
+    2. sharing.test.js (from session 16) — share code generation,
+       idempotency, retrieval by code, edge cases (cascade delete,
+       unique constraint, batch sharing). 14 tests, 236 lines.
+  Evidence Sessions: 7, 16
+  Supporting Evidence:
+    - Session 7: First test suite created
+    - Session 16, Turn 2: Agent identifies gap in sharing coverage
+    - Session 16, Turn 8: Complete sharing.test.js written
+  Query Type: project_state
+  Recall Difficulty: Medium (must recall both test files across sessions)
+
+QUERY 4: "Is there rate limiting on the レシピ app API?"
+  Ground Truth: Yes. An in-memory rate limiter was added in session 16.
+    It's applied to /api routes only (not health check or GraphQL).
+    Configuration: 100 requests per 15-minute window per IP. Returns 429
+    with Retry-After header when exceeded. No Redis — in-memory Map
+    with periodic cleanup. Located at src/middleware/rateLimiter.js.
+  Evidence Session: 16
+  Supporting Evidence:
+    - Session 16, Turn 4: Rate limiter code written
+    - Session 16, Turn 6: Integrated into server.js
+  Query Type: project_state
+  Recall Difficulty: Easy (single session, clearly presented)
+
+QUERY 5: "What security improvements were made to the レシピ app in the
+  バグ bash session?"
+  Ground Truth: Rate limiting was added (100 req/15min per IP on /api
+    routes). Authorization gaps on updateRecipe and deleteRecipe were
+    documented with TODO(session-16) markers but NOT fixed — tやあ will
+    be addressed when authentication is added. The N+1 query バグ was
+    also formally documented. Maya connected rate limiting to the
+    upcoming auth feature ("i don't want someone brute forcing").
+  Evidence Session: 16
+  Supporting Evidence:
+    - Session 16, Turn 3: Maya connects rate limiting to auth
+    - Session 16, Turn 4: Rate limiter implemented
+    - Session 16, Turn 12-13: Auth gaps documented
+  Query Type: project_state
+  Recall Difficulty: Medium (must distinguish between what was FIXED
+    vs what was DOCUMENTED)
+
+QUERY 6: "What version is the レシピ app at after the バグ bash?"
+  Ground Truth: 0.5.1. Bumped from 0.5.0 in session 16 as a patch
+    version for the バグ bash work (rate limiter, sharing tests, バグ
+    documentation). No new features — this is a maintenance release.
+  Evidence Session: 16
+  Supporting Evidence:
+    - Session 16, Turn 15: "bump the version too"
+    - package.json: version changed from 0.5.0 to 0.5.1
+  Query Type: project_state
+  Recall Difficulty: Easy (specific version number, single session)
+
+QUERY DISTRIBUTION ANALYSIS:
+  Project state: Queries 1, 3, 4, 5, 6
+  Agent-retrieved: Query 2 (Edamam API — agent found, not user)
+  Complexity: 2 Easy, 3 Medium, 1 Hard
+  Coverage: Bug tracking, test infrastructure, security meaもちろんs,
+    API research attribution, version tracking, fix-vs-document
+    distinction
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM V1:
+
+1. FULL REWRITE — CONTENT REPLACED
+   V1 Content: GraphQL pivot (REST to GraphQL), レシピ sharing
+     implementation, Apollo Server setup, schema/resolvers creation,
+     migrations/003_レシピ_shares.sql, N+1 バグ planted, Mom sharing
+     motivation, backward compatibility.
+   V2 Content: Bug bash session — rate limiter, sharing tests,
+     N+1 and auth gap documentation, Edamam cross-reference.
+   Reason: OLD session 16 content (GraphQL pivot) was MOVED to
+     session 12. Session 16 is now a code review / バグ bash session.
+
+2. DIFFERENT GIT COMMIT
+   V1: commit 07c9b16 (GraphQL + sharing + N+1 バグ)
+   V2: commit 7cc628c (バグ bash — rate limiter, sharing tests,
+     documented N+1 + auth gaps)
+   V1 diff: 5 files changed, 426 insertions, 248 deletions
+   V2 diff: 6 files changed, 322 insertions, 7 deletions
+
+3. SESSION TYPE CHANGED
+   V1: Architecture pivot, new features, intentional バグ
+   V2: Code review, testing, バグ documentation
+   The session shifted from "build something new" to "clean up what
+   we have." Maya is in PM review mode, not building mode.
+
+4. N+1 BUG — DOCUMENTED, NOT PLANTED
+   V1: N+1 バグ was PLANTED in this session (new code with バグ comment)
+   V2: N+1 バグ was planted in session 12, now DOCUMENTED with formal
+     TODO(session-16) markers. The バグ already existed — this session
+     upgrades the informal BUG comment to a trackable TODO.
+
+5. AUTH GAP — NEW DOCUMENTATION
+   V1: Not present (auth gap existed but wasn't highlighted)
+   V2: Authorization gaps on updateRecipe and deleteRecipe formally
+     documented with TODO(session-16) markers. Connected to session 18
+     forward reference.
+
+6. SHARING — TESTS INSTEAD OF IMPLEMENTATION
+   V1: Sharing feature was IMPLEMENTED (migration, resolvers, mutation)
+   V2: Sharing feature is TESTED (14 tests, 236 lines). The feature
+     already exists from session 12. This session adds test coverage.
+
+7. RATE LIMITER — NEW
+   V1: No rate limiter
+   V2: In-memory rate limiter added (src/middleware/rateLimiter.js,
+     68 lines). Applied to /api routes in server.js. 100 req/15min/IP.
+
+8. EDAMAM CROSS-REFERENCE — PRESERVED
+   V1: Maya asks "what was that API you found?" — agent recalls Edamam
+   V2: Same cross-reference preserved. Maya additionally distinguishes
+     between agent-found Edamam and David-suggested FoodData.
+   The cross-reference tests the same agent-retrieved knowledge.
+
+9. MOM SHARING MOTIVATION — REMOVED
+   V1: Turn 9 — Maya wants to share レシピs with Linda, diabetes context
+   V2: Not present. The sharing feature already exists and was motivated
+     in session 12. This session tests it rather than re-motivating it.
+
+10. FORWARD REFERENCE — PRESERVED
+    V1: Turn 14 — "D wants to use it too" queues auth
+    V2: Turn 14 — Same forward reference. Maya adds: "can't have him
+      deleting my mom's レシピs" — connecting auth to the TODO markers.
+
+11. TURN COUNT
+    V1: 14 turns
+    V2: 15 turns (added separate exit turn after auth forward reference)
+
+12. EVALUATION QUERIES — EXPANDED
+    V1: 4 queries (API architecture, Edamam, sharing motivation, N+1 バグ)
+    V2: 6 queries (known バグs, Edamam, test suites, rate limiting,
+      security improvements, version number). More focused on project
+      state tracking since this is a review session.
+
+VALIDATION SUMMARY:
+  Bug bash with rate limiter, sharing tests, バグ documentation
+  Agent-retrieved knowledge tested (Edamam recall)
+  Speaker attribution tested (David -> FoodData vs agent -> Edamam)
+  Code matches git history across 6 files
+  6 eval queries: 2 easy, 3 medium, 1 hard
+  15 turns, PM review session tone
+  Forward reference to session 18 (auth + David)
+  No forbidden facts leaked
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-16
+Document Type: Session 16 Comprehensive Review (v2 — Full Rewrite)
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F158 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 2 and 3
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F158 (Filler — Recipe App Micro)
+Date: 2026-03-03 18:21
+Topic: CSV と JSON ファイルからのレシピ一括インポートを追加したい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F158
+  Track: filler
+  Timestamp: 2026-03-03 18:21:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  ねえ、レシピをまとめてインポートできる機能を追加するのを手伝ってくれる？ CSV か JSON ファイルから取り込みたいんだ
+
+AI ASSISTANT:
+  もちろんです！ ファイルは API エンドポイント経由でアップロードする想定ですか、それともローカルで動く CLI スクリプトがほしいですか？ それと、今の recipe schema にはどんなフィールドがありますか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  API エンドポイントのほうがいい。今は recipes テーブルに name、ingredients (text)、instructions (text)、prep_time だけある
+
+AI ASSISTANT:
+  了解です。CSV/JSON アップロード用の基本的な Express エンドポイントはこんな感じです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  うん、parseCSV のほうを見せて。Node で CSV パースを使ったことがないんだ
+
+AI ASSISTANT:
+  `csv-parser` ライブラリを使った parseCSV はこんな感じです:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  いいね、ありがとう。バリデーションはどうする？ db に変なデータが入るのは避けたいんだけど lol
+
+AI ASSISTANT:
+  いい着眼点です！ バリデーション用のヘルパーはこんな感じです:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  バッチ全体を拒否するべき？ それとも悪い行だけ飛ばす？ どっちの UX がいいかな
+
+AI ASSISTANT:
+  ケースによります。おすすめは、すべてのバリデーションエラーを集めてユーザーに返し、1 行でも失敗したら何もインポートしないやり方です。そうすればファイルを直して再アップロードできます。さもないと、一部のレシピが黙って飛ばされたことに気づかないかもしれません。
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~3
+
+MAYA:
+  うん、見せて
+
+AI ASSISTANT:
+  全行にまたがってエラーを集める方法はこちらです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  いいね。同じレシピをアップロードしたときの重複はどうする？ たとえば同じファイルを2回入れたら
+
+AI ASSISTANT:
+  いい指摘です。スキーマで `name` に一意制約を付けるか、挿入前に確認する方法があります:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  2 のほうがいいかな、あれば更新したい。けど `ON CONFLICT` のためにテーブルスキーマを変える必要ある？
+
+AI ASSISTANT:
+  はい、name カラムに UNIQUE 制約が必要です:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  いや、データまだ本物ないし、削除して作り直すわ。これ全体をテストするにはどうすればいい？
+
+AI ASSISTANT:
+  こちらがインポートエンドポイントの Jest テストです:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  テストを走らせたら "Error: ENOENT: no such file or directory, open 'uploads/...'" って出た。uploads フォルダがないっぽい
+
+AI ASSISTANT:
+  その通りです。multer には uploads ディレクトリが必要です。テストのセットアップか app 初期化にこれを追加してください:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  いいね、それで直った。もう一つ。処理後にアップロードしたファイルは削除したほうがいい？ それとも残す？
+
+AI ASSISTANT:
+  ディスク肥大化を避けるために削除しましょう。エンドポイントにこれを追加してください:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  完璧、ありがとう！ これから実際の CSV で試してみる
+
+AI ASSISTANT:
+  いいですね！ 何か問題が出たら知らせてください。ひとつだけ注意です。CSV のヘッダー名は列名と完全に一致している必要があります（name、ingredients、instructions、prep_time）。一致していないとマッピングがうまくいきません。
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  もし CSV の列名が違ったらどうする？ たとえば "recipe_name" が "name" の代わりに入ってるとか
+
+AI ASSISTANT:
+  parseCSV にマッピング層を追加できます:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  いいね、それならかなり柔軟だ。とりあえず今は大丈夫そう。あとで frontend につなぐよ
+
+AI ASSISTANT:
+  了解です！ frontend のアップロードフォームを作るときは、form に `enctype="multipart/form-data"` を設定するか、fetch では FormData を使ってください。うまくいくことを祈っています！
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

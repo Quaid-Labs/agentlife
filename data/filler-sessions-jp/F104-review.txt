@@ -1,0 +1,116 @@
+================================================================================
+FILLER SESSION F104 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F104 (Filler — Recipe App Micro)
+Date: 2026-03-30 10:22
+Topic: recipe の画像アップロードをどう扱う？
+Turn Count: 9
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F104
+  Track: filler
+  Timestamp: 2026-03-30 10:22:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  recipe の画像アップロードってどう扱えばいい？
+
+AI ASSISTANT:
+  Express ならファイルアップロードに `multer` を使います。基本のセットアップはこちらです:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  うん。あと、それが本当に image かどうかはどう検証するの？
+
+AI ASSISTANT:
+  multer の config に file filter を追加します:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  いいね。path を sqlite に保存するべき？ それとも actual image blob？
+
+AI ASSISTANT:
+  SQLite には **path** を保存して、ファイル自体はディスクに置く方がいいです。かなり効率的です。
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  なるほど。クライアントに画像を返すときはどうする？
+
+AI ASSISTANT:
+  Express で静的ファイルを配信します:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  lol、アップロードしようとすると ENOENT が出る。ディレクトリが存在しないっぽい
+
+AI ASSISTANT:
+  Multer はディレクトリを自動作成しません。起動時にこれを追加してください:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  いいね、直った。これどうテストすればいい？ file upload の mock は面倒そう
+
+AI ASSISTANT:
+  `supertest` で buffer upload を使います:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  完璧。最後に、duplicate filename は気にするべき？ multer が面倒見てくれる？
+
+AI ASSISTANT:
+  multer はデフォルトでランダムな名前（たとえば `3f2a1b4c5d6e7f8g`）を作るので、衝突はしません。ただし拡張子は付きません。
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  最高、それが欲しかったんだ thx
+
+AI ASSISTANT:
+  いいですね！ recipe app がかなり形になってきました。画像、auth、SQLite と、なかなか solid な構成です。upload で詰まったらまた言ってください。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

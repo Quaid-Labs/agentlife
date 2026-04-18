@@ -1,0 +1,204 @@
+================================================================================
+FILLER SESSION F137 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 11 and 12
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F137 (Filler — Work Session)
+Date: 2026-03-22 18:44
+Topic: チームの新しいエンジニア向けのオンボーディングガイドを作りたい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F137
+  Track: filler
+  Timestamp: 2026-03-22 18:44:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  ねえ、新しいエンジニア向けのオンボーディングガイドを書きたいんだけど、同じことを何度も聞かれるから、参照できるものが欲しいんだ
+
+AI ASSISTANT:
+  もちろんです！ まず基本からいきましょう。新しいエンジニアが最初の1週間でいちばんよく聞く質問は何ですか？ それと、使っているスタックと主要なプロダクト領域は何ですか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  だいたい「ステージング環境はどこ？」「どうやってデプロイするの？」「どのサービスを誰が持ってるの？」みたいなやつ。うちはReact/Node、Postgres、AWSでデプロイしてる。メインのプロダクトはマーケットプレイス基盤
+
+AI ASSISTANT:
+  了解です。環境構築、アーキテクチャ概要、デプロイ手順、チームと担当範囲、助けを求める方法、のセクションに分けましょう。まずはよく聞かれるデプロイ手順から始めますか？
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  うん、それはいい出発点だね。デプロイ手順はかなり役に立つはず。うちはGitHub Actionsを使ってて、ちょっとわかりにくいんだよね
+
+AI ASSISTANT:
+  了解です。ではデプロイのセクションを下書きします:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  うん、それに近い。でも本番へのデプロイは継続的じゃなくて、実際は火曜と木曜だけなんだ。あと、ステージングはmainじゃなくてdevelopブランチから自動デプロイされる
+
+AI ASSISTANT:
+  ああ、そこは大事ですね。こちらに更新します:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  完璧。じゃあ「誰が何を持ってるか」のセクションは？ マイクロサービスが6個くらいあって、いつもわかりにくいんだ
+
+AI ASSISTANT:
+  サービス担当表を作りましょう。サービス名・何をするか・担当チーム/人、の形式で列挙してもらえますか？
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~31
+
+MAYA:
+  じゃあ、api-gateway（ルーティング担当、mayaがオーナー）、user-service（認証系、rachのチーム）、marketplace-service（出品/検索、davidのチーム）、payments-service（Stripe連携、paymentsチーム）、notifications-service（メール/SMS、maya）、analytics-service（データパイプライン、共有かな？）
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  うん、GitHubのリポジトリリンクも入れて。全部会社のorg配下にある、github.com/ourcompany/api-gateway みたいなやつ。それとpaymentsのオンコール情報も追加して、あそこはローテーションがあるから
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  うん。次はローカルセットアップのセクションも入れられる？ 全部どうやって動かすか、みたいなやつ。Docker Composeを使ってる
+
+AI ASSISTANT:
+  もちろんです！ 基本の流れは何ですか？ リポジトリをクローンして、依存関係を入れて、docker-compose up を実行する感じですか？ それと、設定すべき環境変数や、ローカルで起動しておく必要があるサービスはありますか？
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~30
+
+MAYA:
+  うん、基本的にはリポジトリをクローンして、.env.example を .env にコピーして、いくつかAPIキーを入れて（1PasswordのVaultがある）、それから docker-compose up。PostgresとRedisはDockerで動かす
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いい感じだけど、Dockerが起動したあとにマイグレーションを走らせる必要があるって入れて。npm run migrate なんだ
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  完璧。他に何を入れるべき？ アーキテクチャ概要とかかな？
+
+AI ASSISTANT:
+  そうですね、アーキテクチャ概要はあると役立ちます。リクエストがどのように各サービスを流れるかを、簡単な図や説明で示しましょう。たとえば「user → api-gateway → marketplace-service → database」みたいな感じです。
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~32
+
+MAYA:
+  うん、まさにそれ。フロントエンドがapi-gatewayを叩いて、gatewayが適切なサービスにルーティングして、サービス同士がPostgresやRedisとやり取りする。いくつかのサービスは相互にも呼び合う。paymentsはアカウント確認のためにuser-serviceを呼ぶ
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  うん、それでいい。ただ1つ、実際はPostgresを共有してなくて、各サービスごとにDBがある。それとRedis pubsubじゃなくてRabbitMQを使ってる
+
+AI ASSISTANT:
+  ああ、そこは重要な違いです。更新します:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  うん、完璧。最後のセクションとして、「助けを求める方法」ってやつにSlackチャンネルとかを入れてくれる？
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  ううん、それで十分。全部を1つのドキュメントにまとめてくれる？ 共有したいんだ
+
+AI ASSISTANT:
+  # エンジニア向けオンボーディングガイド
+
+---
+
+TURN 16 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  すごくいい、ありがとう！ Wikiに載せてチームにも送るよ
+
+AI ASSISTANT:
+  いいですね！ 役に立ってよかったです。冒頭に「最終更新: 2026年3月」と入れておくと、今の情報だとわかりやすくなります。それと、新しい人がすぐ見つけられるように#engineeringにピン留めしておくのもいいかもしれません。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

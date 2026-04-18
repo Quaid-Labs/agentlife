@@ -1,0 +1,116 @@
+================================================================================
+FILLER SESSION F107 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F107 (Filler — Recipe App Micro)
+Date: 2026-04-22 15:05
+Topic: recipes エンドポイントにページネーションを追加したい
+Turn Count: 10
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F107
+  Track: filler
+  Timestamp: 2026-04-22 15:05:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  recipes エンドポイントに pagination を入れるにはどうしたらいい？ recipe が 200 件以上になってきて、少し遅くなってる
+
+AI ASSISTANT:
+  GET route に `limit` と `offset` の query params を追加してください:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  いいけど、frontend はどうやって次のページがあるってわかるの？
+
+AI ASSISTANT:
+  total count を返して、frontend がページ数を計算できるようにします:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  これを試したら、エンドポイントを叩いたときに "SQLITE_BUSY: database is locked" が出る lol
+
+AI ASSISTANT:
+  SQLite への並列クエリが原因です。直列実行に切り替えるか、DB 接続で WAL mode を有効にしてください:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  直った。次は `?category=breakfast&difficulty=easy` みたいな filter を追加したい
+
+AI ASSISTANT:
+  WHERE 句を動的に組み立てます:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  これ、かなり messy に感じる。もっときれいなクエリの組み方ある？
+
+AI ASSISTANT:
+  あります。Knex みたいな query builder を使うといいです:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  そもそも今の実装で SQL injection を心配すべき？
+
+AI ASSISTANT:
+  `?` プレースホルダを使っている今のコードは安全です。ただし、文字列連結を始めたら危険になります:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  わかった。最後に、この pagination のテストはどう書けばいい？
+
+AI ASSISTANT:
+  test database を使って supertest で書きます:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  ありがとう。今のうちに追加しておくね、忘れそうだから
+
+AI ASSISTANT:
+  いいですね！ テスト同士が干渉しないように、`afterEach` で test db を消すのを忘れずに。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

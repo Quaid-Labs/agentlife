@@ -1,0 +1,105 @@
+================================================================================
+FILLER SESSION F099 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F099 (Filler — Recipe App Micro)
+Date: 2026-03-09 14:07
+Topic: Jest で async 関数のテストをどう書くの？
+Turn Count: 8
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F099
+  Track: filler
+  Timestamp: 2026-03-09 14:07:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  Jest で async 関数のテストってどう書くの？
+
+AI ASSISTANT:
+  async/await を使うか、Promise を return する必要があります。両方の方法はこちらです:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  了解。こんなエラーが出るんだけど: "Cannot find module 'sqlite3'"
+
+AI ASSISTANT:
+  sqlite3 を dev dependency として入れる必要があります:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  いや、package.json にはもうあるんだよね。`"sqlite3": "^5.1.6"` って書いてある
+
+AI ASSISTANT:
+  `node_modules` を消して入れ直してみてください:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  それで動いた lol。今度はテスト実行時に "database is locked" が出てる
+
+AI ASSISTANT:
+  テストごとに DB 接続を閉じていない可能性があります。テストファイルにこれを追加してください:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  テストには in-memory db を使った方がいい？
+
+AI ASSISTANT:
+  うん、そっちの方がずっといいです。テスト時の db 接続をこう変えてください:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  完璧。もう一つ、missing recipe のときに route が 404 を返すかどうかをテストしたいんだけど
+
+AI ASSISTANT:
+  Express の route をテストするなら supertest を使います:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  ありがとう、D がこれを試すよ
+
+AI ASSISTANT:
+  どういたしまして。supertest で使えるように、app が express の app インスタンスを export していることだけ確認してください。つまずいたらまた言ってください。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F146 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 8 and 10
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F146 (Filler — Recipe App Micro)
+Date: 2026-03-17 16:16
+Topic: help me add a social features module with follows comments and likes
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F146
+  Track: filler
+  Timestamp: 2026-03-17 16:16:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ねえ、レシピアプリにソーシャル機能を追加するのを手伝ってくれる？ フォロー、コメント、レシピへのいいねみたいなやつ
+
+AI ASSISTANT:
+  もちろん！ まずはデータベーススキーマから始めよう。今使っている SQLite データベースに追加する感じでいい？ follows、comments、likes 用のテーブルが必要になる。先にスキーマを起こそうか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  うん、それでいい。派手なのはいらないから、シンプルにして
+
+AI ASSISTANT:
+  データベースに追加する基本スキーマはこんな感じ:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  うん、いい感じ。じゃあルートはどうする？ 新しく social.js を作るべき？ それとも既存の routes に足す？
+
+AI ASSISTANT:
+  きれいに分けるなら、新しく `routes/social.js` を作るのがいいと思う。スターターはこんな感じ:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  うん、それ追加して。あと、何か auth チェックの middleware も入れたほうがいい？
+
+AI ASSISTANT:
+  その判断は正しい。auth を前提にした残りのルートはこんな感じ:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  別にまだ入れてないｗ いつも認証なしで試してた。JWT とか追加したほうがいい？
+
+AI ASSISTANT:
+  それなら JWT が向いてる。シンプルな auth middleware はこんな感じ:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  いいね。これらのルートってどうテストするの？ jest のテストを書けばいい？
+
+AI ASSISTANT:
+  うん、social ルート用のテストセットアップはこんな感じ:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  じゃあテスト回したら、こう出た: "TypeError: Cannot read properties of undefined (reading 'id')"
+
+AI ASSISTANT:
+  たぶん `req.user` が undefined なんだろう。JWT middleware が実行されてないのかも。ルートに middleware を追加した？ こんな感じになってるはず:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  それで直ったけど、今度は "SQLITE_CONSTRAINT: UNIQUE constraint failed: follows.follower_id, follows.following_id" が出る
+
+AI ASSISTANT:
+  それは同じユーザーを二回フォローしようとしてるからだね。テストが複数回走っているか、クリーンアップしてないのかもしれない。これを追加して、テスト間でリセットしよう:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  いいね、それで動いた。じゃあ、ある人が誰をフォローしてるかの一覧を取るには？ GET ルートが必要だよね
+
+AI ASSISTANT:
+  フォロー中の一覧を取得するルートはこんな感じ:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  いや、公開でいいよ。じゃあレシピのコメントといいねはどう取る？
+
+AI ASSISTANT:
+  コメントといいねを取得するルートはこんな感じ:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いいね。これらの外部キーにインデックス追加したほうがいい？ データが増えたら遅くなりそう
+
+AI ASSISTANT:
+  もちろん、いい考えだ。これらのインデックスを追加しよう:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  追加した。よし最後に、フォローしてる人のレシピを表示するにはどうする？ フィードみたいなやつ
+
+AI ASSISTANT:
+  フォロー中ユーザーのレシピを表示するフィードルートはこんな感じ:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  うん、自分のレシピもフィードに含めたほうがよさそう
+
+AI ASSISTANT:
+  フィードに自分のレシピも含めるように更新した:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  完璧。ちょっと試してくる
+
+AI ASSISTANT:
+  了解。問題があったら教えて。試している間に、こんなテストケースも追加できるよ:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  テスト通った！ かなりいい感じだね。今のところは大丈夫。ありがと D
+
+AI ASSISTANT:
+  いい進み具合だね！ これでフォロー、コメント、いいね、フィードのソーシャル層はできた。次に広げるなら、新しいコメントやいいねの通知を追加したり、レシピの共有を可能にするのもいいよ。残りのアプリも楽しんで！
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

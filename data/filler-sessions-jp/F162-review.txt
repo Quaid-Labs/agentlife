@@ -1,0 +1,204 @@
+================================================================================
+FILLER SESSION F162 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 6 and 7
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F162 (Filler — Recipe App Micro)
+Date: 2026-03-14 09:55
+Topic: 店の売り場ごとにまとめる買い物リスト最適化を追加してほしい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F162
+  Track: filler
+  Timestamp: 2026-03-14 09:55:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ねえ、買い物リストのアイテムを店の売り場ごとにまとめる機能を追加してくれる？ たとえば青果、乳製品みたいに
+
+AI ASSISTANT:
+  もちろんです！ 買い物リストに売り場のグループ化を追加できます。必要になるのは:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  うん、助かる。どの売り場を使えばいい？
+
+AI ASSISTANT:
+  一般的な売り場構成として、よくあるエリアはこんな感じです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  うん、自動判定がいいけど、ユーザーが上書きもできるようにしたい
+
+AI ASSISTANT:
+  了解です。こちらが、自動判定と手動上書き付きの更新済み材料エンドポイントです:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  いや、今はそこまでで大丈夫。グループ化ロジックのテストを書いてくれる？
+
+AI ASSISTANT:
+  こちらが買い物リストのグループ化テストです:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  ありがとう。ところで母が最近糖尿病って診断されて、栄養トラッキングを追加しようかなって考えてる。どう思う？
+
+AI ASSISTANT:
+  それは大変でしたね、お母さまのこと。栄養トラッキングは糖尿病の管理にかなり役立ちます。特に炭水化物の把握に向いています。
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  そうだね、USDA API はよさそう。無料なの？
+
+AI ASSISTANT:
+  はい、USDA FoodData Central API は完全に無料です。APIキーは必要ですが、それも無料です。
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  いいね。材料作成時に USDA を検索するエンドポイントを追加してくれる？
+
+AI ASSISTANT:
+  もちろんです！ USDA を検索する材料エンドポイントはこちらです:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  いいけど、テストするとこんなエラーが出る: TypeError: Cannot read property 'value' of undefined
+
+AI ASSISTANT:
+  ああ、それは栄養素の参照が失敗しています。USDA のデータ構造は食品タイプによって違うんです。より安全な版はこちらです:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  なるほど、それなら納得。APIをずっと叩かないように、USDA の結果をキャッシュしたほうがいい？
+
+AI ASSISTANT:
+  もちろんです。こちらのシンプルなキャッシュテーブルを使えます:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  了解。レシピの栄養エンドポイントに食物繊維と糖分も追加できる？
+
+AI ASSISTANT:
+  はい、クエリを更新するだけで大丈夫です:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  うん、マイグレーション送って
+
+AI ASSISTANT:
+  どうぞ:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  いいね。ところで糖尿病向けのネット炭水化物の式って何？ リンダが食物繊維のことを言ってたんだけど
+
+AI ASSISTANT:
+  はい！ 糖尿病管理では、ネット炭水化物 = 総炭水化物 - 食物繊維 です。食物繊維は血糖をそれほど上げません。
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  それだ、まさに母に必要なやつだ。レシピを最大ネット炭水化物で絞り込める？
+
+AI ASSISTANT:
+  はい！ こちらが絞り込み付きのレシピ検索エンドポイントです:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  すごい。もう1つ、ネット炭水化物が1食あたり30未満ならレシピを「糖尿病向け」にタグ付けできる？
+
+AI ASSISTANT:
+  もちろんです。計算済みプロパティにする方法も、タグとして保存する方法もあります。こちらに両方あります:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  今は計算済みでいいや。DB作業が少なくて済むし笑
+
+AI ASSISTANT:
+  はは、わかります！ では、すっきりした計算済み版はこちらです:
+
+---
+
+TURN 16 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  うん、それで十分。今週末に母と一緒に試してみるよ。ありがとう！
+
+AI ASSISTANT:
+  いいですね！ リンダの管理に役立つことを願っています。ネット炭水化物の記録があれば、献立作りがずっと楽になるはずです。
+
+================================================================================
+---
+
+END OF FILLER SESSION
+================================================================================

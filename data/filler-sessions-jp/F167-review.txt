@@ -1,0 +1,191 @@
+================================================================================
+FILLER SESSION F167 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 11 and 12
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F167 (Filler — Recipe App Micro)
+Date: 2026-03-22 13:31
+Topic: すべてのレシピ項目にまたがる全文検索とハイライトを追加したい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F167
+  Track: filler
+  Timestamp: 2026-03-22 13:31:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ねえ、レシピアプリに検索を追加するのを手伝ってくれる？ 名前、材料、手順……要するに全部を検索したい
+
+AI ASSISTANT:
+  もちろんです！ SQLite の全文検索には FTS5 を使います。まず、recipes を写す仮想テーブルを作りましょう:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  うん、で、実際にどうやって検索するの？笑
+
+AI ASSISTANT:
+  基本的な検索エンドポイントはこんな感じです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  なるほど。でも、どうやってハイライトを出すの？ どこが一致したか表示したいんだけど
+
+AI ASSISTANT:
+  `highlight()` 関数を使います:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  あ、じゃあ同期用のトリガーも作る必要があるんだよね？ それがないと fts テーブルが更新されない
+
+AI ASSISTANT:
+  その通りです！ この 3 つのトリガーを追加してください:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  了解。複数語の検索クエリはどうなる？ たとえば "chicken pasta" みたいなやつ
+
+AI ASSISTANT:
+  FTS5 は既定で AND として自動的に処理します:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  "1 cup flour" みたいに数字が入る検索はどう？ それで壊れたりしない？
+
+AI ASSISTANT:
+  いい指摘です！ 数字は問題なく使えますが、FTS5 の特殊演算子はサニタイズしたほうがいいです。ヘルパーはこんな感じです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  なるほど。どうやってテストするの？ Jest の例ある？
+
+AI ASSISTANT:
+  テストスイートはこんな感じです:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  FTS テーブルを作ろうとするとエラーになるんだけど: "no such column: recipes.id"
+
+AI ASSISTANT:
+  FTS テーブルは recipes テーブルの後に作成する必要があります。マイグレーションの順番を確認してください:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  ああ、それだった。今は検索できるけど、ハイライトがレスポンス内で <mark> をそのまま文字として出してる
+
+AI ASSISTANT:
+  それは想定どおりです！ API は `<mark>` タグをプレーンテキストとして返します。フロントエンド側で HTML として描画する必要があります:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  正直、dangerouslySetInnerHTML はあまり好きじゃないな。別のやり方はある？
+
+AI ASSISTANT:
+  ええ、位置情報を返す形にできます:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  snippet のやつ、見た目はきれいだね。64 って何？
+
+AI ASSISTANT:
+  `snippet()` の引数はこうです:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  いいね。あとひとつ、特定の項目に重みを付けられる？ たとえば名前への一致は手順より高くしたい
+
+AI ASSISTANT:
+  はい。FTS5 テーブルに列の重みを付けられます:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  ちょっと待って、columnsize=0 って何？
+
+AI ASSISTANT:
+  `columnsize=0` は列サイズの保存を無効にするので、容量は節約できますが `highlight()` は壊れます。`highlight()` を使うなら、**設定しないでください**:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  なるほど。かなりうまく動いてる！ 最後にひとつ、空の検索クエリはどう扱えばいい？ そのまま全部返すべき？
+
+AI ASSISTANT:
+  全部返すのはやめましょう。遅いし役に立ちません。何も返さないか、最近のレシピや人気レシピを表示するのがいいです:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  了解、最近のレシピにする。ありがとう！
+
+AI ASSISTANT:
+  いいですね！ 検索はかなり整いました。簡単にまとめると:
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

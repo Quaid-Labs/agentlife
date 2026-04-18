@@ -1,0 +1,94 @@
+================================================================================
+FILLER SESSION F098 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F098 (Filler — Recipe App Micro)
+Date: 2026-03-07 10:28
+Topic: grocery list に重複した材料が表示される
+Turn Count: 8
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F098
+  Track: filler
+  Timestamp: 2026-03-07 10:28:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  ねえ、grocery list に重複が出てるんだけど... たとえば「卵 2 個」と「卵 3 個」が両方出てくる。集約ロジック見てくれる？
+
+AI ASSISTANT:
+  grocery list の集約処理を見ます。複数レシピの材料をまとめているコードを見せてもらえますか？ grocery list の route か helper 関数にありそうです。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  うん、これが route。かなり基本的なやつだよ
+
+AI ASSISTANT:
+  見つけました。まだ集約していません。ただ raw の材料を返しているだけです。修正はこちらです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  あー、なるほど。でもレシピによって「cup」と「cups」が混ざってたら？ また重複しちゃうよね
+
+AI ASSISTANT:
+  いい指摘です。まとめる前に unit を正規化する必要があります。こういう helper を追加してください:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ちょっと待って。レシピを保存するときに正規化すべき？ それともリストを生成するとき？ 古いデータを再処理したくないんだよね
+
+AI ASSISTANT:
+  今のところは生成時で十分です:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  テストしたら動いたけど、「eggs-undefined」って出るｗ 単位がないレシピもあるっぽい
+
+AI ASSISTANT:
+  ああ、それなら unit がない場合を処理する必要があります:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  完璧、それで直った！ D に後で壊されないように、この前にテストも足しておくわ lol
+
+AI ASSISTANT:
+  いい判断です lol。スターターテストはこちらです:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

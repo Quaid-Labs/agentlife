@@ -1,0 +1,61 @@
+================================================================================
+FILLER SESSION F022 — AgentLife Densification
+Category: A (Quick Question)
+Between Arc Sessions 10 and 11
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F022 (Filler — Quick Question)
+Date: 2026-03-20 20:08
+Topic: mac に cron ジョブを追加するにはどうすればいい
+Turn Count: 3
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F022
+  Track: filler
+  Timestamp: 2026-03-20 20:08:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  よお、Mac に cron ジョブを追加するにはどうすればいい？ スクリプトを毎日実行したいんだ
+
+AI ASSISTANT:
+  cron のスケジュールを編集するには `crontab -e` を使います。デフォルトでは vim で開きます。書式は `minute hour day month weekday command` です。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  なるほど、たとえば毎日 6 時に実行したいんだけど、スクリプトにはフルパスが必要？
+
+AI ASSISTANT:
+  ええ、cron ジョブでは必ずフルパスを使ってください。通常のシェル環境で動くわけではないからです。
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  完璧、助かった。まさに欲しかった答えだ
+
+AI ASSISTANT:
+  どういたしまして！ 明日の朝に動かなかったら知らせてくれれば、調べます 👍
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

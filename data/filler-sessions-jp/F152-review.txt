@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F152 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 15 and 16
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F152 (Filler — Recipe App Micro)
+Date: 2026-04-08 18:27
+Topic: レシピの計量単位に対する完全な国際化システムを追加したい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F152
+  Track: filler
+  Timestamp: 2026-04-08 18:27:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  レシピアプリの計量単位に i18n を追加する必要があるんだ。cups を ml に、fahrenheit を celsius に、みたいな感じ。どうするのが一番いい？
+
+AI ASSISTANT:
+  ユーザーごとの単位設定を持つ変換システムを追加しよう。`measurement_units` テーブルで変換を保存して、`preferred_units` フィールドを users に追加するのがいいと思う。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  DB テーブルのほうがよさそうだね。スキーマ見せてくれる？
+
+AI ASSISTANT:
+  スキーマはこんな感じ：
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~6
+
+MAYA:
+  うん、seed データも見せて
+
+AI ASSISTANT:
+  ```sql
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~5
+
+MAYA:
+  うん、ヘルパーも見てみたい
+
+AI ASSISTANT:
+  ```javascript
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  いいね。じゃあ、レシピを表示するときは実際にどう使うの？
+
+AI ASSISTANT:
+  レシピを取得する時に材料を変換する必要がある。やり方はこんな感じ：
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  なるほど、ingredients テーブルも更新が必要だね。マイグレーションはどんな感じ？
+
+AI ASSISTANT:
+  ```sql
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  ちょっと待って、"2 eggs" とか "1 onion" みたいに単位タイプがないものはどうするの？
+
+AI ASSISTANT:
+  いい指摘だね！ そういうものには `'count'` タイプを追加しよう：
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  なるほど。じゃあ、ユーザーが実際に設定できるようにするにはどうする？ エンドポイントが必要だよね
+
+AI ASSISTANT:
+  ```javascript
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  誰かが無効な unit を設定しようとしたらどうする？ たぶん検証したほうがいいよね
+
+AI ASSISTANT:
+  ```javascript
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  いいね。変換ロジックのテストも追加したほうがいい？
+
+AI ASSISTANT:
+  もちろん。テストスイートはこんな感じ：
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  テストを実行したらこんなエラーが出たんだけど：
+
+AI ASSISTANT:
+  テスト用データベースのセットアップが必要だね。テストヘルパーを作ろう：
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  よし、今はテストが通ってる。あとひとつ - 変換後の量をきれいに表示するにはどうしたらいい？ たとえば丸め処理とか
+
+AI ASSISTANT:
+  フォーマット用ヘルパーを追加しよう：
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  ああ、分数記号まで出るのはいいね。これって metric も対応してる？ それとも imperial だけ？
+
+AI ASSISTANT:
+  両方で動くよ！ 分数ロジックは cup/tbsp/tsp のみ（imperial）に適用されるけど、丸め処理はすべてに効く：
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  いや、フルスペルのほうで十分だよ。これでいいと思う！ 試してみるね
+
+AI ASSISTANT:
+  いいね！ 新しい材料については、レシピ作成エンドポイントで `unit_type` を受け取るようにするのも忘れずに：
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  やるよ、ありがとう！ こんなにきれいになるとは思わなかった
+
+AI ASSISTANT:
+  うん、DB ベースのやり方だとかなり柔軟だよ。あとから quarts, pints, liters みたいな単位を増やしたくなったら、`measurement_conversions` に行を追加して `VALID_UNITS` に入れるだけ。コード変更は不要だよ。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

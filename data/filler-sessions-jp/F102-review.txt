@@ -1,0 +1,105 @@
+================================================================================
+FILLER SESSION F102 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 1 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F102 (Filler — Recipe App Micro)
+Date: 2026-03-21 15:42
+Topic: mobile で CSS が壊れていてカードが重なっている
+Turn Count: 9
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F102
+  Track: filler
+  Timestamp: 2026-03-21 15:42:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  ねえ、mobile で CSS が壊れてる。recipe card が全部重なってるんだけど lol
+
+AI ASSISTANT:
+  card の style を見ます。スクリーンショットかページ名を教えてもらえますか？ CSS の media query を確認します。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  browse recipes ページだよ。iPhone で起きてて、card が変なふうに積まれて、画像の上にテキストが重なる
+
+AI ASSISTANT:
+  見つけました。`.recipe-card` に mobile 向けの flexbox 制約が足りません。こう直してみてください:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  だいぶ良くなったけど、card の画像がまだ大きすぎる。mobile で全然高さが足りてない感じ
+
+AI ASSISTANT:
+  画像には aspect-ratio の制御が必要です。image style を更新してください:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  完璧！ あと meal type の簡単な filter dropdown も付けてくれる？ breakfast/lunch/dinner みたいなやつ
+
+AI ASSISTANT:
+  もちろんです。browse page の HTML にこれを追加してください:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  ちょっと待って、api の db に meal_type まだないんだ。column 追加できる？
+
+AI ASSISTANT:
+  もちろん。migration file `migrations/003_add_meal_type.sql` を作成します:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  実行中... あれ、「SQLITE_ERROR: near "DEFAULT": syntax error」って出た
+
+AI ASSISTANT:
+  ああ、SQLite は `ALTER TABLE` の `DEFAULT` をサポートしていません。代わりにこれを使ってください:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  直った！ ありがと。今 filter を試してる
+
+AI ASSISTANT:
+  いいですね！ filter がちゃんと動くといいです。recipes が増えても index が速さを保ってくれるはずです。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F117 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 10 and 11
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F117 (Filler — Work Session)
+Date: 2026-03-20 08:48
+Topic: microservices への移行について技術ブログを書きたい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F117
+  Track: filler
+  Timestamp: 2026-03-20 08:48:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  microservices への移行についてのブログ記事を書きたいんだけど、eng blog 用に 1000 語くらい必要なんだ。手伝ってくれる？
+
+AI ASSISTANT:
+  もちろんです。まずアウトラインを作りましょう。technical deep dive、lessons learned、それとも広めの読者向けの high-level overview、どの方向にしたいですか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  lessons learned かな。PM でこういうカオスに向き合ってる人たちに役立つ感じにしたい lol
+
+AI ASSISTANT:
+  いいですね。移行中の最大の痛点は何でしたか？ たとえば、想定外だったことや計画と違った上位 3〜4 個を教えてください。
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  database 依存関係が本当にきつかった。想像以上だった。それと 6 チームをまたぐ coordination。rollback strategy が 2 回も救ってくれた
+
+AI ASSISTANT:
+  いい材料です。intro と最初の section を書きます:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  うん、それでいい。timeline を見誤った話も足して。もともとは 4 か月で終わるはずだったんだよね lol
+
+AI ASSISTANT:
+  追加しました:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  いいけど、あまり愚痴っぽくしないで。「ここでうまくいったこと」に寄せたいんだよね。毎週の sync meeting が実際に効いたし
+
+AI ASSISTANT:
+  **Cross-Team Coordination That Actually Worked**
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  いいね。rollback の話も入れて。12 月と 1 月に incident があって、そのたびに revert したんだ
+
+AI ASSISTANT:
+  **Build Rollback Into Everything (We Needed It Twice)**
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いいね。ほかに何を入れるべき？ tooling か monitoring あたりも必要な気がする
+
+AI ASSISTANT:
+  いい指摘です。monitoring は大きいですね。dashboards や alerting を作り直しましたか？ observability はどうでしたか。tracing や logging の設定は変えました？
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  そうそう、Datadog APM を入れて、デバッグの仕方が完全に変わった。前は grep logs するだけだったけど、今は request chain 全体が見える
+
+AI ASSISTANT:
+  **Observability: The Tax You Have to Pay**
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  lol 「the tax you have to pay」いいね。じゃあ締めの conclusion を、あまり気取らずに。何を次は違うやり方にするか、みたいな感じで
+
+AI ASSISTANT:
+  **What We'd Do Differently**
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  うん、全文送って。あとは私が調整する
+
+AI ASSISTANT:
+  こちらが全文の下書きです:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  かなりいいね。Marcus にレビューしてもらうために Google doc にできる？
+
+AI ASSISTANT:
+  直接 Google Doc は作れませんが、貼り付けやすいように markdown 形式にはできます。最後に Marcus 向けの discussion questions を付けることもできますが、そのままでいいですか？
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  いや、post だけで大丈夫。あ、metrics section は入れた方がいい？ deploy time の前後とか
+
+AI ASSISTANT:
+  いい考えです。metrics があると説得力が増します。migration 後に何が改善しましたか？ deploy が速くなった、uptime が上がった、team の velocity が上がった、などです。ざっくりした数字でも役立ちます。
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  deploy は平均 45 分から 8 分になった。incident は比較しづらいけど、time-to-recovery はかなり良くなった
+
+AI ASSISTANT:
+  それは完璧です。observability section の後ろにこう追加します:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  うん、送って
+
+AI ASSISTANT:
+  **What We Learned Migrating to Microservices: A PM's Perspective**
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  これいいね。Marcus に送って、どう思うか見てみるよ
+
+AI ASSISTANT:
+  いいですね！ セクションをもっと広げたいとか、修正したいところがあれば手伝います。投稿、うまくいくといいですね。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

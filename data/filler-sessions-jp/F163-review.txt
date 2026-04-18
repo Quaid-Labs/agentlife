@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F163 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 7 and 9
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F163 (Filler — Recipe App Micro)
+Date: 2026-03-15 21:40
+Topic: テストスイート全体をフィクスチャを正しく使う形にリファクタリングするのを手伝ってほしい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F163
+  Track: filler
+  Timestamp: 2026-03-15 21:40:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  ねえ、レシピアプリのテストをリファクタリングするのを手伝ってくれる？ 今はひどくて、フィクスチャなしでセットアップがあちこちにコピペされてるんだ
+
+AI ASSISTANT:
+  はい、手伝えます。今のテスト構成はどんな感じですか？ Jest を使っていますか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  うん、Jest。どのテストファイルも同じ DB セットアップコード、同じユーザー作成、同じレシピ挿入がある。1ファイルあたり30行くらい重複してる笑
+
+AI ASSISTANT:
+  了解です。再利用可能なセットアップ関数をまとめた `tests/fixtures.js` を作りましょう。まずはこんな形です:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  いいね。あと、クリーンアップはどうすればいい？ テストによってはDBの状態がおかしくなるんだよね
+
+AI ASSISTANT:
+  `beforeEach` と `afterEach` のフックを使ってください。テストファイルのリファクタ例はこちらです:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  なるほど、こっちのほうがすっきりするね。DB に特定の食事制限タグが入ったレシピみたいに、個別のテストデータが必要なときは？
+
+AI ASSISTANT:
+  よくあるシナリオごとに、フィクスチャ関数を追加してください:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  いいね。認証ミドルウェアのテストは？ モックの req/res オブジェクトが必要で、すごく冗長なんだよね
+
+AI ASSISTANT:
+  Express のオブジェクト用のモックヘルパーを作りましょう:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  かなり良くなってきた。今テストを回してる
+
+AI ASSISTANT:
+  いいですね。失敗が出たら教えてください。よくあるのは非同期クリーンアップの問題です。DB 操作をしているなら `beforeEach` と `afterEach` は必ず async にしてください。
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  うん、これが出てる: "Jest did not exit one second after the test run completed" 何かわかる？
+
+AI ASSISTANT:
+  それはたいてい、接続が閉じられていないという意味です。確認ポイントはいくつかあります:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  あ、サーバーインスタンスだ。統合テストで Express を起動して、閉じてなかった
+
+AI ASSISTANT:
+  それですね。サーバーのライフサイクル用のフィクスチャを作りましょう:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  完璧、それで直った。今は全部通るけど、めちゃ遅い。20テストで8秒くらいかかってる
+
+AI ASSISTANT:
+  20テストで8秒はきついですね。いくつか最適化案があります:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  たぶん半分くらいかな。残りは純粋関数とかミドルウェアのテストだし
+
+AI ASSISTANT:
+  それなら分けましょう:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  なるほど。最後に、食事制限フィルタのエンドポイントをちゃんとテストするには？ タグが違うレシピを10個くらい用意する必要があって
+
+AI ASSISTANT:
+  以前の `createRecipeSet` を使ってください:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  待って、AND ロジックのテストが失敗してる。結果が0件しか返ってこない
+
+AI ASSISTANT:
+  フィルタのロジックを確認してください。タグのパース方法を直す必要があるはずです。よくあるバグ:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  ああ、OR でやってたわ。今すぐ直す
+
+AI ASSISTANT:
+  いいですね。そのついでに部分一致にも注意してください。`'vegan'` が `'non-vegan'` に一致してしまってはいけません。`LIKE '%vegan%'` のやり方にはそのバグがあります。
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  直した、全部のテストが緑になった。前よりずっとすっきりしたよ、ありがとう
+
+AI ASSISTANT:
+  よかったです！ 最後に、きれいに保つためのヒントをいくつか挙げます:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  うん、もっとテスト増やすつもり。正直そこサボってた
+
+AI ASSISTANT:
+  誰でもあります。今はインフラが整ったので、新しいテストもずっと追加しやすいはずです。必要なら、カバレッジが70%を下回ったらコミットを止める pre-commit hook を入れるといいですよ。
+
+================================================================================
+---
+
+END OF FILLER SESSION
+================================================================================

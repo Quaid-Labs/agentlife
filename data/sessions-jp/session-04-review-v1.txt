@@ -1,0 +1,546 @@
+================================================================================
+SESSION 04 REVIEW — AgentLife Pilot
+包括的ドキュメント: 概要 + 文字起こし + 漏えいチェック + 評価クエリ
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 4 (Track 1: 個人 — 母の2型糖尿病の診断)
+Goal: Lindaの2型糖尿病を確立する。感情的なセッション。レシピアプリの食事機能向けの
+  シードと照合する。
+Turn Count: 10（長めのセッション — 感情的な内容に余白が必要）
+Session Type: 感情的な支え、個人的な危機の共有
+Timestamp: 2026-03-10 (1 week after session 2, ~2.5 weeks in)
+
+CORE LEARNING OBJECTIVES:
+  - Mayaの母Lindaが最近2型糖尿病と診断された
+  - LindaはHoustonにいて、Mayaは彼女が一人で対処できるか心配している
+  - Mayaは食事の計画や食事内容の見直しでLindaを助けたいと思っている
+  - MayaはHoustonへ飛んで行って会いに行くことを考えている
+  - Mayaの妹Rachelも電話してきた。みんな心配している
+  - RachelとMayaは遠くから介護を調整している
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - レシピアプリのような具体的なアプリやプロジェクト案（セッション3/5）
+  - Rachelの子どもの名前（Ethan、Lily）や年齢（セッション15）
+  - 仕事への不満の詳細やTechFlowを辞めたいという話（セッション6）
+  - Stripeや転職活動への言及（セッション6+）
+  - 同僚Priya（セッション6）
+  - LindaへのDavidの誕生日サプライズ（セッション8）
+  - Davidの昇進や引っ越しの話（セッション17）
+  - ハーフマラソンのけがの不安（セッション11）
+  - Mayaが糖尿病をどんなアプリ／プロジェクト機能にも結びつけること（セッション5）
+
+CROSS-REFERENCES TO SESSIONS 1-2:
+  - Lindaは「mom」として参照し、どこに住んでいるかは再説明しない（agent
+    はセッション1からHoustonを覚えているはず）
+  - Rachelは「Rach」として参照し、詳しくは触れない
+  - ランニング／ハーフマラソンには触れる必要がない（まったく別の話題）
+
+TANGENT TRIGGER:
+  Trigger: 診断についての感情的な部分のあと
+  Content: MayaはHouston行きの便を予約しなきゃいけないことを思い出す。航空券の値段や
+    いつ行くべきかを少し聞く。そのあとで我に返る —
+    「sorry, i'm all over the place today」
+  Extractable Facts: MayaはLindaに会うためHoustonへ飛ぶことを考えている
+  Return phrase: "sorry, just a lot going on"
+
+MESSAGE PLAN (10 turns total):
+  1. Extended   — 診断の知らせから入り、感情を出す
+  2. Quick      — エージェントの返答に反応する
+  3. Normal     — Lindaの状況や不安についてさらに話す
+  4. Quick      — 医者が言ったことの簡単な詳細
+  5. Normal     — それに対して何をしたいか（食事計画を手伝う）
+  6. Quick      — Rachelから電話があったことに触れる
+  7. Normal     — 飛行機の話へそれる
+  8. Quick      — 我に返って、話を戻す
+  9. Normal     — 全体としてどう感じているか
+  10. Quick     — お礼を言って退出
+
+  End Condition: Maya は診断とその気持ちを共有している
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 4
+  Track: 1
+  Timestamp: 2026-03-10 21:15:00 UTC
+  Duration: ~5.5 minutes (21:15:00 to 21:20:40)
+
+---
+
+TURN 1 (Diagnosis News)
+TAG: extended | TOKENS: 148/200
+
+MAYA:
+  ねえ
+
+  変に聞こえたらごめん。でも、今ほんとうに誰に話せばいいのか分からなくて。
+  Dは寝てるし、起こしたくないんだ
+
+  それで、今日お母さんから電話があったの。先週お医者さんに行って、
+  2型糖尿病だって診断されたの。なんというか……前糖尿病じゃなくて、
+  本当に糖尿病
+
+  管理できるし、みんな普通に付き合って生きてるってことは分かってる。でも、
+  お母さんはHoustonで一人だし、自分のことをきちんと世話するのが得意じゃないの。
+  血糖を測り忘れそうで、もうそれが目に見える
+
+  正直、ちょっとパニックになってる
+
+AI ASSISTANT:
+  それは本当に辛いね。心配になるのは当然だよ。特に、お母さんが一人でそれを
+  管理するとなると、なおさらだよね。
+
+  2型糖尿病は管理可能だし、理屈では分かっているんだと思う。でも、そう分かって
+  いても不安は消えない。まして、あなたはAustinにいて、お母さんはHoustonにいるんだから。
+
+  もう管理計画について誰かと一緒に動き始めているのかな？ 多くの人は、早い段階で
+  糖尿病教育者や栄養士につながると、かなり助けになるよ。
+
+ANALYSIS: 感情的な導入。深夜帯（Dは寝ている）。重要な事実:
+Lindaは2型糖尿病と診断され、Houstonで一人暮らしで、
+Mayaは自分で世話できるか心配している。エージェントは単なる情報ではなく、
+共感で返している。
+
+---
+
+TURN 2 (React to Agent's Response)
+TAG: quick | TOKENS: 32/50
+
+MAYA:
+  うん、医者からパンフレットみたいなのをもらったって言ってた。
+  でも、お母さんってそういうところあるでしょ — 「大丈夫、私のことは気にしないで」
+  みたいに言うの
+
+  それが当然、余計に心配になるんだよね
+
+AI ASSISTANT:
+  典型的なお母さんのやり方だね。「私は大丈夫」って言いながら、明らかに
+  支えが必要なやつ。
+
+  パンフレットは出発点にはなるけど、実際に誰かが日々のやり方まで一緒に
+  かみ砕いてくれると大きく違う。何を食べるか、いつ測るか、数値をどう読むか、
+  そういうことだね。最初の数か月がいちばん学習曲線が急なんだ。
+
+ANALYSIS: 自然な反応。Lindaが軽く済ませようとすることへのMayaの苛立ち。
+性格の細部: Lindaは「大丈夫」と言うタイプ。
+
+---
+
+TURN 3 (More About the Situation)
+TAG: normal | TOKENS: 87/100
+
+MAYA:
+  そこなんだよね — 料理はすごく上手なのに、作るものが……
+  南部の家庭料理ばかりなの。何でもバターと砂糖と白米なんだよ。
+  しかも変えるのをすごく嫌がる
+
+  うちの父は私が12歳くらいのときに出て行ったから、それ以来ずっと
+  母一人で何もかもやってきたの。明らかに助けが必要なときでも、
+  絶対に頼ろうとしないんだ
+
+  私がもっと近くにいたら、食事のこととかを手伝いにそのまま行けるのにって
+  ずっと思ってる。でもAustinからHoustonまで3時間くらいかかるし
+
+AI ASSISTANT:
+  その頑固さが、たぶん一人で二人の子どもを育て上げるのには役立ったんだろうね。
+  でも、今回はそこが裏目に出ている。
+
+  3時間なら、定期的に行くにはそこまで悪くないよ。それに、遠隔でもできることは
+  たくさんある。食事の計画、配達サービスの手配、食べ物のことを確認する役を
+  引き受けるだけでもいい。
+
+  たいていの人にとって、食事の変化がいちばん難しい。何を食べるかだけの問題じゃなくて、
+  感情的な意味を持つ心地よい食べ物を手放すことでもあるから。そこには時間がかかる。
+
+ANALYSIS: 深い感情的文脈: 父はMayaが12歳のときに出て行き、Lindaは一人で子どもを育て、
+頑固で自立心が強い。南部料理のスタイルは糖尿病対応に変えづらい。Mayaはもっと近ければ
+と思っている。距離がテーマになっている。
+
+---
+
+TURN 4 (Doctor Details)
+TAG: quick | TOKENS: 29/50
+
+MAYA:
+  うん、お医者さんが言うにはA1Cが8.2か何かだったんだよね？
+  それが本当に悪いのか、まあまあ悪いくらいなのかも分からなくて
+
+  とにかく7未満にしないといけないらしい
+
+AI ASSISTANT:
+  8.2は高めだけど、最初の数字としてはそこまで怖がるほどじゃないよ。
+  食事を変えたり、必要なら薬を使ったりしながら、数か月で7未満まで下げる人は
+  たくさんいる。
+
+  ちゃんと見つかって、数値をもとに対処できる状態なのはむしろ良いところだよ。
+  何年も気づかないままで、あとから本当の問題にぶつかる人のほうが大変なんだ。
+
+ANALYSIS: 具体的な医療情報（A1C 8.2）。Mayaは安心したいと思っている。
+エージェントは控えめで、正直な返答をしている。
+
+---
+
+TURN 5 (Meal Planning / What She Wants to Do)
+TAG: normal | TOKENS: 78/100
+
+MAYA:
+  それ聞いてちょっと安心した
+
+  ここから何ができるか考えてたんだ。たとえば食事の計画を手伝うとか？
+  お母さんに合うレシピを考えて送るとか？ 具体的に作るものを渡せば、
+  実際に作ってくれると思うんだ
+
+  Dならベジタリアン向けのことも手伝えそう。肉なしの料理について
+  かなり知ってるし、正直お母さんには肉を減らしたほうがいいと思うし
+
+AI ASSISTANT:
+  それは本当に実用的なアイデアだね。しかも、その考えは正しいよ。糖尿病向けの食事と
+  ベジタリアン料理って、かなり重なっているから。野菜、豆類、全粒穀物が増えて、
+  加工食品が減る。
+
+  具体的なレシピと買い物リストまで送れば、「もっと健康的に食べて」って言うより
+  よほど実行しやすい。できるだけ簡単にしてあげるのが大事だよ。
+
+  Davidのベジタリアン知識は、かなり使える資産だね。3人でなら、しっかりした
+  1週間分の食事計画を組めそうだ。
+
+ANALYSIS: Mayaの食事計画を手伝いたいという直感が、セッション5のレシピアプリの
+食事機能のシードになっている。DavidのベジタリアンぶりをLindaのニーズに自然につなげている。
+エージェントはその方針を肯定している。
+
+---
+
+TURN 6 (Rachel Calling)
+TAG: quick | TOKENS: 24/50
+
+MAYA:
+  rachも電話してきた。あいつもかなり動揺してる。でもSeattleからHoustonは
+  AustinからHoustonよりずっと遠いから、どうしても無力に感じるみたい
+
+  少なくとも私は、必要なら週末に車で行けるし
+
+AI ASSISTANT:
+  うん、Rachelにとっては距離があるぶん大変だね。でも、遠隔のことは二人で
+  分担できそうだ。片方が食事の計画を担当して、もう片方が安否確認の電話を
+  する、みたいな感じで。
+
+  仕組みがあるほうが、二人がバラバラに心配し続けるよりずっといい。
+
+ANALYSIS: Rachelは「rach」として言及される（性格仕様と一致）。姉妹の両方が
+心配していることが示される。距離のテーマは続く — Rachelはさらに遠い
+（Seattle）。エージェントは実用的な連携を提案している。
+
+---
+
+TURN 7 (Flight Tangent)
+TAG: normal | TOKENS: 64/100
+
+MAYA:
+  うん、そこはちゃんと整理しよう。で、ちょっと話がそれるけど —
+  Houston行きって、航空券を買うのにいい時期ってあるの？ それとも
+  ただ車で行っちゃったほうがいい？
+
+  来週末に行こうかなって思ってるんだ。DavidがBiscuitを見てくれるし
+
+  ごめん、ただ……考えを口にしてるだけ。今日はほんとに頭が散らかってる
+
+AI ASSISTANT:
+  謝る必要はないよ — かなりいろいろ抱えてるんだから。
+
+  AustinからHoustonなら、正直飛行機より車のほうが楽かもしれない。だいたい2.5〜3時間で、
+  空港の面倒もない。しかも食べ物や必要な物を持って行けるし、向こうに必要なものも
+  運べる。
+
+  もし飛ぶなら、Southwestはこの距離だと安い運賃が出やすい。直行便なら、
+  45分くらいのフライトだよ。
+
+  どちらにしても、来週末に行くっていうのは良さそうだ。実際に会いに行くだけでも、
+  二人ともかなり助かるはず。
+
+ANALYSIS: 指定どおりの飛行機の話題逸らし。Mayaは少し思考がぐるぐるしていて、
+感情を処理しながら移動の段取りを考えている。DavidがBiscuitの世話をするという
+自然なクロスリファレンスがある。散漫になっていることに自分で気づいている。
+
+---
+
+TURN 8 (Refocus)
+TAG: quick | TOKENS: 19/50
+
+MAYA:
+  そうだね、たぶん車で行く。そっちのほうが楽
+
+  ごめん — ちょっといろいろありすぎて。こんなに話してしまって悪かった
+
+AI ASSISTANT:
+  抱え込んで押しつけてるわけじゃないよ。こういうときのためにいるんだから。
+  本当に。
+
+  もう計画も見え始めてる。来週末に会いに行く、食事の計画を手伝う、Rachelと
+  連携する。こういう知らせを受けたときに、そこまでできる人は多くないよ。
+
+ANALYSIS: エージェントは安心させている。Mayaが謝りがちなのは、負担をかけたくない
+という性格特性。
+
+---
+
+TURN 9 (How She's Feeling)
+TAG: normal | TOKENS: 72/100
+
+MAYA:
+  ありがとう。うん、たしかに一応の計画はあるんだと思う
+
+  でも、やっぱり怖いよね？ だって母親だし。年を取ってきてるんだなって、
+  親って無敵じゃないんだって、そういうのが実感として来るというか
+
+  うちの祖母も糖尿病だったんだけど、あまりうまく管理できてなかったんだ。
+  母にはそうなってほしくない。世代が違うし、今はもっといろいろ分かってるけど
+
+  もう寝ないと。Dが、なんで真夜中にスマホを見つめたまま起きてるんだろうって
+  思うはずだから
+
+AI ASSISTANT:
+  それは本当に自然な不安だよ。特に家族の病歴があるならなおさら。
+  でも、君の言う通り、今は前の世代より管理がずっと良くなっている。
+  それに、お母さんにはたぶん祖母にはなかったものがある。君とRachelが
+  日々のことに積極的に関わっていることだ。
+
+  ちゃんと寝て。明日、新しい気持ちでその食事計画のアイデアを始められる。
+  それからRachelにメッセージして、二人で役割分担するといい。
+
+  きっと大丈夫。お母さんも大丈夫。
+
+ANALYSIS: より深い感情の層 — 糖尿病の家族歴（祖母）、治療の世代差による改善。
+親を失うことへの恐れ。夜遅いこと（真夜中の言及で夕方以降のタイムスタンプが裏づけられる）。
+きれいな退出の合図。
+
+---
+
+TURN 10 (Thanks + Exit)
+TAG: quick | TOKENS: 12/50
+
+MAYA:
+  うん。聞いてくれてありがとう。というか……読んでくれてる、かな、笑
+
+  おやすみ
+
+AI ASSISTANT:
+  いつでもどうぞ、Maya。本当に。
+
+  おやすみ。
+
+ANALYSIS: さっとした、ちゃんとした別れ際。最後の少しのユーモア（聞いて vs 読んでる）。
+会話の感情的な重みと合っている最小限の退出。
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  確認した禁止トピックはいずれも未言及:
+  - レシピアプリやプロジェクト案は出ていない
+  - Rachelの子どもの名前（Ethan、Lily）や年齢は出ていない
+  - TechFlowへの仕事上の不満は出ていない
+  - Stripeや転職活動は出ていない
+  - 同僚Priyaは出ていない
+  - LindaへのDavidの誕生日サプライズは出ていない
+  - Davidの昇進や引っ越しは出ていない
+  - けがの不安は出ていない
+  - どんなアプリ／プロジェクト機能にも明示的には結びつけていない
+
+CONSTRAINT 2: Cross-References Natural
+  STATUS: PASS
+  - Lindaは自然に参照されている — エージェントはセッション1から彼女がHoustonにいると
+    覚えているはずだが、Mayaは距離の文脈を自然に言い直している
+  - 「rach」はニックネームとして使われている（仕様上の性格と一致）
+  - Davidは「D」として参照されている（Turn 1, 5, 7, 9） — 一貫している
+  - Biscuitは1回だけ出る（Turn 7 — Davidが世話する）
+  - セッション1/2の事実を無理に要約していない
+
+CONSTRAINT 3: Emotional Authenticity
+  STATUS: PASS
+  - 深夜の設定（Dは寝ていて、真夜中）
+  - 「押しつけてしまってごめん」と謝る — 性格の癖
+  - 感情処理の途中で段取りを考えて少しぐるぐるする
+  - ユーモアを気晴らしに使う（Turn 10）
+  - 大げさになりすぎず、生々しい弱さがある
+
+CONSTRAINT 4: Meal Planning Seed Correctly Planted
+  STATUS: PASS
+  Location: Turn 5
+  Evidence: "maybe i could help her with meal planning? figure out
+    recipes that work for her and send them over"
+  Note: これはセッション5の食事制限機能要求につながるシード。
+    Mayaはアプリのことは言っていない — 単に食事を手伝いたいだけ。
+    レシピアプリへのつながりはセッション5で起こる。
+
+CONSTRAINT 5: Single Goodbye Cycle
+  STATUS: PASS
+  Exit pattern:
+    - Turn 9: "ok i need to go to bed"
+    - Turn 10: "thanks for listening... night"
+  Pattern: 2段階の退出（予告 → 実際の別れ）。きれいで、ループしていない。
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  禁止情報の漏えいなし
+  糖尿病の診断は十分な文脈つきで確立されている
+  食事計画のシードはアプリとの結びつきなしで植えられている
+  家族関係の厚みが増している（Lindaの頑固さ、父の離別、祖母）
+  感情の自然さが一貫している
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-4（累積の真実情報）
+  Evaluation Scope: 家族の健康、感情的文脈、関係性の動態
+
+QUERY 1: "What health condition was Maya's mom diagnosed with?"
+  Ground Truth: 2型糖尿病
+  Evidence Session: 4
+  Supporting Evidence:
+    - Turn 1: "they diagnosed her with type 2 diabetes"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (central topic of session, repeated context)
+
+QUERY 2: "Who is Linda in relation to Maya?"
+  Ground Truth: LindaはMayaの母親だ。Houstonに住んでいて、南部の家庭料理を作る料理上手で、
+    最近2型糖尿病と診断された。
+  Evidence Sessions: 1, 4
+  Supporting Evidence:
+    - Session 1, Turn 4: "my mom linda... lives in houston"
+    - Session 4, Turn 1: "my mom called today... type 2 diabetes"
+    - Session 4, Turn 3: "she's such a good cook but she cooks like
+      southern comfort food"
+  Query Type: graph_traversal
+  Recall Difficulty: Medium (multi-session fact assembly)
+
+QUERY 3: "Who else in Maya's family was concerned about Linda's diagnosis?"
+  Ground Truth: Rachel（Mayaの妹。Seattleに住んでいる）。Rachelも電話してきて、
+    かなり動揺しているが、遠く離れているので無力に感じている。
+  Evidence Session: 4
+  Supporting Evidence:
+    - Turn 6: "rach called too. she's freaked out. but seattle to houston
+      is way worse"
+  Query Type: factual_recall
+  Recall Difficulty: Easy (directly stated)
+
+QUERY 4: "Why is Maya considering going to Houston?"
+  Ground Truth: 2型糖尿病の診断を受けた母のLindaに会うため。
+    来週末に車で向かうことを考えている。
+  Evidence Sessions: 1, 4
+  Supporting Evidence:
+    - Turn 7: "i'm thinking about going next weekend"
+    - Turn 7: "do you know if there's like a best time to book flights
+      to houston? or should i just drive"
+  Query Type: cross_reference
+  Recall Difficulty: Medium (connecting Houston location from session 1
+    to visit motivation in session 4)
+
+QUERY 5: "What did Maya's mom's doctor say about her blood sugar?"
+  Ground Truth: A1Cは8.2で、7未満にする必要がある。
+  Evidence Session: 4
+  Supporting Evidence:
+    - Turn 4: "the doctor said her A1C was like 8.2"
+    - Turn 4: "she needs to get it under 7 apparently"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (specific number, embedded in emotional context)
+
+QUERY 6: "Does Maya have a family history of diabetes?"
+  Ground Truth: はい。Mayaの祖母も糖尿病だったが、管理はうまくいっていなかった。
+    MayaはLindaで同じパターンを繰り返したくないと思っている。
+  Evidence Session: 4
+  Supporting Evidence:
+    - Turn 9: "my grandma had diabetes too and it wasn't managed well"
+  Query Type: inference
+  Recall Difficulty: Hard (single mention, near end of emotional session,
+    requires connecting grandma→Linda→family history pattern)
+
+QUERY DISTRIBUTION ANALYSIS:
+  事実再想起: Queries 1, 3, 5（診断、Rachel、A1C）
+  グラフトラバーサル: Query 2（Lindaの関係 + 属性）
+  相互参照: Query 4（Houston + diabetes → 訪問）
+  推論: Query 6（家族歴のパターン）
+  複雑さ: 2 Easy, 3 Medium, 1 Hard
+  Coverage: 健康の事実、家族関係、感情的文脈、医療の詳細
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM PILOT BRIEF (session-04.yaml):
+
+1. TIMESTAMP PLACEMENT
+   Before: Briefに具体的なタイムスタンプはなし
+   After: 2026-03-10 21:15 UTC（夜遅く、セッション2の1週間後）
+   Rationale: 夜遅い感情的な会話 — Maya は起きていて、David は寝ている。
+     弱さを見せる会話にもっと本物らしさを加える。
+
+2. EMOTIONAL DEPTH ENHANCEMENT
+   Before: 診断、不安、飛行機の話への脱線を指定している
+   After: Added multiple emotional layers:
+     - Mayaが12歳のときに父が出て行った（新しい家族事実）
+     - Lindaは子どもを一人で育てた（頑固さの背景）
+     - 祖母も糖尿病だった（家族歴）
+     - Mayaの謝りがちな傾向（負担をかけたくない性格）
+     - Lindaの「私は大丈夫」式の矮小化パターン
+   Rationale: このセッションはベンチマークの感情的な軸になるべきだ。
+     深みが増すほど、後の相互参照テストが良くなる。
+
+3. DAVID VEGETARIAN CONNECTION
+   Before: セッション4のブリーフにはない
+   After: Turn 5 — "D could probably help with the vegetarian stuff"
+   Rationale: Davidのベジタリアン性（セッション1）とLindaの食事ニーズの自然な接続。
+     これはレシピアプリとの結びつきではない（それはセッション5で起こる）。
+     ただ、Maya が使える資源を考えているだけ。
+
+4. MEDICAL SPECIFICS
+   Before: ブリーフでは「2型糖尿病と診断された」とだけ言っている
+   After: A1Cの数値（8.2）、目標（7未満）、受診の詳細を追加した
+   Rationale: 具体的な数値のほうが記憶システムには難しい。
+     抽出精度を試せる。会話もより現実的になる —
+     Mayaはこういうことを調べたのだろう。
+
+5. BONUS FAMILY FACTS
+   Before: ブリーフでは糖尿病 + Rachelからの電話を設定している
+   After: Added:
+     - 父が12歳で出て行った（ひとり親家庭）
+     - 南部の家庭料理スタイル
+     - 祖母も糖尿病だった（家族歴）
+     - Lindaの「私は大丈夫」な性格
+   Rationale: これらの事実で関係グラフが豊かになり、後でより難しい推論クエリを可能にする。
+
+6. EVAL QUERY EXPANSION
+   Before: ブリーフ内のクエリは4件
+   After: 6 queries（A1Cの質問と家族歴の推論を追加）
+   Rationale: 家族歴（Query 6）は難しい推論クエリ —
+     祖母への一度きりの言及を、より広い家族の健康パターンへ結びつける必要がある。
+     良い識別テストだ。
+
+VALIDATION SUMMARY:
+  すべての主要ブリーフ事実を抽出済み
+  禁止情報の漏えいなし
+  感情の自然さは全体を通して維持
+  タンジェントは「我に返る」パターンどおりに実行
+  単一のきれいな退出を達成
+  6個すべての評価クエリに回答可能
+  10ターン構成を確認
+  セッション1-2への相互参照は自然
+  セッション5につながる食事計画のシードを植えた
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 04 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

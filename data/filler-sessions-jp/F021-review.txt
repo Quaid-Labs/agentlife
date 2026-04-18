@@ -1,0 +1,138 @@
+================================================================================
+FILLER SESSION F021 — AgentLife Densification
+Category: C (料理アプリの小規模版)
+Between Arc Sessions 10 and 11
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F021 (Filler — 料理アプリの小規模版)
+Date: 2026-03-20 10:20
+Topic: データベースクエリを別モジュールにリファクタリングできますか
+Turn Count: 13
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F021
+  Track: filler
+  Timestamp: 2026-03-20 10:20:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  ねえ、データベースクエリを別モジュールにリファクタリングしてくれる？ routes.js のあちこちに散らばっていて、今かなりごちゃごちゃしてるんだ
+
+AI ASSISTANT:
+  データベースクエリをすっきりしたデータアクセス層に分離するお手伝いをします。これでビジネスロジックとデータアクセスを切り分けられて、テストもしやすくなります。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  いいね！でも接続モジュールはどうする？ それも作るべき？ それとも queries.js で sqlite3 を直接 require すればいい？
+
+AI ASSISTANT:
+  断然、接続用モジュールを別に作るべきです。データベースのライフサイクルと設定を管理するうえでのベストプラクティスです。こんな構成にするときれいです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  環境変数をテスト用に使うのはいいね。ところで、こういう query メソッドのテストはどう書けばいい？
+
+AI ASSISTANT:
+  いい質問です！ テストではインメモリの SQLite データベースを使うと、高速で独立した状態を保てます。完全なテスト設定はこんな感じです:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  完璧。ひとつ問題があって、テストを走らせると "Error: SQLITE_CONSTRAINT: NOT NULL constraint failed: recipes.ingredients" が出るんだ
+
+AI ASSISTANT:
+  それは、ingredients を JSON 文字列として保存しているのに、テストがそれをシリアライズしていないからです。`createRecipe` メソッドでは `JSON.stringify(ingredients)` を呼んでいますが、いくつかのテストデータでは必要な全フィールドがそろわないまま配列を直接渡しています。
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  いい感じ、直ったよ。じゃあ、クエリとは別に routes のテストをするにはどうすればいい？ 本物の DB は route テストで使いたくないんだけど
+
+AI ASSISTANT:
+  いい発想です！ route テストでは `RecipeQueries` モジュールをモックするとよいです。Jest での設定はこんな感じです:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  すごい。ちなみに、入力検証 middleware も追加すべき？ たとえば ingredients が query 層に届く前に配列かどうか確認するとか
+
+AI ASSISTANT:
+  はい、もちろんです！ route 層で入力を検証すれば、悪いデータがデータベースに届く前に防げます。`express-validator` を使った、きれいな検証構成はこんな感じです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  なるほど。でも今は route テストが validation のせいで落ちてる。更新しないとだめ？
+
+AI ASSISTANT:
+  はい！ route テストも、今入れた validation middleware を考慮する必要があります。更新方法はこんな感じです:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  いいね。もうひとつ - queries module は JSON の文字列化を担当すべき？ それとも routes 側で createRecipe を呼ぶ前にやるべき？
+
+AI ASSISTANT:
+  いいアーキテクチャの質問です！ 文字列化は queries module 側で持つべきです。理由と、すっきりさせる方法はこうです:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~27
+
+MAYA:
+  完璧。最後の質問 - 名前列に検索用の index を追加したほうがいい？ レシピが増えたら遅くなりそうだし
+
+AI ASSISTANT:
+  いい勘です！ はい、全文検索インデックスを追加すると役立ちますが、単純な列インデックスより良い方法があります。SQLite は FTS5 (Full-Text Search) をサポートしていて、LIKE クエリよりずっと強力です。
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  うわ、それはいいね。よし、これで大丈夫そうだし全部試してみる。ありがとう！
+
+AI ASSISTANT:
+  どういたしまして！ かなり堅牢なアーキテクチャになりました:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

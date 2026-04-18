@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F082 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 19 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F082 (Filler — Recipe App Micro)
+Date: 2026-04-27 10:10
+Topic: recipes エンドポイントにページネーションを追加するには？
+Turn Count: 15
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F082
+  Track: filler
+  Timestamp: 2026-04-27 10:10:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  recipes エンドポイントにページネーションを追加するには？ 今は全部返してるだけだから、そのうち問題になるのは目に見えてる笑
+
+AI ASSISTANT:
+  recipes エンドポイントにページネーションを追加するのをお手伝いします。オフセットベースのページネーションを使った完全な実装はこちらです:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  いいね！ フィルタリングも足したほうがいい？ たとえば調理時間や人数で
+
+AI ASSISTANT:
+  もちろんです！ ページネーションと一緒にフィルタリングを追加する方法はこちらです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  試してるんだけど、`countResult` の行で "Cannot read property 'total' of undefined" が出る
+
+AI ASSISTANT:
+  そのエラーは `db.get()` が undefined を返しているという意味です。たぶん `db` ラッパーがコールバックを期待しているか、Promise の扱いが間違っています。正しい Promise ハンドリングでの修正版はこちらです:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  完璧、これで動いた！ じゃあこれのテストはどうやる？ ページネーションとフィルタのテストがほしい
+
+AI ASSISTANT:
+  Jest と supertest を使った、ページネーションとフィルタの完全なテストスイートはこちらです:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  テストが "TypeError: app.address is not a function" で失敗する
+
+AI ASSISTANT:
+  それは `app.js` が Express の app を正しく export していないという意味です。修正はこちらです:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  テストは通ったけど、recipes route のカバレッジが60%しかない。何が足りない？
+
+AI ASSISTANT:
+  エラーケースと境界条件が足りません。完全なカバレッジにするための追加テストはこちらです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  いいね！ もう一つ、スケールが大きいなら offset じゃなくて cursor ベースのページネーションにしたほうがいい？
+
+AI ASSISTANT:
+  いい判断です！ 大きいデータセットでは cursor ベースのほうが速いです。両方の実装を並べて示します:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  うーん、cursor にすると total count と total pages がなくなるよね？ ユーザーは「3/12ページ」みたいに見たがるし
+
+AI ASSISTANT:
+  その通りです！ それが典型的なトレードオフです。両方を得られるハイブリッド案はこちらです:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  完璧！ 最後に一つ、cursor 用の created_at インデックスは追加したほうがいい？
+
+AI ASSISTANT:
+  もちろんです！ オフセット方式と cursor 方式の両方に適したインデックス付きマイグレーションはこちらです:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  最高！ レシピ1万件で試して、性能差を見てみるよ
+
+AI ASSISTANT:
+  いいですね！ 1万件のレシピを投入して、両方のページネーション方式をベンチマークするスクリプトはこちらです:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  実行したら、500ページ目で offset が 78ms、cursor が 1.2ms だった。すごい差だな笑
+
+AI ASSISTANT:
+  そうなんです！ これは O(n) と O(log n) の差です。内部で何が起きているかはこちらです:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  いいね。とりあえず offset で出して、あとで自動切り替えを足すよ。ありがと D！
+
+AI ASSISTANT:
+  どういたしまして！ 自動切り替えを追加したくなったときのために、簡単な移行手順を示します:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  もう一つだけ笑。created_at インデックスって DESC のほうがいい？ SQLite は気にしない？
+
+AI ASSISTANT:
+  いい質問です！ SQLite も **気にします**し、DESC インデックスは役立ちます。違いはこちらです:
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

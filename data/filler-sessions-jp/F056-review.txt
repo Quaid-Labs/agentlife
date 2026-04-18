@@ -1,0 +1,138 @@
+================================================================================
+FILLER SESSION F056 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 16 and 17
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F056 (Filler — Recipe App Micro)
+Date: 2026-04-13 09:47
+Topic: こんなエラーが出るんだけど: SQLITE_CONSTRAINT: UNIQUE constraint failed
+Turn Count: 15
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F056
+  Track: filler
+  Timestamp: 2026-04-13 09:47:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  レシピを追加しようとするとこのエラーが出るんだけど：SQLITE_CONSTRAINT: UNIQUE constraint failed: recipes.slug... どういう意味？笑
+
+AI ASSISTANT:
+  このエラーは、データベースにすでに存在する slug を持つレシピを挿入しようとしているという意味です。SQLite が `recipes.slug` カラムに UNIQUE 制約を課しています。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  タイムスタンプ方式がいちばん簡単そうだね。そっちの版を見せてくれる？
+
+AI ASSISTANT:
+  もちろん！ タイムスタンプ方式はこちらです。かなりシンプルで、一意性も保証できます。
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  うん、これでいける。でも今度はテストが古い slug 形式を期待してるから失敗してる
+
+AI ASSISTANT:
+  そうですね、テストもタイムスタンプに合わせて更新する必要があります。修正方法はこちらです。
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  それで直った！ じゃあ今度は、D が Rach とレシピを共有したいらしいんだけど、共有テーブルってどう作ればいい？
+
+AI ASSISTANT:
+  レシピ共有用のきれいな共有テーブル設計はこちらです。
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  なるほど。じゃあ GET レシピのエンドポイントも、アクセス権があるかチェックするように更新する必要ある？
+
+AI ASSISTANT:
+  はい。今のままだと、おそらく誰でも ID さえ分かればどのレシピでも見られます。アクセス制御を入れた GET エンドポイントの更新版はこちらです。
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  そういえば、recipes テーブルに updated_at を追加しないといけない？ たぶんなかった気がする
+
+AI ASSISTANT:
+  いいところに気づきました。`updated_at` カラムを追加するマイグレーションはこちらです。
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  いいね。マイグレーションを走らせたら動いた。じゃあ共有機能はどうやってテストする？
+
+AI ASSISTANT:
+  共有機能向けの包括的なテストスイートはこちらです。
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  完璧、全部のテストが通った！ もう1つだけ - unshare 用のルートを追加してくれる？
+
+AI ASSISTANT:
+  もちろんです。unshare エンドポイントはこちらです。
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  すごい！ 最後の質問 - 誰かがレシピを共有したときにメール通知を入れるべきかな？
+
+AI ASSISTANT:
+  いい考えです！ nodemailer を使ったシンプルなメール通知のセットアップはこちらです。
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  いいね！ 共有機能についてはもうこれで全部かな。あとでデプロイするつもり
+
+AI ASSISTANT:
+  いいですね！ デプロイ前の簡単なチェックリストはこちらです。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

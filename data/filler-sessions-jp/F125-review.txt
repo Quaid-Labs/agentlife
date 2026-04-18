@@ -1,0 +1,160 @@
+================================================================================
+FILLER SESSION F125 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F125 (Filler — Work Session)
+Date: 2026-04-21 21:40
+Topic: スキーマ変更のためのデータベース移行計画を作りたい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F125
+  Track: filler
+  Timestamp: 2026-04-21 21:40:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  ねえ、新しい user tables の移行計画のドラフト作成を手伝ってくれる？ 明日それを説明しないといけなくて、ロールバック戦略がまったく浮かばないんだ
+
+AI ASSISTANT:
+  もちろん。構成を整えるのを手伝うよ。これは recipe app の auth スキーマ変更の話？ 今の状態はどう？ 新しいテーブルを追加するのか、それとも既存のものを変更するのか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~29
+
+MAYA:
+  oauth と user profile 用の新しいテーブルを追加する。今は Firebase auth だけなんだけど、自前の user management に移行してるところなんだ。切り替え中のデータ損失が心配でさ
+
+AI ASSISTANT:
+  なるほど。移行計画では、1) 両方に書き込む dual-write 期間、2) 既存ユーザーの backfill、3) 検証フェーズ、4) 切り替え、をカバーしよう。ロールバック手順まで含めた全文のドラフトを作ろうか？
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  お願い。各フェーズで必要な期間の見積もりと、監視項目も入れてほしい
+
+AI ASSISTANT:
+  では、こんな移行計画ドラフトにしよう:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  いいね。でもスキーマの実際の SQL も入れてくれる？ うちのリードはテーブル定義を見たがるはず
+
+AI ASSISTANT:
+  ```sql
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  完璧。じゃあロールバックのシナリオはどうする？ たとえば phase 4 でデータの不一致が 10% 出たら、具体的にどうするの？
+
+AI ASSISTANT:
+  いい質問だね。ロールバックの判断フローはこんな感じ:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  そうだね。phase 5 は、実際に読み取り先を切り替える怖い段階だよね
+
+AI ASSISTANT:
+  **Phase 5 のロールバック手順（切り替え）**
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  うん、これは本当に助かる。各フェーズが実際にうまくいったかどうか、何を成功指標として追うべきかのセクションも追加してくれる？
+
+AI ASSISTANT:
+  ```markdown
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  すごくいい。あとひとつ - バックフィル用の実際の script はどんな感じ？ 擬似コードだけで十分だから、本体は自分で書ける
+
+AI ASSISTANT:
+  ```python
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  完璧。最後にひとつだけ、いや本当に最後なんだけど、タイムラインはどうなる？ PM に全体でどれくらいかかるか聞かれるはずなんだ
+
+AI ASSISTANT:
+  **移行タイムライン**
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  うん、それを入れて。あと、今夜リードに送れる簡単な email も書いてくれる？ 要点とタイムラインだけでいい
+
+AI ASSISTANT:
+  ```
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  うん、いいね。あ、index の DBA review が必要ってことも書いたほうがいい？ それとも暗黙的に伝わる？
+
+AI ASSISTANT:
+  ぜひ明示したほうがいいよ。`Risk mitigation` のあとにこの段落を追加しよう:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  その通りだね。よし、これで大丈夫そう。送ったら今日はちゃんと夜を楽しむよ。ありがとう
+
+AI ASSISTANT:
+  もう準備は万端だよ。計画はしっかりしてるし、安全策もロールバック経路も明確だ。これだけの詳細があれば、リードも満足するはず。よい夜を！🎉
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

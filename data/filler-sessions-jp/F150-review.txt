@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F150 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 13 and 14
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F150 (Filler — Recipe App Micro)
+Date: 2026-04-01 20:03
+Topic: すべての材料を調整する recipe scaling calculator を追加してくれる？
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F150
+  Track: filler
+  Timestamp: 2026-04-01 20:03:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~25
+
+MAYA:
+  ねえ、アプリに recipe scaling calculator を追加してくれる？ たとえばレシピを2倍にしたら、材料を全部自動で調整してほしいんだ
+
+AI ASSISTANT:
+  できます！必要になるのは:
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  うん、やろう。1.5x みたいな fractional scaling もちゃんと扱ってね
+
+AI ASSISTANT:
+  servings を追加する migration はこれです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  いいけど、`2 1/2 cups` みたいな材料はどうする？ DB には decimal で保存するの、それとも string？
+
+AI ASSISTANT:
+  いい指摘です。DB には decimal (2.5) で保存しましょう。入力を parse する関数と、表示用の formatter を追加します:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  いいね。エンドポイントはどう？ `GET /recipes/:id/scale?servings=6` を考えてる
+
+AI ASSISTANT:
+  完璧な route です！実装はこちら:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  でも servings が負の数とかゼロだったらどうなるの lol
+
+AI ASSISTANT:
+  いい指摘です！validation を追加します:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  完璧。scaling function の tests を書いてくれる？ 特に edge case を見たい
+
+AI ASSISTANT:
+  こちらが test suite です:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~5
+
+MAYA:
+  テストを今すぐ走らせて
+
+AI ASSISTANT:
+  ```bash
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  あ、`base_servings` は db schema では underscore が必要だけど、js では camelcase だよね。どこかで変換してる？
+
+AI ASSISTANT:
+  そのとおりです！snake_case を camelCase に変換する必要があります。ヘルパーを追加します:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  じゃあ今テストを再実行して
+
+AI ASSISTANT:
+  ```bash
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  うん、確実に。1.5 cups は UI で "1 1/2 cups" と表示されるべきだよ
+
+AI ASSISTANT:
+  こちらが formatter です:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  1.33 はどうなるの？ 1.33 のままだと見た目が悪いよね
+
+AI ASSISTANT:
+  いい点です。最も近い一般的な分数に丸めます:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  うん、それで十分。response json に `formatted_quantity` フィールドとして入れられる？
+
+AI ASSISTANT:
+  `scaleRecipe` 関数を更新しました:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~7
+
+MAYA:
+  完璧。実際の request で試してみる？
+
+AI ASSISTANT:
+  ```bash
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  そうそう、4.5 eggs は呪われてる感じだよね。ingredients に countable flag を追加しようか？
+
+AI ASSISTANT:
+  schema とロジックに追加しました:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  うん、そのへんは後でやろう。ひとまずこれで十分、ありがとう！明日 UI で試してみるよ
+
+AI ASSISTANT:
+  いいですね！変更はすべて `feature/recipe-scaling` ブランチに push しました。endpoint は `/recipes/:id/scale?servings=N` で live しています。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

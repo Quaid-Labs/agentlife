@@ -1,0 +1,160 @@
+================================================================================
+FILLER SESSION F174 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 18 and 19
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F174 (Filler — Recipe App Micro)
+Date: 2026-04-18 15:59
+Topic: このエラーの意味を教えて: SQLITE_CONSTRAINT: UNIQUE constraint failed
+Turn Count: 14
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F174
+  Track: filler
+  Timestamp: 2026-04-18 15:59:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  ねえ、このエラーの意味を教えて: SQLITE_CONSTRAINT: UNIQUE constraint failed: recipes.user_id, recipes.title
+
+AI ASSISTANT:
+  これは、すでにデータベースに存在している `user_id` と `title` の組み合わせでレシピを挿入しようとしている、という意味です。UNIQUE制約があって、おそらく複合ユニークインデックスによって、同じユーザーの同じタイトルのレシピが重複しないようになっています。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~10
+
+MAYA:
+  作成時にね。ユーザーが保存ボタンをダブルクリックし続けるんだよね、笑
+
+AI ASSISTANT:
+  ああ、あるあるですね。フロントエンドで重複送信を防ぎつつ、バックエンドでもきちんと処理する必要があります。2段構えの対策として、これが堅いです。
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  いいね、それで動く。今度はこれのテストを書かなきゃ。Jest と SQLite を一緒に使ったことがないんだ
+
+AI ASSISTANT:
+  SQLite を使ったレシピ用エンドポイントのテストスイート完全版はこちらです。ポイントは、各テストごとに新しいインメモリデータベースを用意することです。
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  "Cannot find module '../app'" って出るんだよね。Express のセットアップは app.js じゃなくて server.js にあるんだけど
+
+AI ASSISTANT:
+  それなら簡単です。読み込みパスを更新して、Express アプリをちゃんとエクスポートしているか確認すればいいです。必要な修正はこれです。
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  テストは通ったけど、今度は更新ルートでタイムアウトが出る。デッドロックかな？
+
+AI ASSISTANT:
+  それは SQLite の書き込み競合でよくあるやつです。SQLite は一度に書き込みできるのが1件だけで、トランザクションの扱いが適切でなかったり、接続が残っていたりするとタイムアウトが起きます。直し方はこうです。
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  WAL モードで少しよくなったけど、高負荷だとまだたまにタイムアウトする。今は 50 同時ユーザーで k6 テストを回してる
+
+AI ASSISTANT:
+  高い同時負荷では、コネクションプーリングと並行処理の改善が必要です。SQLite は高い書き込み並行性には向いていませんが、単一ライター前提の設計なので、今ある構成をできるだけ最適化するしかありません。
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  うん、今は SQLite にこだわりたいだけなんだ。副業の小さいプロジェクトだし。とはいえ、かなりよくなったよ、ありがとう
+
+AI ASSISTANT:
+  その判断は全然ありです。SQLite はサイドプロジェクトにぴったりで、運用の手間がずっと少ないです。今の構成からもう少し性能を引き出すための、手軽な改善点をいくつか挙げます。
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  いい感じ。最後に、レート制限は入れたほうがいい？ create エンドポイントをユーザーが連打するのが心配で
+
+AI ASSISTANT:
+  ええ、特に認証系や作成系のエンドポイントにはレート制限を入れるべきです。`express-rate-limit` を使った、しっかりした構成はこちらです。
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  完璧。Railway にデプロイするつもりなんだけど、本番向けに何か変える必要ある？
+
+AI ASSISTANT:
+  ええ、Railway 本番向けにはいくつか重要な変更があります。配備前のチェックリストはこちらです。
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  ちなみに、パスワードには bcrypt が必要？ それとも crypto.createHash でのハッシュで十分？
+
+AI ASSISTANT:
+  **bcrypt** か argon2 を使うべきです。`crypto.createHash()` は速すぎます。そこが問題なんです。パスワードハッシュは、総当たり攻撃に耐えられるよう、意図的に遅くする必要があります。
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  なるほど。最後の質問。フロントエンドは Vercel に置く予定なんだけど、CORS は追加したほうがいい？
+
+AI ASSISTANT:
+  はい。フロントエンドが別ドメイン（Vercel）、API が別ドメイン（Railway）なら、CORS は必須です。入れていないと、ブラウザがリクエストをブロックします。
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  ありがと！ これで出して、D の反応を見てみるわ、笑
+
+AI ASSISTANT:
+  いいですね。かなりしっかりした API になっています。レート制限、適切な認証、コネクションプーリング、CORS まで揃っていますから、David もきっと驚くはずです。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

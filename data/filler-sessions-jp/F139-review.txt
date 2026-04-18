@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F139 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 2 and 3
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F139 (Filler — Recipe App Micro)
+Date: 2026-03-04 20:03
+Topic: USDA APIを使って栄養成分計算システムを全部追加したい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F139
+  Track: filler
+  Timestamp: 2026-03-04 20:03:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~29
+
+MAYA:
+  ねえ、レシピアプリに栄養表示を入れたいんだ。カロリー、たんぱく質とか全部入ったラベルみたいなやつ。これってUSDA APIを使える？
+
+AI ASSISTANT:
+  うん、USDAのFoodData Central APIがぴったりです。APIキーが必要だけど無料だよ（fdc.nal.usda.gov）。連携のセットアップを手伝おうか？ 具材を受け取って、栄養の内訳を返す計算機能を追加できます。
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  うん、やろう。APIキーはもう取ってあって、.env に入れてる
+
+AI ASSISTANT:
+  いいですね。栄養サービスを作ります。セットアップはこちらです:
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  でも、具材をUSDAの食品にどう紐づけるの？ たとえば「chicken breast」って打たれたら、それを一致させる必要があるよね
+
+AI ASSISTANT:
+  いい質問です。DBにマッピングテーブルと検索エンドポイントを追加するといいです:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  なるほど。じゃあ選んだあと、そのマッピングはどう保存するの？ たとえば「2 cups chicken breast」= fdcId 12345 みたいな感じ？
+
+AI ASSISTANT:
+  ingredients テーブルに追加しましょう:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  ちょっと待って、これってレシピを表示するたびにAPIを叩くことになる？ それ、遅そうだね
+
+AI ASSISTANT:
+  その通りです。食品データはローカルにキャッシュしましょう:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  うん、それは納得。だけどUSDAのレスポンスってめちゃくちゃ大きいんだよね。栄養素も大量にある。欲しいのはカロリー、たんぱく質、炭水化物、脂質、ナトリウムだけ。どう絞ればいい？
+
+AI ASSISTANT:
+  栄養素は `foodNutrients` 配列に入っています。必要なものだけ抜き出すヘルパーはこちらです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いいね。じゃあレシピの栄養計算は、各具材からスケールした栄養素を全部足せばいいの？
+
+AI ASSISTANT:
+  その通りです。全体の計算はこちらです:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~13
+
+MAYA:
+  ちょっと待って、parseAmountって何？ うちの具材は「2 cups」みたいな文字列で持ってるんだけど
+
+AI ASSISTANT:
+  ああ、それならパースする必要があります。簡単な版はこちらです:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  なるほど。でもcupsとgramsとouncesは… USDAってグラム基準だよね？ どう変換するの？
+
+AI ASSISTANT:
+  そうです、USDAは100gあたりの値です。換算表が必要になります:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  うーん、どんどん複雑になるな。じゃあv1ではユーザーにグラムで入力してもらって、あとはその人の問題にしちゃおうかな？
+
+AI ASSISTANT:
+  正直、v1としては悪くないです。あるいは両方用意して、"200g chicken" と入れるか、USDAで検索して1食分を選べるようにするのもありです。妥協案はこちらです:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  うん、それはあり。じゃあ栄養ラベルはどう表示する？ あのFDA形式のやつ
+
+AI ASSISTANT:
+  HTML/CSSで描画してもいいし、JSONを返してスタイルを当ててもいいです。基本的なルートはこちらです:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  え、servingsって… recipes テーブルにまだないんだけど
+
+AI ASSISTANT:
+  すぐ追加しましょう:
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  いい感じ。最後に、USDA APIが落ちたら？ それともレート制限を食らったら？ 何か対応したほうがいい？
+
+AI ASSISTANT:
+  もちろんです。リトライロジックとフォールバックを入れましょう:
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  いいね。これって栄養計算のテストも書くべき？
+
+AI ASSISTANT:
+  ええ、絶対です。計算はややこしくなりやすいので、まずはこんな感じです:
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~9
+
+MAYA:
+  よし、かなり固まった。実装始めるわ。ありがとうD
+
+AI ASSISTANT:
+  どういたしまして！ フロントエンド側にもエラー処理を忘れずに入れてください - いくつかの具材で栄養データが取れないときはメッセージを出しましょう。それと、栄養が計算値なのか推定値なのか分かるように「verify nutrition」フラグを付けるのもいいですね。うまくいくといいです！
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

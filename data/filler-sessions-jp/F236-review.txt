@@ -1,0 +1,193 @@
+================================================================================
+FILLER SESSION F236 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 19 and 20
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F236 (Filler — Work Session)
+Date: 2026-04-26 14:49
+Topic: 非推奨通知の文面を作るのを手伝ってほしい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F236
+  Track: filler
+  Timestamp: 2026-04-26 14:49:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~28
+
+MAYA:
+  旧来の Webhooks v1 API の非推奨通知を書きたいんだけど、Q3 の終わりまでにみんな v2 に切り替えてもらう予定。あまり怖く聞こえないようにしたい
+
+AI ASSISTANT:
+  もちろん。わかりやすくて安心感のある非推奨通知の下書きを作るよ。完全版はこんな感じ：
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  いい感じだけど、冒頭をもう少しくだけた表現にできる？ いつも開発者向けにはもっとカジュアルなんだ
+
+AI ASSISTANT:
+  もちろん。もっとカジュアルな版にするとこうなる：
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  完璧。あと、サポートチーム向けに内部メールも作ってほしい。これから始まるって知っておいてほしいから
+
+AI ASSISTANT:
+  サポートチーム向けの社内通知はこれだよ：
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  いいね。実際の API ドキュメントのページも更新したい。v1 のドキュメントに表示する警告バナーの文面を作ってくれる？
+
+AI ASSISTANT:
+  ドキュメント用の警告バナーは 3 パターンあるよ。好きなものを選んで：
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~24
+
+MAYA:
+  1 で決まり。次は D（エンジニアリングリード）に、実際の廃止手順を説明しないと。v1 を止める流れをざっくり教えて
+
+AI ASSISTANT:
+  David 向けの技術的な流れはこれだよ：
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  ありがとう。あと、これに向けて何の指標を追うべき？ 経営陣に進捗報告をしないといけないんだ
+
+AI ASSISTANT:
+  経営層向けのトラッキングダッシュボードはこれだよ：
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~16
+
+MAYA:
+  お願い。うちは Looker を使ってる。必要な SQL クエリだけ教えて
+
+AI ASSISTANT:
+  こちらが Looker 用の SQL クエリだよ：
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  いいね。もうひとつ。これを告知する全社会向けの話し方も必要なんだ。箇条書きで大丈夫
+
+AI ASSISTANT:
+  **Webhooks v1 の非推奨化 - 全社会向けトークポイント**
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  それいいね。最後にほんとこれだけ。#engineering チャンネル向けの Slack メッセージも必要なんだ。みんなにこれが起きるって知らせたい
+
+AI ASSISTANT:
+  **Slack メッセージ - #engineering チャンネル:**
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  完璧、ありがとう。あ、もうひとつだけ。API 変更ログ用に、非推奨通知の短い版も必要なんだ。2〜3 文でいい
+
+AI ASSISTANT:
+  **API 変更ログの項目:**
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  2 のほうがいいね。じゃあ次は実際の移行ガイドを書かないと。どんなセクションにすべきか、構成を出してくれる？
+
+AI ASSISTANT:
+  **Webhooks v2 移行ガイド - 構成**
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  いいね。4.3 の Python 向けセクションも書いてくれる？ うちは FastAPI が中心なんだ
+
+AI ASSISTANT:
+  **4.3 節 - コードを更新する（Python/FastAPI）**
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  いいね。よし、実際のガイドを書き始めるのに十分だと思う。ちょっと待って、ほかに何かあったかな…
+
+AI ASSISTANT:
+  もちろん、どうぞゆっくり。いま手元にはこんなものがあるよ：
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  そうだ、FAQ セクションも書いてくれる？ 開発者がこういうときに何を聞くのか、いつも忘れちゃうんだ
+
+AI ASSISTANT:
+  **8 節 - よくある質問**
+
+---
+
+TURN 15 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  すごくいい。最後に本当に最後。早めに移行してもらうインセンティブを出すべきかな？ それで効果はあると思う？
+
+AI ASSISTANT:
+  **早期移行インセンティブの分析:**
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

@@ -1,0 +1,182 @@
+================================================================================
+FILLER SESSION F153 — AgentLife Densification
+Category: C (Recipe App Micro)
+Between Arc Sessions 16 and 17
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F153 (Filler — Recipe App Micro)
+Date: 2026-04-12 14:24
+Topic: レシピの重複排除システムを実装するのを手伝ってほしい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F153
+  Track: filler
+  Timestamp: 2026-04-12 14:24:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~21
+
+MAYA:
+  レシピの重複排除を追加するのを手伝ってくれる？ 誰かが同じレシピを 2 回貼り付けたら検出したいんだ
+
+AI ASSISTANT:
+  もちろん！ レシピ内容のハッシュを使えば重複を検出できるよ。タイトル + 材料の組み合わせをハッシュ化する？ それとも手順も含める？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  タイトル + 材料で十分だね。手順は同じ料理でも変わることがあるし
+
+AI ASSISTANT:
+  完璧。追加できる重複排除チェックはこんな感じ：
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~4
+
+MAYA:
+  うん、マイグレーション見せて
+
+AI ASSISTANT:
+  ```javascript
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  いいね。重複があったらどうするべき？ 単に拒否する？ それとも既存のものを見せる？
+
+AI ASSISTANT:
+  既存のレシピを返して、ステータスは 409 Conflict にするのがいい。そうすればクライアント側で「このレシピはすでに存在します」と表示して、リンクも出せる。
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  なるほど。ほぼ重複、たとえば材料が 95% 似てるものもチェックしたほうがいい？
+
+AI ASSISTANT:
+  それは一気にコストが上がるね。新しいレシピごとに既存の全件と比較しないといけないから。今は正確なハッシュ一致に絞ろう。インデックスがあるから O(1) だしね。どうしても将来 fuzzy matching が必要なら、定期実行のバックグラウンドジョブとして追加できるよ。
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~14
+
+MAYA:
+  たしかに笑。大文字小文字を変えたりスペースを足しただけだったらどうなる？
+
+AI ASSISTANT:
+  ハッシュ関数がそこはもう処理しているよ。`.toLowerCase().trim()` を見てみて。材料もアルファベット順に並べ替えるから、順番は関係ない。
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  ああ、そこ見逃してた。じゃあ材料に数量がある場合は？ たとえば "2 eggs" と "3 eggs" みたいな
+
+AI ASSISTANT:
+  いい指摘だね。今のままだとそれらは別々にハッシュされる。数字を取り除くこともできる：
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  うーん、たしかに 2 eggs と 12 eggs は全然違うもんね。数量はハッシュに残しておくよ
+
+AI ASSISTANT:
+  それでいいと思う。あとひとつ、既存レシピのハッシュは backfill しておく必要がある：
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  そういえば材料は DB では json text として保存してるんだよね？
+
+AI ASSISTANT:
+  うん。ハッシュ化する前に parse する必要がある：
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  了解。これのテストも書いたほうがいい？
+
+AI ASSISTANT:
+  もちろん。まずはこんな感じ：
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~8
+
+MAYA:
+  409 のケースを見せて
+
+AI ASSISTANT:
+  ```javascript
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~18
+
+MAYA:
+  完璧。ひとつだけ - レシピを更新できるようにしたい場合は？ ハッシュが変わるよね？
+
+AI ASSISTANT:
+  いい質問だね。材料を更新すれば、確かにハッシュも変わる。選択肢は 2 つある：
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  なるほど。最後の質問 - これをユーザーに見せるべき？ それとも静かにマージするべき？
+
+AI ASSISTANT:
+  見せよう！ たとえばこんな感じ：
+
+---
+
+TURN 14 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  いいね、それならずっといい。よし、これを実装する準備ができたと思う。ありがとう D!
+
+AI ASSISTANT:
+  いいね！ 何か問題が出たら知らせて。ハッシュ方式は堅実で高速だし、レシピが何千件あってもちゃんと動くはずだよ。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================

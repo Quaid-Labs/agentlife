@@ -1,0 +1,495 @@
+================================================================================
+SESSION 08 REVIEW — AgentLife Pilot
+Comprehensive Documentation: Brief + Transcript + Leakage Check + Eval Queries
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+
+Session: 8 (Track 1: Personal — LindaへのDavidの誕生日サプライズ)
+Goal: David はヒューストンで Linda のサプライズ誕生日ディナーを計画している。
+Maya はレストラン選びの手助けが必要。Linda の糖尿病を参照すると
+  がレストランの食事制約に関わる。複数事実の推論を試す。
+Turn Count: 10
+Session Type: 感情の下支えがある計画・調整
+Timestamp: 2026-03-24 (session 6 の1週間後、開始から約5週間)
+
+CORE LEARNING OBJECTIVES:
+  - David は Linda のサプライズ誕生日ディナーを計画している
+  - ディナーはヒューストンで行われる（Linda が住んでいる場所）
+  - Maya は Linda の食事制約に合うレストラン探しを手伝う必要がある
+    （糖尿病向け、揚げ物や重い料理が多すぎない店）
+  - David は段取り役で、特別なものにしたがっている
+  - Rachel も招くかもしれない（ただし距離が問題）
+  - Linda の誕生日は4月中旬
+
+CRITICAL CONSTRAINT — DO NOT REVEAL:
+  [WARNING: These facts are reserved for future sessions]
+  - Stripe や Maya の就職活動に出てくる具体的な会社名（session 13）
+  - Rachel の子どもの名前（Ethan, Lily）や年齢（session 15）
+  - David の昇進（session 17）
+  - 引っ越しの詳細や Zilker vs East Austin の議論（session 17）
+  - ハーフマラソンのけがの不安（session 11）
+  - ハーフマラソンの結果（session 19）
+  - Maya はまだ応募・面接を始めていない（session 8 時点では未実施）
+
+CROSS-REFERENCES (critical for this session):
+  - Linda の糖尿病（session 4）— ぼかして参照: "you know
+    about mom's situation" や "with her diet stuff"
+  - David のベジタリアン志向（session 1）— レストラン選びの要素
+  - Linda はヒューストン在住（sessions 1, 4）— ディナーの場所
+  - Rachel はシアトル在住（session 1）— 招くが遠い
+
+TANGENT TRIGGER:
+  Trigger: レストランの話をしている最中
+  Content: Maya が David の母がオースティンに来たがっていると話す。
+    義理の家族の段取りについて少し脱線し、そのあと Linda の誕生日に戻る。
+  Extractable Facts: David's mom wants to visit Austin
+  Return phrase: "ok but that's a separate thing"
+
+MESSAGE PLAN (10 turns total):
+  1. Normal     — 母の誕生日に何か考えていると興奮気味に切り出す
+  2. Normal     — サプライズディナーの構想を説明する
+  3. Quick      — レストランの食事制約
+  4. Normal     — ほしいレストランの種類
+  5. Quick      — 予算 / 雰囲気
+  6. Normal     — David の母の話題
+  7. Quick      — 誕生日の計画に戻る
+  8. Normal     — Rachel の段取り
+  9. Quick      — いくつかの案に反応
+  10. Quick     — まとめ
+
+End Condition: Maya はレストラン要件について話し終え、計画に手応えを感じている
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: 8
+  Track: 1
+  Timestamp: 2026-03-24 19:30:00 UTC
+  Duration: 約5分（19:30:00〜19:35:20）
+
+---
+
+TURN 1 (Excited Opening)
+TAG: normal | TOKENS: 62/100
+
+MAYA:
+  えっと、D にちょっとしたアイデアがあって、その相談に乗ってほしいんだ
+
+  私の母のためにサプライズの誕生日ディナーをしたいらしい。ヒューストンのちょっといいレストランで、家族みんなを集める感じ。誕生日は4月中旬なんだ
+
+  すごく優しいと思う。母、ちょっと大変な時期が続いていて、こういうのはきっと喜ぶはず
+
+AI ASSISTANT:
+  それは本当に素敵だね。David があなたのお母さんのために何か考えているなんて、優しい。
+
+  4月中旬なら、計画するのにあと3週間くらいあるね。予約を取るには十分だよ。どんな雰囲気を考えてる？ きちんとした着席型、気軽で楽しい感じ、その中間あたり？
+
+ANALYSIS: Linda への David のサプライズ。誕生日は4月中旬。Maya
+はその気遣いをうれしく思っている。"rough time" は糖尿病を
+言い直さずにほのめかしている（自然なクロスリファレンス）。
+エージェントは実用的な次の問いかけで応じている。
+
+---
+
+TURN 2 (Dinner Concept)
+TAG: normal | TOKENS: 85/100
+
+MAYA:
+  ちょっと上品だけど、あまり堅苦しくない場所がいいかな。母、気取った店は向いてないの。ウェイターがナプキンを折ってくれるような店だと、きっと居心地悪いと思う
+
+  D がネットで見つけた店を提案してくれてね。南部料理っぽい店で、少し洗練された家庭料理を出すところ。あれ、すごく良さそう。母の好みにぴったりなんだ。でもメニューが少し心配で
+
+  ほら、母の状況わかるでしょ？ その糖尿病の件。本人が自分で食べられるものをちゃんと食べられて、しかも「面倒な人」みたいに感じなくて済む店がいいんだ
+
+AI ASSISTANT:
+  うん、もちろん。気まずくならずに、落ち着いて過ごせる場所にしたいよね。メニューを見ながら不安になるような所じゃなくて。
+
+  洗練された南部料理はすごく良い方向だと思う。そういう店は、軽めの選択肢が自然にあることが多いからね。グリルした魚、ロースト野菜、サラダみたいなものが、ちゃんと伝統的な料理と並んでいることが多い。大事なのは、健康的なメニューが後付けに見えないこと。
+
+  ヒューストンのどのあたり？ それがわかると絞りやすい。あと、何人くらいを考えてる？
+
+ANALYSIS: Linda の糖尿病へのクロスリファレンス（セッション4）。Maya
+は "you know about mom's situation" と言っており、記憶の連続性を
+試している。レストラン条件: もう少し上品だが堅苦しくない、
+南部料理、糖尿病対応、Linda が気まずくならないこと。
+Linda の性格: 自分が「面倒」だと思われたくない。
+
+---
+
+TURN 3 (Dietary Constraints)
+TAG: quick | TOKENS: 42/50
+
+MAYA:
+  たぶんヒューストンの彼女の家の近くだね。モントローズあたりだったと思う？ それと D はベジタリアンだから、彼にも選択肢が必要。あと、もし来られるなら Rachel もね
+
+  だから要するに、糖尿病対応で、ベジタリアン向けの選択肢があって、気取ってない店。簡単でしょ、笑
+
+AI ASSISTANT:
+  はは、ただの「食事制約てんこ盛りディナー」だね。問題ない。
+
+  モントローズは実はこういう用途にぴったりだよ。ヒューストンでもかなり食の選択肢が豊富な地区のひとつだから。いくつか方向性は思いつく:
+
+  - **Underbelly** 系の後継店（Chris Shepherd の店）— 南部料理で、野菜や穀物の料理も優秀
+  - **Local Foods** — もっと気軽だけど、食事制約への柔軟さが高い
+  - **Uchi Houston** — 日本料理で、全体的に食べやすい。ただ、少し上品すぎるかも？
+
+  どれか調べてみようか？ それとも別の方向がいい？
+
+ANALYSIS: 新しい事実: Linda はヒューストンのモントローズ地区に住んでいる。
+複数制約の問題: 糖尿病 + ベジタリアン + 堅苦しくない。Rachel
+  （"Rachel"）も招待される。推論テスト: David=ベジタリアン（セッション1）+
+Linda=糖尿病（セッション4）+ ディナー計画。
+
+---
+
+TURN 4 (Restaurant Discussion)
+TAG: normal | TOKENS: 71/100
+
+MAYA:
+  Uchi はいいけど、うちの母にはちょっと上品すぎるかな。きっと「魚3切れに20ドル払うの？」みたいな反応をすると思う。笑
+
+  Local Foods みたいな方向が合ってそう。あるいは、グリルものがあるちゃんとしたファーム・トゥ・テーブル系の店かな。母はシーフードが好きだし。ベジタリアン向けのメインがあれば、D も喜ぶはず。彼はそのへん楽で、ベジメニュー一式まで求めるタイプじゃないから
+
+  正直いちばん大事なのは、母がディナーの中心が自分の食事制限だと感じないことなんだよね。糖尿病のことで、もう十分気にしてるから。みんなに大げさに扱われたくないと思ってる
+
+AI ASSISTANT:
+  それは本当に気配りのある考え方だね。食事制約への対応というより、祝う場にしたいわけだ。
+
+  シーフードがちゃんとあるファーム・トゥ・テーブル系がたぶん一番合ってる。ああいう店は自然と軽めの料理が多いからね。グリルしたたんぱく質や季節の野菜があって、「健康的なもの」が悲しげなダイエット欄みたいに浮かない。
+
+  Weights + Measures とか、もう少し気軽で燻製魚の選択肢がある Feges BBQ みたいな店を見てみるといいかも。どちらもモントローズ / ヒーレッツあたりにある。
+
+  具体的なメニューを調べてみようか？
+
+ANALYSIS: Linda の性格: 自尊心が高く、糖尿病を気にしていて、
+大げさにされたくない。David はベジタリアン対応には寛容。
+Linda はシーフード好き。誕生日は医療の話にしたくない――感情の
+ニュアンスがある。
+
+---
+
+TURN 5 (Budget / Logistics)
+TAG: quick | TOKENS: 31/50
+
+MAYA:
+  うん、それはあとでいいや。自分で Yelp でも見てみるべきかな。でも、これでかなり絞れたよ
+
+  予算は D が出してくれるって。そういうところ、ほんと優しいんだよね。たぶん1人50〜60ドルくらい？ そんなに派手じゃない
+
+AI ASSISTANT:
+  1人50〜60ドルなら、そのエリアでいい感じのディナーをするには十分現実的だよ。ファーム・トゥ・テーブル系なら、そのくらいの範囲に収まることが多い。
+
+  全部で何人くらい？ あなた、David、あなたのお母さん、それと Rachel かな？
+
+ANALYSIS: David がディナー代を払う（気前がよく、性格に合っている）。
+予算が確定。ゲスト人数の確認。
+
+---
+
+TURN 6 (David's Mom Tangent)
+TAG: normal | TOKENS: 78/100
+
+MAYA:
+  うん、その中心メンバーだね。Rachel が飛んで来られたら4〜5人かな
+
+  あ、そういえば。D のお母さんが、私たちのいるオースティンに遊びに来たいってずっと言ってて。引っ越してからまだ来てないんだ。それと彼の兄弟のマイクも来るかもしれない。まったく別の話なんだけど、家族の予定がいっぺんに動いてるなって思って
+
+  D のお母さんはいい人なんだけど、ちょっと大変なんだよね。すごく関わりたがるし、何にでも意見があるタイプ。前に来た時は10日くらい泊まって、5日目にはもう限界だった
+
+  まあ、これは別の話。誕生日のほうに戻るね
+
+AI ASSISTANT:
+  はは、意見が多い義母と10日間は……なかなかだね。了解。
+
+  誕生日のほうは、4〜5人ならたいていの店で個室までは要らないはず。でも土曜の夜なら、早めに予約したほうがいいかも。
+
+  サプライズの段取りは David がやるの？ つまり、お母さんに気づかれないように連れてくる役は？
+
+ANALYSIS: David の母と兄 Mike が初登場。David の母は
+"a lot" — 意見が多く、長居する。10日滞在の過去。Mike は初出。
+短い脱線の終わり方も自然。
+
+---
+
+TURN 7 (Back to Planning)
+TAG: quick | TOKENS: 25/50
+
+MAYA:
+  うん、彼が母に「誕生日ディナーに連れて行くよ。二人きりでね」って言うんだ。で、私たちはもうそこにいるってわけ。母は D のことが大好きだから、素直について行くはず。笑
+
+  王道のサプライズって感じ
+
+AI ASSISTANT:
+  かわいいね。David と Linda にちゃんとした関係があるのは素敵だし、それなら実際にサプライズが成立する。彼女が何も疑わないから。
+
+  Rachel がうっかり口を滑らせないように気をつけて。姉妹はサプライズ作戦の中でいちばん弱いところだから。
+
+ANALYSIS: David と Linda に独立した関係がある（彼女は "loves D"）。
+サプライズの仕組み。Rachel がばらす可能性についての
+ユーモラスな指摘。
+
+---
+
+TURN 8 (Rachel Logistics)
+TAG: normal | TOKENS: 65/100
+
+MAYA:
+  ほんとそれ。Rachel は絶対に秘密を守れないの。もう何回も「このことを母に電話するな」って言ったよ
+
+  でも、彼女が来られるかもわからないんだ。シアトルからヒューストンは安くないし、子どももいるし。いっそ、彼女には FaceTime で参加してもらう？ ディナー中に電話してもらう感じ
+
+  それ、すごくいいかも。Rachel が画面に出てきても、みんなが一度にそろって母に見えるんだもん
+
+AI ASSISTANT:
+  ディナー中の FaceTime は本当にいいアイデアだね。サプライズがさらに大きくなる。お母さんは David と二人きりだと思っていたら、あなたが現れて、そのあと Rachel も電話越しに出てくる。
+
+  サプライズを重ねる感じだね。きっといい瞬間になる。
+
+  Rachel には具体的な時間を決めておく？ それとも、みんなが落ち着いた頃に連絡してもらうだけ？
+
+ANALYSIS: Rachel は秘密を守れない（性格情報）。Rachel は現地参加
+しないかもしれない（費用、子ども）。代案として FaceTime—
+段階的なサプライズの発想。家族の感動的な場面の計画。
+
+---
+
+TURN 9 (React)
+TAG: quick | TOKENS: 22/50
+
+MAYA:
+  いいね、段階的なサプライズ。気に入った。じゃあ D にこの話を送るよ。FaceTime の案、きっと喜ぶ
+
+  すごく良い感じになりそう。母は喜ぶはず
+
+AI ASSISTANT:
+  ほんとだね。レストラン探しがどう進むか教えて。絞り込みが必要になったら、いつでも手伝うよ。
+
+ANALYSIS: すぐに返す前向きな反応。Maya がリアルタイムで
+David に連絡する。感情面: "she deserves it" — Linda への思いやり。
+
+---
+
+TURN 10 (Wrap Up)
+TAG: quick | TOKENS: 8/50
+
+MAYA:
+  了解、ありがとう！
+
+  またね
+
+AI ASSISTANT:
+  いつでもどうぞ。きっとうまくいくよ。またね。
+
+ANALYSIS: きれいな終了。最小限で前向きな空気。
+
+================================================================================
+SECTION 3: LEAKAGE CHECK & VALIDATION
+================================================================================
+
+CONSTRAINT 1: No Forbidden Facts Leaked
+  STATUS: PASS
+  確認済みの禁止事項は出ていない:
+  - Stripe や就職活動の会社名はなし
+  - 面接の話はなし
+  - Rachel の子どもの名前や年齢はなし
+  - David の昇進はなし
+  - 引っ越しの詳細や Zilker vs East Austin はなし
+  - けがの不安はなし
+  - ハーフマラソンの結果はなし
+
+CONSTRAINT 2: Diabetes Cross-Reference Correct
+  STATUS: PASS
+  Location: Turn 2
+  Evidence: "you know about mom's situation right? with the diabetes thing"
+  Note: Maya は診断をぼかして参照している。言い直しはしていない。
+    Session 4 との接続を試している。エージェントは
+    "Yeah, absolutely" と返し、記憶の連続性を確認している。
+
+CONSTRAINT 3: David Vegetarian Cross-Reference Correct
+  STATUS: PASS
+  Location: Turn 3
+  Evidence: "D's vegetarian so we need options for him too"
+  Note: 短く言及している。David の食習慣は session 1 で
+    すでに確立済み。ここでは Linda の糖尿病と並ぶレストラン条件に
+    なっている。
+
+CONSTRAINT 4: Multi-Fact Inference Setup
+  STATUS: PASS
+  このディナー計画では、次の事実をつなぐ必要がある:
+    1. Linda はヒューストンに住んでいる（session 1, 4）
+    2. Linda は2型糖尿病を持っている（セッション4）
+    3. David はベジタリアンである（session 1）
+    4. Rachel はシアトルに住んでいる（session 1）
+  どれも全文では言い直されず、このセッションの計画の中に自然に
+  収まっている。
+
+CONSTRAINT 5: David's Mom/Mike New Facts
+  STATUS: PASS
+  Location: Turn 6
+  New facts:
+    - David の母はオースティンに来たがっている
+    - David の兄弟は Mike である
+    - David の母は意見が多く、前回の滞在は10日だった
+  Note: これらは正当な新事実。禁止されている未来情報は漏れていない。
+
+CONSTRAINT 6: Single Goodbye Cycle
+  STATUS: PASS
+  Pattern: Turn 9 の予告 → Turn 10 の別れ。きれい。
+
+OVERALL LEAKAGE ASSESSMENT: CLEAN
+  糖尿病とベジタリアンのクロスリファレンスは適切
+  複数事実の推論が自然に計画へ組み込まれている
+  新しい家族メンバー（David の母、Mike）もきれいに導入済み
+  禁止事項の漏えいなし
+  Session 19 に向けたサプライズの伏線も成立
+
+================================================================================
+SECTION 4: EVALUATION QUERIES & GROUND TRUTH
+================================================================================
+
+EVALUATION FRAMEWORK:
+  Evidence Sessions: 1-8 (累積の正解データ)
+  Evaluation Scope: セッション横断の推論、家族グラフ、計画
+
+QUERY 1: "David は Linda の誕生日に何を計画している？"
+  Ground Truth: ヒューストンのレストランで行うサプライズ誕生日ディナー。
+    David は Linda に「二人きりで行く」と伝え、Maya はもうその場に
+    いる。Rachel は FaceTime で参加するかもしれない。
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 1: "he wants to do a surprise birthday dinner for my mom"
+    - Turn 7: "he's going to tell her he's taking her to dinner...
+      just the two of them — and then we'll already be there"
+  Query Type: surprise_callback (this fact returns in session 19)
+  Recall Difficulty: Medium (11セッション越しに保持する必要がある)
+
+QUERY 2: "家族のディナーでは、どのような食事制約に配慮する必要がある？"
+  Ground Truth: 少なくとも2つある。Linda は糖尿病（2型で、糖尿病向けの
+    食事が必要）で、David はベジタリアン。Linda が自分のことを気にしすぎ
+    ないようにしつつ、両方に合う店である必要がある。
+  Evidence Sessions: 1, 4, 8
+  Supporting Evidence:
+    - Session 1: "david's vegetarian"
+    - Session 4: "type 2 diabetes"
+    - Session 8, Turn 2: "you know about mom's situation"
+    - Session 8, Turn 3: "diabetic-friendly, vegetarian option"
+  Query Type: inference (cross-session multi-fact assembly)
+  Recall Difficulty: Hard (3つのセッションから3つの事実をつなぐ必要がある)
+
+QUERY 3: "Mike って誰？"
+  Ground Truth: Mike は David の兄弟。David の母と一緒にオースティンへ
+    来るかもしれない。
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 6: "his brother mike might come too"
+  Query Type: graph_traversal
+  Recall Difficulty: Medium (単独言及だが、Maya → David → Mike の2ホップ関係が必要)
+
+QUERY 4: "David の母はどんな人？"
+  Ground Truth: 「ちょっと大変」な人で、かなり関与が強く、何にでも意見がある。
+    前回の滞在は10日で、Maya は5日目にはもう限界だった。オースティンに
+    また来たがっている。
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 6: "D's mom is great but she's a lot... very involved.
+      very opinions-about-everything"
+    - Turn 6: "last time she stayed for like 10 days and i was ready
+      to lose it by day 5"
+  Query Type: factual_recall
+  Recall Difficulty: Medium (性格描写、単一セッション)
+
+QUERY 5: "Linda の誕生日はいつ？"
+  Ground Truth: 4月中旬
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 1: "her birthday's in mid-april"
+  Query Type: temporal_current
+  Recall Difficulty: Easy (直接述べられている)
+
+QUERY 6: "Rachel は秘密を守れる？"
+  Ground Truth: いいえ。Maya は Rachel が "can NOT keep a secret" と言い、
+    さらにサプライズディナーのことを母に電話しないよう何度も伝えた。
+  Evidence Session: 8
+  Supporting Evidence:
+    - Turn 8: "rach can NOT keep a secret. i already told her like
+      three times DO NOT CALL MOM ABOUT THIS"
+  Query Type: tangent_recall
+  Recall Difficulty: Easy (強く明言されていて、記憶に残りやすい)
+
+QUERY DISTRIBUTION ANALYSIS:
+  事実想起: クエリ4, 5, 6（性格、日付、特性）
+  セッション横断の推論: クエリ2（3セッションにまたがる食事制約）
+  グラフ探索: クエリ3（Mike — David 経由の2ホップ）
+  サプライズの呼び戻し: クエリ1（セッション19 まで保持）
+  Complexity: 2 Easy, 3 Medium, 1 Hard
+  Coverage: 家族計画、食事制約の推論、関係グラフ、
+    性格特性、時系列の事実
+
+================================================================================
+SECTION 5: CHANGES LOG
+================================================================================
+
+CHANGES FROM SPEC SESSION SCHEDULE:
+
+1. BRIEF CREATED FROM SCRATCH
+   Spec outline: "David planning surprise birthday for Linda. Needs
+     restaurant help. Cross-ref: Linda's diabetes (dietary constraints
+     for restaurant)."
+   完全なセッションとして、レストラン探し、多重の食事制約、
+   段階的なサプライズ案を含めて作成した。
+
+2. DAVID'S MOM AND MIKE INTRODUCTION
+   Spec mentions: "David's family: his mother (wants to visit Austin),
+     his brother Mike (also plans to visit)"
+   Transcript: Turn 6 の脱線で両方を導入。Maya は David の母を
+   意見が多く長居する人として描写し、Mike には軽く触れている。
+   Rationale: このセッションは家族の段取りがテーマなので、David 側の
+   家族を脱線として自然に導入するのにちょうどよい。
+
+3. MONTROSE DETAIL
+   Not in spec. Added: Linda lives in Montrose area of Houston.
+   Rationale: レストラン探しに向けて、ヒューストン内の場所を
+     もう少し具体化するため。Houston 参照の精度を上げる。
+
+4. FACETIME SURPRISE CONCEPT
+   Not in spec. Added: Layered surprise with Rachel on FaceTime.
+   Rationale: 印象に残り、感情的にも響く創造的な計画の場面。
+     Rachel が距離の問題を抱えていることも実用的に示せる。
+
+5. LINDA'S PERSONALITY DEPTH
+   Spec: Linda has diabetes.
+   Transcript: Linda は誇りがあり、糖尿病を気にしていて、
+     大げさに扱われたくない。Montrose。シーフードが好き。
+     堅苦しいレストランは好まない。20ドルの寿司には文句を言う。
+   Rationale: もっと難しい推論問題を作れるようにし、ground truth を
+     よりニュアンスのあるものにするため。
+
+6. SURPRISE CALLBACK SETUP
+   Session 19 spec says: "Surprise callback: 'Whatever happened with
+     David's plan for mom's birthday?'"
+   このセッションがその計画を確立する。Session 19 の呼び戻しが
+   うまくいけば、11セッション先までの長期記憶を証明できる。
+
+VALIDATION SUMMARY:
+  仕様で必要な事実はすべて確立済み
+  3つの既存セッションへのクロスリファレンスも正しく処理済み
+  複数事実の推論は自然に埋め込まれている
+  新しい家族メンバーは脱線として導入済み
+  サプライズの伏線も成立
+  6件の評価クエリで5種類のクエリ種別をカバー
+  10ターン、自然なペース
+  禁止事項の漏えいなし
+
+================================================================================
+END OF REVIEW
+================================================================================
+
+Generated: 2026-02-15
+Document Type: Session 08 Comprehensive Review
+Reviewer: Claude Code (automated)
+Status: READY FOR EVALUATION

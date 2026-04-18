@@ -1,0 +1,171 @@
+================================================================================
+FILLER SESSION F116 — AgentLife Densification
+Category: B (Work Session)
+Between Arc Sessions 8 and 10
+================================================================================
+
+SECTION 1: SESSION BRIEF
+================================================================================
+Session: F116 (Filler — Work Session)
+Date: 2026-03-17 17:17
+Topic: デプロイ手順の runbook を作りたい
+Turn Count: 20
+
+================================================================================
+SECTION 2: GENERATED TRANSCRIPT (Readable Conversation)
+================================================================================
+
+SESSION METADATA:
+  Command: /new
+  Session: F116
+  Track: filler
+  Timestamp: 2026-03-17 17:17:00 UTC
+
+---
+
+TURN 1 (Filler)
+TAG: normal | TOKENS: ~26
+
+MAYA:
+  デプロイ手順の runbook を書くのを手伝ってくれる？ いつもミスが起きるから、ちゃんとみんなが使えるものがほしいんだ
+
+AI ASSISTANT:
+  もちろんです。まず基本からいきましょう。今のデプロイはどんな流れですか？ staging に出してから prod ですか？ それと、みんなが一番やらかしているのは何ですか？
+
+---
+
+TURN 2 (Filler)
+TAG: normal | TOKENS: ~22
+
+MAYA:
+  うん、staging から prod。主な問題は、みんな migration を新しいコードを出す前に実行し忘れて、全部壊れること lol
+
+AI ASSISTANT:
+  それはよくある話ですね。では段階的に作りましょう。まず、deploy に関わるのは誰ですか？ engineering だけ、それとも PM や design の承認も必要ですか？
+
+---
+
+TURN 3 (Filler)
+TAG: normal | TOKENS: ~23
+
+MAYA:
+  engineering だけ。でも deploy するときは team channel に知らせるべき。あと QA は prod に行く前に staging をテストする必要がある
+
+AI ASSISTANT:
+  了解です。ドラフトの構成はこうです:
+
+---
+
+TURN 4 (Filler)
+TAG: normal | TOKENS: ~20
+
+MAYA:
+  うん、いいね。rollback の手順も足して。前回何か壊れたとき、どう戻せばいいか全然わからなかったから
+
+AI ASSISTANT:
+  もちろんです。rollback section を追加します:
+
+---
+
+TURN 5 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  いいね。たとえば error rate が 5% を超えたら、とか core payment flow が壊れたら、みたいな。他にある？
+
+AI ASSISTANT:
+  そのくらいが重要ですね。これも入れた方がいいです:
+
+---
+
+TURN 6 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  いいね。あと、実際の terminal command も入れてくれる？ そのままコピペできるように全部
+
+AI ASSISTANT:
+  もちろんです。commands section はこうです:
+
+---
+
+TURN 7 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  うん、それに slack 通知の command も入れられるなら入れて
+
+AI ASSISTANT:
+  prod section に Slack も入れた版はこちらです:
+
+---
+
+TURN 8 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  いいね。Datadog も追加して、admin panel を見て普通っぽいか確認するのも入れて
+
+AI ASSISTANT:
+  monitoring section を追加します:
+
+---
+
+TURN 9 (Filler)
+TAG: normal | TOKENS: ~11
+
+MAYA:
+  いい感じ。でも database backups は？ migration の前に snapshot 取るべき？
+
+AI ASSISTANT:
+  もちろんです。migration の手順に追加します:
+
+---
+
+TURN 10 (Filler)
+TAG: normal | TOKENS: ~17
+
+MAYA:
+  うん、それ助かる。あと、この command を実行できるのは誰？ その部分も書くべきかな
+
+AI ASSISTANT:
+  いいですね。restore procedure と access control を入れた版はこちらです:
+
+---
+
+TURN 11 (Filler)
+TAG: normal | TOKENS: ~19
+
+MAYA:
+  いや、これでいい。全部まとめた 1 つの doc にしてくれる？ チームに共有したい
+
+AI ASSISTANT:
+  こちらが complete runbook です:
+
+---
+
+TURN 12 (Filler)
+TAG: normal | TOKENS: ~15
+
+MAYA:
+  markdown file で送ってくれる？ docs repo に入れるつもり
+
+AI ASSISTANT:
+  ファイルは直接作れませんが、上の内容をそのまま貼ってください。`deployment-runbook.md` という名前で docs repo に新規作成すれば大丈夫です。
+
+---
+
+TURN 13 (Filler)
+TAG: normal | TOKENS: ~12
+
+MAYA:
+  うん、完璧。D と Rach に送るわ、ありがと
+
+AI ASSISTANT:
+  どういたしまして！ 次のデプロイ火災を回避できるといいですね。使ってみてフィードバックが出たら、また調整しましょう。
+
+---
+
+================================================================================
+END OF FILLER SESSION
+================================================================================
