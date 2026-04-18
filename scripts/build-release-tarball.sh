@@ -17,6 +17,7 @@ tar \
   --exclude='node_modules' \
   --exclude='.pytest_cache' \
   --exclude='.pytest-home' \
+  --exclude='pytest-home' \
   --exclude='__pycache__' \
   --exclude='*.pyc' \
   --exclude='.DS_Store' \

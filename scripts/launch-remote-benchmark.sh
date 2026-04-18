@@ -400,6 +400,7 @@ RSYNC_COMMON=(
   --exclude='.venv'
   --exclude='.pytest_cache'
   --exclude='.pytest-home'
+  --exclude='pytest-home'
   --exclude='__pycache__'
   --exclude='*.pyc'
   --exclude='.DS_Store'
