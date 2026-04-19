@@ -1596,10 +1596,14 @@ def _render_base_project_support_file(
             if callable(render):
                 return render(label=label, description=description)
     heading = "Tools" if kind == "TOOLS.md" else "Agent Notes"
+    placeholder = (
+        "No callable project tools or APIs are registered yet."
+        if kind == "TOOLS.md"
+        else "No stable project-specific agent operating rules are registered yet."
+    )
     return (
         f"# {label} {heading}\n\n"
-        f"Project context: {description}\n\n"
-        "Use this file for stable project-specific context discovered while working.\n"
+        f"{placeholder}\n"
     )
 
 

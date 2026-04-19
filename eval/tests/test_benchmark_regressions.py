@@ -88,6 +88,10 @@ def test_base_project_support_files_are_neutral_scaffolds():
     assert "benchmark" not in combined.lower()
     assert "maya" not in combined.lower()
     assert "Safe for Mom" not in combined
+    assert "Use this file for stable project-specific context" not in combined
+    assert "Project context:" not in combined
+    assert "No callable project tools or APIs are registered yet." in tools
+    assert "No stable project-specific agent operating rules are registered yet." in agents
 
 
 def test_benchmark_project_sources_do_not_preseed_docs():
