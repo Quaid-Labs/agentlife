@@ -416,7 +416,7 @@ run_cmd rsync "${RSYNC_COMMON[@]}" "$LOCAL_BENCH_ROOT/" "$REMOTE:$REMOTE_BENCH_R
 echo ""
 echo "--- 2b) Remove local-only benchmark artifacts from remote root ---"
 run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" \
-  "rm -f $REMOTE_BENCH_ROOT/.agentlife-benchmark.local.json $REMOTE_BENCH_ROOT/.env && rm -rf $REMOTE_BENCH_ROOT/release"
+  "rm -f $REMOTE_BENCH_ROOT/.agentlife-benchmark.local.json $REMOTE_BENCH_ROOT/.env && rm -rf $REMOTE_BENCH_ROOT/release $REMOTE_BENCH_ROOT/recipe-app $REMOTE_BENCH_ROOT/portfolio-site"
 
 echo ""
 echo "--- 3) Sync canonical checkpoint repo ---"

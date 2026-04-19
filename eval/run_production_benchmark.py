@@ -815,9 +815,6 @@ from metrics import score_results, retrieval_metrics, format_report
 # Constants
 # ---------------------------------------------------------------------------
 
-RECIPE_APP_DIR = _PROJECT_DIR / "recipe-app"
-PORTFOLIO_DIR = _PROJECT_DIR / "portfolio-site"
-
 SESSION_TO_RECIPE_COMMIT = {
     3: "1073804",   # scaffold with Express + SQLite CRUD
     5: "f5994b3",   # dietary tags
@@ -883,19 +880,15 @@ def _resolve_project_source_repo(project: str) -> Optional[Path]:
     candidates: List[Path] = []
     if project == "recipe-app":
         candidates = [
-            RECIPE_APP_DIR,
-            _PROJECT_DIR / "projects" / "recipe-app",
-            _CLAWD / "recipe-app",
             assets_dir / "projects" / "recipe-app",
             assets_dir / "recipe-app",
+            _CLAWD / "recipe-app",
         ]
     elif project == "portfolio-site":
         candidates = [
-            PORTFOLIO_DIR,
-            _PROJECT_DIR / "projects" / "portfolio-site",
-            _CLAWD / "portfolio-site",
             assets_dir / "projects" / "portfolio-site",
             assets_dir / "portfolio-site",
+            _CLAWD / "portfolio-site",
         ]
     for p in candidates:
         if p.exists():

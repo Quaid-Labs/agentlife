@@ -152,6 +152,23 @@ def test_project_docs_disabled_ablation_does_not_seed_project_docs(monkeypatch, 
     assert not (workspace / "projects" / "portfolio-site" / "PROJECT.md").exists()
 
 
+def test_project_source_repo_ignores_stale_remote_root_dirs(monkeypatch, tmp_path):
+    """Launcher cleanup should not be required for correctness of source resolution."""
+    project_root = tmp_path / "benchmark-root"
+    assets_root = tmp_path / "assets"
+    clawd_root = tmp_path / "clawd"
+    stale_root_repo = project_root / "recipe-app"
+    source_repo = clawd_root / "recipe-app"
+    stale_root_repo.mkdir(parents=True)
+    source_repo.mkdir(parents=True)
+
+    monkeypatch.setattr(rpb, "_PROJECT_DIR", project_root)
+    monkeypatch.setattr(rpb, "_CLAWD", clawd_root)
+    monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: assets_root)
+
+    assert rpb._resolve_project_source_repo("recipe-app") == source_repo
+
+
 def test_project_source_change_waits_for_product_supervisor_freshness(monkeypatch, tmp_path):
     workspace = tmp_path / "ws"
     (workspace / "projects" / "recipe-app").mkdir(parents=True)
