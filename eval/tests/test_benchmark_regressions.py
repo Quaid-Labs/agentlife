@@ -8072,6 +8072,32 @@ def test_lifecycle_resume_checkpoint_fails_on_vanished_regular_file(tmp_path, mo
         )
 
 
+def test_clear_rolling_pre_publish_checkpoint_removes_matching_session_only(tmp_path):
+    workspace = tmp_path / "ws"
+    snapshot_dir = workspace / "lifecycle_resume" / "rolling-pre-publish-day-runtime-2026-03-11"
+    snapshot_dir.mkdir(parents=True)
+    metadata_path = workspace / "logs" / "rolling_pre_publish_checkpoint.json"
+    metadata_path.parent.mkdir(parents=True)
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "mode": "rolling-pre-publish",
+                "session_id": "day-runtime-2026-03-11",
+                "snapshot_dir": str(snapshot_dir),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rpb._clear_rolling_pre_publish_checkpoint(workspace, session_id="other-session")
+    assert metadata_path.exists()
+    assert snapshot_dir.exists()
+
+    rpb._clear_rolling_pre_publish_checkpoint(workspace, session_id="day-runtime-2026-03-11")
+    assert not metadata_path.exists()
+    assert not snapshot_dir.exists()
+
+
 def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkeypatch):
     path = tmp_path / "session.jsonl"
     monkeypatch.setattr(rpb, "_BACKEND", "codex")

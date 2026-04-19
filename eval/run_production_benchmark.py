@@ -3218,6 +3218,26 @@ def _restore_rolling_pre_publish_checkpoint(
     return payload
 
 
+def _clear_rolling_pre_publish_checkpoint(
+    workspace: Path,
+    *,
+    session_id: str,
+) -> None:
+    metadata_path = _rolling_pre_publish_checkpoint_metadata_path(workspace)
+    if not metadata_path.exists():
+        return
+    try:
+        payload = json.loads(metadata_path.read_text())
+    except Exception:
+        payload = {}
+    if str(payload.get("session_id", "")) != str(session_id):
+        return
+    snapshot_dir = Path(str(payload.get("snapshot_dir", "") or ""))
+    if snapshot_dir.exists():
+        shutil.rmtree(snapshot_dir)
+    metadata_path.unlink(missing_ok=True)
+
+
 def _load_workspace_memory_config(workspace: Path) -> Dict[str, Any]:
     config_path = workspace / "config" / "memory.json"
     try:
@@ -5431,6 +5451,7 @@ def _run_runtime_rolling_obd_extract(
         "carry_duplicate_facts_dropped",
     ):
         result[metric_name] = int(flush_metric.get(metric_name, 0) or 0)
+    _clear_rolling_pre_publish_checkpoint(workspace, session_id=session_id)
     return result
 
 
