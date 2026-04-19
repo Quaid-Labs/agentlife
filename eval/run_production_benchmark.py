@@ -1968,10 +1968,12 @@ def _empty_usage_summary() -> Dict[str, Any]:
 def _resolve_eval_context_profile() -> Tuple[str, List[str], bool]:
     """Resolve eval context injection profile and included source groups."""
     profile = (os.environ.get("BENCHMARK_EVAL_CONTEXT_PROFILE", "") or "").strip().lower()
-    if profile not in {"full", "lean", "project-only", "none"}:
+    if profile not in {"full", "lean", "core-only", "no-project-bootstrap", "project-only", "none"}:
         profile = "full"
     if profile == "lean":
         return profile, ["SOUL.md", "USER.md", "ENVIRONMENT.md"], False
+    if profile in {"core-only", "no-project-bootstrap"}:
+        return profile, ["SOUL.md", "USER.md", "ENVIRONMENT.md", "TOOLS.md"], False
     if profile == "project-only":
         return profile, [], True
     if profile == "none":

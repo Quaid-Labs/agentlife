@@ -7475,6 +7475,35 @@ class TestEvalContextCoreSelection:
         assert "--- MEMORY.md ---" in ctx
         assert "--- ENVIRONMENT.md ---" not in ctx
 
+    def test_core_only_eval_context_profile_keeps_root_tools_without_project_bootstrap(self, tmp_path, monkeypatch):
+        ws = tmp_path / "ws"
+        (ws / "projects" / "demo").mkdir(parents=True, exist_ok=True)
+        (ws / "SOUL.md").write_text("# soul")
+        (ws / "USER.md").write_text("# user")
+        (ws / "ENVIRONMENT.md").write_text("# environment")
+        (ws / "TOOLS.md").write_text("# root tools")
+        (ws / "projects" / "demo" / "TOOLS.md").write_text("# demo tools")
+        (ws / "projects" / "demo" / "AGENTS.md").write_text("# demo agents")
+
+        monkeypatch.setenv("BENCHMARK_EVAL_CONTEXT_PROFILE", "no-project-bootstrap")
+
+        profile, core_files, include_project_bootstrap = rpb._resolve_eval_context_profile()
+        ctx = rpb._build_eval_context(
+            ws,
+            core_files=core_files,
+            include_project_bootstrap=include_project_bootstrap,
+        )
+
+        assert profile == "no-project-bootstrap"
+        assert core_files == ["SOUL.md", "USER.md", "ENVIRONMENT.md", "TOOLS.md"]
+        assert include_project_bootstrap is False
+        assert "--- SOUL.md ---" in ctx
+        assert "--- USER.md ---" in ctx
+        assert "--- ENVIRONMENT.md ---" in ctx
+        assert "--- TOOLS.md ---" in ctx
+        assert "--- projects/demo/TOOLS.md ---" not in ctx
+        assert "--- projects/demo/AGENTS.md ---" not in ctx
+
     def test_project_only_eval_context_profile_skips_core_markdown_injection(self, tmp_path, monkeypatch):
         ws = tmp_path / "ws"
         (ws / "projects" / "demo").mkdir(parents=True, exist_ok=True)

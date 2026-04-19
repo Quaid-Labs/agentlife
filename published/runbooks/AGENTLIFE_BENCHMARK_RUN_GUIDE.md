@@ -253,6 +253,13 @@ cd ~/agentlife-benchmark
   --results-dir runs/quaid-l-r1075-20260405-r1071-all-obd-nomic-sonnet-eval
 ```
 
+Diagnostic context profiles may be used for eval-only isolation runs. The
+default profile remains the normal benchmark profile. Use
+`BENCHMARK_EVAL_CONTEXT_PROFILE=no-project-bootstrap` when isolating project-doc
+recall quality: it keeps root `SOUL.md`, `USER.md`, `ENVIRONMENT.md`, and
+`TOOLS.md`, but excludes global `projects/*/{TOOLS.md,AGENTS.md}` bootstrap so
+project docs must enter through recall instead of default answer context.
+
 ### 2a. Sonnet Eval-Only Headline on `AL-S`
 
 ```bash
