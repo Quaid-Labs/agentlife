@@ -5901,15 +5901,18 @@ def run_per_day_extraction(
     }
     extraction_checkpoint_path.write_text(json.dumps(extraction_checkpoint, indent=2))
 
-    # Step B: replay days in order: apply/store snippets+journal+project logs then janitor cycle.
+    # Step B: replay days in order: apply/store snippets+journal+project logs,
+    # refresh project docs from that durable state, then run the janitor cycle.
     for day_idx, (date, day_reviews) in enumerate(days):
         if day_idx < resume_completed_days:
             continue
         snums = [r.session_num for r in day_reviews]
         print(f"\n--- Day {day_idx + 1}/{len(days)}: {date} (sessions {snums}) ---")
 
-        # Check for project file changes on this day
-        projects_changed = set()
+        # Check for project file changes on this day. Project docs updates are
+        # intentionally deferred until after cached extraction/project logs are
+        # applied below; otherwise the docs worker races ahead of PROJECT.log.
+        docs_update_targets: Dict[str, int] = {}
         for review in day_reviews:
             snum = review.session_num
             for ps, project, commit in PROJECT_SESSIONS:
@@ -5930,8 +5933,7 @@ def run_per_day_extraction(
                                 f"Failed to sync snapshot for {project} s{snum}: "
                                 f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
                             )
-                        _handle_project_source_changed(workspace, project, snum)
-                        projects_changed.add((project, snum))
+                        docs_update_targets[project] = min(snum, docs_update_targets.get(project, snum))
                         continue
 
                     source_repo = _require_project_source_repo(project, _resolve_project_source_repo(project))
@@ -5970,8 +5972,7 @@ def run_per_day_extraction(
                                 f"Failed to restore {project} repo to main: "
                                 f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
                             )
-                    _handle_project_source_changed(workspace, project, snum)
-                    projects_changed.add((project, snum))
+                    docs_update_targets[project] = min(snum, docs_update_targets.get(project, snum))
 
         # Harness purity: do not run session-aware project doc enrichment here.
         # Project documentation intelligence belongs in checkpoint runtime/janitor.
@@ -5979,6 +5980,7 @@ def run_per_day_extraction(
         # Store facts
         day_env = _with_quaid_now(env, date)
         day_domain_missing = 0
+        project_log_projects: Set[str] = set()
         if date in auto_rolling_days:
             rolling_days += 1
             day_input = day_runtime_inputs[date]
@@ -6097,6 +6099,7 @@ def run_per_day_extraction(
             )
 
             day_project_logs = _normalize_project_logs(day_project_logs_input)
+            project_log_projects = set(day_project_logs.keys())
             day_log_entries = sum(len(v) for v in day_project_logs.values())
             print(f"  Day project logs: projects={len(day_project_logs)} entries={day_log_entries}")
 
@@ -6129,6 +6132,19 @@ def run_per_day_extraction(
                 )
 
             print(f"  Stored: {stored} facts, {edges} edges, domain_missing={day_domain_missing}")
+
+        for project in sorted(project_log_projects):
+            if _benchmark_project_home(workspace, project).exists():
+                docs_update_targets.setdefault(project, min(snums) if snums else 0)
+
+        if docs_update_targets:
+            print(
+                "  Project docs processing: "
+                f"{len(docs_update_targets)} project(s) after extraction apply/log writes"
+            )
+            for project, update_session in sorted(docs_update_targets.items()):
+                print(f"    Project docs update: {project} s{update_session}")
+                _handle_project_source_changed(workspace, project, update_session)
 
         if run_janitor_each_day:
             # Run nightly janitor cycle after each day, mirroring production cadence.
