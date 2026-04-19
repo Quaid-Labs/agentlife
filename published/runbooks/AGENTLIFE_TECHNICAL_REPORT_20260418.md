@@ -255,10 +255,10 @@ Interpretation:
   `73.88%` to `77.61%` on the same `r1320` ingest, but retrieval barely moved
   (`25.93%` to `26.68%`). This suggests planner wording can improve answer-time
   synthesis, but the deeper JP gap is still retrieval/document surfacing.
-- Strong JP categories include adversarial IDK (`100.00%`), negative questions
+- In the first full JP run (`r1320`), strong categories include adversarial IDK (`100.00%`), negative questions
   (`100.00%`), inference (`92.31%`), multi-session synthesis (`92.86%`), and
   cross-reference (`92.31%`).
-- Weak JP categories include architecture comprehension (`45.45%`), contested
+- Weak `r1320` categories include architecture comprehension (`45.45%`), contested
   fact (`50.00%`), factual recall (`58.62%`), stale fact (`58.33%`), and the
   retrieval-only metric (`25.93%`).
 - Project-state answer accuracy is moderate (`70.83%`), but retrieval remains
