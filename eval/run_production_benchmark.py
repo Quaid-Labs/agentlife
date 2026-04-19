@@ -1578,35 +1578,6 @@ def _render_base_project_md(
 """
 
 
-def _render_base_project_support_file(
-    *,
-    kind: str,
-    label: str,
-    description: str,
-) -> str:
-    """Render canonical project TOOLS.md/AGENTS.md scaffolds from checkpoint."""
-    template_path = _QUAID_DIR / "lib" / "project_templates.py"
-    if template_path.exists():
-        spec = importlib.util.spec_from_file_location("_quaid_project_templates", template_path)
-        if spec is not None and spec.loader is not None:
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            fn_name = "render_project_tools_template" if kind == "TOOLS.md" else "render_project_agents_template"
-            render = getattr(mod, fn_name, None)
-            if callable(render):
-                return render(label=label, description=description)
-    heading = "Tools" if kind == "TOOLS.md" else "Agent Notes"
-    placeholder = (
-        "No callable project tools or APIs are registered yet."
-        if kind == "TOOLS.md"
-        else "No stable project-specific agent operating rules are registered yet."
-    )
-    return (
-        f"# {label} {heading}\n\n"
-        f"{placeholder}\n"
-    )
-
-
 def _write_prompt_trace(
     workspace: Path,
     scope: str,
@@ -2763,14 +2734,6 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
             ),
             encoding="utf-8",
         )
-        (workspace / "projects" / "recipe-app" / "TOOLS.md").write_text(
-            _render_base_project_support_file(kind="TOOLS.md", label="Recipe App", description=recipe_desc),
-            encoding="utf-8",
-        )
-        (workspace / "projects" / "recipe-app" / "AGENTS.md").write_text(
-            _render_base_project_support_file(kind="AGENTS.md", label="Recipe App", description=recipe_desc),
-            encoding="utf-8",
-        )
         portfolio_desc = (
             "Portfolio site project workspace. Current facts, purpose, content, "
             "and status should be learned from source artifacts and conversations."
@@ -2783,14 +2746,6 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
                 source_roots=[str(_benchmark_project_source_root(workspace, "portfolio-site").resolve())],
                 exclude_patterns=[".git/"],
             ),
-            encoding="utf-8",
-        )
-        (workspace / "projects" / "portfolio-site" / "TOOLS.md").write_text(
-            _render_base_project_support_file(kind="TOOLS.md", label="Portfolio Site", description=portfolio_desc),
-            encoding="utf-8",
-        )
-        (workspace / "projects" / "portfolio-site" / "AGENTS.md").write_text(
-            _render_base_project_support_file(kind="AGENTS.md", label="Portfolio Site", description=portfolio_desc),
             encoding="utf-8",
         )
         _seed_quaid_project_docs(workspace)
