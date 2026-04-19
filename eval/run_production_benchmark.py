@@ -3802,13 +3802,16 @@ def run_extraction(
         date_str=last_date,
     )
 
-    project_log_metrics = write_project_logs(
-        str(workspace),
-        extraction_project_logs,
-        trigger="Compaction",
-        date_str=last_date,
-        quaid_instance=_BENCHMARK_QUAID_INSTANCE,
-    )
+    if _benchmark_project_docs_enabled():
+        project_log_metrics = write_project_logs(
+            str(workspace),
+            extraction_project_logs,
+            trigger="Compaction",
+            date_str=last_date,
+            quaid_instance=_BENCHMARK_QUAID_INSTANCE,
+        )
+    elif extraction_project_logs:
+        print("  Project docs disabled: skipping project log writes")
 
     # DB verify
     db_path = workspace / "data" / "memory.db"
@@ -6091,7 +6094,8 @@ def run_per_day_extraction(
                                 f"Failed to sync snapshot for {project} s{snum}: "
                                 f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
                             )
-                        docs_update_targets[project] = min(snum, docs_update_targets.get(project, snum))
+                        if _benchmark_project_docs_enabled():
+                            docs_update_targets[project] = min(snum, docs_update_targets.get(project, snum))
                         continue
 
                     source_repo = _require_project_source_repo(project, _resolve_project_source_repo(project))
@@ -6130,7 +6134,8 @@ def run_per_day_extraction(
                                 f"Failed to restore {project} repo to main: "
                                 f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
                             )
-                    docs_update_targets[project] = min(snum, docs_update_targets.get(project, snum))
+                    if _benchmark_project_docs_enabled():
+                        docs_update_targets[project] = min(snum, docs_update_targets.get(project, snum))
 
         # Harness purity: do not run session-aware project doc enrichment here.
         # Project documentation intelligence belongs in checkpoint runtime/janitor.
@@ -6268,14 +6273,18 @@ def run_per_day_extraction(
             total_edges += edges
             total_domain_missing += day_domain_missing
 
-            ws = str(workspace)
-            pl_metrics = write_project_logs(
-                ws,
-                day_project_logs,
-                trigger="Compaction",
-                date_str=date,
-                quaid_instance=_BENCHMARK_QUAID_INSTANCE,
-            )
+            pl_metrics = {}
+            if _benchmark_project_docs_enabled():
+                ws = str(workspace)
+                pl_metrics = write_project_logs(
+                    ws,
+                    day_project_logs,
+                    trigger="Compaction",
+                    date_str=date,
+                    quaid_instance=_BENCHMARK_QUAID_INSTANCE,
+                )
+            elif day_project_logs:
+                print("  Project docs disabled: skipping project log writes")
             if isinstance(pl_metrics, dict) and pl_metrics:
                 total_project_logs_written += int(pl_metrics.get("entries_written", 0))
                 total_project_logs_seen += int(pl_metrics.get("entries_seen", 0))
@@ -6291,9 +6300,10 @@ def run_per_day_extraction(
 
             print(f"  Stored: {stored} facts, {edges} edges, domain_missing={day_domain_missing}")
 
-        for project in sorted(project_log_projects):
-            if _benchmark_project_home(workspace, project).exists():
-                docs_update_targets.setdefault(project, min(snums) if snums else 0)
+        if _benchmark_project_docs_enabled():
+            for project in sorted(project_log_projects):
+                if _benchmark_project_home(workspace, project).exists():
+                    docs_update_targets.setdefault(project, min(snums) if snums else 0)
 
         if docs_update_targets:
             print(
@@ -6435,6 +6445,12 @@ def run_per_day_extraction(
         "total_facts": total_facts,
         "stored": total_stored,
         "edges": total_edges,
+        "domain_missing": total_domain_missing,
+        "snippets": total_snippets,
+        "journals": total_journals,
+        "project_logs_seen": total_project_logs_seen,
+        "project_logs_written": total_project_logs_written,
+        "project_logs_projects_updated": total_project_logs_projects_updated,
         "days": len(days),
         "janitor_runs": janitor_runs,
         "weekly_distill_runs": weekly_distill_runs,

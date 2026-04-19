@@ -7914,6 +7914,73 @@ class TestPerDayExtraction:
         assert events[:3] == ["project_logs", "janitor", "project_docs_update"]
         assert events.count("project_docs_update") == 1
 
+    def test_project_docs_disabled_ablation_skips_log_writes_and_doc_updates(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        (workspace / "projects" / "recipe-app").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+
+        fake_repo = tmp_path / "recipe-app"
+        (fake_repo / ".git").mkdir(parents=True, exist_ok=True)
+
+        monkeypatch.setenv("BENCHMARK_DISABLE_PROJECT_DOCS", "1")
+        monkeypatch.setattr(rpb, "SESSION_DATES", {1: "2026-03-01"})
+        monkeypatch.setattr(rpb, "PROJECT_SESSIONS", [(1, "recipe-app", "abc123")])
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+        monkeypatch.setattr(rpb, "format_transcript_for_extraction", lambda _r: "hello")
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        monkeypatch.setattr(rpb, "_resolve_project_session_snapshot", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_resolve_project_source_repo", lambda _p: fake_repo)
+        self._stub_prompt_context(monkeypatch, ["project"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
+        monkeypatch.setattr(
+            rpb,
+            "parse_extraction_response",
+            lambda _raw: {
+                "facts": [],
+                "soul_snippets": {},
+                "journal_entries": {},
+                "project_logs": {"recipe-app": ["This should stay out of project docs in disabled mode."]},
+            },
+        )
+        monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(
+            rpb,
+            "write_project_logs",
+            lambda *a, **k: pytest.fail("disabled project-doc lane must not write project logs"),
+        )
+        monkeypatch.setattr(
+            rpb,
+            "_ensure_project_docs_supervisor_running",
+            lambda *a, **k: pytest.fail("disabled project-doc lane must not start the supervisor"),
+        )
+        monkeypatch.setattr(
+            rpb,
+            "_handle_project_source_changed",
+            lambda *a, **k: pytest.fail("disabled project-doc lane must not wait on doc updates"),
+        )
+        monkeypatch.setattr(rpb.subprocess, "run", lambda *a, **k: _FakeSubprocessResult())
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable, "-m", "stub"])
+
+        result = rpb.run_per_day_extraction(
+            workspace=workspace,
+            api_key="dummy",
+            no_cache=True,
+            model="claude-haiku-4-5-20251001",
+            max_sessions=1,
+            run_janitor_each_day=False,
+        )
+
+        assert result["project_logs_written"] == 0
+        assert result["project_logs_seen"] == 0
+        assert result["project_logs_projects_updated"] == 0
+
     def test_skip_janitor(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         (workspace / "logs").mkdir(parents=True, exist_ok=True)
