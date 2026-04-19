@@ -145,6 +145,64 @@ def test_project_update_flow_invokes_runtime_updater(monkeypatch, tmp_path):
     assert "runtime-generated.md" not in json.dumps(event)
 
 
+def test_project_source_change_off_mode_skips_runtime_updater(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    (workspace / "projects" / "recipe-app").mkdir(parents=True)
+    monkeypatch.setenv("BENCHMARK_PROJECT_DOCS_MODE", "off")
+
+    calls = []
+    monkeypatch.setattr(
+        rpb,
+        "_run_project_update_flow",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("legacy updater should not run")),
+    )
+    monkeypatch.setattr(
+        rpb,
+        "_collect_project_docs_artifacts",
+        lambda *a, **k: calls.append(("collect", a, k)),
+    )
+
+    result = rpb._handle_project_source_changed(workspace, "recipe-app", 3)
+
+    assert result["mode"] == "off"
+    assert result["updates"] == 0
+    assert len(calls) == 1
+
+
+def test_project_source_change_supervisor_mode_waits_for_product_freshness(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    (workspace / "projects" / "recipe-app").mkdir(parents=True)
+    monkeypatch.setenv("BENCHMARK_PROJECT_DOCS_MODE", "supervisor")
+
+    calls = []
+    monkeypatch.setattr(
+        rpb,
+        "_run_project_update_flow",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("legacy updater should not run")),
+    )
+    monkeypatch.setattr(
+        rpb,
+        "_ensure_project_docs_supervisor_running",
+        lambda *a, **k: calls.append(("supervisor", a, k)),
+    )
+    monkeypatch.setattr(
+        rpb,
+        "_wait_project_docs_fresh",
+        lambda *a, **k: {"fresh": True, "status": "fresh", "current_shadow_head": "abc", "docs_cursor_head": "abc"},
+    )
+    monkeypatch.setattr(
+        rpb,
+        "_collect_project_docs_artifacts",
+        lambda *a, **k: calls.append(("collect", a, k)),
+    )
+
+    result = rpb._handle_project_source_changed(workspace, "recipe-app", 3)
+
+    assert result["mode"] == "supervisor"
+    assert result["status"]["fresh"] is True
+    assert [c[0] for c in calls] == ["supervisor", "collect"]
+
+
 def test_register_benchmark_projects_uses_product_project_registry(monkeypatch, tmp_path):
     workspace = tmp_path / "ws"
     (workspace / "projects" / "recipe-app").mkdir(parents=True)

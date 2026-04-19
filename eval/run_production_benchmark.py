@@ -27,6 +27,7 @@ Usage:
 """
 
 import argparse
+import atexit
 import base64
 import concurrent.futures
 import hashlib
@@ -211,6 +212,7 @@ _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py
 _EXTRACT_SCRIPT = _resolve_quaid_script("extract.py", "ingest/extract.py")
 _PROJECT_UPDATER_SCRIPT = _resolve_quaid_script("project_updater.py", "datastore/docsdb/project_updater.py")
 _PROJECT_REGISTRY_CLI_SCRIPT = _resolve_quaid_script("core/project_registry_cli.py")
+_PROJECT_DOCS_CLI_SCRIPT = _resolve_quaid_script("core/project_docs_cli.py")
 # Last store telemetry (updated by _store_facts for extraction summaries).
 _LAST_STORE_METRICS: Dict[str, int] = {"domain_missing": 0}
 _EVAL_CORE_TOKEN_CAP = 1500
@@ -2749,6 +2751,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     _seed_quaid_project_docs(workspace)
     _seed_instance_identity_from_sources(workspace, prefer_project_templates=False)
     _register_benchmark_projects(workspace)
+    _ensure_project_docs_supervisor_running(workspace)
     print("  Project docs seeded")
     print()
 
@@ -3323,7 +3326,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
                     f"Failed to sync snapshot for {project} s{session_num}: "
                     f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
                 )
-            _run_project_update_flow(workspace, project, session_num)
+            _handle_project_source_changed(workspace, project, session_num)
             continue
 
         source_repo = _require_project_source_repo(project, _resolve_project_source_repo(project))
@@ -3372,7 +3375,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
                     f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
                 )
 
-        _run_project_update_flow(workspace, project, session_num)
+        _handle_project_source_changed(workspace, project, session_num)
 
         # Run RAG reindex + journal/snippets/workspace via janitor subprocess
         # This mirrors production: project file changes trigger doc updates and journal reflection
@@ -4062,6 +4065,74 @@ _PROJECT_UPDATE_EXCLUDED_DIRS = {".git", "node_modules", "__pycache__", "docs"}
 # in updater events would make project-doc refresh self-trigger recursively.
 _PROJECT_UPDATE_EXCLUDED_FILES = {"PROJECT.md", "PROJECT.log", "TOOLS.md", "AGENTS.md", "package-lock.json"}
 _PROJECT_DOCS_RSYNC_PROTECT_FILTER = ["--filter", "P docs/***"]
+_PROJECT_DOCS_SUPERVISOR_PROC: Optional[subprocess.Popen] = None
+_PROJECT_DOCS_SUPERVISOR_WORKSPACE: Optional[Path] = None
+
+
+def _project_docs_mode() -> str:
+    """Project-doc update mode for benchmark replay.
+
+    legacy: current synchronous process-event path (default, preserves old runs)
+    off: no project-doc updater after copied source snapshots
+    supervisor: use the product project-docs supervisor/worker surfaces
+    """
+    raw = str(os.environ.get("BENCHMARK_PROJECT_DOCS_MODE", "legacy") or "legacy").strip().lower()
+    aliases = {
+        "0": "off",
+        "false": "off",
+        "disabled": "off",
+        "disable": "off",
+        "1": "supervisor",
+        "true": "supervisor",
+        "new": "supervisor",
+        "worker": "supervisor",
+    }
+    mode = aliases.get(raw, raw)
+    if mode not in {"legacy", "off", "supervisor"}:
+        raise RuntimeError(
+            "Unsupported BENCHMARK_PROJECT_DOCS_MODE="
+            f"{raw!r}; expected one of off, legacy, supervisor"
+        )
+    return mode
+
+
+def _project_docs_collect_enabled() -> bool:
+    raw = os.environ.get("BENCHMARK_PROJECT_DOCS_COLLECT", "").strip().lower()
+    if raw:
+        return raw in {"1", "true", "yes", "on"}
+    return _project_docs_mode() in {"off", "supervisor"}
+
+
+def _project_docs_wait_timeout_seconds(default: int = 900) -> int:
+    raw = os.environ.get("BENCHMARK_PROJECT_DOCS_WAIT_TIMEOUT_SECONDS", str(default)).strip()
+    try:
+        return max(1, int(float(raw)))
+    except Exception:
+        return default
+
+
+def _project_docs_poll_seconds(default: float = 2.0) -> float:
+    raw = os.environ.get("BENCHMARK_PROJECT_DOCS_POLL_SECONDS", str(default)).strip()
+    try:
+        return max(0.25, float(raw))
+    except Exception:
+        return default
+
+
+def _project_docs_supervisor_interval_seconds(default: float = 1.0) -> float:
+    raw = os.environ.get("BENCHMARK_PROJECT_DOCS_SUPERVISOR_INTERVAL_SECONDS", str(default)).strip()
+    try:
+        return max(0.5, float(raw))
+    except Exception:
+        return default
+
+
+def _project_docs_worker_interval_seconds(default: float = 1.0) -> float:
+    raw = os.environ.get("BENCHMARK_PROJECT_DOCS_WORKER_INTERVAL_SECONDS", str(default)).strip()
+    try:
+        return max(0.5, float(raw))
+    except Exception:
+        return default
 
 
 def _project_update_files_touched(workspace: Path, project: str, *, max_files: int = 500) -> List[str]:
@@ -4103,6 +4174,326 @@ def _extract_last_json_object(text: str) -> Dict[str, Any]:
         return parsed if isinstance(parsed, dict) else {}
     except Exception:
         return {}
+
+
+def _run_project_docs_json_cmd(
+    workspace: Path,
+    args: List[str],
+    *,
+    phase: str = "ingest",
+    timeout: int = 120,
+) -> Dict[str, Any]:
+    env = _benchmark_env(workspace, phase)
+    cmd = _python_cmd_for_quaid_script(_PROJECT_DOCS_CLI_SCRIPT) + list(args)
+    result = subprocess.run(
+        cmd,
+        env=env,
+        cwd=str(_QUAID_DIR),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(f"Project docs command failed: {' '.join(args)}: {detail[:800]}")
+    payload = _extract_last_json_object(result.stdout)
+    if not payload:
+        detail = (result.stdout or result.stderr or "").strip()
+        raise RuntimeError(f"Project docs command returned unparsable JSON: {' '.join(args)}: {detail[:800]}")
+    return payload
+
+
+def _run_project_registry_json_cmd(
+    workspace: Path,
+    args: List[str],
+    *,
+    phase: str = "ingest",
+    timeout: int = 120,
+) -> Dict[str, Any]:
+    env = _benchmark_env(workspace, phase)
+    cmd = _python_cmd_for_quaid_script(_PROJECT_REGISTRY_CLI_SCRIPT) + list(args)
+    result = subprocess.run(
+        cmd,
+        env=env,
+        cwd=str(_QUAID_DIR),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(f"Project registry command failed: {' '.join(args)}: {detail[:800]}")
+    payload = _extract_last_json_object(result.stdout)
+    if not payload:
+        detail = (result.stdout or result.stderr or "").strip()
+        raise RuntimeError(f"Project registry command returned unparsable JSON: {' '.join(args)}: {detail[:800]}")
+    return payload
+
+
+def _run_docs_registry_json_cmd(
+    workspace: Path,
+    args: List[str],
+    *,
+    phase: str = "ingest",
+    timeout: int = 120,
+) -> Any:
+    env = _benchmark_env(workspace, phase)
+    cmd = _python_cmd_for_quaid_script(_resolve_quaid_script("datastore/docsdb/registry.py")) + list(args)
+    result = subprocess.run(
+        cmd,
+        env=env,
+        cwd=str(_QUAID_DIR),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(f"Docs registry command failed: {' '.join(args)}: {detail[:800]}")
+    raw = str(result.stdout or "").strip()
+    try:
+        return json.loads(raw)
+    except Exception:
+        start = raw.find("[")
+        if start >= 0:
+            try:
+                return json.loads(raw[start:])
+            except Exception:
+                pass
+        payload = _extract_last_json_object(raw)
+        if payload:
+            return payload
+    detail = (result.stdout or result.stderr or "").strip()
+    raise RuntimeError(f"Docs registry command returned unparsable JSON: {' '.join(args)}: {detail[:800]}")
+
+
+def _stop_project_docs_supervisor() -> None:
+    global _PROJECT_DOCS_SUPERVISOR_PROC, _PROJECT_DOCS_SUPERVISOR_WORKSPACE
+    proc = _PROJECT_DOCS_SUPERVISOR_PROC
+    workspace = _PROJECT_DOCS_SUPERVISOR_WORKSPACE
+    _PROJECT_DOCS_SUPERVISOR_PROC = None
+    _PROJECT_DOCS_SUPERVISOR_WORKSPACE = None
+    if proc is None:
+        return
+    if proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=10)
+    if workspace is not None:
+        try:
+            _run_project_docs_json_cmd(
+                workspace,
+                ["supervisor", "stop", "--type", "project-docs", "--json"],
+                timeout=30,
+            )
+        except Exception:
+            pass
+
+
+def _ensure_project_docs_supervisor_running(workspace: Path) -> None:
+    """Start the product project-docs supervisor for supervisor-mode runs."""
+    global _PROJECT_DOCS_SUPERVISOR_PROC, _PROJECT_DOCS_SUPERVISOR_WORKSPACE
+    if _project_docs_mode() != "supervisor":
+        return
+    if _PROJECT_DOCS_SUPERVISOR_PROC is not None and _PROJECT_DOCS_SUPERVISOR_PROC.poll() is None:
+        return
+
+    logs_dir = workspace / "logs" / "project-docs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    stdout_path = logs_dir / "supervisor.stdout.log"
+    stderr_path = logs_dir / "supervisor.stderr.log"
+    env = _benchmark_env(workspace, "ingest")
+    env["PYTHONUNBUFFERED"] = "1"
+    env["QUAID_SUPERVISOR_INTERVAL_SECONDS"] = str(_project_docs_supervisor_interval_seconds())
+    env["QUAID_PROJECT_DOCS_WORKER_INTERVAL_SECONDS"] = str(_project_docs_worker_interval_seconds())
+    # Test runs need quick stale-worker recovery; production defaults remain in runtime.
+    env.setdefault("QUAID_PROJECT_DOCS_WORKER_STALE_SECONDS", "15")
+    cmd = _python_cmd_for_quaid_script(_PROJECT_DOCS_CLI_SCRIPT) + [
+        "supervisor",
+        "run",
+        "--type",
+        "project-docs",
+        "--interval",
+        str(_project_docs_supervisor_interval_seconds()),
+    ]
+    stdout_fh = stdout_path.open("a", encoding="utf-8")
+    stderr_fh = stderr_path.open("a", encoding="utf-8")
+    proc = subprocess.Popen(
+        cmd,
+        env=env,
+        cwd=str(_QUAID_DIR),
+        stdout=stdout_fh,
+        stderr=stderr_fh,
+        text=True,
+    )
+    stdout_fh.close()
+    stderr_fh.close()
+    _PROJECT_DOCS_SUPERVISOR_PROC = proc
+    _PROJECT_DOCS_SUPERVISOR_WORKSPACE = workspace
+    atexit.register(_stop_project_docs_supervisor)
+    time.sleep(0.5)
+    if proc.poll() is not None:
+        raise RuntimeError(
+            "Project docs supervisor exited during startup; "
+            f"stdout={stdout_path} stderr={stderr_path}"
+        )
+    print(
+        "  Project docs supervisor started: "
+        f"pid={proc.pid} interval={_project_docs_supervisor_interval_seconds()}s"
+    )
+
+
+def _project_status_json(workspace: Path, project: str) -> Dict[str, Any]:
+    return _run_project_registry_json_cmd(
+        workspace,
+        ["status", project, "--json"],
+        timeout=120,
+    )
+
+
+def _project_diff_json(workspace: Path, project: str) -> Dict[str, Any]:
+    return _run_project_registry_json_cmd(
+        workspace,
+        ["diff", project, "--stat", "--json"],
+        timeout=120,
+    )
+
+
+def _wait_project_docs_fresh(workspace: Path, project: str, session_num: int) -> Dict[str, Any]:
+    """Wait until the product project-docs worker reports a fresh cursor."""
+    timeout_s = _project_docs_wait_timeout_seconds()
+    poll_s = _project_docs_poll_seconds()
+    deadline = time.time() + timeout_s
+    last_status: Dict[str, Any] = {}
+    while time.time() < deadline:
+        last_status = _project_status_json(workspace, project)
+        status = str(last_status.get("status") or "").lower()
+        if status == "error":
+            raise RuntimeError(
+                f"Project docs update errored for {project} s{session_num}: "
+                f"{json.dumps(last_status, ensure_ascii=True)[:1000]}"
+            )
+        heartbeat = last_status.get("worker_heartbeat")
+        source_root = str(last_status.get("source_root") or "").strip()
+        current_head = last_status.get("current_shadow_head")
+        cursor_head = last_status.get("docs_cursor_head")
+        cursor_matches_source = not source_root or (bool(current_head) and current_head == cursor_head)
+        if bool(last_status.get("fresh")) and isinstance(heartbeat, dict) and cursor_matches_source:
+            print(
+                f"    Project docs fresh: project={project} s{session_num} "
+                f"shadow={current_head or '-'} "
+                f"cursor={cursor_head or '-'} "
+                f"log_pending={last_status.get('project_log_bytes_pending', 0)}"
+            )
+            return last_status
+        time.sleep(poll_s)
+    raise RuntimeError(
+        f"Timed out waiting for project docs fresh: project={project} s{session_num} "
+        f"timeout={timeout_s}s last_status={json.dumps(last_status, ensure_ascii=True)[:1000]}"
+    )
+
+
+def _project_docs_probe_queries(project: str) -> List[str]:
+    if project == "recipe-app":
+        return [
+            "recipe app tech stack source architecture",
+            "recipe-app README package.json API schema tests",
+        ]
+    if project == "portfolio-site":
+        return [
+            "portfolio site current content project cards",
+            "portfolio-site README index styles current state",
+        ]
+    return [f"{project} project docs current state"]
+
+
+def _collect_project_docs_artifacts(
+    workspace: Path,
+    project: str,
+    session_num: int,
+    *,
+    status: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Collect product docs artifacts for A/B inspection without adding intelligence."""
+    if not _project_docs_collect_enabled():
+        return
+    root = workspace / "logs" / "project-docs-artifacts" / f"s{session_num:03d}-{project}"
+    root.mkdir(parents=True, exist_ok=True)
+    project_dir = workspace / "projects" / project
+    for name in ["PROJECT.md", "TOOLS.md", "AGENTS.md", "PROJECT.log"]:
+        src = project_dir / name
+        if src.exists() and src.is_file():
+            shutil.copy2(src, root / name)
+    docs_dir = project_dir / "docs"
+    if docs_dir.exists() and docs_dir.is_dir():
+        shutil.copytree(docs_dir, root / "docs", dirs_exist_ok=True)
+
+    if status is None:
+        try:
+            status = _project_status_json(workspace, project)
+        except Exception as exc:
+            status = {"error": str(exc)}
+    (root / "project-status.json").write_text(json.dumps(status, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    try:
+        diff = _project_diff_json(workspace, project)
+    except Exception as exc:
+        diff = {"error": str(exc)}
+    (root / "project-diff-stat.json").write_text(json.dumps(diff, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    try:
+        docs = _run_docs_registry_json_cmd(
+            workspace,
+            ["list", "--project", project, "--json"],
+        )
+    except Exception as exc:
+        docs = {"error": str(exc)}
+    (root / "docs-list.json").write_text(json.dumps(docs, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    probes: List[Dict[str, Any]] = []
+    env = _benchmark_env(workspace, "ingest")
+    for query in _project_docs_probe_queries(project):
+        try:
+            text, meta = _tool_memory_recall(
+                query,
+                workspace,
+                env,
+                stores=["docs"],
+                project=project,
+                telemetry_source="project_docs_probe",
+            )
+            probes.append({
+                "query": query,
+                "chars": len(text or ""),
+                "text_preview": (text or "")[:2000],
+                "meta": meta or {},
+            })
+        except Exception as exc:
+            probes.append({"query": query, "error": str(exc)})
+    (root / "scoped-docs-recall-probes.json").write_text(
+        json.dumps(probes, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def _handle_project_source_changed(workspace: Path, project: str, session_num: int) -> Dict[str, Any]:
+    """Route benchmark source-copy changes through the selected product docs mode."""
+    mode = _project_docs_mode()
+    if mode == "legacy":
+        result = _run_project_update_flow(workspace, project, session_num)
+        _collect_project_docs_artifacts(workspace, project, session_num)
+        return result
+    if mode == "off":
+        print(f"    Project docs update skipped: mode=off project={project} s{session_num}")
+        _collect_project_docs_artifacts(workspace, project, session_num)
+        return {"project": project, "session_num": session_num, "mode": mode, "updates": 0}
+    _ensure_project_docs_supervisor_running(workspace)
+    status = _wait_project_docs_fresh(workspace, project, session_num)
+    _collect_project_docs_artifacts(workspace, project, session_num, status=status)
+    return {"project": project, "session_num": session_num, "mode": mode, "status": status}
 
 
 def _run_project_update_flow(workspace: Path, project: str, session_num: int) -> Dict[str, Any]:
@@ -4417,7 +4808,7 @@ def _sync_final_project_states(workspace: Path) -> None:
         session_num, commit = latest[project]
         print(f"  Final project state: {project} @ session {session_num}")
         _sync_project_snapshot(workspace, project=project, session_num=session_num, commit=commit)
-        _run_project_update_flow(workspace, project, session_num)
+        _handle_project_source_changed(workspace, project, session_num)
 
 
 def _run_runtime_extract_jsonl(
@@ -5659,7 +6050,7 @@ def run_per_day_extraction(
                                 f"Failed to sync snapshot for {project} s{snum}: "
                                 f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
                             )
-                        _run_project_update_flow(workspace, project, snum)
+                        _handle_project_source_changed(workspace, project, snum)
                         projects_changed.add((project, snum))
                         continue
 
@@ -5700,7 +6091,7 @@ def run_per_day_extraction(
                                 f"Failed to restore {project} repo to main: "
                                 f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
                             )
-                    _run_project_update_flow(workspace, project, snum)
+                    _handle_project_source_changed(workspace, project, snum)
                     projects_changed.add((project, snum))
 
         # Harness purity: do not run session-aware project doc enrichment here.
