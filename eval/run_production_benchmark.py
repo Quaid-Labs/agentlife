@@ -210,7 +210,6 @@ _RECALL_TOOL_DESCRIPTION = (
 _JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py")
 _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
 _EXTRACT_SCRIPT = _resolve_quaid_script("extract.py", "ingest/extract.py")
-_PROJECT_UPDATER_SCRIPT = _resolve_quaid_script("project_updater.py", "datastore/docsdb/project_updater.py")
 _PROJECT_REGISTRY_CLI_SCRIPT = _resolve_quaid_script("core/project_registry_cli.py")
 _PROJECT_DOCS_CLI_SCRIPT = _resolve_quaid_script("core/project_docs_cli.py")
 # Last store telemetry (updated by _store_facts for extraction summaries).
@@ -914,6 +913,16 @@ def _require_project_source_repo(project: str, source_repo: Optional[Path]) -> P
     if not source_repo.exists():
         raise RuntimeError(f"Project source repo path does not exist: {source_repo}")
     return source_repo
+
+
+def _benchmark_project_home(workspace: Path, project: str) -> Path:
+    """Visible Quaid-managed project home for docs/logs."""
+    return workspace / "projects" / project
+
+
+def _benchmark_project_source_root(workspace: Path, project: str) -> Path:
+    """External source checkout linked to the Quaid project registry."""
+    return workspace / "project-sources" / project
 
 
 def _parse_review_timestamp(review) -> datetime:
@@ -2449,6 +2458,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     for d in [
         "data", "config", "journal", "extraction_cache", "logs",
         "projects/recipe-app", "projects/portfolio-site", "projects/quaid",
+        "project-sources/recipe-app", "project-sources/portfolio-site",
     ]:
         (workspace / d).mkdir(parents=True, exist_ok=True)
 
@@ -2519,7 +2529,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
         "recipe-app": {
             "label": "Recipe App",
             "homeDir": "projects/recipe-app/",
-            "sourceRoots": ["projects/recipe-app/"],
+            "sourceRoots": [str(_benchmark_project_source_root(workspace, "recipe-app").resolve())],
             "autoIndex": True,
             "patterns": ["*.md", "*.js", "*.json", "*.html", "*.css"],
             "exclude": ["node_modules/", "*.db", ".git/", "package-lock.json"],
@@ -2528,7 +2538,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
         "portfolio-site": {
             "label": "Portfolio Site",
             "homeDir": "projects/portfolio-site/",
-            "sourceRoots": ["projects/portfolio-site/"],
+            "sourceRoots": [str(_benchmark_project_source_root(workspace, "portfolio-site").resolve())],
             "autoIndex": True,
             "patterns": ["*.md", "*.html", "*.css"],
             "exclude": [".git/"],
@@ -2713,7 +2723,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
             label="Recipe App",
             description=recipe_desc,
             project_home="projects/recipe-app/",
-            source_roots=["projects/recipe-app/"],
+            source_roots=[str(_benchmark_project_source_root(workspace, "recipe-app").resolve())],
             exclude_patterns=["node_modules/", "*.db", ".git/", "package-lock.json"],
         ),
         encoding="utf-8",
@@ -2735,7 +2745,7 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
             label="Portfolio Site",
             description=portfolio_desc,
             project_home="projects/portfolio-site/",
-            source_roots=["projects/portfolio-site/"],
+            source_roots=[str(_benchmark_project_source_root(workspace, "portfolio-site").resolve())],
             exclude_patterns=[".git/"],
         ),
         encoding="utf-8",
@@ -3312,12 +3322,13 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
         if max_session and session_num > max_session:
             continue
         snapshot_dir = _resolve_project_session_snapshot(project, session_num)
-        target_dir = workspace / "projects" / project
+        target_dir = _benchmark_project_source_root(workspace, project)
+        target_dir.mkdir(parents=True, exist_ok=True)
         if snapshot_dir is not None:
             print(f"  Session {session_num}: {project} snapshot @ {snapshot_dir}")
             rsync_res = subprocess.run(
-                ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER, "--exclude", ".git", "--exclude", "node_modules",
-                 "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md",
+                ["rsync", "-a", "--delete", *_PROJECT_SOURCE_RSYNC_FILTER, "--exclude", ".git", "--exclude", "node_modules",
+                 "--exclude", "package-lock.json",
                  str(snapshot_dir) + "/", str(target_dir) + "/"],
                 capture_output=True, timeout=30,
             )
@@ -3349,11 +3360,9 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
         # Rsync files (exclude .git, node_modules, package-lock, preserve existing docs)
         excludes = [".git", "node_modules", "package-lock.json"]
         # Build rsync command
-        cmd = ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER]
+        cmd = ["rsync", "-a", "--delete", *_PROJECT_SOURCE_RSYNC_FILTER]
         for exc in excludes:
             cmd.extend(["--exclude", exc])
-        # Preserve project docs/logs managed by Quaid runtime.
-        cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md"])
         cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
 
         rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
@@ -3397,13 +3406,18 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
     # Verify
     print("\n  Verification:")
     for project in ["recipe-app", "portfolio-site"]:
-        pdir = workspace / "projects" / project
-        files = list(pdir.rglob("*"))
-        file_count = len([f for f in files if f.is_file()])
-        has_project_md = (pdir / "PROJECT.md").exists()
-        has_tools_md = (pdir / "TOOLS.md").exists()
-        tools_lines = len((pdir / "TOOLS.md").read_text().split("\n")) if has_tools_md else 0
-        print(f"    {project}: {file_count} files, PROJECT.md={has_project_md}, TOOLS.md={has_tools_md} ({tools_lines} lines)")
+        home_dir = _benchmark_project_home(workspace, project)
+        source_dir = _benchmark_project_source_root(workspace, project)
+        source_files = list(source_dir.rglob("*"))
+        source_file_count = len([f for f in source_files if f.is_file()])
+        has_project_md = (home_dir / "PROJECT.md").exists()
+        has_tools_md = (home_dir / "TOOLS.md").exists()
+        tools_lines = len((home_dir / "TOOLS.md").read_text().split("\n")) if has_tools_md else 0
+        print(
+            f"    {project}: source_files={source_file_count}, "
+            f"source_root={source_dir}, PROJECT.md={has_project_md}, "
+            f"TOOLS.md={has_tools_md} ({tools_lines} lines)"
+        )
     print()
 
 
@@ -4060,47 +4074,19 @@ def _render_messages_as_transcript(messages: List[Dict[str, str]]) -> str:
     )
 
 
-_PROJECT_UPDATE_EXCLUDED_DIRS = {".git", "node_modules", "__pycache__", "docs"}
-# These are runtime-managed project outputs, not source inputs. Including them
-# in updater events would make project-doc refresh self-trigger recursively.
-_PROJECT_UPDATE_EXCLUDED_FILES = {"PROJECT.md", "PROJECT.log", "TOOLS.md", "AGENTS.md", "package-lock.json"}
-_PROJECT_DOCS_RSYNC_PROTECT_FILTER = ["--filter", "P docs/***"]
+# Source roots live outside the Quaid-managed project home. Runtime docs are
+# protected by layout, so source docs should sync normally instead of being
+# excluded/protected as generated artifacts.
+_PROJECT_SOURCE_RSYNC_FILTER: List[str] = []
 _PROJECT_DOCS_SUPERVISOR_PROC: Optional[subprocess.Popen] = None
 _PROJECT_DOCS_SUPERVISOR_WORKSPACE: Optional[Path] = None
-
-
-def _project_docs_mode() -> str:
-    """Project-doc update mode for benchmark replay.
-
-    legacy: current synchronous process-event path (default, preserves old runs)
-    off: no project-doc updater after copied source snapshots
-    supervisor: use the product project-docs supervisor/worker surfaces
-    """
-    raw = str(os.environ.get("BENCHMARK_PROJECT_DOCS_MODE", "legacy") or "legacy").strip().lower()
-    aliases = {
-        "0": "off",
-        "false": "off",
-        "disabled": "off",
-        "disable": "off",
-        "1": "supervisor",
-        "true": "supervisor",
-        "new": "supervisor",
-        "worker": "supervisor",
-    }
-    mode = aliases.get(raw, raw)
-    if mode not in {"legacy", "off", "supervisor"}:
-        raise RuntimeError(
-            "Unsupported BENCHMARK_PROJECT_DOCS_MODE="
-            f"{raw!r}; expected one of off, legacy, supervisor"
-        )
-    return mode
 
 
 def _project_docs_collect_enabled() -> bool:
     raw = os.environ.get("BENCHMARK_PROJECT_DOCS_COLLECT", "").strip().lower()
     if raw:
         return raw in {"1", "true", "yes", "on"}
-    return _project_docs_mode() in {"off", "supervisor"}
+    return True
 
 
 def _project_docs_wait_timeout_seconds(default: int = 900) -> int:
@@ -4133,27 +4119,6 @@ def _project_docs_worker_interval_seconds(default: float = 1.0) -> float:
         return max(0.5, float(raw))
     except Exception:
         return default
-
-
-def _project_update_files_touched(workspace: Path, project: str, *, max_files: int = 500) -> List[str]:
-    """List project source artifacts for the runtime project-updater event."""
-    project_dir = workspace / "projects" / project
-    if not project_dir.exists():
-        return []
-    touched: List[str] = []
-    for path in sorted(project_dir.rglob("*")):
-        if not path.is_file():
-            continue
-        rel = path.relative_to(workspace)
-        parts = set(rel.parts)
-        if parts & _PROJECT_UPDATE_EXCLUDED_DIRS:
-            continue
-        if path.name in _PROJECT_UPDATE_EXCLUDED_FILES:
-            continue
-        touched.append(rel.as_posix())
-        if len(touched) >= max_files:
-            break
-    return touched
 
 
 def _extract_last_json_object(text: str) -> Dict[str, Any]:
@@ -4294,10 +4259,8 @@ def _stop_project_docs_supervisor() -> None:
 
 
 def _ensure_project_docs_supervisor_running(workspace: Path) -> None:
-    """Start the product project-docs supervisor for supervisor-mode runs."""
+    """Start the product project-docs supervisor for benchmark project updates."""
     global _PROJECT_DOCS_SUPERVISOR_PROC, _PROJECT_DOCS_SUPERVISOR_WORKSPACE
-    if _project_docs_mode() != "supervisor":
-        return
     if _PROJECT_DOCS_SUPERVISOR_PROC is not None and _PROJECT_DOCS_SUPERVISOR_PROC.poll() is None:
         return
 
@@ -4422,7 +4385,7 @@ def _collect_project_docs_artifacts(
         return
     root = workspace / "logs" / "project-docs-artifacts" / f"s{session_num:03d}-{project}"
     root.mkdir(parents=True, exist_ok=True)
-    project_dir = workspace / "projects" / project
+    project_dir = _benchmark_project_home(workspace, project)
     for name in ["PROJECT.md", "TOOLS.md", "AGENTS.md", "PROJECT.log"]:
         src = project_dir / name
         if src.exists() and src.is_file():
@@ -4480,99 +4443,15 @@ def _collect_project_docs_artifacts(
 
 
 def _handle_project_source_changed(workspace: Path, project: str, session_num: int) -> Dict[str, Any]:
-    """Route benchmark source-copy changes through the selected product docs mode."""
-    mode = _project_docs_mode()
-    if mode == "legacy":
-        result = _run_project_update_flow(workspace, project, session_num)
-        _collect_project_docs_artifacts(workspace, project, session_num)
-        return result
-    if mode == "off":
-        print(f"    Project docs update skipped: mode=off project={project} s{session_num}")
-        _collect_project_docs_artifacts(workspace, project, session_num)
-        return {"project": project, "session_num": session_num, "mode": mode, "updates": 0}
+    """Route benchmark source-copy changes through the product docs supervisor.
+
+    Project docs are Quaid product behavior, not a benchmark A/B mode. The
+    benchmark must fail hard if the supervisor/worker path cannot refresh docs.
+    """
     _ensure_project_docs_supervisor_running(workspace)
     status = _wait_project_docs_fresh(workspace, project, session_num)
     _collect_project_docs_artifacts(workspace, project, session_num, status=status)
-    return {"project": project, "session_num": session_num, "mode": mode, "status": status}
-
-
-def _run_project_update_flow(workspace: Path, project: str, session_num: int) -> Dict[str, Any]:
-    """Call Quaid's project updater after benchmark-replayed project file changes.
-
-    In normal prod, the daemon sees dirty project files and queues this runtime
-    updater. The benchmark copies source snapshots directly, so it must trigger
-    the same product updater explicitly rather than doing project-doc reasoning
-    in harness code.
-    """
-    files_touched = _project_update_files_touched(workspace, project)
-    staging_dir = workspace / "projects" / "staging"
-    staging_dir.mkdir(parents=True, exist_ok=True)
-    event_path = staging_dir / f"benchmark-project-sync-s{session_num:03d}-{project}-{uuid.uuid4().hex[:8]}.json"
-    event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "trigger": "source-file-change",
-        "project_hint": project,
-        "files_touched": files_touched,
-        "summary": (
-            f"Project source files changed under projects/{project}; "
-            "refresh project documentation and file listings from current source artifacts."
-        ),
-    }
-    event_path.write_text(json.dumps(event, indent=2), encoding="utf-8")
-
-    env = _benchmark_env(workspace, "ingest")
-    cmd = _python_cmd_for_quaid_script(_PROJECT_UPDATER_SCRIPT) + ["process-event", str(event_path)]
-    result = subprocess.run(
-        cmd,
-        env=env,
-        cwd=str(_QUAID_DIR),
-        capture_output=True,
-        text=True,
-        timeout=300,
-    )
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout or "").strip()
-        raise RuntimeError(
-            f"Project updater failed for {project} s{session_num}: {detail[:800]}"
-        )
-    payload = _extract_last_json_object(result.stdout)
-    if not payload:
-        detail = (result.stdout or result.stderr or "").strip()
-        raise RuntimeError(
-            f"Project updater returned unparsable output for {project} s{session_num}: {detail[:800]}"
-        )
-    if not payload.get("success"):
-        raise RuntimeError(
-            f"Project updater reported failure for {project} s{session_num}: {json.dumps(payload, ensure_ascii=True)}"
-        )
-
-    refresh_cmd = _python_cmd_for_quaid_script(_PROJECT_UPDATER_SCRIPT) + ["refresh-project-md", project]
-    refresh = subprocess.run(
-        refresh_cmd,
-        env=env,
-        cwd=str(_QUAID_DIR),
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
-    if refresh.returncode != 0:
-        detail = (refresh.stderr or refresh.stdout or "").strip()
-        raise RuntimeError(
-            f"Project PROJECT.md refresh failed for {project} s{session_num}: {detail[:800]}"
-        )
-
-    updates = payload.get("updates") if isinstance(payload, dict) else None
-    print(
-        f"    Project updater: project={project} files={len(files_touched)} "
-        f"updates={updates if updates is not None else 'unknown'}"
-    )
-    return {
-        "project": project,
-        "session_num": session_num,
-        "files_touched": len(files_touched),
-        "updates": updates,
-        "event_path": str(event_path),
-    }
+    return {"project": project, "session_num": session_num, "mode": "supervisor", "status": status}
 
 
 def _register_benchmark_projects(workspace: Path) -> None:
@@ -4587,12 +4466,12 @@ def _register_benchmark_projects(workspace: Path) -> None:
         (
             "recipe-app",
             "Recipe app project workspace",
-            (workspace / "projects" / "recipe-app").resolve(),
+            _benchmark_project_source_root(workspace, "recipe-app").resolve(),
         ),
         (
             "portfolio-site",
             "Portfolio site project workspace",
-            (workspace / "projects" / "portfolio-site").resolve(),
+            _benchmark_project_source_root(workspace, "portfolio-site").resolve(),
         ),
     ]
     registered = 0
@@ -4749,11 +4628,12 @@ def _sync_project_snapshot(
 ) -> None:
     """Sync one project to the requested benchmark session state."""
     snapshot_dir = _resolve_project_session_snapshot(project, session_num)
-    target_dir = workspace / "projects" / project
+    target_dir = _benchmark_project_source_root(workspace, project)
+    target_dir.mkdir(parents=True, exist_ok=True)
     if snapshot_dir is not None:
         rsync_res = subprocess.run(
-            ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER, "--exclude", ".git", "--exclude", "node_modules",
-             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md",
+            ["rsync", "-a", "--delete", *_PROJECT_SOURCE_RSYNC_FILTER, "--exclude", ".git", "--exclude", "node_modules",
+             "--exclude", "package-lock.json",
              str(snapshot_dir) + "/", str(target_dir) + "/"],
             capture_output=True, timeout=30,
         )
@@ -4776,10 +4656,9 @@ def _sync_project_snapshot(
                 f"Failed to checkout {project}@{commit}: "
                 f"{(checkout_res.stderr or checkout_res.stdout or '').strip()[:300]}"
             )
-    cmd = ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER]
+    cmd = ["rsync", "-a", "--delete", *_PROJECT_SOURCE_RSYNC_FILTER]
     for exc in [".git", "node_modules", "package-lock.json"]:
         cmd.extend(["--exclude", exc])
-    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md"])
     cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
     rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
     if has_git:
@@ -6036,12 +5915,13 @@ def run_per_day_extraction(
             for ps, project, commit in PROJECT_SESSIONS:
                 if ps == snum:
                     snapshot_dir = _resolve_project_session_snapshot(project, snum)
-                    target_dir = workspace / "projects" / project
+                    target_dir = _benchmark_project_source_root(workspace, project)
+                    target_dir.mkdir(parents=True, exist_ok=True)
                     if snapshot_dir is not None:
                         print(f"  Project update: {project} snapshot s{snum}")
                         rsync_res = subprocess.run(
-                            ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER, "--exclude", ".git", "--exclude", "node_modules",
-                             "--exclude", "package-lock.json", "--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md",
+                            ["rsync", "-a", "--delete", *_PROJECT_SOURCE_RSYNC_FILTER, "--exclude", ".git", "--exclude", "node_modules",
+                             "--exclude", "package-lock.json",
                              str(snapshot_dir) + "/", str(target_dir) + "/"],
                             capture_output=True, timeout=30,
                         )
@@ -6070,10 +5950,9 @@ def run_per_day_extraction(
                     else:
                         print(f"    NOTE: {project} source has no .git; using snapshot without commit replay")
                     excludes = [".git", "node_modules", "package-lock.json"]
-                    cmd = ["rsync", "-a", "--delete", *_PROJECT_DOCS_RSYNC_PROTECT_FILTER]
+                    cmd = ["rsync", "-a", "--delete", *_PROJECT_SOURCE_RSYNC_FILTER]
                     for exc in excludes:
                         cmd.extend(["--exclude", exc])
-                    cmd.extend(["--exclude", "PROJECT.md", "--exclude", "PROJECT.log", "--exclude", "TOOLS.md", "--exclude", "AGENTS.md"])
                     cmd.extend([str(source_repo) + "/", str(target_dir) + "/"])
                     rsync_res = subprocess.run(cmd, capture_output=True, timeout=30)
                     if rsync_res.returncode != 0:

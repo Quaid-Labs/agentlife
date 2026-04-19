@@ -57,12 +57,13 @@ def test_base_project_md_scaffold_does_not_seed_future_project_facts():
             "and motivations should be learned from source artifacts and conversations."
         ),
         project_home="projects/recipe-app/",
-        source_roots=["projects/recipe-app/"],
+        source_roots=["project-sources/recipe-app/"],
         exclude_patterns=["node_modules/", "*.db"],
     )
 
     assert "# Project: Recipe App" in text
     assert "projects/recipe-app/" in text
+    assert "project-sources/recipe-app/" in text
     assert "source artifacts and conversations" in text
     assert "Safe for Mom" not in text
     assert "Linda" not in text
@@ -89,97 +90,11 @@ def test_base_project_support_files_are_neutral_scaffolds():
     assert "Safe for Mom" not in combined
 
 
-def test_project_update_flow_invokes_runtime_updater(monkeypatch, tmp_path):
-    workspace = tmp_path / "ws"
-    project_dir = workspace / "projects" / "recipe-app"
-    project_dir.mkdir(parents=True)
-    (project_dir / "index.js").write_text("console.log('recipe')\n", encoding="utf-8")
-    (project_dir / "PROJECT.md").write_text("# Project: Recipe App\n", encoding="utf-8")
-    (project_dir / "PROJECT.log").write_text("- system-managed history\n", encoding="utf-8")
-    (project_dir / "TOOLS.md").write_text("# Tools\n", encoding="utf-8")
-    (project_dir / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
-    (project_dir / "docs").mkdir()
-    (project_dir / "docs" / "runtime-generated.md").write_text("# Runtime generated\n", encoding="utf-8")
-    (project_dir / "node_modules").mkdir()
-    (project_dir / "node_modules" / "skip.js").write_text("skip\n", encoding="utf-8")
-
-    calls = []
-
-    class _Result:
-        def __init__(self, stdout='{"success": true, "updates": 0}\n'):
-            self.returncode = 0
-            self.stdout = stdout
-            self.stderr = ""
-
-    def _fake_run(cmd, **kwargs):
-        calls.append((list(cmd), kwargs))
-        if "process-event" in cmd:
-            return _Result("log line\n{\"success\": true, \"updates\": 0}\n")
-        return _Result("refreshed\n")
-
-    monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"QUAID_HOME": str(workspace)})
-    monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _script: [sys.executable, "project_updater.py"])
-    monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
-    monkeypatch.setattr(rpb.subprocess, "run", _fake_run)
-
-    result = rpb._run_project_update_flow(workspace, "recipe-app", 3)
-
-    assert result["project"] == "recipe-app"
-    assert result["files_touched"] == 1
-    assert len(calls) == 2
-    assert "process-event" in calls[0][0]
-    assert calls[0][1]["env"]["QUAID_HOME"] == str(workspace)
-    assert calls[0][1]["cwd"] == str(tmp_path)
-    assert calls[1][0][-2:] == ["refresh-project-md", "recipe-app"]
-
-    event_path = Path(calls[0][0][-1])
-    event = json.loads(event_path.read_text(encoding="utf-8"))
-    assert event["trigger"] == "source-file-change"
-    assert event["project_hint"] == "recipe-app"
-    assert "Benchmark" not in event["summary"]
-    assert event["files_touched"] == ["projects/recipe-app/index.js"]
-    assert "PROJECT.md" not in json.dumps(event)
-    assert "PROJECT.log" not in json.dumps(event)
-    assert "TOOLS.md" not in json.dumps(event)
-    assert "AGENTS.md" not in json.dumps(event)
-    assert "runtime-generated.md" not in json.dumps(event)
-
-
-def test_project_source_change_off_mode_skips_runtime_updater(monkeypatch, tmp_path):
+def test_project_source_change_waits_for_product_supervisor_freshness(monkeypatch, tmp_path):
     workspace = tmp_path / "ws"
     (workspace / "projects" / "recipe-app").mkdir(parents=True)
-    monkeypatch.setenv("BENCHMARK_PROJECT_DOCS_MODE", "off")
 
     calls = []
-    monkeypatch.setattr(
-        rpb,
-        "_run_project_update_flow",
-        lambda *a, **k: (_ for _ in ()).throw(AssertionError("legacy updater should not run")),
-    )
-    monkeypatch.setattr(
-        rpb,
-        "_collect_project_docs_artifacts",
-        lambda *a, **k: calls.append(("collect", a, k)),
-    )
-
-    result = rpb._handle_project_source_changed(workspace, "recipe-app", 3)
-
-    assert result["mode"] == "off"
-    assert result["updates"] == 0
-    assert len(calls) == 1
-
-
-def test_project_source_change_supervisor_mode_waits_for_product_freshness(monkeypatch, tmp_path):
-    workspace = tmp_path / "ws"
-    (workspace / "projects" / "recipe-app").mkdir(parents=True)
-    monkeypatch.setenv("BENCHMARK_PROJECT_DOCS_MODE", "supervisor")
-
-    calls = []
-    monkeypatch.setattr(
-        rpb,
-        "_run_project_update_flow",
-        lambda *a, **k: (_ for _ in ()).throw(AssertionError("legacy updater should not run")),
-    )
     monkeypatch.setattr(
         rpb,
         "_ensure_project_docs_supervisor_running",
@@ -207,6 +122,8 @@ def test_register_benchmark_projects_uses_product_project_registry(monkeypatch, 
     workspace = tmp_path / "ws"
     (workspace / "projects" / "recipe-app").mkdir(parents=True)
     (workspace / "projects" / "portfolio-site").mkdir(parents=True)
+    (workspace / "project-sources" / "recipe-app").mkdir(parents=True)
+    (workspace / "project-sources" / "portfolio-site").mkdir(parents=True)
 
     calls = []
 
@@ -231,6 +148,8 @@ def test_register_benchmark_projects_uses_product_project_registry(monkeypatch, 
         assert "--source-root" in cmd
         source_root = Path(cmd[cmd.index("--source-root") + 1])
         assert source_root.is_absolute()
+        assert "project-sources" in source_root.parts
+        assert "projects" not in source_root.relative_to(workspace).parts
         assert kwargs["env"]["QUAID_HOME"] == str(workspace)
         assert kwargs["cwd"] == str(tmp_path)
         assert kwargs["timeout"] == 120
@@ -240,6 +159,8 @@ def test_register_benchmark_projects_updates_and_links_existing_projects(monkeyp
     workspace = tmp_path / "ws"
     (workspace / "projects" / "recipe-app").mkdir(parents=True)
     (workspace / "projects" / "portfolio-site").mkdir(parents=True)
+    (workspace / "project-sources" / "recipe-app").mkdir(parents=True)
+    (workspace / "project-sources" / "portfolio-site").mkdir(parents=True)
 
     calls = []
 
@@ -7810,7 +7731,7 @@ class TestPerDayExtraction:
         fake_repo = tmp_path / "recipe-app"
         (fake_repo / ".git").mkdir(parents=True, exist_ok=True)
         monkeypatch.setattr(rpb, "_resolve_project_source_repo", lambda _p: fake_repo)
-        monkeypatch.setattr(rpb, "_run_project_update_flow", lambda *a, **k: {})
+        monkeypatch.setattr(rpb, "_handle_project_source_changed", lambda *a, **k: {})
 
         calls = []
         monkeypatch.setattr(rpb.subprocess, "run", lambda cmd, **k: (calls.append(list(cmd)), _FakeSubprocessResult())[1])
@@ -7914,7 +7835,7 @@ class TestPerDayExtraction:
         fake_repo = tmp_path / "recipe-app"
         (fake_repo / ".git").mkdir(parents=True, exist_ok=True)
         monkeypatch.setattr(rpb, "_resolve_project_source_repo", lambda _p: fake_repo)
-        monkeypatch.setattr(rpb, "_run_project_update_flow", lambda *a, **k: {})
+        monkeypatch.setattr(rpb, "_handle_project_source_changed", lambda *a, **k: {})
         monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
         monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
         monkeypatch.setattr(rpb.subprocess, "run", lambda *a, **k: _FakeSubprocessResult())
