@@ -874,6 +874,21 @@ def _benchmark_project_docs_enabled() -> bool:
     return not _env_truthy("BENCHMARK_DISABLE_PROJECT_DOCS")
 
 
+def _fail_if_project_docs_disabled_metrics(project_log_metrics: dict, *, phase: str) -> None:
+    """Fail-fast guard for docs-disabled ablation lanes."""
+    if _benchmark_project_docs_enabled():
+        return
+    metrics = project_log_metrics if isinstance(project_log_metrics, dict) else {}
+    seen = int(metrics.get("entries_seen", 0) or 0)
+    written = int(metrics.get("entries_written", 0) or 0)
+    projects_updated = int(metrics.get("projects_updated", 0) or 0)
+    if seen or written or projects_updated:
+        raise RuntimeError(
+            "Project docs disabled ablation was tainted by project-log activity "
+            f"during {phase}: seen={seen} written={written} projects_updated={projects_updated}"
+        )
+
+
 def _resolve_project_source_repo(project: str) -> Optional[Path]:
     """Resolve project source repo across known local/asset locations."""
     assets_dir = _resolve_assets_dir()
@@ -5634,6 +5649,7 @@ def run_per_day_extraction(
         )
         total_journals = int(extract_result.get("journals_count", len(extract_result.get("journal", {}) or {})) or 0)
         project_log_metrics = extract_result.get("project_log_metrics", {}) or {}
+        _fail_if_project_docs_disabled_metrics(project_log_metrics, phase="OBD runtime extraction")
         total_project_logs_written = int(project_log_metrics.get("entries_written", 0) or 0)
         total_project_logs_seen = int(project_log_metrics.get("entries_seen", 0) or 0)
         total_project_logs_projects_updated = int(project_log_metrics.get("projects_updated", 0) or 0)
@@ -6183,6 +6199,7 @@ def run_per_day_extraction(
             total_snippets += int(extract_result.get("snippets_count", 0) or 0)
             total_journals += int(extract_result.get("journals_count", 0) or 0)
             project_log_metrics = extract_result.get("project_log_metrics", {}) or {}
+            _fail_if_project_docs_disabled_metrics(project_log_metrics, phase=f"day {day_idx + 1} runtime extraction")
             total_project_logs_written += int(project_log_metrics.get("entries_written", 0) or 0)
             total_project_logs_seen += int(project_log_metrics.get("entries_seen", 0) or 0)
             total_project_logs_projects_updated += int(project_log_metrics.get("projects_updated", 0) or 0)

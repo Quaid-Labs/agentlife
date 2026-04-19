@@ -152,6 +152,16 @@ def test_project_docs_disabled_ablation_does_not_seed_project_docs(monkeypatch, 
     assert not (workspace / "projects" / "portfolio-site" / "PROJECT.md").exists()
 
 
+def test_project_docs_disabled_ablation_fails_on_runtime_project_log_metrics(monkeypatch):
+    monkeypatch.setenv("BENCHMARK_DISABLE_PROJECT_DOCS", "1")
+
+    with pytest.raises(RuntimeError, match="Project docs disabled ablation was tainted"):
+        rpb._fail_if_project_docs_disabled_metrics(
+            {"entries_seen": 2, "entries_written": 1, "projects_updated": 1},
+            phase="runtime extraction",
+        )
+
+
 def test_project_source_repo_ignores_stale_remote_root_dirs(monkeypatch, tmp_path):
     """Launcher cleanup should not be required for correctness of source resolution."""
     project_root = tmp_path / "benchmark-root"
