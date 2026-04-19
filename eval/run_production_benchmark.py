@@ -848,6 +848,14 @@ _DOMAIN_ALIASES = {
     "relationship": "personal",
 }
 
+_BENCHMARK_PROJECT_SOURCE_PATTERNS = {
+    # No Markdown/docs patterns here. Project-doc generation must earn its
+    # evidence from code/test/data artifacts and project logs, not from
+    # benchmark-authored README/API docs baked into source fixtures.
+    "recipe-app": ["*.js", "*.json", "*.html", "*.css"],
+    "portfolio-site": ["*.html", "*.css"],
+}
+
 def _normalize_domain_list(raw_domains: list) -> List[str]:
     """Normalize and dedupe domains while preserving order."""
     out: List[str] = []
@@ -862,6 +870,11 @@ def _normalize_domain_list(raw_domains: list) -> List[str]:
         seen.add(norm)
         out.append(norm)
     return out
+
+
+def _benchmark_project_docs_enabled() -> bool:
+    """Experiment-only ablation switch; normal benchmark runs keep project docs on."""
+    return not _env_truthy("BENCHMARK_DISABLE_PROJECT_DOCS")
 
 
 def _resolve_project_source_repo(project: str) -> Optional[Path]:
@@ -2525,35 +2538,42 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     }
     if not isinstance(prod_config.get("projects"), dict):
         prod_config["projects"] = {}
-    prod_config["projects"]["definitions"] = {
-        "recipe-app": {
-            "label": "Recipe App",
-            "homeDir": "projects/recipe-app/",
-            "sourceRoots": [str(_benchmark_project_source_root(workspace, "recipe-app").resolve())],
-            "autoIndex": True,
-            "patterns": ["*.md", "*.js", "*.json", "*.html", "*.css"],
-            "exclude": ["node_modules/", "*.db", ".git/", "package-lock.json"],
-            "description": "Recipe app project workspace",
-        },
-        "portfolio-site": {
-            "label": "Portfolio Site",
-            "homeDir": "projects/portfolio-site/",
-            "sourceRoots": [str(_benchmark_project_source_root(workspace, "portfolio-site").resolve())],
-            "autoIndex": True,
-            "patterns": ["*.md", "*.html", "*.css"],
-            "exclude": [".git/"],
-            "description": "Portfolio site project workspace",
-        },
-        "quaid": {
-            "label": "Quaid",
-            "homeDir": "projects/quaid/",
-            "sourceRoots": ["projects/quaid/"],
-            "autoIndex": True,
-            "patterns": ["*.md"],
-            "exclude": [".git/"],
-            "description": "Knowledge layer runtime and operations reference",
-        },
-    }
+    project_docs_enabled = _benchmark_project_docs_enabled()
+    if not isinstance(prod_config.get("systems"), dict):
+        prod_config["systems"] = {}
+    prod_config["systems"]["projects"] = project_docs_enabled
+    if project_docs_enabled:
+        prod_config["projects"]["definitions"] = {
+            "recipe-app": {
+                "label": "Recipe App",
+                "homeDir": "projects/recipe-app/",
+                "sourceRoots": [str(_benchmark_project_source_root(workspace, "recipe-app").resolve())],
+                "autoIndex": True,
+                "patterns": _BENCHMARK_PROJECT_SOURCE_PATTERNS["recipe-app"],
+                "exclude": ["node_modules/", "*.db", ".git/", "package-lock.json"],
+                "description": "Recipe app project workspace",
+            },
+            "portfolio-site": {
+                "label": "Portfolio Site",
+                "homeDir": "projects/portfolio-site/",
+                "sourceRoots": [str(_benchmark_project_source_root(workspace, "portfolio-site").resolve())],
+                "autoIndex": True,
+                "patterns": _BENCHMARK_PROJECT_SOURCE_PATTERNS["portfolio-site"],
+                "exclude": [".git/"],
+                "description": "Portfolio site project workspace",
+            },
+            "quaid": {
+                "label": "Quaid",
+                "homeDir": "projects/quaid/",
+                "sourceRoots": ["projects/quaid/"],
+                "autoIndex": True,
+                "patterns": ["*.md"],
+                "exclude": [".git/"],
+                "description": "Knowledge layer runtime and operations reference",
+            },
+        }
+    else:
+        prod_config["projects"]["definitions"] = {}
     # Core markdown: only what the benchmark workspace has
     if not isinstance(prod_config.get("docs"), dict):
         prod_config["docs"] = {}
@@ -2714,55 +2734,59 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
 
     # 4. Seed project docs. Keep these as project-creation scaffolds only;
     # future state belongs in synced artifacts and runtime project-log updates.
-    recipe_desc = (
-        "Recipe app project workspace. Current facts, features, stack, "
-        "and motivations should be learned from source artifacts and conversations."
-    )
-    (workspace / "projects" / "recipe-app" / "PROJECT.md").write_text(
-        _render_base_project_md(
-            label="Recipe App",
-            description=recipe_desc,
-            project_home="projects/recipe-app/",
-            source_roots=[str(_benchmark_project_source_root(workspace, "recipe-app").resolve())],
-            exclude_patterns=["node_modules/", "*.db", ".git/", "package-lock.json"],
-        ),
-        encoding="utf-8",
-    )
-    (workspace / "projects" / "recipe-app" / "TOOLS.md").write_text(
-        _render_base_project_support_file(kind="TOOLS.md", label="Recipe App", description=recipe_desc),
-        encoding="utf-8",
-    )
-    (workspace / "projects" / "recipe-app" / "AGENTS.md").write_text(
-        _render_base_project_support_file(kind="AGENTS.md", label="Recipe App", description=recipe_desc),
-        encoding="utf-8",
-    )
-    portfolio_desc = (
-        "Portfolio site project workspace. Current facts, purpose, content, "
-        "and status should be learned from source artifacts and conversations."
-    )
-    (workspace / "projects" / "portfolio-site" / "PROJECT.md").write_text(
-        _render_base_project_md(
-            label="Portfolio Site",
-            description=portfolio_desc,
-            project_home="projects/portfolio-site/",
-            source_roots=[str(_benchmark_project_source_root(workspace, "portfolio-site").resolve())],
-            exclude_patterns=[".git/"],
-        ),
-        encoding="utf-8",
-    )
-    (workspace / "projects" / "portfolio-site" / "TOOLS.md").write_text(
-        _render_base_project_support_file(kind="TOOLS.md", label="Portfolio Site", description=portfolio_desc),
-        encoding="utf-8",
-    )
-    (workspace / "projects" / "portfolio-site" / "AGENTS.md").write_text(
-        _render_base_project_support_file(kind="AGENTS.md", label="Portfolio Site", description=portfolio_desc),
-        encoding="utf-8",
-    )
-    _seed_quaid_project_docs(workspace)
-    _seed_instance_identity_from_sources(workspace, prefer_project_templates=False)
-    _register_benchmark_projects(workspace)
-    _ensure_project_docs_supervisor_running(workspace)
-    print("  Project docs seeded")
+    if project_docs_enabled:
+        recipe_desc = (
+            "Recipe app project workspace. Current facts, features, stack, "
+            "and motivations should be learned from source artifacts and conversations."
+        )
+        (workspace / "projects" / "recipe-app" / "PROJECT.md").write_text(
+            _render_base_project_md(
+                label="Recipe App",
+                description=recipe_desc,
+                project_home="projects/recipe-app/",
+                source_roots=[str(_benchmark_project_source_root(workspace, "recipe-app").resolve())],
+                exclude_patterns=["node_modules/", "*.db", ".git/", "package-lock.json"],
+            ),
+            encoding="utf-8",
+        )
+        (workspace / "projects" / "recipe-app" / "TOOLS.md").write_text(
+            _render_base_project_support_file(kind="TOOLS.md", label="Recipe App", description=recipe_desc),
+            encoding="utf-8",
+        )
+        (workspace / "projects" / "recipe-app" / "AGENTS.md").write_text(
+            _render_base_project_support_file(kind="AGENTS.md", label="Recipe App", description=recipe_desc),
+            encoding="utf-8",
+        )
+        portfolio_desc = (
+            "Portfolio site project workspace. Current facts, purpose, content, "
+            "and status should be learned from source artifacts and conversations."
+        )
+        (workspace / "projects" / "portfolio-site" / "PROJECT.md").write_text(
+            _render_base_project_md(
+                label="Portfolio Site",
+                description=portfolio_desc,
+                project_home="projects/portfolio-site/",
+                source_roots=[str(_benchmark_project_source_root(workspace, "portfolio-site").resolve())],
+                exclude_patterns=[".git/"],
+            ),
+            encoding="utf-8",
+        )
+        (workspace / "projects" / "portfolio-site" / "TOOLS.md").write_text(
+            _render_base_project_support_file(kind="TOOLS.md", label="Portfolio Site", description=portfolio_desc),
+            encoding="utf-8",
+        )
+        (workspace / "projects" / "portfolio-site" / "AGENTS.md").write_text(
+            _render_base_project_support_file(kind="AGENTS.md", label="Portfolio Site", description=portfolio_desc),
+            encoding="utf-8",
+        )
+        _seed_quaid_project_docs(workspace)
+        _seed_instance_identity_from_sources(workspace, prefer_project_templates=False)
+        _register_benchmark_projects(workspace)
+        _ensure_project_docs_supervisor_running(workspace)
+        print("  Project docs seeded")
+    else:
+        _seed_instance_identity_from_sources(workspace, prefer_project_templates=False)
+        print("  Project docs disabled for ablation")
     print()
 
 
@@ -4104,10 +4128,17 @@ def _render_messages_as_transcript(messages: List[Dict[str, str]]) -> str:
     )
 
 
-# Source roots live outside the Quaid-managed project home. Runtime docs are
-# protected by layout, so source docs should sync normally instead of being
-# excluded/protected as generated artifacts.
-_PROJECT_SOURCE_RSYNC_FILTER: List[str] = []
+# Source roots live outside the Quaid-managed project home. For benchmark
+# project fixtures, pre-authored docs are deliberately excluded: auto-doc
+# quality should be measured from code/test/data artifacts plus conversation
+# logs, not by recalling a README/API doc the dataset already baked in.
+_PROJECT_SOURCE_RSYNC_FILTER: List[str] = [
+    "--exclude", "README",
+    "--exclude", "README.*",
+    "--exclude", "*.md",
+    "--exclude", "*.mdx",
+    "--exclude", "docs/",
+]
 _PROJECT_DOCS_SUPERVISOR_PROC: Optional[subprocess.Popen] = None
 _PROJECT_DOCS_SUPERVISOR_WORKSPACE: Optional[Path] = None
 
@@ -4291,6 +4322,8 @@ def _stop_project_docs_supervisor() -> None:
 def _ensure_project_docs_supervisor_running(workspace: Path) -> None:
     """Start the product project-docs supervisor for benchmark project updates."""
     global _PROJECT_DOCS_SUPERVISOR_PROC, _PROJECT_DOCS_SUPERVISOR_WORKSPACE
+    if not _benchmark_project_docs_enabled():
+        return
     if _PROJECT_DOCS_SUPERVISOR_PROC is not None and _PROJECT_DOCS_SUPERVISOR_PROC.poll() is None:
         return
 
@@ -4480,6 +4513,9 @@ def _handle_project_source_changed(workspace: Path, project: str, session_num: i
     docs updates through the product supervisor. This helper is a read-only
     dependency gate so artifact collection does not race ahead of docs cursors.
     """
+    if not _benchmark_project_docs_enabled():
+        print(f"    Project docs disabled: skipping wait/read for {project} s{session_num}")
+        return {"project": project, "session_num": session_num, "mode": "disabled", "status": {"fresh": False}}
     _ensure_project_docs_supervisor_running(workspace)
     status = _wait_project_docs_fresh(workspace, project, session_num)
     _collect_project_docs_artifacts(workspace, project, session_num, status=status)
@@ -4496,6 +4532,9 @@ def _run_project_docs_monitor_and_wait(
     label: str = "project_docs_monitor",
 ) -> Dict[str, Any]:
     """Request project docs update through janitor, then wait/read status."""
+    if not _benchmark_project_docs_enabled():
+        print(f"    Project docs disabled: skipping monitor request for {project} s{session_num}")
+        return {"project": project, "session_num": session_num, "mode": "disabled", "status": {"fresh": False}}
     _ensure_project_docs_supervisor_running(workspace)
     _run_product_janitor_cycle(
         workspace=workspace,

@@ -90,6 +90,68 @@ def test_base_project_support_files_are_neutral_scaffolds():
     assert "Safe for Mom" not in combined
 
 
+def test_benchmark_project_sources_do_not_preseed_docs():
+    """Project-doc quality must not be propped up by fixture README/API docs."""
+    filter_args = rpb._PROJECT_SOURCE_RSYNC_FILTER
+    assert "README.*" in filter_args
+    assert "*.md" in filter_args
+    assert "*.mdx" in filter_args
+    assert "docs/" in filter_args
+
+    for patterns in rpb._BENCHMARK_PROJECT_SOURCE_PATTERNS.values():
+        assert not any(pattern.lower().endswith((".md", ".mdx")) for pattern in patterns)
+
+
+def test_benchmark_project_fixture_tree_has_no_preseeded_docs():
+    """Keep generated-doc benchmarks honest: source fixtures are code/test/data only."""
+    fixture_roots = [
+        ROOT.parent / "apps" / "recipe-app",
+        ROOT.parent / "benchmark-assets" / "projects" / "recipe-app",
+        ROOT.parent / "benchmark-assets" / "projects" / "portfolio-site",
+    ]
+    leaked_docs = []
+    for root in fixture_roots:
+        if not root.exists():
+            continue
+        leaked_docs.extend(
+            str(path.relative_to(ROOT.parent))
+            for path in root.rglob("*")
+            if path.is_file()
+            and (path.suffix.lower() in {".md", ".mdx"} or "docs" in path.relative_to(root).parts)
+        )
+
+    assert leaked_docs == []
+
+
+def test_project_docs_disabled_ablation_does_not_seed_project_docs(monkeypatch, tmp_path):
+    """The disabled A/B lane should be memory-only, not hidden scaffold docs."""
+    workspace = tmp_path / "ws"
+    monkeypatch.setenv("BENCHMARK_DISABLE_PROJECT_DOCS", "1")
+    monkeypatch.setattr(
+        rpb,
+        "_seed_quaid_project_docs",
+        lambda *_a, **_k: pytest.fail("quaid project docs should not be seeded"),
+    )
+    monkeypatch.setattr(
+        rpb,
+        "_register_benchmark_projects",
+        lambda *_a, **_k: pytest.fail("benchmark projects should not be registered"),
+    )
+    monkeypatch.setattr(
+        rpb,
+        "_ensure_project_docs_supervisor_running",
+        lambda *_a, **_k: pytest.fail("project docs supervisor should not start"),
+    )
+
+    rpb.setup_workspace(workspace)
+
+    config = json.loads((workspace / "config" / "memory.json").read_text())
+    assert config["systems"]["projects"] is False
+    assert config["projects"]["definitions"] == {}
+    assert not (workspace / "projects" / "recipe-app" / "PROJECT.md").exists()
+    assert not (workspace / "projects" / "portfolio-site" / "PROJECT.md").exists()
+
+
 def test_project_source_change_waits_for_product_supervisor_freshness(monkeypatch, tmp_path):
     workspace = tmp_path / "ws"
     (workspace / "projects" / "recipe-app").mkdir(parents=True)
