@@ -4633,7 +4633,7 @@ def test_run_janitor_uses_configured_timeout(tmp_path, monkeypatch, capsys):
     workspace = tmp_path / "ws"
     workspace.mkdir()
 
-    captured: dict[str, object] = {}
+    calls = []
 
     monkeypatch.setattr(rpb, "_benchmark_env", lambda _workspace, _phase: {"PATH": os.environ.get("PATH", "")})
     monkeypatch.setattr(
@@ -4644,8 +4644,7 @@ def test_run_janitor_uses_configured_timeout(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
 
     def _fake_run(cmd, **kwargs):
-        captured["cmd"] = cmd
-        captured["timeout"] = kwargs.get("timeout")
+        calls.append((list(cmd), kwargs.get("timeout")))
         return SimpleNamespace(returncode=0, stdout="janitor ok\n", stderr="")
 
     monkeypatch.setattr(subprocess, "run", _fake_run)
@@ -4653,8 +4652,8 @@ def test_run_janitor_uses_configured_timeout(tmp_path, monkeypatch, capsys):
     rpb.run_janitor(workspace, timeout_seconds=1800)
 
     out = capsys.readouterr().out
-    assert captured["timeout"] == 1800
-    assert "--force-distill" in captured["cmd"]
+    assert any("--task" in cmd and "all" in cmd and timeout == 1800 for cmd, timeout in calls)
+    assert any("--force-distill" in cmd for cmd, _timeout in calls)
     assert "timeout=1800s" in out
 
 
@@ -7731,6 +7730,7 @@ class TestPerDayExtraction:
         fake_repo = tmp_path / "recipe-app"
         (fake_repo / ".git").mkdir(parents=True, exist_ok=True)
         monkeypatch.setattr(rpb, "_resolve_project_source_repo", lambda _p: fake_repo)
+        monkeypatch.setattr(rpb, "_ensure_project_docs_supervisor_running", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_handle_project_source_changed", lambda *a, **k: {})
 
         calls = []
@@ -7749,10 +7749,10 @@ class TestPerDayExtraction:
             c for c in calls
             if "--task" in c and any(task in c for task in ("docs_staleness", "docs_cleanup", "rag", "workspace"))
         ]
-        jan_graduate = [c for c in calls if "--task" in c and "graduate" in c]
+        jan_all = [c for c in calls if "--task" in c and "all" in c]
         jan_weekly = [c for c in calls if "--task" in c and "journal" in c and "--force-distill" in c]
         assert jan_docs_tasks == []
-        assert len(jan_graduate) == 3
+        assert len(jan_all) == 3
         assert len(jan_weekly) == 2
         assert result["janitor_runs"] == 3
         assert result["weekly_distill_runs"] == 2
@@ -7766,7 +7766,7 @@ class TestPerDayExtraction:
         assert resume_state["completed_days"] == 3
         assert (workspace / "lifecycle_resume" / "day-03-2026-03-04" / "data" / "memory.db").exists()
 
-    def test_project_docs_update_runs_after_project_log_apply_before_janitor(self, tmp_path, monkeypatch):
+    def test_project_docs_update_runs_after_project_log_apply_via_janitor(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         (workspace / "logs").mkdir(parents=True, exist_ok=True)
         (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
@@ -7817,6 +7817,7 @@ class TestPerDayExtraction:
             return _FakeSubprocessResult()
 
         monkeypatch.setattr(rpb, "write_project_logs", _write_project_logs)
+        monkeypatch.setattr(rpb, "_ensure_project_docs_supervisor_running", lambda *a, **k: None)
         monkeypatch.setattr(rpb, "_handle_project_source_changed", _handle_project_source_changed)
         monkeypatch.setattr(rpb.subprocess, "run", _fake_run)
         monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
@@ -7831,7 +7832,7 @@ class TestPerDayExtraction:
             run_janitor_each_day=True,
         )
 
-        assert events[:3] == ["project_logs", "project_docs_update", "janitor"]
+        assert events[:3] == ["project_logs", "janitor", "project_docs_update"]
         assert events.count("project_docs_update") == 1
 
     def test_skip_janitor(self, tmp_path, monkeypatch):

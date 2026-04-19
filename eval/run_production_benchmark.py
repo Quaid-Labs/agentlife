@@ -62,20 +62,6 @@ _PROJECT_DIR = _DIR.parent
 _CLAWD = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
 _DATASET_CHOICES = {"canonical", "jp"}
 _JANITOR_ALL_TIMEOUT_SECONDS = 1800
-_PROJECT_DOCS_SUPERVISOR_JANITOR_TASKS = (
-    "embeddings",
-    "edges",
-    "review",
-    "temporal",
-    "dedup_review",
-    "duplicates",
-    "decay",
-    "decay_review",
-    "snippets",
-    "cleanup",
-    "update_check",
-    "graduate",
-)
 _BENCHMARK_RUN_STARTED_AT: Optional[float] = None
 _BENCHMARK_LAST_PHASE_AT: Optional[float] = None
 
@@ -3393,7 +3379,7 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
                     f"Failed to sync snapshot for {project} s{session_num}: "
                     f"{(rsync_res.stderr or rsync_res.stdout or '').strip()[:300]}"
                 )
-            _handle_project_source_changed(workspace, project, session_num)
+            _run_project_docs_monitor_and_wait(workspace, project, session_num)
             continue
 
         source_repo = _require_project_source_repo(project, _resolve_project_source_repo(project))
@@ -3440,21 +3426,9 @@ def add_project_files(workspace: Path, max_session: Optional[int] = None) -> Non
                     f"{(restore_res.stderr or restore_res.stdout or '').strip()[:300]}"
                 )
 
-        _handle_project_source_changed(workspace, project, session_num)
+        _run_project_docs_monitor_and_wait(workspace, project, session_num)
 
-        # Run RAG reindex + journal/snippets/workspace via janitor subprocess
-        # This mirrors production: project file changes trigger doc updates and journal reflection
-        env = _benchmark_env(workspace, "ingest")
-        for task in ["rag", "workspace", "snippets", "journal"]:
-            extra = ["--force-distill"] if task == "journal" else []
-            result = subprocess.run(
-                _python_cmd_for_quaid_script(_JANITOR_SCRIPT) +
-                ["--task", task, "--apply"] + extra,
-                env=env, cwd=str(_QUAID_DIR), capture_output=True, text=True, timeout=120,
-            )
-            if result.returncode != 0:
-                print(f"    {task} failed: {result.stderr[:200]}")
-        print(f"    RAG reindexed + workspace/journal processed")
+        print("    Product janitor processed project docs/source change")
 
     # Harness purity: no project-doc intelligence here.
     # Project docs are seeded mechanically; checkpoint janitor owns updates.
@@ -4499,10 +4473,12 @@ def _collect_project_docs_artifacts(
 
 
 def _handle_project_source_changed(workspace: Path, project: str, session_num: int) -> Dict[str, Any]:
-    """Route benchmark source-copy changes through the product docs supervisor.
+    """Wait for product-owned project docs refresh and collect artifacts.
 
-    Project docs are Quaid product behavior, not a benchmark A/B mode. The
-    benchmark must fail hard if the supervisor/worker path cannot refresh docs.
+    Mutation is intentionally not done here. The benchmark calls the normal
+    janitor/processing path, whose project_docs_monitor task requests async
+    docs updates through the product supervisor. This helper is a read-only
+    dependency gate so artifact collection does not race ahead of docs cursors.
     """
     _ensure_project_docs_supervisor_running(workspace)
     status = _wait_project_docs_fresh(workspace, project, session_num)
@@ -4510,12 +4486,28 @@ def _handle_project_source_changed(workspace: Path, project: str, session_num: i
     return {"project": project, "session_num": session_num, "mode": "supervisor", "status": status}
 
 
-def _project_docs_supervisor_janitor_tasks() -> List[str]:
-    """Return janitor tasks that do not own project-docs generation/indexing."""
-    return list(_PROJECT_DOCS_SUPERVISOR_JANITOR_TASKS)
+def _run_project_docs_monitor_and_wait(
+    workspace: Path,
+    project: str,
+    session_num: int,
+    *,
+    phase: str = "ingest",
+    simulated_day: str = "project-source-change",
+    label: str = "project_docs_monitor",
+) -> Dict[str, Any]:
+    """Request project docs update through janitor, then wait/read status."""
+    _ensure_project_docs_supervisor_running(workspace)
+    _run_product_janitor_cycle(
+        workspace=workspace,
+        janitor_cmd=_python_cmd_for_quaid_script(_JANITOR_SCRIPT),
+        env=_benchmark_env(workspace, phase),
+        simulated_day=simulated_day,
+        label=label,
+    )
+    return _handle_project_source_changed(workspace, project, session_num)
 
 
-def _run_project_docs_supervisor_janitor_cycle(
+def _run_product_janitor_cycle(
     *,
     workspace: Path,
     janitor_cmd: List[str],
@@ -4524,59 +4516,57 @@ def _run_project_docs_supervisor_janitor_cycle(
     label: str,
     timeout_seconds: int = _JANITOR_ALL_TIMEOUT_SECONDS,
 ) -> None:
-    """Run janitor work that remains after project docs are monitor-owned.
+    """Run the product janitor path.
 
-    Do not call `janitor --task all` here: in current checkpoint runtimes that
-    still runs legacy docs_staleness/docs_cleanup/rag (and workspace can move
-    files to docs). The benchmark already forced project-docs monitor freshness
-    before this point, so janitor must only run non-doc maintenance tasks.
+    Project docs updates are requested by janitor Task 0a
+    (`project_docs_monitor`). The benchmark may wait on docs freshness after
+    this call, but it must not perform docs-update mutations itself.
     """
-    for task_name in _project_docs_supervisor_janitor_tasks():
-        cmd = janitor_cmd + ["--task", task_name, "--apply"]
-        print(f"    janitor task: {task_name}")
-        try:
-            result = subprocess.run(
-                cmd,
-                env=env,
-                cwd=str(_QUAID_DIR),
-                capture_output=True,
-                text=True,
-                timeout=int(timeout_seconds),
-            )
-        except subprocess.TimeoutExpired as exc:
-            result = _completed_process_from_timeout(exc)
-            preview = (
-                f"timeout after {int(timeout_seconds)}s"
-                + (f" | {_subprocess_failure_preview(result)}" if _subprocess_failure_preview(result) != "no stdout/stderr" else "")
-            )
-            failure_artifact = _record_janitor_failure_context(
-                workspace=workspace,
-                label=f"{label}_{task_name}",
-                cmd=cmd,
-                result=result,
-                simulated_day=simulated_day,
-            )
-            print(f"    janitor {task_name} timed out: {preview}")
-            raise RuntimeError(
-                "Janitor cycle timed out and benchmark janitor timeouts are fatal. "
-                f"day={simulated_day} task={task_name} timeout={int(timeout_seconds)}s "
-                f"preview={preview} artifact={failure_artifact}"
-            ) from exc
+    cmd = janitor_cmd + ["--task", "all", "--apply"]
+    print("    janitor task: all")
+    try:
+        result = subprocess.run(
+            cmd,
+            env=env,
+            cwd=str(_QUAID_DIR),
+            capture_output=True,
+            text=True,
+            timeout=int(timeout_seconds),
+        )
+    except subprocess.TimeoutExpired as exc:
+        result = _completed_process_from_timeout(exc)
+        preview = (
+            f"timeout after {int(timeout_seconds)}s"
+            + (f" | {_subprocess_failure_preview(result)}" if _subprocess_failure_preview(result) != "no stdout/stderr" else "")
+        )
+        failure_artifact = _record_janitor_failure_context(
+            workspace=workspace,
+            label=f"{label}_all",
+            cmd=cmd,
+            result=result,
+            simulated_day=simulated_day,
+        )
+        print(f"    janitor all timed out: {preview}")
+        raise RuntimeError(
+            "Janitor cycle timed out and benchmark janitor timeouts are fatal. "
+            f"day={simulated_day} task=all timeout={int(timeout_seconds)}s "
+            f"preview={preview} artifact={failure_artifact}"
+        ) from exc
 
-        if result.returncode != 0:
-            preview = _subprocess_failure_preview(result)
-            failure_artifact = _record_janitor_failure_context(
-                workspace=workspace,
-                label=f"{label}_{task_name}",
-                cmd=cmd,
-                result=result,
-                simulated_day=simulated_day,
-            )
-            print(f"    janitor {task_name} failed: {preview}")
-            raise RuntimeError(
-                "Janitor cycle failed and benchmark janitor failures are fatal. "
-                f"day={simulated_day} task={task_name} preview={preview} artifact={failure_artifact}"
-            )
+    if result.returncode != 0:
+        preview = _subprocess_failure_preview(result)
+        failure_artifact = _record_janitor_failure_context(
+            workspace=workspace,
+            label=f"{label}_all",
+            cmd=cmd,
+            result=result,
+            simulated_day=simulated_day,
+        )
+        print(f"    janitor all failed: {preview}")
+        raise RuntimeError(
+            "Janitor cycle failed and benchmark janitor failures are fatal. "
+            f"day={simulated_day} task=all preview={preview} artifact={failure_artifact}"
+        )
 
 
 def _register_benchmark_projects(workspace: Path) -> None:
@@ -4812,7 +4802,7 @@ def _sync_final_project_states(workspace: Path) -> None:
         session_num, commit = latest[project]
         print(f"  Final project state: {project} @ session {session_num}")
         _sync_project_snapshot(workspace, project=project, session_num=session_num, commit=commit)
-        _handle_project_source_changed(workspace, project, session_num)
+        _run_project_docs_monitor_and_wait(workspace, project, session_num)
 
 
 def _run_runtime_extract_jsonl(
@@ -5701,9 +5691,9 @@ def run_per_day_extraction(
                 "state": "running",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }, indent=2))
-            print("  Final janitor: project-docs-supervisor non-doc task sequence + forced journal")
+            print("  Final janitor: janitor --task all --apply + forced journal")
             try:
-                _run_project_docs_supervisor_janitor_cycle(
+                _run_product_janitor_cycle(
                     workspace=workspace,
                     janitor_cmd=janitor_cmd,
                     env=day_env,
@@ -6275,19 +6265,17 @@ def run_per_day_extraction(
 
         if docs_update_targets:
             print(
-                "  Project docs processing: "
+                "  Project docs processing pending via janitor monitor: "
                 f"{len(docs_update_targets)} project(s) after extraction apply/log writes"
             )
-            for project, update_session in sorted(docs_update_targets.items()):
-                print(f"    Project docs update: {project} s{update_session}")
-                _handle_project_source_changed(workspace, project, update_session)
+            _ensure_project_docs_supervisor_running(workspace)
 
         if run_janitor_each_day:
             # Run nightly janitor cycle after each day, mirroring production cadence.
             janitor_cmd = _python_cmd_for_quaid_script(_JANITOR_SCRIPT)
             print(
                 f"  Janitor cycle {day_idx + 1}/{len(days)}: "
-                "project-docs-supervisor non-doc task sequence"
+                "janitor --task all --apply"
             )
             _write_janitor_progress(
                 completed_days=day_idx,
@@ -6296,7 +6284,7 @@ def run_per_day_extraction(
                 state="running",
             )
             try:
-                _run_project_docs_supervisor_janitor_cycle(
+                _run_product_janitor_cycle(
                     workspace=workspace,
                     janitor_cmd=janitor_cmd,
                     env=day_env,
@@ -6319,7 +6307,7 @@ def run_per_day_extraction(
                     state="failed",
                 )
                 raise
-            print("    janitor non-doc sequence complete")
+            print("    janitor all complete")
             janitor_runs += 1
             _write_janitor_progress(
                 completed_days=day_idx + 1,
@@ -6327,6 +6315,9 @@ def run_per_day_extraction(
                 current_day=date,
                 state="completed",
             )
+            for project, update_session in sorted(docs_update_targets.items()):
+                print(f"    Project docs wait/read: {project} s{update_session}")
+                _handle_project_source_changed(workspace, project, update_session)
 
             # Weekly journal distillation checkpoint: force one pass per simulated week.
             current_week = _week_key(date)
@@ -6374,6 +6365,8 @@ def run_per_day_extraction(
                     "weekly_distill_runs": weekly_distill_runs,
                 },
             )
+        elif docs_update_targets:
+            print("    Project docs wait skipped because daily janitor is disabled")
 
     # Harness purity: no post-extraction project-doc enrichment in harness.
 
@@ -6422,20 +6415,20 @@ def run_per_day_extraction(
 # ---------------------------------------------------------------------------
 
 def run_janitor(workspace: Path, *, timeout_seconds: int = _JANITOR_ALL_TIMEOUT_SECONDS) -> None:
-    """Run janitor maintenance without taking over project-docs ownership."""
+    """Run janitor maintenance through the product processing path."""
     _phase_banner("PHASE 4: FULL JANITOR")
 
     env = _benchmark_env(workspace, "eval")
     janitor_cmd = _python_cmd_for_quaid_script(_JANITOR_SCRIPT)
 
-    print("  Running: project-docs-supervisor non-doc janitor task sequence + forced journal")
+    print("  Running: janitor --task all --apply + forced journal")
     print(
         "  (This will take several minutes — review + memory maintenance + snippets + journal; "
         f"timeout={int(timeout_seconds)}s)"
     )
 
     t0 = time.time()
-    _run_project_docs_supervisor_janitor_cycle(
+    _run_product_janitor_cycle(
         workspace=workspace,
         janitor_cmd=janitor_cmd,
         env=env,
