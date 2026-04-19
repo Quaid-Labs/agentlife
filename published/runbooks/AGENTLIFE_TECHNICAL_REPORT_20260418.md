@@ -5,7 +5,8 @@ Status: draft. Final publication is waiting on two artifacts:
 - Fresh neutral-surface `AL-S` after removing benchmark data leaks from seeded
   project/static context and wiring project updates through the runtime updater.
 - OpenClaw-native `AL-L` refresh on the same `2026.4.11 (769908e)` base as the new `AL-S` row.
-- Japanese `AL-S` attempt using the validated JP review/filler translation set.
+- Follow-up analysis on Japanese `AL-S` planner/docs gaps after the first
+  validated JP review/filler run.
 
 ## Summary
 
@@ -21,6 +22,10 @@ The short version:
   plain `AL-L`, but the tradeoff is intentional: language-dependent lexical
   planning has moved toward the LLM-owned layer, which gives Quaid a viable path
   to multilingual behavior instead of hardcoded English-only matching.
+- The first Japanese `AL-S` run completed end-to-end on Kanji/Kana inputs. It
+  scored below the matched English run, but it did not collapse; this validates
+  that Quaid can operate on a non-Roman-script benchmark while exposing clear
+  retrieval/planner gaps.
 - Public token accounting is now corrected to include answer tokens,
   preinject-recall tokens, and recall tool-call tokens, while excluding judge
   tokens.
@@ -226,10 +231,54 @@ The Japanese translation set is available and validator-clean:
 - Tier 5 count: `15`
 - validator status: `Validation OK`
 
-The intended first multilingual probe is `AL-S` with Japanese Kanji/Kana content
-and no romaji transliteration as a first-pass symbolic-language test.
+The first multilingual probe used `AL-S` with Japanese Kanji/Kana content and no
+romaji transliteration as a first-pass symbolic-language test.
 
-Status: pending launch/result.
+| Run | Dataset | Eval | Combined | T1-T4 | Retrieval | Tier 5 | Notes |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- |
+| `r1320` | Japanese | Haiku | `74.73%` | `73.88%` | `25.93%` | `90.00%` | First validated JP run; end-to-end non-Roman-script support confirmed. |
+| `r1322 (r1320)` | Japanese | Haiku | `77.61%` | `77.61%` | `26.68%` | n/a | Eval-only first-pass multilingual planner A/B; no re-ingest. |
+| `r1321` | English matched state | Haiku | `86.57%` | `86.57%` | `49.25%` | `86.67%` | Same current runtime/checkpoint state, canonical English dataset. |
+
+Interpretation:
+
+- Quaid successfully ingested, recalled, answered, and judged the Japanese
+  Kanji/Kana dataset without romaji conversion. This is enough to say Quaid
+  supports multilingual operation at a real benchmark level, not just isolated
+  prompt probes.
+- The JP run is not parity with English. Against the matched English state,
+  JP is down `11.84pp` combined and `23.32pp` retrieval.
+- The largest gap is retrieval quality, not basic language handling. JP answer
+  behavior remains usable, but recall surfaces fewer correct memories before the
+  answer model writes.
+- A first long-recall planner A/B (`r1322`) improved JP answer accuracy from
+  `73.88%` to `77.61%` on the same `r1320` ingest, but retrieval barely moved
+  (`25.93%` to `26.68%`). This suggests planner wording can improve answer-time
+  synthesis, but the deeper JP gap is still retrieval/document surfacing.
+- Strong JP categories include adversarial IDK (`100.00%`), negative questions
+  (`100.00%`), inference (`92.31%`), multi-session synthesis (`92.86%`), and
+  cross-reference (`92.31%`).
+- Weak JP categories include architecture comprehension (`45.45%`), contested
+  fact (`50.00%`), factual recall (`58.62%`), stale fact (`58.33%`), and the
+  retrieval-only metric (`25.93%`).
+- Project-state answer accuracy is moderate (`70.83%`), but retrieval remains
+  weak. This aligns with the broader project-docs finding: the runtime needs
+  better generated project documentation and better multilingual query planning
+  for Japanese questions over English-heavy source artifacts.
+
+Follow-up work:
+
+- Move multilingual query shaping into the long/full recall planner, where the
+  LLM can preserve the source language while adding retrieval-only variants for
+  English/code/document artifacts when useful.
+- Keep fast preinject conservative; do not add Japanese-specific regexes,
+  dictionaries, or transliteration rules in code.
+- Re-run JP after the product project-docs updater is active, because many JP
+  misses are in project and architecture categories where better generated docs
+  should help.
+- Do not treat `r1322` as a final planner win yet. It is a useful first pass,
+  but the retrieval-only metric shows that more planner/docs work is needed
+  before the JP path can be called competitive with English.
 
 ## Publication Guidance
 
