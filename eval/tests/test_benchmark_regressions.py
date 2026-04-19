@@ -8018,6 +8018,60 @@ class TestPerDayExtraction:
         assert result["edges"] == 2
 
 
+def test_lifecycle_resume_checkpoint_ignores_vanished_sqlite_sidecar(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    data = workspace / "data"
+    data.mkdir(parents=True)
+    (data / "memory.db").write_text("db", encoding="utf-8")
+    (data / "memory.db-wal").write_text("wal", encoding="utf-8")
+
+    original_copy2 = rpb.shutil.copy2
+
+    def copy2_with_vanished_wal(src, dst, *args, **kwargs):
+        if Path(src).name == "memory.db-wal":
+            Path(src).unlink(missing_ok=True)
+        return original_copy2(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(rpb.shutil, "copy2", copy2_with_vanished_wal)
+
+    rpb._save_lifecycle_resume_checkpoint(
+        workspace,
+        completed_days=7,
+        total_days=20,
+        current_day="2026-03-11",
+        counters={},
+    )
+
+    snapshot_data = workspace / "lifecycle_resume" / "day-07-2026-03-11" / "data"
+    assert (snapshot_data / "memory.db").exists()
+    assert json.loads((workspace / "lifecycle_resume" / "latest.json").read_text())["completed_days"] == 7
+
+
+def test_lifecycle_resume_checkpoint_fails_on_vanished_regular_file(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    data = workspace / "data"
+    data.mkdir(parents=True)
+    (data / "regular.json").write_text("{}", encoding="utf-8")
+
+    original_copy2 = rpb.shutil.copy2
+
+    def copy2_with_vanished_regular_file(src, dst, *args, **kwargs):
+        if Path(src).name == "regular.json":
+            Path(src).unlink(missing_ok=True)
+        return original_copy2(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(rpb.shutil, "copy2", copy2_with_vanished_regular_file)
+
+    with pytest.raises(rpb.shutil.Error):
+        rpb._save_lifecycle_resume_checkpoint(
+            workspace,
+            completed_days=7,
+            total_days=20,
+            current_day="2026-03-11",
+            counters={},
+        )
+
+
 def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkeypatch):
     path = tmp_path / "session.jsonl"
     monkeypatch.setattr(rpb, "_BACKEND", "codex")
@@ -8356,7 +8410,6 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
 
         assert processed_dates == ["2026-03-03", "2026-03-04"]
         assert result["janitor_runs"] == 3
-
 
 def test_get_api_key_primes_process_env_for_subprocesses(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)

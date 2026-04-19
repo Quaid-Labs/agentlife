@@ -2797,6 +2797,28 @@ def _resume_latest_path(workspace: Path) -> Path:
     return _resume_root(workspace) / _LIFECYCLE_RESUME_LATEST
 
 
+def _is_transient_sqlite_sidecar(path: str | Path) -> bool:
+    name = Path(path).name
+    return name.endswith(("-wal", "-shm"))
+
+
+def _copy2_for_resume_snapshot(src: str, dst: str, *args, **kwargs):
+    try:
+        return shutil.copy2(src, dst, *args, **kwargs)
+    except FileNotFoundError:
+        if _is_transient_sqlite_sidecar(src):
+            # SQLite may checkpoint/remove WAL/SHM files between copytree's
+            # directory scan and file copy while project workers are alive.
+            # Missing sidecars mean the base DB is the durable snapshot; other
+            # missing files still fail hard below.
+            return dst
+        raise
+
+
+def _copytree_for_resume_snapshot(src: Path, dst: Path) -> None:
+    shutil.copytree(src, dst, dirs_exist_ok=True, copy_function=_copy2_for_resume_snapshot)
+
+
 def _save_lifecycle_resume_checkpoint(
     workspace: Path,
     *,
@@ -2815,7 +2837,7 @@ def _save_lifecycle_resume_checkpoint(
     for rel in ["data", "config", "journal", "projects"]:
         src = workspace / rel
         if src.exists():
-            shutil.copytree(src, snapshot_dir / rel, dirs_exist_ok=True)
+            _copytree_for_resume_snapshot(src, snapshot_dir / rel)
     for rel in _WORKSPACE_ROOT_MARKDOWN_FILES:
         src = workspace / rel
         if src.exists():
@@ -2850,7 +2872,7 @@ def _save_obd_post_extract_checkpoint(
     for rel in ["data", "config", "journal", "projects", "extraction_cache", "logs", "identity"]:
         src = workspace / rel
         if src.exists():
-            shutil.copytree(src, snapshot_dir / rel, dirs_exist_ok=True)
+            _copytree_for_resume_snapshot(src, snapshot_dir / rel)
     for rel in _WORKSPACE_ROOT_MARKDOWN_FILES:
         src = workspace / rel
         if src.exists():
