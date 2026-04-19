@@ -7745,9 +7745,14 @@ class TestPerDayExtraction:
             run_janitor_each_day=True,
         )
 
-        jan_all = [c for c in calls if "--task" in c and "all" in c]
+        jan_docs_tasks = [
+            c for c in calls
+            if "--task" in c and any(task in c for task in ("docs_staleness", "docs_cleanup", "rag", "workspace"))
+        ]
+        jan_graduate = [c for c in calls if "--task" in c and "graduate" in c]
         jan_weekly = [c for c in calls if "--task" in c and "journal" in c and "--force-distill" in c]
-        assert len(jan_all) == 3
+        assert jan_docs_tasks == []
+        assert len(jan_graduate) == 3
         assert len(jan_weekly) == 2
         assert result["janitor_runs"] == 3
         assert result["weekly_distill_runs"] == 2
@@ -7807,7 +7812,7 @@ class TestPerDayExtraction:
             return {}
 
         def _fake_run(cmd, **kwargs):
-            if "--task" in cmd and "all" in cmd:
+            if "--task" in cmd:
                 events.append("janitor")
             return _FakeSubprocessResult()
 
@@ -8173,10 +8178,10 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
 
         progress = json.loads((workspace / "logs" / "janitor_progress.json").read_text())
         assert progress["state"] == "failed"
-        jan_calls = [c for c in calls if "--task" in c and "all" in c]
+        jan_calls = [c for c in calls if "--task" in c and "embeddings" in c]
         assert len(jan_calls) == 1
         assert timeouts == [rpb._JANITOR_ALL_TIMEOUT_SECONDS]
-        failure_files = sorted((workspace / "logs").glob("janitor_failure_all_*.json"))
+        failure_files = sorted((workspace / "logs").glob("janitor_failure_daily_embeddings_*.json"))
         assert len(failure_files) == 1
         failure_payload = json.loads(failure_files[0].read_text())
         assert failure_payload["returncode"] == 1
@@ -8228,7 +8233,7 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
 
         progress = json.loads((workspace / "logs" / "janitor_progress.json").read_text())
         assert progress["state"] == "failed"
-        failure_files = sorted((workspace / "logs").glob("janitor_failure_all_*.json"))
+        failure_files = sorted((workspace / "logs").glob("janitor_failure_daily_embeddings_*.json"))
         assert len(failure_files) == 1
         failure_payload = json.loads(failure_files[0].read_text())
         assert failure_payload["returncode"] == 124

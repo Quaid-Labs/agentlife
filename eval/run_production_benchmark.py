@@ -62,6 +62,20 @@ _PROJECT_DIR = _DIR.parent
 _CLAWD = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
 _DATASET_CHOICES = {"canonical", "jp"}
 _JANITOR_ALL_TIMEOUT_SECONDS = 1800
+_PROJECT_DOCS_SUPERVISOR_JANITOR_TASKS = (
+    "embeddings",
+    "edges",
+    "review",
+    "temporal",
+    "dedup_review",
+    "duplicates",
+    "decay",
+    "decay_review",
+    "snippets",
+    "cleanup",
+    "update_check",
+    "graduate",
+)
 _BENCHMARK_RUN_STARTED_AT: Optional[float] = None
 _BENCHMARK_LAST_PHASE_AT: Optional[float] = None
 
@@ -4454,6 +4468,75 @@ def _handle_project_source_changed(workspace: Path, project: str, session_num: i
     return {"project": project, "session_num": session_num, "mode": "supervisor", "status": status}
 
 
+def _project_docs_supervisor_janitor_tasks() -> List[str]:
+    """Return janitor tasks that do not own project-docs generation/indexing."""
+    return list(_PROJECT_DOCS_SUPERVISOR_JANITOR_TASKS)
+
+
+def _run_project_docs_supervisor_janitor_cycle(
+    *,
+    workspace: Path,
+    janitor_cmd: List[str],
+    env: Dict[str, str],
+    simulated_day: str,
+    label: str,
+    timeout_seconds: int = _JANITOR_ALL_TIMEOUT_SECONDS,
+) -> None:
+    """Run janitor work that remains after project docs are monitor-owned.
+
+    Do not call `janitor --task all` here: in current checkpoint runtimes that
+    still runs legacy docs_staleness/docs_cleanup/rag (and workspace can move
+    files to docs). The benchmark already forced project-docs monitor freshness
+    before this point, so janitor must only run non-doc maintenance tasks.
+    """
+    for task_name in _project_docs_supervisor_janitor_tasks():
+        cmd = janitor_cmd + ["--task", task_name, "--apply"]
+        print(f"    janitor task: {task_name}")
+        try:
+            result = subprocess.run(
+                cmd,
+                env=env,
+                cwd=str(_QUAID_DIR),
+                capture_output=True,
+                text=True,
+                timeout=int(timeout_seconds),
+            )
+        except subprocess.TimeoutExpired as exc:
+            result = _completed_process_from_timeout(exc)
+            preview = (
+                f"timeout after {int(timeout_seconds)}s"
+                + (f" | {_subprocess_failure_preview(result)}" if _subprocess_failure_preview(result) != "no stdout/stderr" else "")
+            )
+            failure_artifact = _record_janitor_failure_context(
+                workspace=workspace,
+                label=f"{label}_{task_name}",
+                cmd=cmd,
+                result=result,
+                simulated_day=simulated_day,
+            )
+            print(f"    janitor {task_name} timed out: {preview}")
+            raise RuntimeError(
+                "Janitor cycle timed out and benchmark janitor timeouts are fatal. "
+                f"day={simulated_day} task={task_name} timeout={int(timeout_seconds)}s "
+                f"preview={preview} artifact={failure_artifact}"
+            ) from exc
+
+        if result.returncode != 0:
+            preview = _subprocess_failure_preview(result)
+            failure_artifact = _record_janitor_failure_context(
+                workspace=workspace,
+                label=f"{label}_{task_name}",
+                cmd=cmd,
+                result=result,
+                simulated_day=simulated_day,
+            )
+            print(f"    janitor {task_name} failed: {preview}")
+            raise RuntimeError(
+                "Janitor cycle failed and benchmark janitor failures are fatal. "
+                f"day={simulated_day} task={task_name} preview={preview} artifact={failure_artifact}"
+            )
+
+
 def _register_benchmark_projects(workspace: Path) -> None:
     """Register benchmark projects through Quaid's product project registry.
 
@@ -5575,21 +5658,34 @@ def run_per_day_extraction(
                 "state": "running",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }, indent=2))
-            print("  Final janitor: --task all --apply --force-distill")
-            result = subprocess.run(
-                janitor_cmd + ["--task", "all", "--apply", "--force-distill"],
-                env=day_env, cwd=str(_QUAID_DIR),
-                capture_output=True, text=True, timeout=1800,
-            )
-            if result.returncode != 0:
-                preview = _subprocess_failure_preview(result)
-                failure_artifact = _record_janitor_failure_context(
+            print("  Final janitor: project-docs-supervisor non-doc task sequence + forced journal")
+            try:
+                _run_project_docs_supervisor_janitor_cycle(
                     workspace=workspace,
-                    label="all",
-                    cmd=janitor_cmd + ["--task", "all", "--apply", "--force-distill"],
-                    result=result,
+                    janitor_cmd=janitor_cmd,
+                    env=day_env,
                     simulated_day=final_day,
+                    label="obd_final",
                 )
+                result = subprocess.run(
+                    janitor_cmd + ["--task", "journal", "--apply", "--force-distill"],
+                    env=day_env, cwd=str(_QUAID_DIR),
+                    capture_output=True, text=True, timeout=600,
+                )
+                if result.returncode != 0:
+                    preview = _subprocess_failure_preview(result)
+                    failure_artifact = _record_janitor_failure_context(
+                        workspace=workspace,
+                        label="journal",
+                        cmd=janitor_cmd + ["--task", "journal", "--apply", "--force-distill"],
+                        result=result,
+                        simulated_day=final_day,
+                    )
+                    raise RuntimeError(
+                        "Final OBD journal distillation failed and benchmark janitor failures are fatal. "
+                        f"day={final_day} preview={preview} artifact={failure_artifact}"
+                    )
+            except RuntimeError:
                 janitor_progress_path.write_text(json.dumps({
                     "phase": "Janitor(0/1)",
                     "completed_days": 0,
@@ -5598,10 +5694,7 @@ def run_per_day_extraction(
                     "state": "failed",
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                 }, indent=2))
-                raise RuntimeError(
-                    "Final OBD janitor failed and benchmark janitor failures are fatal. "
-                    f"day={final_day} preview={preview} artifact={failure_artifact}"
-                )
+                raise
             janitor_runs = 1
             weekly_distill_runs = 1
             janitor_progress_path.write_text(json.dumps({
@@ -6149,7 +6242,10 @@ def run_per_day_extraction(
         if run_janitor_each_day:
             # Run nightly janitor cycle after each day, mirroring production cadence.
             janitor_cmd = _python_cmd_for_quaid_script(_JANITOR_SCRIPT)
-            print(f"  Janitor cycle {day_idx + 1}/{len(days)}: --task all --apply")
+            print(
+                f"  Janitor cycle {day_idx + 1}/{len(days)}: "
+                "project-docs-supervisor non-doc task sequence"
+            )
             _write_janitor_progress(
                 completed_days=day_idx,
                 total_days=len(days),
@@ -6157,56 +6253,30 @@ def run_per_day_extraction(
                 state="running",
             )
             try:
-                result = subprocess.run(
-                    janitor_cmd + ["--task", "all", "--apply"],
-                    env=day_env, cwd=str(_QUAID_DIR),
-                    capture_output=True, text=True, timeout=_JANITOR_ALL_TIMEOUT_SECONDS,
+                _run_project_docs_supervisor_janitor_cycle(
+                    workspace=workspace,
+                    janitor_cmd=janitor_cmd,
+                    env=day_env,
+                    simulated_day=date,
+                    label="daily",
                 )
             except subprocess.TimeoutExpired as exc:
-                result = _completed_process_from_timeout(exc)
-                preview = (
-                    f"timeout after {_JANITOR_ALL_TIMEOUT_SECONDS}s"
-                    + (f" | {_subprocess_failure_preview(result)}" if _subprocess_failure_preview(result) != "no stdout/stderr" else "")
-                )
-                failure_artifact = _record_janitor_failure_context(
-                    workspace=workspace,
-                    label="all",
-                    cmd=janitor_cmd + ["--task", "all", "--apply"],
-                    result=result,
-                    simulated_day=date,
-                )
-                print(f"    janitor all timed out: {preview}")
                 _write_janitor_progress(
                     completed_days=day_idx,
                     total_days=len(days),
                     current_day=date,
                     state="failed",
                 )
-                raise RuntimeError(
-                    "Janitor cycle timed out and benchmark janitor timeouts are fatal. "
-                    f"day={date} timeout={_JANITOR_ALL_TIMEOUT_SECONDS}s preview={preview} artifact={failure_artifact}"
-                ) from exc
-            if result.returncode != 0:
-                preview = _subprocess_failure_preview(result)
-                failure_artifact = _record_janitor_failure_context(
-                    workspace=workspace,
-                    label="all",
-                    cmd=janitor_cmd + ["--task", "all", "--apply"],
-                    result=result,
-                    simulated_day=date,
-                )
-                print(f"    janitor all failed: {preview}")
+                raise
+            except RuntimeError:
                 _write_janitor_progress(
                     completed_days=day_idx,
                     total_days=len(days),
                     current_day=date,
                     state="failed",
                 )
-                raise RuntimeError(
-                    "Janitor cycle failed and benchmark janitor failures are fatal. "
-                    f"day={date} preview={preview} artifact={failure_artifact}"
-                )
-            print("    janitor all complete")
+                raise
+            print("    janitor non-doc sequence complete")
             janitor_runs += 1
             _write_janitor_progress(
                 completed_days=day_idx + 1,
@@ -6309,23 +6379,34 @@ def run_per_day_extraction(
 # ---------------------------------------------------------------------------
 
 def run_janitor(workspace: Path, *, timeout_seconds: int = _JANITOR_ALL_TIMEOUT_SECONDS) -> None:
-    """Run full janitor via subprocess."""
+    """Run janitor maintenance without taking over project-docs ownership."""
     _phase_banner("PHASE 4: FULL JANITOR")
 
     env = _benchmark_env(workspace, "eval")
     janitor_cmd = _python_cmd_for_quaid_script(_JANITOR_SCRIPT)
 
-    print("  Running: janitor --task all --apply --force-distill")
+    print("  Running: project-docs-supervisor non-doc janitor task sequence + forced journal")
     print(
-        "  (This will take several minutes — Opus review + workspace audit + snippets + journal; "
+        "  (This will take several minutes — review + memory maintenance + snippets + journal; "
         f"timeout={int(timeout_seconds)}s)"
     )
 
     t0 = time.time()
+    _run_project_docs_supervisor_janitor_cycle(
+        workspace=workspace,
+        janitor_cmd=janitor_cmd,
+        env=env,
+        simulated_day="final",
+        label="final",
+        timeout_seconds=int(timeout_seconds),
+    )
     result = subprocess.run(
-        janitor_cmd + ["--task", "all", "--apply", "--force-distill"],
-        env=env, cwd=str(_QUAID_DIR),
-        capture_output=True, text=True, timeout=int(timeout_seconds),
+        janitor_cmd + ["--task", "journal", "--apply", "--force-distill"],
+        env=env,
+        cwd=str(_QUAID_DIR),
+        capture_output=True,
+        text=True,
+        timeout=600,
     )
     elapsed = time.time() - t0
 
@@ -6335,12 +6416,19 @@ def run_janitor(workspace: Path, *, timeout_seconds: int = _JANITOR_ALL_TIMEOUT_
             print(f"    {line}")
 
     if result.returncode != 0:
-        print(f"\n  WARNING: Janitor exited with code {result.returncode}")
-        for line in result.stderr.split("\n")[-10:]:
-            if line.strip():
-                print(f"    STDERR: {line}")
-    else:
-        print(f"\n  Janitor completed in {elapsed:.1f}s")
+        preview = _subprocess_failure_preview(result)
+        failure_artifact = _record_janitor_failure_context(
+            workspace=workspace,
+            label="final_journal",
+            cmd=janitor_cmd + ["--task", "journal", "--apply", "--force-distill"],
+            result=result,
+            simulated_day="final",
+        )
+        raise RuntimeError(
+            "Final journal distillation failed and benchmark janitor failures are fatal. "
+            f"preview={preview} artifact={failure_artifact}"
+        )
+    print(f"\n  Janitor completed in {elapsed:.1f}s")
 
     _sync_instance_identity_to_workspace_root(workspace)
 
