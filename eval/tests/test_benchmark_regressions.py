@@ -8204,6 +8204,34 @@ def test_lifecycle_resume_checkpoint_ignores_vanished_sqlite_sidecar(tmp_path, m
     assert json.loads((workspace / "lifecycle_resume" / "latest.json").read_text())["completed_days"] == 7
 
 
+def test_lifecycle_resume_checkpoint_ignores_vanished_project_docs_worker_tmp(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    worker_dir = workspace / "data" / "project-docs" / "workers"
+    worker_dir.mkdir(parents=True)
+    tmp_pid = worker_dir / ".misc--benchrunner.pid.example.tmp"
+    tmp_pid.write_text("2309341", encoding="utf-8")
+
+    original_copy2 = rpb.shutil.copy2
+
+    def copy2_with_vanished_worker_tmp(src, dst, *args, **kwargs):
+        if Path(src).name == tmp_pid.name:
+            Path(src).unlink(missing_ok=True)
+        return original_copy2(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(rpb.shutil, "copy2", copy2_with_vanished_worker_tmp)
+
+    rpb._save_lifecycle_resume_checkpoint(
+        workspace,
+        completed_days=4,
+        total_days=20,
+        current_day="2026-03-10",
+        counters={},
+    )
+
+    latest = json.loads((workspace / "lifecycle_resume" / "latest.json").read_text())
+    assert latest["completed_days"] == 4
+
+
 def test_lifecycle_resume_checkpoint_fails_on_vanished_regular_file(tmp_path, monkeypatch):
     workspace = tmp_path / "ws"
     data = workspace / "data"

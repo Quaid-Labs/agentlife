@@ -2820,15 +2820,28 @@ def _is_transient_sqlite_sidecar(path: str | Path) -> bool:
     return name.endswith(("-wal", "-shm"))
 
 
+def _is_transient_project_docs_worker_file(path: str | Path) -> bool:
+    p = Path(path)
+    parts = set(p.parts)
+    name = p.name
+    return (
+        "project-docs" in parts
+        and "workers" in parts
+        and name.startswith(".")
+        and name.endswith(".tmp")
+    )
+
+
 def _copy2_for_resume_snapshot(src: str, dst: str, *args, **kwargs):
     try:
         return shutil.copy2(src, dst, *args, **kwargs)
     except FileNotFoundError:
-        if _is_transient_sqlite_sidecar(src):
+        if _is_transient_sqlite_sidecar(src) or _is_transient_project_docs_worker_file(src):
             # SQLite may checkpoint/remove WAL/SHM files between copytree's
             # directory scan and file copy while project workers are alive.
-            # Missing sidecars mean the base DB is the durable snapshot; other
-            # missing files still fail hard below.
+            # Project-docs workers also write hidden temp PID/heartbeat files
+            # atomically. Missing volatile files are not part of the durable
+            # lifecycle snapshot; other missing files still fail hard below.
             return dst
         raise
 
