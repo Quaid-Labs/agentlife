@@ -1600,6 +1600,42 @@ class TestOBDExtractionTimeoutEnv:
 
         assert rpb._rolling_metrics_log_path(workspace) == instance_metrics
 
+    def test_select_rolling_flush_metric_ignores_later_noop(self):
+        selected = rpb._select_rolling_flush_metric(
+            [
+                {
+                    "event": "rolling_flush",
+                    "final_raw_fact_count": 27,
+                    "final_facts_stored": 27,
+                    "project_logs_written": 14,
+                },
+                {
+                    "event": "rolling_flush",
+                    "noop": True,
+                    "final_raw_fact_count": 0,
+                    "final_facts_stored": 0,
+                    "project_logs_written": 0,
+                },
+            ]
+        )
+
+        assert selected["final_raw_fact_count"] == 27
+        assert selected["final_facts_stored"] == 27
+        assert selected["project_logs_written"] == 14
+
+    def test_select_rolling_flush_metric_allows_only_noop(self):
+        selected = rpb._select_rolling_flush_metric(
+            [
+                {
+                    "event": "rolling_flush",
+                    "noop": True,
+                    "noop_reason": "no_new_content",
+                },
+            ]
+        )
+
+        assert selected["noop_reason"] == "no_new_content"
+
     def test_save_and_restore_rolling_pre_publish_checkpoint(self, tmp_path):
         workspace = tmp_path / "ws"
         session_id = "obd-compaction-0001"

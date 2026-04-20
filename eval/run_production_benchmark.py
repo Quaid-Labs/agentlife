@@ -5326,6 +5326,12 @@ def _load_rolling_metric_rows(
     return rows
 
 
+def _select_rolling_flush_metric(flush_rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Use the last real flush; a later no-op retry can follow successful publish."""
+    real_flushes = [row for row in flush_rows if not bool(row.get("noop"))]
+    return real_flushes[-1] if real_flushes else flush_rows[-1]
+
+
 def _run_runtime_rolling_driver(
     *,
     workspace: Path,
@@ -5590,7 +5596,7 @@ def _run_runtime_rolling_obd_extract(
         raise RuntimeError(
             f"Rolling OBD flush produced no rolling_flush telemetry rows. metrics={_rolling_metrics_log_path(workspace)}"
         )
-    flush_metric = flush_rows[-1]
+    flush_metric = _select_rolling_flush_metric(flush_rows)
     stage_rows = [row for row in metric_rows if row.get("event") == "rolling_stage"]
 
     result = {
