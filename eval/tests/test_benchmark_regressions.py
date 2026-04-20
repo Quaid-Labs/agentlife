@@ -1520,6 +1520,14 @@ class TestOBDExtractionTimeoutEnv:
         assert rpb._rolling_state_file(workspace, "sess-1") == workspace / "data" / "rolling-extraction" / "sess-1.json"
         assert rpb._rolling_cursor_file(workspace, "sess-1") == workspace / "data" / "session-cursors" / "sess-1.json"
 
+    def test_rolling_obd_resume_state_detects_flat_workspace_layout(self, tmp_path):
+        workspace = tmp_path / "ws"
+        state_path = workspace / "data" / "rolling-extraction" / "obd-compaction-0001.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text("{}", encoding="utf-8")
+
+        assert rpb._has_rolling_obd_resume_state(workspace) is True
+
     def test_runtime_rolling_metrics_prefers_existing_instance_log(self, tmp_path):
         workspace = tmp_path / "ws"
         (workspace / "logs" / "daemon").mkdir(parents=True, exist_ok=True)
@@ -1833,6 +1841,7 @@ class TestOBDExtractionTimeoutEnv:
 
         def _run(cmd, **kwargs):
             captured["driver_code"] = cmd[2]
+            captured["env"] = dict(kwargs.get("env") or {})
             result = type("Result", (), {})()
             result.returncode = 0
             result.stdout = (
@@ -1867,9 +1876,70 @@ class TestOBDExtractionTimeoutEnv:
         )
 
         assert out["signals_processed"] == 0
+        assert captured["env"]["BENCHMARK_ROLLING_MAX_PRESERVED_SIGNAL_RETRIES"] == "60"
         assert "max_repeated_signal_retries" in captured["driver_code"]
         assert "rolling driver signal preserved after" in captured["driver_code"]
         assert "os.environ['QUAID_CAPTURE_CHUNK_TOKENS'] = chunk_raw" in captured["driver_code"]
+
+    def test_run_runtime_rolling_driver_preserves_explicit_retry_override(self, tmp_path, monkeypatch):
+        transcript = tmp_path / "obd.jsonl"
+        transcript.write_text('{"role":"user","content":"hi"}\n', encoding="utf-8")
+
+        captured = {}
+
+        def _run(cmd, **kwargs):
+            captured["env"] = dict(kwargs.get("env") or {})
+            result = _FakeSubprocessResult()
+            result.stdout = '{"signals_processed": 0}\n'
+            return result
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
+
+        rpb._run_runtime_rolling_driver(
+            workspace=tmp_path,
+            env={"BENCHMARK_ROLLING_MAX_PRESERVED_SIGNAL_RETRIES": "7"},
+            session_id="obd-compaction-0001",
+            transcript_path=transcript,
+            timeout_seconds=60,
+            chunk_tokens=12000,
+            final_signal="compaction",
+        )
+
+        assert captured["env"]["BENCHMARK_ROLLING_MAX_PRESERVED_SIGNAL_RETRIES"] == "7"
+
+    def test_run_runtime_rolling_driver_records_full_failure_context(self, tmp_path, monkeypatch):
+        transcript = tmp_path / "obd.jsonl"
+        transcript.write_text('{"role":"user","content":"hi"}\n', encoding="utf-8")
+
+        def _run(cmd, **kwargs):
+            result = _FakeSubprocessResult()
+            result.returncode = 1
+            result.stdout = "stdout-line\n" * 80
+            result.stderr = "stderr-line\n" * 80
+            return result
+
+        monkeypatch.setattr(rpb.subprocess, "run", _run)
+        monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+        monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
+
+        with pytest.raises(RuntimeError, match="runtime_rolling_driver_failure.json"):
+            rpb._run_runtime_rolling_driver(
+                workspace=tmp_path,
+                env={},
+                session_id="obd-compaction-0001",
+                transcript_path=transcript,
+                timeout_seconds=60,
+                chunk_tokens=12000,
+                final_signal="compaction",
+            )
+
+        failure = json.loads((tmp_path / "logs" / "runtime_rolling_driver_failure.json").read_text(encoding="utf-8"))
+        assert failure["returncode"] == 1
+        assert failure["session_id"] == "obd-compaction-0001"
+        assert (tmp_path / "logs" / "runtime_rolling_driver_failure.stdout.log").read_text(encoding="utf-8").count("stdout-line") == 80
+        assert (tmp_path / "logs" / "runtime_rolling_driver_failure.stderr.log").read_text(encoding="utf-8").count("stderr-line") == 80
 
     def test_run_runtime_rolling_driver_rehydrates_anthropic_auth(self, tmp_path, monkeypatch):
         transcript = tmp_path / "obd.jsonl"

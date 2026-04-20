@@ -691,6 +691,37 @@ def _record_runtime_extract_failure_context(
     return failure_path
 
 
+def _record_runtime_rolling_driver_failure_context(
+    *,
+    workspace: Path,
+    result: subprocess.CompletedProcess[str],
+    session_id: str,
+    transcript_path: Path,
+    final_signal: Optional[str],
+) -> Path:
+    """Persist rolling-driver subprocess output; previews are too small for fail-hard diagnosis."""
+    logs_dir = workspace / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    stdout_path = logs_dir / "runtime_rolling_driver_failure.stdout.log"
+    stderr_path = logs_dir / "runtime_rolling_driver_failure.stderr.log"
+    stdout_path.write_text(result.stdout or "", encoding="utf-8")
+    stderr_path.write_text(result.stderr or "", encoding="utf-8")
+
+    payload = {
+        "returncode": result.returncode,
+        "session_id": session_id,
+        "transcript_path": str(transcript_path),
+        "final_signal": final_signal,
+        "preview": _subprocess_failure_preview(result),
+        "stdout_log": str(stdout_path),
+        "stderr_log": str(stderr_path),
+    }
+    failure_path = logs_dir / "runtime_rolling_driver_failure.json"
+    failure_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return failure_path
+
+
 def _read_dataset_version(assets_dir: Path) -> str:
     """Read dataset version from assets metadata."""
     candidates = [
@@ -1289,18 +1320,26 @@ def _eval_resume_checkpoint_path(results_dir: Path) -> Path:
 
 def _has_rolling_obd_resume_state(workspace: Path) -> bool:
     """Whether a rolling OBD workspace has staged state worth resuming."""
-    instance_root = workspace / _BENCHMARK_QUAID_INSTANCE
+    data_roots = (
+        workspace / _BENCHMARK_QUAID_INSTANCE / "data",
+        workspace / "data",
+        workspace / "instances" / _BENCHMARK_QUAID_INSTANCE / "data",
+    )
     for rel in [
-        "data/extraction-signals",
-        "data/rolling-extraction",
-        "data/session-cursors",
+        "extraction-signals",
+        "rolling-extraction",
+        "session-cursors",
     ]:
-        root = instance_root / rel
-        if root.is_dir() and any(p.suffix == ".json" for p in root.iterdir()):
-            return True
+        for data_root in data_roots:
+            root = data_root / rel
+            if root.is_dir() and any(p.suffix == ".json" for p in root.iterdir()):
+                return True
     checkpoint = workspace / "logs" / "extraction_checkpoint.json"
     if checkpoint.exists():
-        data = load_json(checkpoint) or {}
+        try:
+            data = json.loads(checkpoint.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
         if str(data.get("mode", "")).strip() == "rolling-obd":
             return True
     return False
@@ -5217,6 +5256,10 @@ def _run_runtime_rolling_driver(
         driver_env["BENCHMARK_FINAL_SIGNAL"] = str(final_signal)
     else:
         driver_env.pop("BENCHMARK_FINAL_SIGNAL", None)
+    driver_env.setdefault(
+        "BENCHMARK_ROLLING_MAX_PRESERVED_SIGNAL_RETRIES",
+        str(max(60, int(timeout_seconds))),
+    )
     result = subprocess.run(
         [sys.executable, "-c", driver_code],
         env=driver_env,
@@ -5227,7 +5270,14 @@ def _run_runtime_rolling_driver(
     )
     if result.returncode != 0:
         preview = _subprocess_failure_preview(result)
-        raise RuntimeError(f"Runtime rolling driver failed: {preview}")
+        failure_artifact = _record_runtime_rolling_driver_failure_context(
+            workspace=workspace,
+            result=result,
+            session_id=session_id,
+            transcript_path=transcript_path,
+            final_signal=final_signal,
+        )
+        raise RuntimeError(f"Runtime rolling driver failed: {preview} artifact={failure_artifact}")
     stdout = result.stdout.strip()
     if stdout:
         lines = stdout.splitlines()
@@ -5557,7 +5607,7 @@ def run_per_day_extraction(
         extraction_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         extraction_checkpoint_path.write_text(json.dumps({
             "state": "running",
-            "mode": "obd",
+            "mode": "rolling-obd" if rolling_obd else "obd",
             "total_chunks": 1,
             "total_days": 1,
             "updated_at": datetime.now(timezone.utc).isoformat(),
