@@ -259,7 +259,15 @@ PY
 run_local_checks() {
   echo "--- Local harness checks (required) ---"
   run_cmd python3 -m py_compile "$LOCAL_BENCH_ROOT/eval/run_production_benchmark.py"
-  run_cmd bash -lc "cd '$LOCAL_BENCH_ROOT' && pytest -q eval/tests/test_benchmark_regressions.py eval/tests/test_store_edge_retry.py"
+  run_cmd bash -lc "cd '$LOCAL_BENCH_ROOT' && env \
+    -u BENCHMARK_QUERY_NUMS \
+    -u BENCHMARK_QUERY_SHA1S \
+    -u BENCHMARK_QUERY_PROFILE \
+    -u BENCHMARK_QUERY_PROFILE_SIZE \
+    -u BENCHMARK_QUERY_PROFILE_MIN_PER_TYPE \
+    -u BENCHMARK_REQUIRE_QUERY_COUNT \
+    -u BENCHMARK_MAX_QUERIES \
+    pytest -q eval/tests/test_benchmark_regressions.py eval/tests/test_store_edge_retry.py"
 }
 
 assert_checkpoint_has_no_agentlife_local() {
