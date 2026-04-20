@@ -175,6 +175,104 @@ def test_build_run_detail_uses_rolling_state_when_cursor_file_is_source_keyed(tm
     assert detail["phase"] == expected
 
 
+def test_run_progress_uses_live_rolling_state_during_final_compaction(tmp_path, monkeypatch):
+    root = tmp_path
+    run_name = "quaid-l-r993-20260325-000000"
+    run_dir = root / "runs" / run_name
+    (run_dir / "logs" / "daemon").mkdir(parents=True)
+    (run_dir / "data" / "rolling-extraction").mkdir(parents=True)
+    (run_dir / "data" / "session-cursors").mkdir(parents=True)
+
+    transcript = run_dir / "obd-session.jsonl"
+    _write_lines(transcript, 4)
+
+    # Runtime cursor may be keyed by source hash and lag the completed staged
+    # state while final compaction is pending.
+    (run_dir / "data" / "session-cursors" / "source-abc123.json").write_text(
+        json.dumps({"line_offset": 2, "transcript_path": str(transcript)}),
+        encoding="utf-8",
+    )
+    (run_dir / "data" / "rolling-extraction" / "obd-compaction-0001.json").write_text(
+        json.dumps(
+            {
+                "session_id": "obd-compaction-0001",
+                "transcript_path": str(transcript),
+                "rolling_batches": 17,
+                "processed_line_offset": 4,
+                "buffered_line_offset": 4,
+                "raw_facts": [{"id": "a"}, {"id": "b"}, {"id": "c"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "logs" / "daemon" / "rolling-extraction.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "rolling_stage",
+                "session_id": "obd-compaction-0001",
+                "rolling_batches": 16,
+                "new_cursor_offset": 2,
+                "staged_fact_count": 2,
+                "wall_seconds": 21.0,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (root / "runs" / f"{run_name}.launch.log").write_text("ingest schedule=rolling-obd\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        brs,
+        "detect_active_processes",
+        lambda _root, _dirs: {run_name: {"pid": 67890, "cmd": f"python --results-dir runs/{run_name}"}},
+    )
+
+    expected = "chunk 17 | 4/4 | facts 3"
+    assert brs.build_status_report(root)["runs"][0]["current_active_item"] == expected
+    assert brs.build_run_detail(root, run_name)["phase"] == expected
+
+
+def test_run_progress_shows_rolling_flush_retry_after_flush_error(tmp_path):
+    root = tmp_path
+    run_name = "quaid-l-r992-20260325-000000"
+    run_dir = root / "runs" / run_name
+    (run_dir / "logs" / "daemon").mkdir(parents=True)
+    (run_dir / "data" / "rolling-extraction").mkdir(parents=True)
+
+    transcript = run_dir / "obd-session.jsonl"
+    _write_lines(transcript, 4)
+
+    (run_dir / "data" / "rolling-extraction" / "obd-compaction-0001.json").write_text(
+        json.dumps(
+            {
+                "session_id": "obd-compaction-0001",
+                "transcript_path": str(transcript),
+                "rolling_batches": 17,
+                "processed_line_offset": 4,
+                "buffered_line_offset": 4,
+                "raw_facts": [{"id": "a"}, {"id": "b"}, {"id": "c"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "logs" / "daemon" / "rolling-extraction.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "rolling_flush_error",
+                "session_id": "obd-compaction-0001",
+                "staged_batches": 17,
+                "staged_facts": 3,
+                "signal_to_publish_seconds": 120.0,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (root / "runs" / f"{run_name}.launch.log").write_text("ingest schedule=rolling-obd\n", encoding="utf-8")
+
+    assert brs.run_progress(root, run_name) == "rolling flush retry | 4/4 | facts 3"
+
+
 def test_run_progress_ignores_rolling_flush_for_per_day_runs(tmp_path):
     root = tmp_path
     run_name = "quaid-s-r997-20260325-000000"

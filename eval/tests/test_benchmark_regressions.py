@@ -414,6 +414,10 @@ class TestParseFcModels:
             rpb._parse_fc_models(" , , ")
 
 
+def test_default_extraction_model_is_sonnet():
+    assert rpb.DEFAULT_EXTRACTION_MODEL == "claude-sonnet-4-6"
+
+
 class TestAnswerModelPolicy:
     def test_allows_default_eval_model(self):
         rpb._validate_answer_model_policy(
@@ -1505,6 +1509,57 @@ class TestOBDExtractionTimeoutEnv:
         assert out["ready"] is True
         assert out["cursor_line_offset"] == 1
         assert out["total_lines"] == 1
+        assert out["pending_compaction_signals"] == 1
+
+    def test_rolling_flush_resume_state_uses_completed_state_when_cursor_is_source_keyed(self, tmp_path):
+        workspace = tmp_path / "ws"
+        session_id = "obd-compaction-0001"
+        transcript = tmp_path / "obd.jsonl"
+        transcript.write_text('{"role":"user","content":"hi"}\n{"role":"assistant","content":"ok"}\n', encoding="utf-8")
+
+        state_path = workspace / "data" / "rolling-extraction" / f"{session_id}.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_id": session_id,
+                    "transcript_path": str(transcript),
+                    "processed_line_offset": 2,
+                    "buffered_line_offset": 2,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        source_cursor = workspace / "data" / "session-cursors" / "source-abc123.json"
+        source_cursor.parent.mkdir(parents=True, exist_ok=True)
+        source_cursor.write_text(
+            json.dumps(
+                {
+                    "session_id": session_id,
+                    "line_offset": 1,
+                    "transcript_path": str(transcript),
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        signal_dir = workspace / "data" / "extraction-signals"
+        signal_dir.mkdir(parents=True, exist_ok=True)
+        (signal_dir / "1_compaction.json").write_text(
+            json.dumps({"type": "compaction", "session_id": session_id, "transcript_path": str(transcript)}),
+            encoding="utf-8",
+        )
+
+        out = rpb._rolling_flush_resume_state(
+            workspace,
+            session_id=session_id,
+            transcript_path=transcript,
+        )
+
+        assert out["ready"] is True
+        assert out["cursor_line_offset"] == 2
+        assert out["total_lines"] == 2
         assert out["pending_compaction_signals"] == 1
 
     def test_runtime_rolling_paths_prefer_flat_workspace_layout(self, tmp_path):

@@ -598,16 +598,52 @@ def rolling_status(run: Path) -> Optional[Dict[str, Any]]:
                 transcript_path = rolling_state.get("transcript_path")
                 if transcript_path:
                     total_lines = _safe_count_lines(Path(str(transcript_path)))
+            state_cursor = None
+            for key in ("processed_line_offset", "buffered_line_offset"):
+                value = rolling_state.get(key)
+                if isinstance(value, int):
+                    state_cursor = value if state_cursor is None else max(state_cursor, value)
+            if state_cursor is not None and (cursor is None or state_cursor > cursor):
+                cursor = state_cursor
+            state_batches = rolling_state.get("rolling_batches")
+            try:
+                last_batches = int(last.get("rolling_batches") or 0)
+            except Exception:
+                last_batches = 0
+            if isinstance(state_batches, int) and (
+                last.get("rolling_batches") is None or state_batches > last_batches
+            ):
+                last = dict(last)
+                last["rolling_batches"] = state_batches
+            raw_facts = rolling_state.get("raw_facts")
+            if isinstance(raw_facts, list):
+                state_fact_count = len(raw_facts)
+                staged = last.get("staged_fact_count")
+                try:
+                    staged_count = int(staged or 0)
+                except Exception:
+                    staged_count = 0
+                if staged is None or state_fact_count > staged_count:
+                    last = dict(last)
+                    last["staged_fact_count"] = state_fact_count
     avg_wall = None
     walls = [float(r.get("wall_seconds") or 0.0) for r in stages if r.get("wall_seconds") is not None]
     if walls:
         avg_wall = sum(walls) / len(walls)
+    rolling_batches = last.get("rolling_batches")
+    if rolling_batches is None:
+        rolling_batches = last.get("staged_batches")
+    if rolling_batches is None:
+        rolling_batches = len(stages)
+    staged_fact_count = last.get("staged_fact_count")
+    if staged_fact_count is None:
+        staged_fact_count = last.get("staged_facts")
     return {
         "event": last.get("event"),
         "cursor": cursor,
         "total_lines": total_lines,
-        "rolling_batches": last.get("rolling_batches") if last.get("rolling_batches") is not None else len(stages),
-        "staged_fact_count": last.get("staged_fact_count"),
+        "rolling_batches": rolling_batches,
+        "staged_fact_count": staged_fact_count,
         "avg_wall_seconds": avg_wall,
         "signal_to_publish_seconds": last.get("signal_to_publish_seconds"),
         "publish_wall_seconds": last.get("publish_wall_seconds"),
@@ -773,6 +809,16 @@ def run_progress(root: Path, run_name: str) -> str:
             parts.append(f"signal {float(signal_to_publish):.1f}s")
         if publish_wall is not None:
             parts.append(f"publish {float(publish_wall):.1f}s")
+        return " | ".join(parts)
+    if is_obd_run and rolling and rolling.get("event") == "rolling_flush_error":
+        parts = ["rolling flush retry"]
+        cursor = rolling.get("cursor")
+        total_lines = rolling.get("total_lines")
+        if cursor is not None and total_lines is not None:
+            parts.append(f"{cursor}/{total_lines}")
+        staged = rolling.get("staged_fact_count")
+        if staged is not None:
+            parts.append(f"facts {staged}")
         return " | ".join(parts)
 
     matches = re.findall(r"\[(\d+)/(\d+)\|q\d+\].*?\[(\d+(?:\.\d+)?)%\]", launch_text)

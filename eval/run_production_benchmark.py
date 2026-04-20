@@ -6,11 +6,11 @@ this script runs the FULL production pipeline:
 
 1. Workspace setup: isolated DB, config, core markdowns, project seeds
 2. Incremental project files: copy source at correct git commits, RAG reindex
-3. Full extraction: one Opus call for all 20 sessions → facts as `pending`,
+3. Full extraction: one Sonnet call for all 20 sessions → facts as `pending`,
    snippets, journal entries
 4. Full janitor: review, dedup, contradictions, workspace audit, snippets
    FOLD/REWRITE/DISCARD, journal distillation, RAG reindex, graduation
-5. Eval with tool use: Opus answers using memory_recall + search_project_docs
+5. Eval with tool use: Haiku answers using memory_recall + search_project_docs
 
 Usage:
     # Full run (all phases)
@@ -61,6 +61,7 @@ _DIR = Path(__file__).resolve().parent
 _PROJECT_DIR = _DIR.parent
 _CLAWD = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
 _DATASET_CHOICES = {"canonical", "jp"}
+DEFAULT_EXTRACTION_MODEL = "claude-sonnet-4-6"
 _JANITOR_ALL_TIMEOUT_SECONDS = 1800
 _BENCHMARK_RUN_STARTED_AT: Optional[float] = None
 _BENCHMARK_LAST_PHASE_AT: Optional[float] = None
@@ -3504,14 +3505,14 @@ def run_extraction(
     workspace: Path,
     api_key: str,
     no_cache: bool = False,
-    model: str = "claude-opus-4-6",
+    model: str = DEFAULT_EXTRACTION_MODEL,
     max_sessions: Optional[int] = None,
 ) -> dict:
     """Extract facts from all sessions in a single call (mirrors production compaction).
 
     Production Quaid does ONE extraction call at compaction time with the full
     conversation transcript. This mirrors that: combine all session transcripts
-    into one document and make a single Opus call.
+    into one document and make a single extraction-model call.
     """
     # Load reviews
     assets_dir, _arc_reviews, reviews, _dataset_version, _expected_queries = _load_reviews_with_dataset_gate(max_sessions)
@@ -5091,6 +5092,7 @@ def _rolling_flush_resume_state(
 ) -> Dict[str, Any]:
     state_path = _rolling_state_file(workspace, session_id)
     cursor_path = _rolling_cursor_file(workspace, session_id)
+    rolling_state: Dict[str, Any] = {}
     total_lines = 0
     try:
         total_lines = sum(1 for _ in transcript_path.open("r", encoding="utf-8", errors="replace"))
@@ -5106,6 +5108,25 @@ def _rolling_flush_resume_state(
         except Exception:
             cursor_line_offset = 0
             cursor_transcript_path = ""
+    if state_path.exists():
+        try:
+            raw_state = json.loads(state_path.read_text(encoding="utf-8"))
+            if isinstance(raw_state, dict):
+                rolling_state = raw_state
+        except Exception:
+            rolling_state = {}
+    state_transcript_path = str(rolling_state.get("transcript_path", "") or "")
+    state_line_offset = 0
+    for key in ("processed_line_offset", "buffered_line_offset"):
+        value = rolling_state.get(key)
+        if isinstance(value, int):
+            state_line_offset = max(state_line_offset, value)
+    if (
+        state_line_offset > cursor_line_offset
+        and state_transcript_path == str(transcript_path)
+    ):
+        cursor_line_offset = state_line_offset
+        cursor_transcript_path = state_transcript_path
     pending_compaction = _load_pending_signal_rows(
         workspace,
         session_id=session_id,
@@ -12567,8 +12588,8 @@ def main():
     parser.add_argument("--results-dir", type=str,
                         default=str(_PROJECT_DIR / "data" / "results-production"),
                         help="Workspace/results directory")
-    parser.add_argument("--model", type=str, default="claude-opus-4-6",
-                        help="Extraction model (default: claude-opus-4-6)")
+    parser.add_argument("--model", type=str, default=DEFAULT_EXTRACTION_MODEL,
+                        help=f"Extraction model (default: {DEFAULT_EXTRACTION_MODEL})")
     parser.add_argument("--max-sessions", type=int, default=None,
                         help="Limit to first N sessions (default: all 20)")
     parser.add_argument("--no-cache", action="store_true",
