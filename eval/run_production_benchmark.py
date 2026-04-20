@@ -9893,8 +9893,7 @@ def _judge_openai(prompt: str, model: str = "gpt-4o-mini", workspace: Optional[P
     """Call OpenAI model for judging."""
     openai_key = _get_openai_key()
     if not openai_key:
-        print("    ERROR: OPENAI_API_KEY not found — cannot use GPT-4o-mini judge")
-        return "ERROR", 0.0
+        raise RuntimeError("OPENAI_API_KEY not found; cannot use OpenAI judge")
 
     payload = {
         "model": model,
@@ -9912,25 +9911,47 @@ def _judge_openai(prompt: str, model: str = "gpt-4o-mini", workspace: Optional[P
         },
     )
 
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read())
-        usage = _openai_usage_dict(data, model)
-        if workspace is not None and usage:
-            _append_usage_event(
-                workspace,
-                phase="eval",
-                source="judge",
-                model=model,
-                usage=usage,
-                tier=_infer_usage_tier(model),
-                provider="openai",
-            )
-        text = data["choices"][0]["message"]["content"].strip().upper()
-        return _parse_judge_label(text)
-    except Exception as e:
-        print(f"    Judge error (openai:{model}): {e}")
-        return "ERROR", 0.0
+    max_attempts = max(1, int(os.environ.get("BENCHMARK_OPENAI_JUDGE_RETRIES", "3") or 3))
+    last_error: Optional[BaseException] = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read())
+            usage = _openai_usage_dict(data, model)
+            if workspace is not None and usage:
+                _append_usage_event(
+                    workspace,
+                    phase="eval",
+                    source="judge",
+                    model=model,
+                    usage=usage,
+                    tier=_infer_usage_tier(model),
+                    provider="openai",
+                )
+            text = data["choices"][0]["message"]["content"].strip().upper()
+            return _parse_judge_label(text)
+        except Exception as e:
+            last_error = e
+            retryable = _is_retryable_openai_judge_error(e)
+            if retryable and attempt < max_attempts:
+                print(f"    Judge retry (openai:{model}) attempt {attempt}/{max_attempts}: {e}")
+                time.sleep(min(2 ** (attempt - 1), 8))
+                continue
+            print(f"    Judge error (openai:{model}) after {attempt}/{max_attempts}: {e}")
+            break
+    raise RuntimeError(f"OpenAI judge failed after {max_attempts} attempt(s): {last_error}")
+
+
+def _is_retryable_openai_judge_error(exc: BaseException) -> bool:
+    """Return whether an OpenAI judge failure is transient enough to retry."""
+    if isinstance(exc, TimeoutError):
+        return True
+    if isinstance(exc, urllib.error.HTTPError):
+        return exc.code == 408 or exc.code == 409 or exc.code == 429 or 500 <= exc.code <= 599
+    if isinstance(exc, urllib.error.URLError):
+        reason = getattr(exc, "reason", None)
+        return isinstance(reason, TimeoutError) or "timed out" in str(reason).lower()
+    return "timed out" in str(exc).lower()
 
 
 def _resolve_judge_provider(judge_model: str) -> str:

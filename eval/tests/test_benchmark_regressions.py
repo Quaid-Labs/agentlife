@@ -3541,6 +3541,57 @@ def test_judge_openai_compatible_falls_back_to_reasoning_content(monkeypatch):
     assert score == 1.0
 
 
+def test_judge_openai_retries_transient_timeout(monkeypatch):
+    calls = {"count": 0}
+
+    class _Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return json.dumps({
+                "choices": [{"message": {"content": "CORRECT"}}],
+                "usage": {"prompt_tokens": 3, "completion_tokens": 1, "total_tokens": 4},
+            }).encode()
+
+    def _fake_urlopen(_req, timeout=30):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise TimeoutError("The read operation timed out")
+        return _Response()
+
+    monkeypatch.setenv("BENCHMARK_OPENAI_JUDGE_RETRIES", "2")
+    monkeypatch.setattr(rpb, "_get_openai_key", lambda: "key")
+    monkeypatch.setattr(rpb.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    label, score = rpb._judge_openai("prompt", workspace=None)
+
+    assert (label, score) == ("CORRECT", 1.0)
+    assert calls["count"] == 2
+
+
+def test_judge_openai_exhausted_retries_fail_hard(monkeypatch):
+    calls = {"count": 0}
+
+    def _fake_urlopen(_req, timeout=30):
+        calls["count"] += 1
+        raise TimeoutError("The read operation timed out")
+
+    monkeypatch.setenv("BENCHMARK_OPENAI_JUDGE_RETRIES", "2")
+    monkeypatch.setattr(rpb, "_get_openai_key", lambda: "key")
+    monkeypatch.setattr(rpb.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    with pytest.raises(RuntimeError, match="OpenAI judge failed after 2 attempt"):
+        rpb._judge_openai("prompt", workspace=None)
+
+    assert calls["count"] == 2
+
+
 class TestGroupSessionsByDate:
     """Tests for _group_sessions_by_date: session grouping."""
 
