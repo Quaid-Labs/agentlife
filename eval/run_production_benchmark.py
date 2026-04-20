@@ -870,6 +870,35 @@ PROJECT_SESSIONS = sorted(
     key=lambda x: x[0],
 )
 
+
+def _session_number_from_runtime_id(session_id: Any, workspace: Optional[Path] = None) -> Optional[int]:
+    """Resolve benchmark session IDs used by extraction and rolling runtime rows."""
+    text = str(session_id or "").strip()
+    if not text:
+        return None
+
+    match = re.fullmatch(r"session-(\d+)", text)
+    if match:
+        return int(match.group(1))
+
+    match = re.fullmatch(r"day-runtime-(\d{4}-\d{2}-\d{2})", text)
+    if not match:
+        return None
+
+    runtime_date = match.group(1)
+    if workspace is not None:
+        resume_root = workspace / "lifecycle_resume"
+        if resume_root.exists():
+            for path in resume_root.glob(f"day-*-{runtime_date}"):
+                day_match = re.fullmatch(r"day-(\d+)-\d{4}-\d{2}-\d{2}", path.name)
+                if day_match:
+                    return int(day_match.group(1))
+
+    matches = [int(num) for num, date in SESSION_DATES.items() if date == runtime_date]
+    if matches:
+        return max(matches)
+    return None
+
 _DOMAIN_ALIASES = {
     "projects": "project",
     "financial": "finance",
@@ -9209,13 +9238,11 @@ def _tool_memory_recall(
                             (node_id,)
                         ).fetchone()
                         if db_row and db_row[0]:
-                            # Parse session number from "session-N"
-                            try:
-                                sess_num = int(db_row[0].replace("session-", ""))
-                                if sess_num <= max_session:
-                                    filtered_results.append(result_row)
-                            except ValueError:
+                            sess_num = _session_number_from_runtime_id(db_row[0], workspace)
+                            if sess_num is None:
                                 filtered_results.append(result_row)  # Unknown format, keep
+                            elif sess_num <= max_session:
+                                filtered_results.append(result_row)
                         else:
                             # No session_id — check node type. Entity nodes
                             # (Person, Place, Org) pass through. Fact/Event/

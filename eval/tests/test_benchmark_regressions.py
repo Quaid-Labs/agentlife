@@ -4894,6 +4894,74 @@ def test_tool_memory_recall_max_session_filter_prefers_memory_db_path(tmp_path, 
     assert "Maya's partner is David" in text
 
 
+def test_tool_memory_recall_max_session_filter_maps_day_runtime_ids(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    (workspace / "data").mkdir(parents=True)
+    (workspace / "lifecycle_resume" / "day-10-2026-03-18").mkdir(parents=True)
+    (workspace / "lifecycle_resume" / "day-12-2026-03-22").mkdir(parents=True)
+    db = workspace / "data" / "memory.db"
+
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, session_id TEXT, type TEXT)")
+    conn.execute("INSERT INTO nodes (id, session_id, type) VALUES ('keep-runtime', 'day-runtime-2026-03-18', 'Fact')")
+    conn.execute("INSERT INTO nodes (id, session_id, type) VALUES ('drop-runtime', 'day-runtime-2026-03-22', 'Fact')")
+    conn.execute("INSERT INTO nodes (id, session_id, type) VALUES ('drop-session', 'session-16', 'Fact')")
+    conn.commit()
+    conn.close()
+
+    def _fake_run(_cmd, **_kwargs):
+        return SimpleNamespace(
+            stdout=json.dumps({
+                "results": [
+                    {
+                        "text": "session 10 test suite",
+                        "category": "fact",
+                        "similarity": 0.95,
+                        "id": "keep-runtime",
+                        "privacy": "shared",
+                        "owner_id": "maya",
+                    },
+                    {
+                        "text": "future graphQL suite",
+                        "category": "fact",
+                        "similarity": 0.95,
+                        "id": "drop-runtime",
+                        "privacy": "shared",
+                        "owner_id": "maya",
+                    },
+                    {
+                        "text": "future sharing suite",
+                        "category": "fact",
+                        "similarity": 0.95,
+                        "id": "drop-session",
+                        "privacy": "shared",
+                        "owner_id": "maya",
+                    },
+                ],
+                "meta": {"mode": "fast"},
+            }),
+            stderr="",
+            returncode=0,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    text, _meta = rpb._tool_memory_recall(
+        "recipe app test suites",
+        workspace,
+        {
+            "PATH": os.environ.get("PATH", ""),
+            "MEMORY_DB_PATH": str(db),
+        },
+        fast=True,
+        max_session=10,
+    )
+
+    assert "session 10 test suite" in text
+    assert "future graphQL suite" not in text
+    assert "future sharing suite" not in text
+
+
 def test_run_janitor_uses_configured_timeout(tmp_path, monkeypatch, capsys):
     workspace = tmp_path / "ws"
     workspace.mkdir()
