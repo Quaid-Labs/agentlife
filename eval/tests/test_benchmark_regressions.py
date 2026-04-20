@@ -7891,7 +7891,7 @@ def test_run_eval_syncs_instance_identity_before_building_context(tmp_path, monk
     assert sync_calls == [ws]
 
 
-def test_run_eval_time_cutoff_requires_question_anchor(tmp_path, monkeypatch):
+def test_run_eval_uses_full_final_environment_for_all_questions(tmp_path, monkeypatch):
     ws = tmp_path / "ws"
     (ws / "config").mkdir(parents=True, exist_ok=True)
     (ws / "logs").mkdir(parents=True, exist_ok=True)
@@ -7976,12 +7976,12 @@ def test_run_eval_time_cutoff_requires_question_anchor(tmp_path, monkeypatch):
             "question": (
                 "As of session 10, what test suites existed for the recipe app?"
             ),
-            "date_to": "2026-03-19",
-            "max_session": 10,
+            "date_to": None,
+            "max_session": None,
         },
     ]
-    assert results[0]["provenance"]["eval_time_cutoff"]["applied"] is False
-    assert results[1]["provenance"]["eval_time_cutoff"]["applied"] is True
+    assert results[0]["provenance"]["eval_environment"]["scope"] == "full_final"
+    assert results[1]["provenance"]["eval_environment"]["scope"] == "full_final"
 
 
 def test_claude_code_eval_still_requires_nonzero_claude_calls(tmp_path, monkeypatch):
