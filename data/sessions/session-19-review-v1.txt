@@ -476,7 +476,7 @@ QUERY 1: "What was Maya's half marathon time?"
   Query Type: factual_recall
   Recall Difficulty: Easy (directly stated, high emotional salience)
 
-QUERY 2: "How is Linda's diabetes now?"
+QUERY 2: "As of 2026-04-25, how was Linda's diabetes?"
   Ground Truth: Improving significantly. Her A1C dropped from 8.2
     (at diagnosis) to 7.1. Her target is under 7. She's been following
     meal plans that Maya and Rachel put together, cooking from them
@@ -526,7 +526,7 @@ QUERY 5: "What happened on May 18-19 for Maya?"
   Recall Difficulty: Hard (requires connecting temporal facts from
     different sessions to the same weekend)
 
-QUERY 6: "Has Maya's life improved since we first talked?"
+QUERY 6: "As of 2026-04-25, had Maya's life improved since we first talked?"
   Ground Truth: Significantly. Went from "boring job that pays bills"
     to senior PM at Stripe. Finished a half marathon she was nervous
     about. Mom's diabetes is improving thanks to meal planning she

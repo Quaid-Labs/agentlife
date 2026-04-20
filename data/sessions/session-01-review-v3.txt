@@ -350,7 +350,7 @@ QUERY 4: "Is David vegetarian or vegan?"
     - Turn 4: "vegetarian chili"
   Recall Difficulty: Easy (explicitly stated, context-reinforced)
 
-QUERY 5: "What does Maya do for work?"
+QUERY 5: "As of 2026-03-01, what did Maya do for work?"
   Ground Truth: Product manager at TechFlow in Austin, TX
   Evidence Session: 1
   Supporting Evidence:
@@ -389,7 +389,7 @@ STRUCTURAL CHANGES:
 
 4. EVAL QUERY ADDITIONS
    Before: 4 queries in session-01.json
-   After: 5 queries (Query 5: "What does Maya do for work?" added)
+   After: 5 queries (Query 5: "As of 2026-03-01, what did Maya do for work?" added)
    Impact: More comprehensive assessment of job/career recall
 
 CONTENT CHANGES:

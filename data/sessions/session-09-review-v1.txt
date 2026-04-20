@@ -601,7 +601,7 @@ QUERY 1: "Why is Maya building a portfolio site?"
   Recall Difficulty: Hard (requires connecting session 6 frustration to
     session 9 portfolio creation. The motivation is implied, not stated.)
 
-QUERY 2: "What projects are on Maya's portfolio site?"
+QUERY 2: "As of 2026-03-15, what projects were on Maya's portfolio site?"
   Ground Truth: Two projects: (1) Recipe App — full-stack recipe
     organizer with meal planning, dietary filtering, grocery list,
     built with Node.js/Express/SQLite/GraphQL. (2) TechFlow Platform
@@ -613,7 +613,7 @@ QUERY 2: "What projects are on Maya's portfolio site?"
   Query Type: project_state
   Recall Difficulty: Medium (fact cluster from single session)
 
-QUERY 3: "Is Maya job hunting?"
+QUERY 3: "As of 2026-03-15, was Maya job hunting?"
   Ground Truth: Not explicitly — she hasn't said she's applying anywhere.
     But she's building a portfolio site while frustrated at TechFlow
     (session 6) and says she's "thinking about options." The inference
@@ -627,7 +627,7 @@ QUERY 3: "Is Maya job hunting?"
     explicit confirmation. A correct answer acknowledges the suggestion
     without stating it as fact.)
 
-QUERY 4: "What does Maya's portfolio site UI look like?"
+QUERY 4: "As of 2026-03-15, what did Maya's portfolio site UI look like?"
   Ground Truth: Clean, minimal static HTML/CSS site. System fonts, warm
     gray background (#fafafa), friendly blue accent (#0984e3). No
     frameworks, no dark mode. Three sections: About, Projects, Contact.
@@ -640,7 +640,7 @@ QUERY 4: "What does Maya's portfolio site UI look like?"
   Query Type: project_state
   Recall Difficulty: Medium (design requirements scattered across turns)
 
-QUERY 5: "What company does Maya's portfolio currently list?"
+QUERY 5: "As of 2026-03-15, what company did Maya's portfolio list?"
   Ground Truth: TechFlow. As of session 9, her portfolio says "Senior
     Product Manager at TechFlow." This becomes stale after session 13
     (Stripe offer) and needs updating in session 14.

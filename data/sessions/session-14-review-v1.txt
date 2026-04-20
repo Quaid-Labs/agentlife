@@ -337,7 +337,7 @@ EVALUATION FRAMEWORK:
   Evidence Sessions: 1-14 (cumulative ground truth)
   Evaluation Scope: Stale facts, temporal updates, cross-references
 
-QUERY 1: "What company is listed on Maya's portfolio site?"
+QUERY 1: "As of 2026-04-03, what company was listed on Maya's portfolio site?"
   Ground Truth: Stripe. The portfolio was updated in session 14 from
     TechFlow to Stripe. The subtitle reads "Senior Product Manager at
     Stripe" and the About section says "Currently at Stripe."
@@ -350,7 +350,7 @@ QUERY 1: "What company is listed on Maya's portfolio site?"
   Recall Difficulty: Hard (tests fact supersession across 3 sessions:
     created with TechFlow → flagged as stale → updated to Stripe)
 
-QUERY 2: "Where does Maya work now?"
+QUERY 2: "As of 2026-04-03, where did Maya work?"
   Ground Truth: Stripe. She accepted a senior PM role on the developer
     tools platform (session 13). Her portfolio describes it as
     "payments platform team" — a deliberate branding choice. Started

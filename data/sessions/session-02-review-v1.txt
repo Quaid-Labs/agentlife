@@ -347,7 +347,7 @@ EVALUATION FRAMEWORK:
   Evidence Sessions: All ground truth from sessions 1-2
   Evaluation Scope: Running/fitness facts + cross-session personality recall
 
-QUERY 1: "What race is Maya training for?"
+QUERY 1: "As of 2026-03-03, what race was Maya training for?"
   Ground Truth: The Austin Half marathon
   Evidence Session: 2
   Supporting Evidence:
@@ -355,7 +355,7 @@ QUERY 1: "What race is Maya training for?"
   Query Type: factual_recall
   Recall Difficulty: Easy (explicitly stated, session topic)
 
-QUERY 2: "When does Maya think the half marathon is?"
+QUERY 2: "As of 2026-03-03, when did Maya think the half marathon was?"
   Ground Truth: April (she's wrong — she corrects to May in session 11)
   Evidence Session: 2
   Supporting Evidence:
@@ -375,7 +375,7 @@ QUERY 3: "Does Maya prefer running indoors or outdoors?"
   Query Type: tangent_recall
   Recall Difficulty: Medium (embedded in tangent, preference inference)
 
-QUERY 4: "How often does Maya run?"
+QUERY 4: "As of 2026-03-03, how often was Maya running?"
   Ground Truth: 3-4 times a week, usually 3-5 miles per run
   Evidence Session: 2
   Supporting Evidence:

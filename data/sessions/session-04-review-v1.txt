@@ -448,7 +448,7 @@ QUERY 3: "Who else in Maya's family was concerned about Linda's diagnosis?"
   Query Type: factual_recall
   Recall Difficulty: Easy (directly stated)
 
-QUERY 4: "Why is Maya considering going to Houston?"
+QUERY 4: "As of 2026-03-10, why was Maya considering going to Houston?"
   Ground Truth: To visit her mom Linda after the Type 2 diabetes diagnosis.
     She's thinking about driving down next weekend.
   Evidence Sessions: 1, 4

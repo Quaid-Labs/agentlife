@@ -1275,8 +1275,8 @@ QUERY 4: "What dietary constraints would David's recipe app profile have?"
   Recall Difficulty: Medium (requires connecting personal fact to
     project feature — David's vegetarianism → his app profile)
 
-QUERY 5: "What authentication exists in the recipe app, and what's
-  the security gap?"
+QUERY 5: "As of 2026-04-17, what authentication existed in the
+  recipe app, and what was the security gap?"
   Ground Truth: The app has authentication (user registration, login,
     JWT tokens via jsonwebtoken library, PBKDF2 password hashing with
     config-driven settings, Bearer token middleware in
@@ -1297,7 +1297,7 @@ QUERY 5: "What authentication exists in the recipe app, and what's
   Recall Difficulty: Medium (specific technical detail, clearly discussed.
     Must distinguish authentication from authorization.)
 
-QUERY 6: "What is Linda's latest A1C reading?"
+QUERY 6: "As of 2026-04-17, what was Linda's latest A1C reading?"
   Ground Truth: 7.1 (as of session 18). Originally 8.2 at diagnosis
     (session 4). Target is under 7. The meal plans Maya and Rachel
     put together are working — Linda is cooking from them regularly.
@@ -1309,7 +1309,7 @@ QUERY 6: "What is Linda's latest A1C reading?"
   Recall Difficulty: Medium (specific number, must return 7.1 not 8.2.
     Tests whether system tracks numerical progression.)
 
-QUERY 7: "Has Maya mentioned any content creation plans?"
+QUERY 7: "As of 2026-04-17, had Maya mentioned any content creation plans?"
   Ground Truth: Yes — Maya briefly mentioned wanting to do a YouTube
     dev diary video about building the recipe app. She said "maybe
     later" — it's an idea, not a commitment. The story angle would be

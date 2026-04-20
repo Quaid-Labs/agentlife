@@ -8062,6 +8062,27 @@ def test_canonical_eval_query_count_is_268():
     assert total == 268
 
 
+def test_historical_state_queries_include_dates():
+    import importlib.util
+    from pathlib import Path
+
+    dataset_path = Path(__file__).resolve().parents[1] / "dataset.py"
+    spec = importlib.util.spec_from_file_location("benchmark_dataset", dataset_path)
+    assert spec is not None and spec.loader is not None
+    dataset = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dataset)
+
+    assets_dir = dataset_path.resolve().parents[1] / "data" / "sessions"
+    queries = dataset.get_all_eval_queries(dataset.load_all_reviews(assets_dir))
+    by_key = {
+        (row["source_session"], row["query_num"]): row["question"]
+        for row in queries
+    }
+
+    assert by_key[(9, 2)].startswith("As of 2026-03-15,")
+    assert by_key[(10, 4)].startswith("As of 2026-03-17,")
+
+
 def test_statement_context_grounding_query_set_is_opt_in():
     import importlib.util
     from pathlib import Path

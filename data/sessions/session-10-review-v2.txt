@@ -2505,7 +2505,7 @@ EVALUATION FRAMEWORK:
   Evidence Sessions: 1-10 (cumulative ground truth)
   Evaluation Scope: Project state, cross-reference, factual recall, tangent recall
 
-QUERY 1: "What meal planning features does the recipe app have?"
+QUERY 1: "As of 2026-03-17, what meal planning features did the recipe app have?"
   Ground Truth: Weekly meal plans with recipes assigned to days and meal
     types (breakfast, lunch, dinner, snack). CRUD operations for plans
     and items. Grocery list generation that aggregates ingredients across
@@ -2533,7 +2533,7 @@ QUERY 2: "Who does the grocery shopping in Maya's household?"
   Query Type: factual_recall
   Recall Difficulty: Easy (directly stated, though brief)
 
-QUERY 3: "How does the grocery list aggregation work in the recipe app?"
+QUERY 3: "As of 2026-03-17, how did grocery list aggregation work in the recipe app?"
   Ground Truth: The grocery list uses SQL GROUP BY to aggregate
     ingredients across all recipes in a meal plan. It joins
     meal_plan_items to recipe_ingredients to recipes, groups by
@@ -2552,7 +2552,7 @@ QUERY 3: "How does the grocery list aggregation work in the recipe app?"
   Recall Difficulty: Hard (technical detail, requires understanding the
     SQL query mechanics)
 
-QUERY 4: "What test suites exist for the recipe app?"
+QUERY 4: "As of 2026-03-17, what test suites existed for the recipe app?"
   Ground Truth: As of session 10, three test suites: (1) the original
     test suite from session 7 covering CRUD, validation, search, and
     error handling; (2) dietary.test.js covering DIETARY_LABELS,
@@ -2588,7 +2588,7 @@ QUERY 5: "Why was the recipe_ingredients table added to the recipe app?"
   Recall Difficulty: Medium (connects table creation to motivation to
     David's role)
 
-QUERY 6: "What logging or observability does the recipe app have?"
+QUERY 6: "As of 2026-03-17, what logging or observability did the recipe app have?"
   Ground Truth: Request logging middleware (src/middleware/logging.js)
     that logs every HTTP request with method, URL, status code, response
     time in milliseconds, and content length. Output is color-coded by
@@ -2602,7 +2602,7 @@ QUERY 6: "What logging or observability does the recipe app have?"
   Query Type: project_state
   Recall Difficulty: Easy (single session, directly stated)
 
-QUERY 7: "What dietary presets exist in the recipe app?"
+QUERY 7: "As of 2026-03-17, what dietary presets existed in the recipe app?"
   Ground Truth: The SAFE_FOR_MOM preset — a combination of
     "diabetic-friendly" and "low-sodium" dietary tags. Named for Maya's
     mom Linda, who has diabetes. Recipes must have BOTH tags to pass
