@@ -8120,6 +8120,7 @@ def test_canonical_eval_query_count_is_268():
 
 def test_historical_state_queries_include_dates():
     import importlib.util
+    import re
     from pathlib import Path
 
     dataset_path = Path(__file__).resolve().parents[1] / "dataset.py"
@@ -8136,7 +8137,17 @@ def test_historical_state_queries_include_dates():
     }
 
     assert by_key[(9, 2)].startswith("As of 2026-03-15,")
-    assert by_key[(10, 4)].startswith("As of 2026-03-17,")
+    assert by_key[(10, 4)].startswith("As of 2026-03-18,")
+
+    for review in dataset.load_all_reviews(assets_dir):
+        expected_date = dataset.SESSION_DATES[review.session_num]
+        timestamp_match = re.match(r"(\d{4}-\d{2}-\d{2})", review.timestamp)
+        assert timestamp_match is not None
+        assert expected_date == timestamp_match.group(1)
+        for query in review.eval_queries:
+            match = re.match(r"As of (\d{4}-\d{2}-\d{2}),", query.question)
+            if match:
+                assert match.group(1) == expected_date
 
 
 def test_statement_context_grounding_query_set_is_opt_in():

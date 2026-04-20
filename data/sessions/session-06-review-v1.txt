@@ -416,7 +416,7 @@ EVALUATION FRAMEWORK:
   Evidence Sessions: 1-6 (cumulative ground truth)
   Evaluation Scope: Career, relationships, red herring classification
 
-QUERY 1: "As of 2026-03-14, was Maya happy at her job?"
+QUERY 1: "As of 2026-03-17, was Maya happy at her job?"
   Ground Truth: No — she's increasingly frustrated at TechFlow. Her manager
     talks over her, leadership brought in consultants to redo her work,
     and a reorg in January made things worse. She's browsing other
@@ -442,7 +442,7 @@ QUERY 2: "Who is Priya?"
   Recall Difficulty: Medium (must correctly classify as coworker, not
     friend/family — graph traversal systems may misclassify)
 
-QUERY 3: "As of 2026-03-14, where did Maya live in Austin?"
+QUERY 3: "As of 2026-03-17, where did Maya live in Austin?"
   Ground Truth: South Austin. She commutes to downtown and the traffic on
     I-35 is bad. She's thinking about moving closer to downtown, maybe
     the Zilker area.

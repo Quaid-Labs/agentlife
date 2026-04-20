@@ -384,7 +384,7 @@ EVALUATION FRAMEWORK:
   Evidence Sessions: 1-13 (cumulative ground truth)
   Evaluation Scope: Career evolution, temporal reasoning, fact update
 
-QUERY 1: "As of 2026-04-01, where did Maya work or plan to work?"
+QUERY 1: "As of 2026-04-21, where did Maya work or plan to work?"
   Ground Truth: Maya is transitioning to Stripe. She was at TechFlow
     but accepted a Senior PM role at Stripe on their developer tools
     platform. Start date is May 19th.
@@ -452,7 +452,7 @@ QUERY 5: "What's happening the week of May 18th for Maya?"
   Recall Difficulty: Hard (requires connecting two facts from different
     sessions to the same time window)
 
-QUERY 6: "As of 2026-04-01, what company was on Maya's portfolio site?"
+QUERY 6: "As of 2026-04-21, what company was on Maya's portfolio site?"
   Ground Truth: It currently still says TechFlow, but it needs to be
     updated to say Stripe. Maya acknowledged this.
   Evidence Session: 13

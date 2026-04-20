@@ -1028,7 +1028,7 @@ QUERY 1: "What motivated the dietary restriction feature in the recipe app?"
   Recall Difficulty: Hard (requires connecting session 4 diabetes to
     session 5 feature request without explicit link)
 
-QUERY 2: "As of 2026-03-12, what dietary restrictions needed to be accommodated for the family dinner?"
+QUERY 2: "As of 2026-03-08, what dietary restrictions needed to be accommodated for the family dinner?"
   Ground Truth: At least three: Linda needs diabetic-friendly and low-sodium
     (Type 2 diabetes), David needs vegetarian. A recipe marked as
     diabetic-friendly + low-sodium + vegetarian would work for everyone.
@@ -1042,7 +1042,7 @@ QUERY 2: "As of 2026-03-12, what dietary restrictions needed to be accommodated 
   Recall Difficulty: Hard (requires assembling 3 facts from 3 sessions +
     reasoning about intersection)
 
-QUERY 3: "As of 2026-03-12, what dietary labels did the recipe app support?"
+QUERY 3: "As of 2026-03-08, what dietary labels did the recipe app support?"
   Ground Truth: Ten labels: vegetarian, vegan, gluten-free, dairy-free,
     nut-free, diabetic-friendly, low-sodium, low-carb, keto, and paleo.
     Plus a "Safe for Mom" preset that combines diabetic-friendly and
@@ -1055,7 +1055,7 @@ QUERY 3: "As of 2026-03-12, what dietary labels did the recipe app support?"
   Query Type: project_state
   Recall Difficulty: Easy (directly stated, central to session)
 
-QUERY 4: "As of 2026-03-12, what did the 'Safe for Mom' button do in the recipe app?"
+QUERY 4: "As of 2026-03-08, what did the 'Safe for Mom' button do in the recipe app?"
   Ground Truth: It's a one-click filter that shows only recipes tagged as
     both diabetic-friendly AND low-sodium. It was created for Maya's mom
     Linda who has Type 2 diabetes.
@@ -1078,7 +1078,7 @@ QUERY 5: "Why does the recipe app need a vegetarian filter?"
   Query Type: cross_reference
   Recall Difficulty: Medium (two-session hop, but both explicit)
 
-QUERY 6: "As of 2026-03-12, what seed recipes were safe for Maya's mom?"
+QUERY 6: "As of 2026-03-08, what seed recipes were safe for Maya's mom?"
   Ground Truth: Three seed recipes have both diabetic-friendly and
     low-sodium tags: Grilled Salmon with Herbs, Chicken and Vegetable Soup
     (Low Sodium), and Lentil Soup. The Lentil Soup is also vegetarian,
@@ -1181,7 +1181,7 @@ SECOND VERSION — V2 UPDATES:
     All corrected in V2 to match commit f5994b3.
 
 12. EVAL QUERY UPDATES
-    Added Query 6 ("As of 2026-03-12, what seed recipes were safe for Maya's mom?") to cover
+    Added Query 6 ("As of 2026-03-08, what seed recipes were safe for Maya's mom?") to cover
     the new seed data content. Updated Query 3 ground truth from "five
     labels" to "ten labels" to match actual DIETARY_LABELS array.
 

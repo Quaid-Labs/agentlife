@@ -1654,7 +1654,7 @@ EVALUATION FRAMEWORK:
   Evaluation Scope: Project state evolution, tangent callback, security recall,
     test infrastructure, error handling
 
-QUERY 1: "As of 2026-03-15, what changed in the recipe app's frontend?"
+QUERY 1: "As of 2026-03-11, what changed in the recipe app's frontend?"
   Ground Truth: Complete redesign from a list layout to a CSS grid card
     layout. Cards show recipe name, prep time, and dietary tag pills
     (color-coded). The add form was made collapsible using the native
@@ -1698,7 +1698,7 @@ QUERY 3: "Do Maya and David have a regular restaurant they go to?"
   Recall Difficulty: Medium (embedded in tangents in two sessions,
     requires recognizing the pattern/callback)
 
-QUERY 4: "As of 2026-03-15, what did the recipe app UI look like?"
+QUERY 4: "As of 2026-03-11, what did the recipe app UI look like?"
   Ground Truth: A responsive CSS grid of recipe cards. Each card shows
     the recipe name, a prep time value in the meta line, and dietary tag
     pills (color-coded: green for vegetarian, yellow for gluten-free,
@@ -1727,7 +1727,7 @@ QUERY 5: "Does David cook?"
   Query Type: factual_recall
   Recall Difficulty: Medium (scattered across tangents in two sessions)
 
-QUERY 6: "As of 2026-03-15, what new fields had been added to the recipe database?"
+QUERY 6: "As of 2026-03-11, what new fields had been added to the recipe database?"
   Ground Truth: Two new fields: image_url (TEXT, for recipe photos via
     URL) and prep_time (INTEGER, cooking time in minutes). These were
     added in session 7 alongside the frontend redesign. The database.js
@@ -1740,7 +1740,7 @@ QUERY 6: "As of 2026-03-15, what new fields had been added to the recipe databas
   Query Type: project_state
   Recall Difficulty: Easy (directly coded and discussed)
 
-QUERY 7: "As of 2026-03-15, did the recipe app have tests?"
+QUERY 7: "As of 2026-03-11, did the recipe app have tests?"
   Ground Truth: Yes — a Jest test suite was added in session 7 after a
     SQL injection vulnerability was discovered. Three test files:
     tests/setup.js (in-memory database setup with schema migrations),
@@ -1759,7 +1759,7 @@ QUERY 7: "As of 2026-03-15, did the recipe app have tests?"
   Recall Difficulty: Medium (requires recalling the test suite structure
     and motivation — SQL injection prevention)
 
-QUERY 8: "As of 2026-03-15, how did the recipe app handle errors?"
+QUERY 8: "As of 2026-03-11, how did the recipe app handle errors?"
   Ground Truth: A centralized error handling middleware was added in
     session 7 (src/middleware/errorHandler.js). It includes a custom
     AppError class with HTTP status codes, an Express error-handling
@@ -1859,8 +1859,8 @@ V2 REVISION — MAJOR CODE SNIPPET ADDITIONS:
 
 10. ADDED EVAL QUERIES (queries 7-8)
     V1 had 6 queries. V2 adds:
-    - Query 7: "As of 2026-03-15, did the recipe app have tests?" — test suite recall
-    - Query 8: "As of 2026-03-15, how did the recipe app handle errors?" — error handling
+    - Query 7: "As of 2026-03-11, did the recipe app have tests?" — test suite recall
+    - Query 8: "As of 2026-03-11, how did the recipe app handle errors?" — error handling
 
 11. CODE MATCHES GIT HISTORY — VERIFIED
     All 8 files from commit 385b321 are represented in the transcript:

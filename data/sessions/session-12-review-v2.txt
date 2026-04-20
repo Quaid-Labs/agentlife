@@ -2737,7 +2737,7 @@ EVALUATION FRAMEWORK:
   Evaluation Scope: Architecture state, performance bugs, cross-reference
     recall, tangent recall, project continuity
 
-QUERY 1: "As of 2026-03-24, what was the recipe app's API architecture?"
+QUERY 1: "As of 2026-03-22, what was the recipe app's API architecture?"
   Ground Truth: The recipe app now has both REST and GraphQL APIs running
     side by side. REST endpoints at /api/* handle recipes, meal plans,
     grocery lists, dietary filtering, recipe sharing, and a nutrition stub.
@@ -2805,7 +2805,7 @@ QUERY 4: "What recipe did David recently find?"
   Recall Difficulty: Medium (embedded in tangent during a heavy coding
     session. Vivid detail helps retention.)
 
-QUERY 5: "As of 2026-03-24, was David using the recipe app?"
+QUERY 5: "As of 2026-03-22, was David using the recipe app?"
   Ground Truth: Yes — David has been actively adding recipes to the app.
     He found a chickpea curry recipe. He's also getting really good at
     cooking.
@@ -2817,7 +2817,7 @@ QUERY 5: "As of 2026-03-24, was David using the recipe app?"
   Query Type: factual_recall
   Recall Difficulty: Easy (stated directly in Turn 7)
 
-QUERY 6: "As of 2026-03-24, how did the recipe app handle deployment?"
+QUERY 6: "As of 2026-03-22, how did the recipe app handle deployment?"
   Ground Truth: The app has Docker containerization set up. A Dockerfile
     uses Node 18 Alpine with production-only dependencies. A
     docker-compose.yml runs the single-service setup with SQLite
@@ -2834,7 +2834,7 @@ QUERY 6: "As of 2026-03-24, how did the recipe app handle deployment?"
   Recall Difficulty: Medium (infrastructure details from a single
     session turn, but concrete and specific)
 
-QUERY 7: "As of 2026-03-24, what dietary filtering features did the recipe app have?"
+QUERY 7: "As of 2026-03-22, what dietary filtering features did the recipe app have?"
   Ground Truth: The app supports 10 dietary tags (vegetarian, vegan,
     gluten-free, dairy-free, nut-free, diabetic-friendly, low-sodium,
     low-carb, keto, paleo). There is a "Safe for Mom" preset filter

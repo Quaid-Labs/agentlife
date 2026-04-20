@@ -437,7 +437,7 @@ QUERY 3: "Does Maya stretch after running?"
   Query Type: tangent_recall
   Recall Difficulty: Medium (pattern across two sessions)
 
-QUERY 4: "As of 2026-03-22, when was Rachel expected to visit Austin?"
+QUERY 4: "As of 2026-04-07, when was Rachel expected to visit Austin?"
   Ground Truth: In about 2 weeks from session 11 (mid-to-late April).
     Flying from Seattle for a long weekend. Coming solo — kids
     staying with her husband.

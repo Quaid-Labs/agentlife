@@ -375,7 +375,7 @@ OVERALL LEAKAGE ASSESSMENT: CLEAN
 SECTION 4: EVALUATION QUERIES & GROUND TRUTH
 ================================================================================
 
-QUERY 1: "As of 2026-04-15, where were Maya and David thinking about moving?"
+QUERY 1: "As of 2026-05-05, where were Maya and David thinking about moving?"
   Ground Truth: They disagree. Maya wants the Zilker area (walkable,
     close to downtown, near Barton Springs). David wants East Austin
     (more authentic, bigger yards, cheaper, found a house with a
