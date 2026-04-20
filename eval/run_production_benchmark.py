@@ -2101,6 +2101,15 @@ def _select_hard_representative_query_indices(
 
 
 def _apply_eval_query_profile(queries: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    query_nums = str(os.environ.get("BENCHMARK_QUERY_NUMS", "") or "").strip()
+    query_sha1s = str(os.environ.get("BENCHMARK_QUERY_SHA1S", "") or "").strip()
+    if query_nums and query_sha1s:
+        raise RuntimeError("Set only one of BENCHMARK_QUERY_NUMS or BENCHMARK_QUERY_SHA1S")
+    if query_nums:
+        return _apply_eval_query_num_filter(queries, query_nums)
+    if query_sha1s:
+        return _apply_eval_query_sha1_filter(queries, query_sha1s)
+
     profile = str(os.environ.get("BENCHMARK_QUERY_PROFILE", "") or "").strip().lower()
     if not profile or profile in {"full", "canonical"}:
         return list(queries), {"profile": "full", "requested": len(queries), "selected": len(queries)}
@@ -2141,6 +2150,121 @@ def _apply_eval_query_profile(queries: List[Dict[str, Any]]) -> Tuple[List[Dict[
         "target_size": max(1, target),
         "min_per_type": max(0, min_per_type),
         "selected_indices_1based": [i + 1 for i in indices],
+        "by_type": dict(sorted(by_type.items())),
+        "by_difficulty": dict(sorted(by_difficulty.items())),
+    }
+    return selected, metadata
+
+
+def _apply_eval_query_num_filter(
+    queries: List[Dict[str, Any]],
+    raw_query_nums: str,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    requested: List[int] = []
+    for token in re.split(r"[\s,]+", raw_query_nums):
+        token = token.strip()
+        if not token:
+            continue
+        if not re.fullmatch(r"\d+", token):
+            raise RuntimeError(f"Invalid BENCHMARK_QUERY_NUMS selector {token!r}; expected positive integer query numbers")
+        num = int(token)
+        if num <= 0:
+            raise RuntimeError(f"Invalid BENCHMARK_QUERY_NUMS selector {token!r}; expected positive integer query numbers")
+        requested.append(num)
+    if not requested:
+        raise RuntimeError("BENCHMARK_QUERY_NUMS was set but no query numbers were provided")
+
+    by_query_num: Dict[int, int] = {}
+    for idx, query in enumerate(queries):
+        try:
+            query_num = int(query.get("query_num") or idx + 1)
+        except Exception:
+            query_num = idx + 1
+        if query_num in by_query_num:
+            raise RuntimeError(f"Eval query number {query_num} is duplicated; cannot use BENCHMARK_QUERY_NUMS safely")
+        by_query_num[query_num] = idx
+
+    selected_indices: Set[int] = set()
+    for query_num in requested:
+        if query_num not in by_query_num:
+            raise RuntimeError(f"BENCHMARK_QUERY_NUMS selector {query_num} did not match any eval query")
+        selected_indices.add(by_query_num[query_num])
+
+    indices = [idx for idx in range(len(queries)) if idx in selected_indices]
+    selected = [queries[i] for i in indices]
+    by_type: Dict[str, int] = {}
+    by_difficulty: Dict[str, int] = {}
+    for q in selected:
+        qtype = _canonical_query_type_for_profile(q.get("query_type", "unknown"))
+        by_type[qtype] = by_type.get(qtype, 0) + 1
+        diff = str(q.get("recall_difficulty", "unknown") or "unknown")
+        by_difficulty[diff] = by_difficulty.get(diff, 0) + 1
+
+    metadata = {
+        "profile": "query-num-list",
+        "requested": len(queries),
+        "selected": len(selected),
+        "selected_indices_1based": [i + 1 for i in indices],
+        "requested_query_nums": requested,
+        "selected_query_nums": [int(queries[i].get("query_num") or i + 1) for i in indices],
+        "by_type": dict(sorted(by_type.items())),
+        "by_difficulty": dict(sorted(by_difficulty.items())),
+    }
+    return selected, metadata
+
+
+def _apply_eval_query_sha1_filter(
+    queries: List[Dict[str, Any]],
+    raw_sha1s: str,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    requested = [
+        token.strip().lower()
+        for token in re.split(r"[\s,]+", raw_sha1s)
+        if token.strip()
+    ]
+    if not requested:
+        raise RuntimeError("BENCHMARK_QUERY_SHA1S was set but no query SHA1 selectors were provided")
+
+    query_sha1_rows: List[Tuple[int, str, Dict[str, Any]]] = []
+    for idx, query in enumerate(queries):
+        question = str(query.get("question", "") or "")
+        query_sha1_rows.append((idx, hashlib.sha1(question.encode("utf-8")).hexdigest(), query))
+
+    selected_indices: Set[int] = set()
+    resolved_sha1s: List[str] = []
+    for selector in requested:
+        if not re.fullmatch(r"[0-9a-f]{8,40}", selector):
+            raise RuntimeError(
+                f"Invalid BENCHMARK_QUERY_SHA1S selector {selector!r}; expected 8-40 hex SHA1 prefix"
+            )
+        matches = [(idx, full_sha1) for idx, full_sha1, _query in query_sha1_rows if full_sha1.startswith(selector)]
+        if not matches:
+            raise RuntimeError(f"BENCHMARK_QUERY_SHA1S selector {selector!r} did not match any eval query")
+        if len(matches) > 1:
+            raise RuntimeError(
+                f"BENCHMARK_QUERY_SHA1S selector {selector!r} matched {len(matches)} eval queries; use a longer prefix"
+            )
+        idx, full_sha1 = matches[0]
+        selected_indices.add(idx)
+        resolved_sha1s.append(full_sha1)
+
+    indices = [idx for idx, _sha1, _query in query_sha1_rows if idx in selected_indices]
+    selected = [queries[i] for i in indices]
+    by_type: Dict[str, int] = {}
+    by_difficulty: Dict[str, int] = {}
+    for q in selected:
+        qtype = _canonical_query_type_for_profile(q.get("query_type", "unknown"))
+        by_type[qtype] = by_type.get(qtype, 0) + 1
+        diff = str(q.get("recall_difficulty", "unknown") or "unknown")
+        by_difficulty[diff] = by_difficulty.get(diff, 0) + 1
+
+    metadata = {
+        "profile": "sha1-list",
+        "requested": len(queries),
+        "selected": len(selected),
+        "selected_indices_1based": [i + 1 for i in indices],
+        "requested_sha1_selectors": requested,
+        "selected_sha1s": resolved_sha1s,
         "by_type": dict(sorted(by_type.items())),
         "by_difficulty": dict(sorted(by_difficulty.items())),
     }

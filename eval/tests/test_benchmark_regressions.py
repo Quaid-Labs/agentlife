@@ -6,6 +6,7 @@ extract_compact.py. No network or subprocess calls — everything mocked.
 
 import json
 import io
+import hashlib
 import importlib
 import importlib.util
 import os
@@ -7963,6 +7964,57 @@ class TestEvalQueryProfiles:
         monkeypatch.setenv("BENCHMARK_QUERY_PROFILE", "nope-v9")
         with pytest.raises(RuntimeError, match="Unknown BENCHMARK_QUERY_PROFILE"):
             rpb._apply_eval_query_profile([{"question": "q", "ground_truth": "a"}])
+
+    def test_apply_eval_query_profile_can_select_sha1_list(self, monkeypatch):
+        queries = [
+            {"question": "Where does Maya work?", "query_type": "temporal_current", "recall_difficulty": "Hard", "query_num": 1},
+            {"question": "What features does the recipe app have?", "query_type": "project_state", "recall_difficulty": "Medium", "query_num": 2},
+            {"question": "Who is Biscuit?", "query_type": "factual_recall", "recall_difficulty": "Easy", "query_num": 3},
+        ]
+        first = hashlib.sha1(queries[0]["question"].encode("utf-8")).hexdigest()[:12]
+        third = hashlib.sha1(queries[2]["question"].encode("utf-8")).hexdigest()[:12]
+        monkeypatch.setenv("BENCHMARK_QUERY_SHA1S", f"{third},{first}")
+
+        selected, meta = rpb._apply_eval_query_profile(queries)
+
+        assert [q["query_num"] for q in selected] == [1, 3]
+        assert meta["profile"] == "sha1-list"
+        assert meta["requested"] == 3
+        assert meta["selected"] == 2
+        assert meta["selected_indices_1based"] == [1, 3]
+        assert meta["requested_sha1_selectors"] == [third, first]
+        assert meta["by_type"] == {"factual_recall": 1, "temporal_current": 1}
+
+    def test_apply_eval_query_profile_fails_on_unknown_sha1(self, monkeypatch):
+        monkeypatch.setenv("BENCHMARK_QUERY_SHA1S", "deadbeef")
+
+        with pytest.raises(RuntimeError, match="did not match any eval query"):
+            rpb._apply_eval_query_profile([{"question": "q", "ground_truth": "a"}])
+
+    def test_apply_eval_query_profile_can_select_query_numbers(self, monkeypatch):
+        queries = [
+            {"question": "q7", "query_type": "temporal_current", "recall_difficulty": "Hard", "query_num": 7},
+            {"question": "q11", "query_type": "project_state", "recall_difficulty": "Medium", "query_num": 11},
+            {"question": "q42", "query_type": "factual_recall", "recall_difficulty": "Easy", "query_num": 42},
+        ]
+        monkeypatch.setenv("BENCHMARK_QUERY_NUMS", "42,7")
+
+        selected, meta = rpb._apply_eval_query_profile(queries)
+
+        assert [q["query_num"] for q in selected] == [7, 42]
+        assert meta["profile"] == "query-num-list"
+        assert meta["requested"] == 3
+        assert meta["selected"] == 2
+        assert meta["requested_query_nums"] == [42, 7]
+        assert meta["selected_query_nums"] == [7, 42]
+        assert meta["by_type"] == {"factual_recall": 1, "temporal_current": 1}
+
+    def test_apply_eval_query_profile_rejects_combined_query_selectors(self, monkeypatch):
+        monkeypatch.setenv("BENCHMARK_QUERY_NUMS", "1")
+        monkeypatch.setenv("BENCHMARK_QUERY_SHA1S", "deadbeef")
+
+        with pytest.raises(RuntimeError, match="only one"):
+            rpb._apply_eval_query_profile([{"question": "q", "query_num": 1}])
 
 
 # ===================================================================
