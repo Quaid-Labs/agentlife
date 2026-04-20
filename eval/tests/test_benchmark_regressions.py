@@ -8155,9 +8155,16 @@ def test_historical_state_queries_include_dates():
     assert by_key[(16, 1)].startswith("As of 2026-05-08,")
     assert by_key[(18, 5)].startswith("As of 2026-05-15,")
 
+    by_track = {}
     for review in dataset.load_all_reviews(assets_dir):
         expected_date = dataset.SESSION_DATES[review.session_num]
         text = review.filepath.read_text(encoding="utf-8")
+        track_match = re.search(r"^Session:\s+\d+\s+\(Track\s+(\d+):", text, re.MULTILINE)
+        assert track_match is not None
+        assert dataset.SESSION_TRACKS[review.session_num] == int(track_match.group(1))
+        by_track.setdefault(dataset.SESSION_TRACKS[review.session_num], []).append(
+            (review.session_num, expected_date)
+        )
         source_timestamp = re.search(r"^  Timestamp: (\d{4}-\d{2}-\d{2})", text, re.MULTILINE)
         assert source_timestamp is not None
         assert expected_date == source_timestamp.group(1)
@@ -8172,6 +8179,10 @@ def test_historical_state_queries_include_dates():
         for parent in re.findall(r"\b\d+\s+(?:day|days|week|weeks) after session (\d+)", text, re.IGNORECASE):
             parent_num = int(parent)
             assert expected_date > dataset.SESSION_DATES[parent_num]
+
+    for track_reviews in by_track.values():
+        ordered = [date for _session_num, date in sorted(track_reviews)]
+        assert ordered == sorted(ordered)
 
 
 def test_statement_context_grounding_query_set_is_opt_in():
