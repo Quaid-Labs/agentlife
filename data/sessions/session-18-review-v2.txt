@@ -14,7 +14,7 @@ Goal: Add authentication. David wants to use the app — needs user accounts
 Turn Count: 18 (long session — auth is complex, multiple files to show in
   full, plus cross-refs and tangents)
 Session Type: Authentication, user profiles, API conflict, personal tangents
-Timestamp: 2026-04-08 (1 week after session 16, ~6 weeks in)
+Timestamp: 2026-05-15 (1 week after session 16, ~11 weeks in)
 
 CORE LEARNING OBJECTIVES:
   - config/auth.js created: JWT configuration, PBKDF2 password hashing
@@ -92,7 +92,7 @@ SESSION METADATA:
   Command: /new
   Session: 18
   Track: 2
-  Timestamp: 2026-04-08 19:00:00 UTC
+  Timestamp: 2026-05-15 19:00:00 UTC
   Duration: ~12 minutes (19:00:00 to 19:12:00)
 
 ---
@@ -1275,7 +1275,7 @@ QUERY 4: "What dietary constraints would David's recipe app profile have?"
   Recall Difficulty: Medium (requires connecting personal fact to
     project feature — David's vegetarianism → his app profile)
 
-QUERY 5: "As of 2026-04-08, what authentication existed in the
+QUERY 5: "As of 2026-05-15, what authentication existed in the
   recipe app, and what was the security gap?"
   Ground Truth: The app has authentication (user registration, login,
     JWT tokens via jsonwebtoken library, PBKDF2 password hashing with
@@ -1297,7 +1297,7 @@ QUERY 5: "As of 2026-04-08, what authentication existed in the
   Recall Difficulty: Medium (specific technical detail, clearly discussed.
     Must distinguish authentication from authorization.)
 
-QUERY 6: "As of 2026-04-08, what was Linda's latest A1C reading?"
+QUERY 6: "As of 2026-05-15, what was Linda's latest A1C reading?"
   Ground Truth: 7.1 (as of session 18). Originally 8.2 at diagnosis
     (session 4). Target is under 7. The meal plans Maya and Rachel
     put together are working — Linda is cooking from them regularly.
@@ -1309,7 +1309,7 @@ QUERY 6: "As of 2026-04-08, what was Linda's latest A1C reading?"
   Recall Difficulty: Medium (specific number, must return 7.1 not 8.2.
     Tests whether system tracks numerical progression.)
 
-QUERY 7: "As of 2026-04-08, had Maya mentioned any content creation plans?"
+QUERY 7: "As of 2026-05-15, had Maya mentioned any content creation plans?"
   Ground Truth: Yes — Maya briefly mentioned wanting to do a YouTube
     dev diary video about building the recipe app. She said "maybe
     later" — it's an idea, not a commitment. The story angle would be

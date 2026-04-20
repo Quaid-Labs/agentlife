@@ -8119,6 +8119,7 @@ def test_canonical_eval_query_count_is_268():
 
 
 def test_historical_state_queries_include_dates():
+    import ast
     import importlib.util
     import re
     from pathlib import Path
@@ -8129,6 +8130,18 @@ def test_historical_state_queries_include_dates():
     dataset = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(dataset)
 
+    densify_path = dataset_path.resolve().parent / "densify.py"
+    densify_tree = ast.parse(densify_path.read_text(encoding="utf-8"))
+    arc_session_dates = None
+    for node in densify_tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id == "ARC_SESSION_DATES"
+            for target in node.targets
+        ):
+            arc_session_dates = ast.literal_eval(node.value)
+            break
+    assert arc_session_dates == dataset.SESSION_DATES
+
     assets_dir = dataset_path.resolve().parents[1] / "data" / "sessions"
     queries = dataset.get_all_eval_queries(dataset.load_all_reviews(assets_dir))
     by_key = {
@@ -8138,9 +8151,16 @@ def test_historical_state_queries_include_dates():
 
     assert by_key[(9, 2)].startswith("As of 2026-03-15,")
     assert by_key[(10, 4)].startswith("As of 2026-03-18,")
+    assert by_key[(14, 1)].startswith("As of 2026-04-28,")
+    assert by_key[(16, 1)].startswith("As of 2026-05-08,")
+    assert by_key[(18, 5)].startswith("As of 2026-05-15,")
 
     for review in dataset.load_all_reviews(assets_dir):
         expected_date = dataset.SESSION_DATES[review.session_num]
+        text = review.filepath.read_text(encoding="utf-8")
+        source_timestamp = re.search(r"^  Timestamp: (\d{4}-\d{2}-\d{2})", text, re.MULTILINE)
+        assert source_timestamp is not None
+        assert expected_date == source_timestamp.group(1)
         timestamp_match = re.match(r"(\d{4}-\d{2}-\d{2})", review.timestamp)
         assert timestamp_match is not None
         assert expected_date == timestamp_match.group(1)
@@ -8148,6 +8168,10 @@ def test_historical_state_queries_include_dates():
             match = re.match(r"As of (\d{4}-\d{2}-\d{2}),", query.question)
             if match:
                 assert match.group(1) == expected_date
+
+        for parent in re.findall(r"\b\d+\s+(?:day|days|week|weeks) after session (\d+)", text, re.IGNORECASE):
+            parent_num = int(parent)
+            assert expected_date > dataset.SESSION_DATES[parent_num]
 
 
 def test_statement_context_grounding_query_set_is_opt_in():

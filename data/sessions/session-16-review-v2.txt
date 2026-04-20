@@ -12,7 +12,7 @@ Goal: Bug bash — add rate limiter, write sharing tests, document known bugs
   Edamam API from session 12.
 Turn Count: 15
 Session Type: Code review, testing, bug documentation
-Timestamp: 2026-04-01 (~10 days after session 14, ~5 weeks in)
+Timestamp: 2026-05-08 (~10 days after session 14, ~10 weeks in)
 
 CORE LEARNING OBJECTIVES:
   - In-memory rate limiter added to protect API routes (src/middleware/rateLimiter.js)
@@ -82,7 +82,7 @@ SESSION METADATA:
   Command: /new
   Session: 16
   Track: 2
-  Timestamp: 2026-04-01 14:30:00 UTC
+  Timestamp: 2026-05-08 14:30:00 UTC
   Duration: ~7 minutes (14:30:00 to 14:37:15)
 
 ---
@@ -857,7 +857,7 @@ EVALUATION FRAMEWORK:
   Evidence Sessions: 1-16 (cumulative ground truth)
   Evaluation Scope: Project state, agent-retrieved knowledge, cross-refs
 
-QUERY 1: "As of 2026-04-01, what known bugs existed in the recipe app?"
+QUERY 1: "As of 2026-05-08, what known bugs existed in the recipe app?"
   Ground Truth: Two documented bugs as of session 16:
     1. N+1 query problem in the GraphQL ingredientList resolver — each
        recipe triggers a separate SQL query for its ingredients. For N
@@ -890,7 +890,7 @@ QUERY 2: "Which API has dietary label filtering for the recipe app?"
     not user-stated facts. Must distinguish agent-found Edamam from
     David-suggested FoodData.)
 
-QUERY 3: "As of 2026-04-01, what test suites existed for the recipe app?"
+QUERY 3: "As of 2026-05-08, what test suites existed for the recipe app?"
   Ground Truth: Two test files:
     1. recipe.test.js (from session 7) — CRUD operations, dietary
        filtering, safe-for-mom flag
@@ -905,7 +905,7 @@ QUERY 3: "As of 2026-04-01, what test suites existed for the recipe app?"
   Query Type: project_state
   Recall Difficulty: Medium (must recall both test files across sessions)
 
-QUERY 4: "As of 2026-04-01, was there rate limiting on the recipe app API?"
+QUERY 4: "As of 2026-05-08, was there rate limiting on the recipe app API?"
   Ground Truth: Yes. An in-memory rate limiter was added in session 16.
     It's applied to /api routes only (not health check or GraphQL).
     Configuration: 100 requests per 15-minute window per IP. Returns 429
@@ -918,7 +918,7 @@ QUERY 4: "As of 2026-04-01, was there rate limiting on the recipe app API?"
   Query Type: project_state
   Recall Difficulty: Easy (single session, clearly presented)
 
-QUERY 5: "As of 2026-04-01, what security improvements had been made
+QUERY 5: "As of 2026-05-08, what security improvements had been made
   to the recipe app in the bug bash session?"
   Ground Truth: Rate limiting was added (100 req/15min per IP on /api
     routes). Authorization gaps on updateRecipe and deleteRecipe were
@@ -935,7 +935,7 @@ QUERY 5: "As of 2026-04-01, what security improvements had been made
   Recall Difficulty: Medium (must distinguish between what was FIXED
     vs what was DOCUMENTED)
 
-QUERY 6: "As of 2026-04-01, what version was the recipe app at after the bug bash?"
+QUERY 6: "As of 2026-05-08, what version was the recipe app at after the bug bash?"
   Ground Truth: 0.5.1. Bumped from 0.5.0 in session 16 as a patch
     version for the bug bash work (rate limiter, sharing tests, bug
     documentation). No new features — this is a maintenance release.
