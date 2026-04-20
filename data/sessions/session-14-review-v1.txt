@@ -350,7 +350,7 @@ QUERY 1: "As of 2026-04-28, what company was listed on Maya's portfolio site?"
   Recall Difficulty: Hard (tests fact supersession across 3 sessions:
     created with TechFlow → flagged as stale → updated to Stripe)
 
-QUERY 2: "As of 2026-04-28, where did Maya work?"
+QUERY 2: "As of 2026-04-28, what company was Maya transitioning to for her new role?"
   Ground Truth: Stripe. She accepted a senior PM role on the developer
     tools platform (session 13). Her portfolio describes it as
     "payments platform team" — a deliberate branding choice. Started

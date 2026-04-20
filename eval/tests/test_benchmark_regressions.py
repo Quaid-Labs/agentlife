@@ -8180,16 +8180,19 @@ def test_historical_state_queries_include_dates():
 
     assets_dir = dataset_path.resolve().parents[1] / "data" / "sessions"
     queries = dataset.get_all_eval_queries(dataset.load_all_reviews(assets_dir))
-    by_key = {
-        (row["source_session"], row["query_num"]): row["question"]
-        for row in queries
-    }
+    by_key = {(row["source_session"], row["query_num"]): row for row in queries}
 
-    assert by_key[(9, 2)].startswith("As of 2026-03-15,")
-    assert by_key[(10, 4)].startswith("As of 2026-03-18,")
-    assert by_key[(14, 1)].startswith("As of 2026-04-28,")
-    assert by_key[(16, 1)].startswith("As of 2026-05-08,")
-    assert by_key[(18, 5)].startswith("As of 2026-05-15,")
+    assert by_key[(9, 2)]["question"].startswith("As of 2026-03-15,")
+    assert by_key[(10, 4)]["question"].startswith("As of 2026-03-18,")
+    assert by_key[(14, 1)]["question"].startswith("As of 2026-04-28,")
+    assert by_key[(16, 1)]["question"].startswith("As of 2026-05-08,")
+    assert by_key[(18, 5)]["question"].startswith("As of 2026-05-15,")
+    assert by_key[(14, 2)]["question"] == (
+        "As of 2026-04-28, what company was Maya transitioning to for her new role?"
+    )
+    assert "Stripe" in by_key[(14, 2)]["ground_truth"]
+    assert "graphql.test.js" in by_key[(16, 3)]["ground_truth"]
+    assert 12 in by_key[(16, 3)]["evidence_sessions"]
 
     by_track = {}
     for review in dataset.load_all_reviews(assets_dir):

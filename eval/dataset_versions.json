@@ -1,5 +1,5 @@
 {
-  "latest": "canonical-20260421c",
+  "latest": "canonical-20260421d",
   "versions": {
     "canonical-20260313": {
       "expected_queries": 268
@@ -14,6 +14,9 @@
       "expected_queries": 268
     },
     "canonical-20260421c": {
+      "expected_queries": 268
+    },
+    "canonical-20260421d": {
       "expected_queries": 268
     }
   }

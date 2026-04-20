@@ -891,15 +891,19 @@ QUERY 2: "Which API has dietary label filtering for the recipe app?"
     David-suggested FoodData.)
 
 QUERY 3: "As of 2026-05-08, what test suites existed for the recipe app?"
-  Ground Truth: Two test files:
+  Ground Truth: Three test files:
     1. recipe.test.js (from session 7) — CRUD operations, dietary
        filtering, safe-for-mom flag
-    2. sharing.test.js (from session 16) — share code generation,
+    2. graphql.test.js (from session 12) — GraphQL queries, mutations,
+       field resolvers, dietary filtering, share-code lookup, and N+1
+       bug documentation.
+    3. sharing.test.js (from session 16) — share code generation,
        idempotency, retrieval by code, edge cases (cascade delete,
        unique constraint, batch sharing). 14 tests, 236 lines.
-  Evidence Sessions: 7, 16
+  Evidence Sessions: 7, 12, 16
   Supporting Evidence:
     - Session 7: First test suite created
+    - Session 12: GraphQL resolver test suite created
     - Session 16, Turn 2: Agent identifies gap in sharing coverage
     - Session 16, Turn 8: Complete sharing.test.js written
   Query Type: project_state
