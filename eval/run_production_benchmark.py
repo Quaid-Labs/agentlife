@@ -204,8 +204,11 @@ _RECALL_TOOL_DESCRIPTION = (
     "Add stores=['graph'] only for relationship, family, causal, or other explicit multi-hop queries. "
     "For codebase, architecture, schema, tests, stack, API, or source-file questions, "
     "set stores=['docs'] and set project when known. "
-    "For historical/as-of questions, run a targeted follow-up with concrete date_from/date_to bounds; "
-    "for project history, use stores=['docs'] with the project and the same date bounds. "
+    "For historical/as-of, before/after, back-in-month, last-week, or 'two things ago' questions, "
+    "translate the time anchor into concrete date bounds when possible and include date_from/date_to "
+    "or as_of/before/after on recall calls; do not rely on undated recall for historical-state answers. "
+    "For project history, use stores=['docs'] with the project and include the same date bounds so "
+    "dated PROJECT.log evidence is searched. "
     "Use stores=['vector','docs'] when you need both memory and docs in one pass, and only add graph when the question is truly relational. "
     "Set project when scoping docs to a known project like recipe-app, portfolio-site, or quaid. "
     "Use concrete entity names and project names, not vague roles."
@@ -7898,6 +7901,23 @@ def _analyze_tool_call_details(tool_call_details: List[dict]) -> Dict[str, Any]:
     }
 
 
+def _recall_date_bounds_from_tool_input(tool_input: dict) -> Tuple[Optional[str], Optional[str], Dict[str, str]]:
+    """Normalize recall date aliases for execution and telemetry."""
+    aliases = {
+        key: str(tool_input.get(key))
+        for key in ("after", "since", "before", "until", "as_of")
+        if tool_input.get(key)
+    }
+    date_from = tool_input.get("date_from") or tool_input.get("after") or tool_input.get("since")
+    date_to = (
+        tool_input.get("date_to")
+        or tool_input.get("before")
+        or tool_input.get("until")
+        or tool_input.get("as_of")
+    )
+    return date_from, date_to, aliases
+
+
 def _build_tool_result_telemetry(result_text: Any) -> Dict[str, Any]:
     """Build compact, stable telemetry for a tool result payload.
 
@@ -8391,13 +8411,17 @@ def _tool_use_loop(
                         (recall_meta or {}).get("planned_project")
                         or (planner.get("planned_project") if isinstance(planner, dict) else None)
                     )
+                    recall_date_from, recall_date_to, recall_date_aliases = (
+                        _recall_date_bounds_from_tool_input(tool_input)
+                    )
                     usage_total["tool_call_details"].append({
                         "tool": tool_name,
                         "query": tool_input.get("query", ""),
                         "query_preview_30": str(tool_input.get("query", ""))[:30],
                         "project": tool_input.get("project"),
-                        "date_from": tool_input.get("date_from"),
-                        "date_to": tool_input.get("date_to"),
+                        "date_from": recall_date_from,
+                        "date_to": recall_date_to,
+                        "date_aliases": recall_date_aliases,
                         "domains": tool_input.get("domains"),
                         "domain_filter": tool_input.get("domain_filter"),
                         "domain_boost": tool_input.get("domain_boost"),
@@ -8730,13 +8754,17 @@ def _tool_use_loop_openai_compatible(
                     (recall_meta or {}).get("planned_project")
                     or (planner.get("planned_project") if isinstance(planner, dict) else None)
                 )
+                recall_date_from, recall_date_to, recall_date_aliases = (
+                    _recall_date_bounds_from_tool_input(tool_input)
+                )
                 usage_total["tool_call_details"].append({
                     "tool": tool_name,
                     "query": tool_input.get("query", ""),
                     "query_preview_30": str(tool_input.get("query", ""))[:30],
                     "project": tool_input.get("project"),
-                    "date_from": tool_input.get("date_from"),
-                    "date_to": tool_input.get("date_to"),
+                    "date_from": recall_date_from,
+                    "date_to": recall_date_to,
+                    "date_aliases": recall_date_aliases,
                     "domains": tool_input.get("domains"),
                     "domain_filter": tool_input.get("domain_filter"),
                     "domain_boost": tool_input.get("domain_boost"),
@@ -8790,17 +8818,7 @@ def _execute_tool(
     query = tool_input.get("query", "")
 
     if tool_name in ("recall", "memory_recall"):
-        date_from = (
-            tool_input.get("date_from")
-            or tool_input.get("after")
-            or tool_input.get("since")
-        )
-        model_date_to = (
-            tool_input.get("date_to")
-            or tool_input.get("before")
-            or tool_input.get("until")
-            or tool_input.get("as_of")
-        )
+        date_from, model_date_to, _date_aliases = _recall_date_bounds_from_tool_input(tool_input)
         return _tool_memory_recall(
             query, workspace, env,
             date_from=date_from, date_to=model_date_to,
@@ -8813,11 +8831,13 @@ def _execute_tool(
         )
     elif tool_name == "search_project_docs":
         project = tool_input.get("project")
+        date_from, model_date_to, _date_aliases = _recall_date_bounds_from_tool_input(tool_input)
         return _tool_memory_recall(
             query,
             workspace,
             env,
-            date_to=date_to,
+            date_from=date_from,
+            date_to=model_date_to or date_to,
             max_session=max_session,
             stores=["docs"],
             project=project,

@@ -4998,6 +4998,8 @@ def test_recall_tool_description_prefers_vector_default_and_explicit_graph():
     assert "vector + graph" not in desc
     assert "historical/as-of" in desc
     assert "date_from/date_to" in desc
+    assert "do not rely on undated recall" in desc
+    assert "dated PROJECT.log evidence" in desc
 
 
 def test_execute_recall_tool_maps_date_aliases(tmp_path, monkeypatch):
@@ -5029,6 +5031,21 @@ def test_execute_recall_tool_maps_date_aliases(tmp_path, monkeypatch):
     assert captured["date_to"] == "2026-03-10"
     assert captured["stores"] == ["docs"]
     assert captured["project"] == "quaid"
+
+
+def test_recall_date_bounds_normalizes_aliases_for_telemetry():
+    date_from, date_to, aliases = rpb._recall_date_bounds_from_tool_input({
+        "query": "what changed after March 1 as of March 10?",
+        "after": "2026-03-01",
+        "as_of": "2026-03-10",
+    })
+
+    assert date_from == "2026-03-01"
+    assert date_to == "2026-03-10"
+    assert aliases == {
+        "after": "2026-03-01",
+        "as_of": "2026-03-10",
+    }
 
 
 def test_call_anthropic_cached_retries_http_520(monkeypatch):
