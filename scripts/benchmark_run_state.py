@@ -552,6 +552,7 @@ def rolling_status(run: Path) -> Optional[Dict[str, Any]]:
     cursor = last.get("new_cursor_offset") if isinstance(last.get("new_cursor_offset"), int) else None
     total_lines = None
     session_id = str(last.get("session_id") or "").strip()
+    rolling_state = None
     if session_id:
         cursor_candidates = [
             run / "instances" / "benchrunner" / "data" / "session-cursors" / f"{session_id}.json",
@@ -573,6 +574,30 @@ def rolling_status(run: Path) -> Optional[Dict[str, Any]]:
             transcript_path = cursor_meta.get("transcript_path")
             if transcript_path:
                 total_lines = _safe_count_lines(Path(str(transcript_path)))
+        rolling_state_candidates = [
+            run / "instances" / "benchrunner" / "data" / "rolling-extraction" / f"{session_id}.json",
+            run / "benchrunner" / "data" / "rolling-extraction" / f"{session_id}.json",
+            run / "data" / "rolling-extraction" / f"{session_id}.json",
+        ]
+        for sp in rolling_state_candidates:
+            if not sp.exists():
+                continue
+            try:
+                rolling_state = json.loads(sp.read_text())
+                break
+            except Exception:
+                rolling_state = None
+        if rolling_state:
+            if cursor is None:
+                for key in ("processed_line_offset", "buffered_line_offset"):
+                    value = rolling_state.get(key)
+                    if isinstance(value, int):
+                        cursor = value
+                        break
+            if total_lines is None:
+                transcript_path = rolling_state.get("transcript_path")
+                if transcript_path:
+                    total_lines = _safe_count_lines(Path(str(transcript_path)))
     avg_wall = None
     walls = [float(r.get("wall_seconds") or 0.0) for r in stages if r.get("wall_seconds") is not None]
     if walls:

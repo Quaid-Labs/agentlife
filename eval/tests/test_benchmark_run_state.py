@@ -116,6 +116,65 @@ def test_build_run_detail_matches_status_report_for_active_rolling_run_instances
     assert detail["active_pid"] == 54321
 
 
+def test_build_run_detail_uses_rolling_state_when_cursor_file_is_source_keyed(tmp_path, monkeypatch):
+    root = tmp_path
+    run_name = "quaid-l-r996-20260325-000000"
+    run_dir = root / "runs" / run_name
+    (run_dir / "instances" / "benchrunner" / "logs" / "daemon").mkdir(parents=True)
+    (run_dir / "data" / "rolling-extraction").mkdir(parents=True)
+    (run_dir / "data" / "session-cursors").mkdir(parents=True)
+
+    transcript = run_dir / "obd-session.jsonl"
+    _write_lines(transcript, 150)
+
+    # The live rolling daemon can key the cursor by source hash while metrics use
+    # the logical OBD session id. The dashboard should still derive total lines.
+    (run_dir / "data" / "session-cursors" / "source-abc123.json").write_text(
+        json.dumps({"line_offset": 80, "transcript_path": str(transcript)}),
+        encoding="utf-8",
+    )
+    (run_dir / "data" / "rolling-extraction" / "obd-compaction-0001.json").write_text(
+        json.dumps(
+            {
+                "session_id": "obd-compaction-0001",
+                "transcript_path": str(transcript),
+                "processed_line_offset": 80,
+                "buffered_line_offset": 80,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "instances" / "benchrunner" / "logs" / "daemon" / "rolling-extraction.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "rolling_stage",
+                "session_id": "obd-compaction-0001",
+                "rolling_batches": 5,
+                "new_cursor_offset": 80,
+                "staged_fact_count": 31,
+                "wall_seconds": 21.0,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (root / "runs" / f"{run_name}.launch.log").write_text("ingest schedule=rolling-obd\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        brs,
+        "detect_active_processes",
+        lambda _root, _dirs: {run_name: {"pid": 67890, "cmd": f"python --results-dir runs/{run_name}"}},
+    )
+
+    report = brs.build_status_report(root)
+    detail = brs.build_run_detail(root, run_name)
+
+    expected = "chunk 5 | 80/150 | facts 31"
+    assert report["runs"][0]["current_active_item"] == expected
+    assert detail["current_active_item"] == expected
+    assert detail["phase"] == expected
+
+
 def test_run_progress_ignores_rolling_flush_for_per_day_runs(tmp_path):
     root = tmp_path
     run_name = "quaid-s-r997-20260325-000000"
