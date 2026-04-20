@@ -2174,21 +2174,12 @@ def _apply_eval_query_num_filter(
     if not requested:
         raise RuntimeError("BENCHMARK_QUERY_NUMS was set but no query numbers were provided")
 
-    by_query_num: Dict[int, int] = {}
-    for idx, query in enumerate(queries):
-        try:
-            query_num = int(query.get("query_num") or idx + 1)
-        except Exception:
-            query_num = idx + 1
-        if query_num in by_query_num:
-            raise RuntimeError(f"Eval query number {query_num} is duplicated; cannot use BENCHMARK_QUERY_NUMS safely")
-        by_query_num[query_num] = idx
-
     selected_indices: Set[int] = set()
     for query_num in requested:
-        if query_num not in by_query_num:
+        idx = query_num - 1
+        if idx < 0 or idx >= len(queries):
             raise RuntimeError(f"BENCHMARK_QUERY_NUMS selector {query_num} did not match any eval query")
-        selected_indices.add(by_query_num[query_num])
+        selected_indices.add(idx)
 
     indices = [idx for idx in range(len(queries)) if idx in selected_indices]
     selected = [queries[i] for i in indices]
@@ -2206,7 +2197,7 @@ def _apply_eval_query_num_filter(
         "selected": len(selected),
         "selected_indices_1based": [i + 1 for i in indices],
         "requested_query_nums": requested,
-        "selected_query_nums": [int(queries[i].get("query_num") or i + 1) for i in indices],
+        "selected_query_nums": [i + 1 for i in indices],
         "by_type": dict(sorted(by_type.items())),
         "by_difficulty": dict(sorted(by_difficulty.items())),
     }

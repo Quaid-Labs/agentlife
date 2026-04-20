@@ -7997,7 +7997,7 @@ class TestEvalQueryProfiles:
             {"question": "q11", "query_type": "project_state", "recall_difficulty": "Medium", "query_num": 11},
             {"question": "q42", "query_type": "factual_recall", "recall_difficulty": "Easy", "query_num": 42},
         ]
-        monkeypatch.setenv("BENCHMARK_QUERY_NUMS", "42,7")
+        monkeypatch.setenv("BENCHMARK_QUERY_NUMS", "3,1")
 
         selected, meta = rpb._apply_eval_query_profile(queries)
 
@@ -8005,8 +8005,8 @@ class TestEvalQueryProfiles:
         assert meta["profile"] == "query-num-list"
         assert meta["requested"] == 3
         assert meta["selected"] == 2
-        assert meta["requested_query_nums"] == [42, 7]
-        assert meta["selected_query_nums"] == [7, 42]
+        assert meta["requested_query_nums"] == [3, 1]
+        assert meta["selected_query_nums"] == [1, 3]
         assert meta["by_type"] == {"factual_recall": 1, "temporal_current": 1}
 
     def test_apply_eval_query_profile_rejects_combined_query_selectors(self, monkeypatch):
