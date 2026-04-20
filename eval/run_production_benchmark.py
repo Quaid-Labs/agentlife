@@ -899,6 +899,52 @@ def _session_number_from_runtime_id(session_id: Any, workspace: Optional[Path] =
         return max(matches)
     return None
 
+
+_DATE_OR_MONTH_RE = (
+    r"\d{4}-\d{2}-\d{2}|"
+    r"jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+    r"jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|"
+    r"nov(?:ember)?|dec(?:ember)?"
+)
+
+
+_EXPLICIT_EVAL_TIME_ANCHOR_RE = re.compile(
+    r"\b("
+    r"as\s+of|"
+    rf"by\s+(?:{_DATE_OR_MONTH_RE})|"
+    rf"on\s+(?:{_DATE_OR_MONTH_RE})|"
+    r"in\s+session\s+\d+|"
+    r"session\s+\d+|"
+    r"at\s+(?:that|the)\s+time|"
+    r"at\s+the\s+end\s+of\s+session\s+\d+|"
+    r"before\s+the\s+bug\s+bash|"
+    r"after\s+the\s+bug\s+bash|"
+    r"during\s+the\s+bug\s+bash|"
+    r"bug\s+bash\s+session"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _query_has_explicit_eval_time_anchor(query: dict) -> bool:
+    """Return True when the question itself asks for a historical/as-of answer."""
+    question = str((query or {}).get("question") or "")
+    return bool(_EXPLICIT_EVAL_TIME_ANCHOR_RE.search(question))
+
+
+def _eval_time_cutoff_for_query(query: dict) -> tuple[Optional[str], Optional[int]]:
+    """Apply source-session cutoffs only for explicitly time-anchored eval questions."""
+    if not _query_has_explicit_eval_time_anchor(query):
+        return None, None
+    try:
+        source_session = int((query or {}).get("source_session") or 0)
+    except Exception:
+        return None, None
+    if source_session <= 0:
+        return None, None
+    return SESSION_DATES.get(source_session, "2026-05-01"), source_session
+
+
 _DOMAIN_ALIASES = {
     "projects": "project",
     "financial": "finance",
@@ -6981,7 +7027,7 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
         ground_truth = query["ground_truth"]
         query_type = query.get("query_type", "unknown")
         source_session = query.get("source_session", 20)
-        session_date = SESSION_DATES.get(source_session, "2026-05-01")
+        eval_date_to, eval_max_session = _eval_time_cutoff_for_query(query)
         t0 = time.time()
         prediction, tool_calls, tool_results_log, recall_texts, q_usage = _tool_use_loop(
             question=question,
@@ -6990,8 +7036,8 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             api_key=api_key,
             env=env,
             model=eval_model,
-            date_to=session_date,
-            max_session=source_session,
+            date_to=eval_date_to,
+            max_session=eval_max_session,
             context_inject=context_inject,
             preinject_planner_profile=preinject_planner_profile,
         )
@@ -7004,6 +7050,12 @@ def run_eval(workspace: Path, api_key: str, max_sessions: Optional[int] = None,
             "preinject": q_usage.get("preinject") or {},
             "tool_calls": q_usage.get("tool_call_details", []) or [],
             "tool_analysis": tool_analysis,
+            "eval_time_cutoff": {
+                "applied": eval_max_session is not None,
+                "date_to": eval_date_to,
+                "max_session": eval_max_session,
+                "source_session": source_session,
+            },
         }
         audit_response = ""
         if query_type == "non_question":
@@ -8348,7 +8400,7 @@ def _tool_use_loop(
                     tool_call_names.append(tool_name)
                     t0 = time.time()
 
-                    # Execute tool (inject session filter for temporal filtering)
+                    # Only explicit historical questions get a cutoff.
                     result_text, recall_meta = _execute_tool(
                         tool_name, tool_input, workspace, env,
                         max_session=max_session, date_to=date_to,
@@ -8754,9 +8806,9 @@ def _execute_tool(
 ) -> Tuple[str, Optional[dict]]:
     """Execute a tool and return the result text.
 
-    max_session: source session number — filters recall to facts from this
-    session or earlier to prevent future-state leakage.
-    date_to: session date string for project docs temporal note.
+    max_session: explicit historical cutoff session. Only set when the
+    question text itself asks for an as-of/date/session answer.
+    date_to: historical cutoff date for time-anchored recall/docs notes.
     """
     query = tool_input.get("query", "")
 
@@ -8981,9 +9033,9 @@ def _tool_memory_recall(
     """Execute memory_recall via subprocess.
 
     max_session: if set, post-filter results to only include facts from
-    session-1 through session-{max_session}. This prevents future-state
-    leakage in the benchmark (facts have created_at from ingestion time,
-    not session time, so date_to doesn't work).
+    session-1 through session-{max_session}. This is only valid for
+    questions that explicitly ask for a historical/as-of answer; ordinary
+    AgentLife eval asks at end-of-run and must see current-state evidence.
     """
     # Request extra results when filtering so we still get enough after post-filter
     limit = 20 if max_session else 10

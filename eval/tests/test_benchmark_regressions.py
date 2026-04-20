@@ -7891,6 +7891,99 @@ def test_run_eval_syncs_instance_identity_before_building_context(tmp_path, monk
     assert sync_calls == [ws]
 
 
+def test_run_eval_time_cutoff_requires_question_anchor(tmp_path, monkeypatch):
+    ws = tmp_path / "ws"
+    (ws / "config").mkdir(parents=True, exist_ok=True)
+    (ws / "logs").mkdir(parents=True, exist_ok=True)
+    (ws / "config" / "memory.json").write_text(json.dumps({"models": {}}))
+
+    questions = [
+        {
+            "question": "What test suites exist for the recipe app?",
+            "ground_truth": "Current final test suites.",
+            "query_type": "project_state",
+            "source_session": 10,
+        },
+        {
+            "question": (
+                "As of session 10, what test suites existed for the recipe app?"
+            ),
+            "ground_truth": "Session 10 historical test suites.",
+            "query_type": "project_state",
+            "source_session": 10,
+        },
+    ]
+    loop_calls = []
+
+    monkeypatch.setattr(rpb, "SESSION_DATES", {10: "2026-03-19"})
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+    monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+    monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1)])
+    monkeypatch.setattr(rpb, "get_all_eval_queries", lambda _reviews: list(questions))
+    monkeypatch.setattr(rpb, "_eval_core_context_preflight", lambda *a, **k: None)
+    monkeypatch.setattr(rpb, "_eval_embedding_provider_preflight", lambda *a, **k: None)
+    monkeypatch.setattr(
+        rpb,
+        "_sync_instance_identity_to_workspace_root",
+        lambda _ws: None,
+    )
+    monkeypatch.setattr(rpb, "_build_eval_context", lambda *a, **k: "ctx")
+    monkeypatch.setattr(rpb, "_make_env", lambda _ws: {})
+    monkeypatch.setattr(rpb, "_resolve_eval_parallel_workers", lambda: 1)
+
+    def _tool_use_loop(**kwargs):
+        loop_calls.append({
+            "question": kwargs["question"],
+            "date_to": kwargs["date_to"],
+            "max_session": kwargs["max_session"],
+        })
+        return (
+            "answer",
+            [],
+            [],
+            [],
+            {
+                "input_tokens": 10,
+                "output_tokens": 5,
+                "api_calls": 1,
+                "tool_call_details": [],
+            },
+        )
+
+    monkeypatch.setattr(rpb, "_tool_use_loop", _tool_use_loop)
+    monkeypatch.setattr(rpb, "_judge", lambda *a, **k: ("CORRECT", 1.0))
+    monkeypatch.setattr(rpb, "_judge_non_question", lambda *a, **k: ("CORRECT", 1.0))
+    monkeypatch.setenv("BENCHMARK_REQUIRE_QUERY_COUNT", "2")
+    monkeypatch.setenv("BENCHMARK_PARALLEL", "1")
+
+    results = rpb.run_eval(
+        ws,
+        api_key="dummy",
+        max_sessions=1,
+        eval_model="claude-haiku-4-5-20251001",
+        context_inject=False,
+        judge_model="gpt-4o-mini",
+    )
+
+    assert len(results) == 2
+    assert loop_calls == [
+        {
+            "question": "What test suites exist for the recipe app?",
+            "date_to": None,
+            "max_session": None,
+        },
+        {
+            "question": (
+                "As of session 10, what test suites existed for the recipe app?"
+            ),
+            "date_to": "2026-03-19",
+            "max_session": 10,
+        },
+    ]
+    assert results[0]["provenance"]["eval_time_cutoff"]["applied"] is False
+    assert results[1]["provenance"]["eval_time_cutoff"]["applied"] is True
+
+
 def test_claude_code_eval_still_requires_nonzero_claude_calls(tmp_path, monkeypatch):
     ws = tmp_path / "ws"
     (ws / "config").mkdir(parents=True, exist_ok=True)
