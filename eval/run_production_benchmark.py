@@ -204,6 +204,8 @@ _RECALL_TOOL_DESCRIPTION = (
     "Add stores=['graph'] only for relationship, family, causal, or other explicit multi-hop queries. "
     "For codebase, architecture, schema, tests, stack, API, or source-file questions, "
     "set stores=['docs'] and set project when known. "
+    "For historical/as-of questions, run a targeted follow-up with concrete date_from/date_to bounds; "
+    "for project history, use stores=['docs'] with the project and the same date bounds. "
     "Use stores=['vector','docs'] when you need both memory and docs in one pass, and only add graph when the question is truly relational. "
     "Set project when scoping docs to a known project like recipe-app, portfolio-site, or quaid. "
     "Use concrete entity names and project names, not vague roles."
@@ -8088,6 +8090,18 @@ def _tool_use_loop(
                         "type": "string",
                         "description": "Only return memories up to this date (YYYY-MM-DD)",
                     },
+                    "after": {
+                        "type": "string",
+                        "description": "Alias for date_from (YYYY-MM-DD)",
+                    },
+                    "before": {
+                        "type": "string",
+                        "description": "Alias for date_to (YYYY-MM-DD)",
+                    },
+                    "as_of": {
+                        "type": "string",
+                        "description": "Alias for date_to for historical-state questions (YYYY-MM-DD)",
+                    },
                 },
                 "required": ["query"],
             },
@@ -8496,6 +8510,18 @@ def _tool_use_loop_openai_compatible(
                             "type": "string",
                             "description": "Only return memories up to this date (YYYY-MM-DD)",
                         },
+                        "after": {
+                            "type": "string",
+                            "description": "Alias for date_from (YYYY-MM-DD)",
+                        },
+                        "before": {
+                            "type": "string",
+                            "description": "Alias for date_to (YYYY-MM-DD)",
+                        },
+                        "as_of": {
+                            "type": "string",
+                            "description": "Alias for date_to for historical-state questions (YYYY-MM-DD)",
+                        },
                     },
                     "required": ["query"],
                 },
@@ -8764,8 +8790,17 @@ def _execute_tool(
     query = tool_input.get("query", "")
 
     if tool_name in ("recall", "memory_recall"):
-        date_from = tool_input.get("date_from")
-        model_date_to = tool_input.get("date_to")
+        date_from = (
+            tool_input.get("date_from")
+            or tool_input.get("after")
+            or tool_input.get("since")
+        )
+        model_date_to = (
+            tool_input.get("date_to")
+            or tool_input.get("before")
+            or tool_input.get("until")
+            or tool_input.get("as_of")
+        )
         return _tool_memory_recall(
             query, workspace, env,
             date_from=date_from, date_to=model_date_to,
@@ -8877,6 +8912,7 @@ def _render_recall_results(results: list[dict]) -> str:
             continue
         rid = str(r.get("id") or "").strip()
         created = str(r.get("created_at") or "").strip()
+        source_date = str(r.get("source_date") or "").strip()
         valid_from = str(r.get("valid_from") or "").strip()
         valid_until = str(r.get("valid_until") or "").strip()
         suffix_parts: List[str] = []
@@ -8884,6 +8920,8 @@ def _render_recall_results(results: list[dict]) -> str:
             suffix_parts.append(f"ID:{rid}")
         if created:
             suffix_parts.append(f"T:{created}")
+        if source_date:
+            suffix_parts.append(f"source_date:{source_date}")
         if valid_from or valid_until:
             vf = (valid_from.split("T")[0] if "T" in valid_from else valid_from) or "?"
             vu = (valid_until.split("T")[0] if "T" in valid_until else valid_until) or "open"

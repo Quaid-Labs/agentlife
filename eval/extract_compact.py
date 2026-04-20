@@ -131,6 +131,17 @@ def _adjust_extraction_confidence(text: str, confidence: float) -> float:
     return 0.3
 
 
+def _date_to_created_at(date_str: str | None) -> str | None:
+    raw = str(date_str or "").strip()
+    if not raw:
+        return None
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
+        return f"{raw}T23:59:59"
+    if re.search(r"\b\d{4}-\d{2}-\d{2}\b", raw):
+        return raw
+    return None
+
+
 def _is_anthropic_oauth_token(token: str) -> bool:
     return str(token or "").strip().startswith("sk-ant-oat")
 
@@ -954,7 +965,7 @@ def main():
         domains = [str(d).strip().lower() for d in raw_domains if str(d).strip()]
         if not domains:
             domains = ["projects"] if project_name else ["personal"]
-        created_at = fact.get("created_at")
+        created_at = fact.get("created_at") or _date_to_created_at(args.date)
 
         store_result = store_fact(
             workspace, text, category, args.owner_id, conf_num,

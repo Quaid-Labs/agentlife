@@ -4996,6 +4996,39 @@ def test_recall_tool_description_prefers_vector_default_and_explicit_graph():
     assert "default memory recall uses vector only" in desc
     assert "stores=['graph']" in desc
     assert "vector + graph" not in desc
+    assert "historical/as-of" in desc
+    assert "date_from/date_to" in desc
+
+
+def test_execute_recall_tool_maps_date_aliases(tmp_path, monkeypatch):
+    captured = {}
+
+    def _fake_recall(query, workspace, env, **kwargs):
+        captured["query"] = query
+        captured.update(kwargs)
+        return "ok", {"mode": "deliberate"}
+
+    monkeypatch.setattr(rpb, "_tool_memory_recall", _fake_recall)
+
+    text, meta = rpb._execute_tool(
+        "recall",
+        {
+            "query": "what did we know before March 10?",
+            "after": "2026-03-01",
+            "as_of": "2026-03-10",
+            "stores": ["docs"],
+            "project": "quaid",
+        },
+        tmp_path,
+        {},
+    )
+
+    assert text == "ok"
+    assert meta == {"mode": "deliberate"}
+    assert captured["date_from"] == "2026-03-01"
+    assert captured["date_to"] == "2026-03-10"
+    assert captured["stores"] == ["docs"]
+    assert captured["project"] == "quaid"
 
 
 def test_call_anthropic_cached_retries_http_520(monkeypatch):
@@ -6795,6 +6828,12 @@ class TestMainIngestSchedule:
 def test_extract_compact_storeable_text_accepts_unsegmented_script():
     assert ec._is_storeable_extracted_fact_text("マヤはオースティンに住んでいる")
     assert not ec._is_storeable_extracted_fact_text("Maya Austin")
+
+
+def test_extract_compact_date_to_created_at_uses_session_date():
+    assert ec._date_to_created_at("2026-03-11") == "2026-03-11T23:59:59"
+    assert ec._date_to_created_at("day-runtime-2026-03-11") == "day-runtime-2026-03-11"
+    assert ec._date_to_created_at("") is None
 
 
 class TestBuildTranscript:
