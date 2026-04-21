@@ -4846,6 +4846,11 @@ def _register_benchmark_projects(workspace: Path) -> None:
                     f"Project registry create failed for {name}: {detail[:800]}"
                 )
             _run_project_registry_cmd(
+                base_cmd + ["link", name],
+                name=name,
+                action="link",
+            )
+            _run_project_registry_cmd(
                 base_cmd + [
                     "update",
                     name,
@@ -4857,6 +4862,7 @@ def _register_benchmark_projects(workspace: Path) -> None:
                 name=name,
                 action="update",
             )
+        else:
             _run_project_registry_cmd(
                 base_cmd + ["link", name],
                 name=name,

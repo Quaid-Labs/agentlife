@@ -227,18 +227,25 @@ def test_register_benchmark_projects_uses_product_project_registry(monkeypatch, 
 
     rpb._register_benchmark_projects(workspace)
 
-    assert len(calls) == 2
-    names = [call[0][3] for call in calls]
-    assert names == ["recipe-app", "portfolio-site"]
+    actions = [(call[0][2], call[0][3]) for call in calls]
+    assert actions == [
+        ("create", "recipe-app"),
+        ("link", "recipe-app"),
+        ("create", "portfolio-site"),
+        ("link", "portfolio-site"),
+    ]
     for cmd, kwargs in calls:
         assert cmd[:2] == [sys.executable, "project_registry_cli.py"]
-        assert cmd[1:3] == ["project_registry_cli.py", "create"]
-        assert "--description" in cmd
-        assert "--source-root" in cmd
-        source_root = Path(cmd[cmd.index("--source-root") + 1])
-        assert source_root.is_absolute()
-        assert "project-sources" in source_root.parts
-        assert "projects" not in source_root.relative_to(workspace).parts
+        if cmd[2] == "create":
+            assert cmd[1:3] == ["project_registry_cli.py", "create"]
+            assert "--description" in cmd
+            assert "--source-root" in cmd
+            source_root = Path(cmd[cmd.index("--source-root") + 1])
+            assert source_root.is_absolute()
+            assert "project-sources" in source_root.parts
+            assert "projects" not in source_root.relative_to(workspace).parts
+        else:
+            assert cmd[1:3] == ["project_registry_cli.py", "link"]
         assert kwargs["env"]["QUAID_HOME"] == str(workspace)
         assert kwargs["cwd"] == str(tmp_path)
         assert kwargs["timeout"] == 120
@@ -270,11 +277,11 @@ def test_register_benchmark_projects_updates_and_links_existing_projects(monkeyp
     actions = [(call[0][2], call[0][3]) for call in calls]
     assert actions == [
         ("create", "recipe-app"),
-        ("update", "recipe-app"),
         ("link", "recipe-app"),
+        ("update", "recipe-app"),
         ("create", "portfolio-site"),
-        ("update", "portfolio-site"),
         ("link", "portfolio-site"),
+        ("update", "portfolio-site"),
     ]
     for cmd, _kwargs in calls:
         if cmd[2] == "update":
