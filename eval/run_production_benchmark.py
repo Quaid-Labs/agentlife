@@ -1981,6 +1981,77 @@ def _append_recall_telemetry_event(workspace: Path, row: Dict[str, Any]) -> None
         pass
 
 
+_RECALL_FAILURE_SECRET_KEYS = (
+    "ANTHROPIC_API_KEY",
+    "BENCHMARK_ANTHROPIC_OAUTH_TOKEN",
+    "ANTHROPIC_AUTH_TOKEN",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "OPENAI_API_KEY",
+)
+
+
+def _safe_recall_failure_artifact_part(value: Any) -> str:
+    text = str(value or "")
+    text = re.sub(r"[^A-Za-z0-9_-]+", "_", text).strip("_")
+    return text or "unknown"
+
+
+def _scrub_recall_failure_text(text: str, extra_secret_values: Optional[List[str]] = None) -> str:
+    """Mask credentials before persisting subprocess failure output."""
+    out = str(text or "")
+    key_pattern = "|".join(re.escape(key) for key in _RECALL_FAILURE_SECRET_KEYS)
+    out = re.sub(
+        rf"(?i)\b({key_pattern})\b\s*=\s*([^\s'\";,]+)",
+        lambda m: f"{m.group(1)}=<redacted>",
+        out,
+    )
+    out = re.sub(
+        rf'(?i)"({key_pattern})"\s*:\s*"[^"]*"',
+        lambda m: f'"{m.group(1)}":"<redacted>"',
+        out,
+    )
+    out = re.sub(r"(?i)\bBearer\s+[A-Za-z0-9._~+/-]{8,}", "Bearer <redacted>", out)
+    out = re.sub(r"\bsk-[a-z]+-[A-Za-z0-9._-]+", "sk-<redacted>", out)
+    for key in _RECALL_FAILURE_SECRET_KEYS:
+        value = os.environ.get(key)
+        if value and len(value) >= 8:
+            out = out.replace(value, f"<redacted:{key}>")
+    for value in extra_secret_values or []:
+        if value and len(str(value)) >= 8:
+            out = out.replace(str(value), "<redacted:runtime-secret>")
+    return out
+
+
+def _write_recall_failure_artifact(
+    workspace: Path,
+    telemetry_base: Dict[str, Any],
+    *,
+    result: subprocess.CompletedProcess,
+    duration_ms: int,
+    redaction_values: Optional[List[str]] = None,
+) -> Optional[str]:
+    """Persist full recall subprocess stderr/stdout for fail-hard diagnosis."""
+    try:
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        call_id = _safe_recall_failure_artifact_part(telemetry_base.get("top_level_call_id") or "unknown")
+        role = _safe_recall_failure_artifact_part(telemetry_base.get("subprocess_role") or "primary")
+        path = workspace / "logs" / "recall-failures" / f"{ts}-{call_id}-{role}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            **telemetry_base,
+            "status": "error",
+            "duration_ms": duration_ms,
+            "returncode": int(result.returncode),
+            "stdout": _scrub_recall_failure_text(result.stdout or "", redaction_values),
+            "stderr": _scrub_recall_failure_text(result.stderr or "", redaction_values),
+        }
+        path.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+        return str(path)
+    except Exception as exc:
+        print(f"[recall-failure-artifact] write failed: {exc}", file=sys.stderr)
+        return None
+
+
 def _extract_planner_error_fields(detail: str) -> Dict[str, Any]:
     """Best-effort extraction of planner diagnostics from fail-hard stderr text."""
     text = str(detail or "")
@@ -9191,19 +9262,32 @@ def _tool_memory_recall(
         duration_ms = int((time.time() - started) * 1000)
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "").strip().replace("\n", " ")
+            redaction_values = [recall_env.get(key, "") for key in _RECALL_FAILURE_SECRET_KEYS]
+            safe_stdout = _scrub_recall_failure_text((result.stdout or "").strip(), redaction_values)
+            safe_stderr = _scrub_recall_failure_text((result.stderr or "").strip(), redaction_values)
+            safe_detail = _scrub_recall_failure_text(detail, redaction_values)
             planner_error_fields = _extract_planner_error_fields(detail)
+            failure_artifact = _write_recall_failure_artifact(
+                workspace,
+                telemetry_base,
+                result=result,
+                duration_ms=duration_ms,
+                redaction_values=redaction_values,
+            )
             _append_recall_telemetry_event(workspace, {
                 **telemetry_base,
                 "status": "error",
                 "duration_ms": duration_ms,
                 "returncode": int(result.returncode),
-                "stdout_excerpt": (result.stdout or "").strip()[:500],
-                "stderr_excerpt": (result.stderr or "").strip()[:500],
-                "detail": detail[:500],
+                "stdout_excerpt": safe_stdout[:500],
+                "stderr_excerpt": safe_stderr[:500],
+                "detail": safe_detail[:500],
+                "failure_artifact": failure_artifact,
                 **planner_error_fields,
             })
+            artifact_note = f" artifact={failure_artifact}" if failure_artifact else ""
             raise RuntimeError(
-                f"recall failed rc={result.returncode} detail={detail[:240]!r}"
+                f"recall failed rc={result.returncode}{artifact_note} detail={safe_detail[:240]!r}"
             )
         output = result.stdout.strip()
         if not output:

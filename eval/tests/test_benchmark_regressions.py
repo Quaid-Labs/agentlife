@@ -4659,6 +4659,7 @@ def test_tool_memory_recall_passes_planner_profile_for_fast_calls(tmp_path, monk
 def test_tool_memory_recall_raises_on_nonzero_exit(tmp_path, monkeypatch):
     workspace = tmp_path / "ws"
     workspace.mkdir()
+    full_stderr_tail = " full stderr sentinel " + ("x" * 1200) + " ROOT_CAUSE_AT_END"
 
     def _fake_run(_cmd, **_kwargs):
         return SimpleNamespace(
@@ -4667,6 +4668,7 @@ def test_tool_memory_recall_raises_on_nonzero_exit(tmp_path, monkeypatch):
                 "Error: Recall fanout planner failed while failHard is enabled: "
                 "planner boom (planner_timeout_ms=60000, planner_elapsed_ms=1723, "
                 "planner_profile=fast, query_shape=broad)"
+                + full_stderr_tail
             ),
             returncode=2,
         )
@@ -4682,6 +4684,73 @@ def test_tool_memory_recall_raises_on_nonzero_exit(tmp_path, monkeypatch):
     assert rows[-1]["planner_elapsed_ms"] == 1723
     assert rows[-1]["planner_profile"] == "fast"
     assert rows[-1]["planner_query_shape"] == "broad"
+    failure_artifact = Path(rows[-1]["failure_artifact"])
+    assert failure_artifact.exists()
+    artifact_payload = json.loads(failure_artifact.read_text())
+    assert artifact_payload["returncode"] == 2
+    assert "ROOT_CAUSE_AT_END" in artifact_payload["stderr"]
+
+
+def test_tool_memory_recall_failure_artifact_sanitizes_path_and_credentials(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    token = "secret-token-value-123456789"
+
+    def _fake_run(_cmd, **_kwargs):
+        return SimpleNamespace(
+            stdout='{"OPENAI_API_KEY":"sk-proj-stdout-secret"}',
+            stderr=(
+                f"ANTHROPIC_API_KEY={token}\n"
+                f"raw token echo {token}\n"
+                "Authorization: Bearer abc.def.ghi\n"
+                "provider key sk-ant-stderr-secret"
+            ),
+            returncode=2,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    with pytest.raises(RuntimeError, match="recall failed rc=2"):
+        rpb._tool_memory_recall(
+            "coffee",
+            workspace,
+            {"PATH": os.environ.get("PATH", ""), "ANTHROPIC_API_KEY": token},
+            top_level_call_id="../escape/path",
+            subprocess_role="../docs",
+        )
+
+    rows = [
+        json.loads(line)
+        for line in (workspace / "logs" / "recall-telemetry.jsonl").read_text().splitlines()
+        if line.strip()
+    ]
+    failure_artifact = Path(rows[-1]["failure_artifact"])
+    assert failure_artifact.parent == workspace / "logs" / "recall-failures"
+    assert "/" not in failure_artifact.name
+    artifact_payload = json.loads(failure_artifact.read_text())
+    rendered = json.dumps({"telemetry": rows[-1], "artifact": artifact_payload})
+    assert token not in rendered
+    assert "sk-proj-stdout-secret" not in rendered
+    assert "sk-ant-stderr-secret" not in rendered
+    assert "Bearer abc.def.ghi" not in rendered
+    assert "<redacted" in rendered
+
+
+def test_tool_memory_recall_artifact_write_failure_still_raises(tmp_path, monkeypatch, capsys):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    (workspace / "logs").write_text("not a directory")
+
+    def _fake_run(_cmd, **_kwargs):
+        return SimpleNamespace(stdout="", stderr="recall boom", returncode=2)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    with pytest.raises(RuntimeError, match="recall failed rc=2"):
+        rpb._tool_memory_recall("coffee", workspace, {"PATH": os.environ.get("PATH", "")})
+
+    captured = capsys.readouterr()
+    assert "[recall-failure-artifact] write failed:" in captured.err
 
 
 def test_tool_memory_recall_raises_on_timeout_and_writes_telemetry(tmp_path, monkeypatch):
