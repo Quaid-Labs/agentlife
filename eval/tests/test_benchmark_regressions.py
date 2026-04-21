@@ -4546,6 +4546,48 @@ def test_tool_memory_recall_parses_results_and_meta_payload(tmp_path, monkeypatc
     assert meta["harness_telemetry"]["status"] == "ok"
 
 
+def test_tool_memory_recall_rehydrates_oauth_auth_for_subprocess(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    captured: dict[str, object] = {}
+
+    def _fake_run(_cmd, **kwargs):
+        captured["env"] = dict(kwargs.get("env") or {})
+        return SimpleNamespace(
+            stdout=json.dumps({
+                "results": [{
+                    "text": "Quaid likes espresso coffee",
+                    "category": "fact",
+                    "similarity": 0.91,
+                    "id": "n1",
+                    "privacy": "shared",
+                    "owner_id": "maya",
+                }],
+                "meta": {"mode": "deliberate"},
+            }),
+            stderr="",
+            returncode=0,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    monkeypatch.setattr(rpb, "_BACKEND", "oauth")
+    monkeypatch.setattr(rpb, "_find_anthropic_credential", lambda: "sk-ant-oat01-test-token")
+
+    rpb._tool_memory_recall(
+        "coffee",
+        workspace,
+        {
+            "PATH": os.environ.get("PATH", ""),
+            "ANTHROPIC_API_KEY": "",
+            "BENCHMARK_ANTHROPIC_OAUTH_TOKEN": "",
+        },
+    )
+
+    assert captured["env"]["BENCHMARK_ANTHROPIC_OAUTH_TOKEN"] == "sk-ant-oat01-test-token"
+    assert captured["env"]["ANTHROPIC_API_KEY"] == "sk-ant-oat01-test-token"
+
+
 def test_tool_memory_recall_uses_longer_timeout_for_deliberate_calls(tmp_path, monkeypatch):
     workspace = tmp_path / "ws"
     workspace.mkdir()

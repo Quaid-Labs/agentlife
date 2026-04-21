@@ -9144,6 +9144,10 @@ def _tool_memory_recall(
     timeout_s = _recall_subprocess_timeout_seconds(fast=fast)
     try:
         recall_env = dict(env)
+        if _BACKEND == "oauth":
+            # Tool-call recall runs in a nested Quaid subprocess. Keep its
+            # planner LLM auth aligned with the credential used by eval itself.
+            recall_env = _ensure_nested_runtime_auth(recall_env)
         recall_env["QUAID_LLM_USAGE_PHASE"] = "eval"
         recall_env["QUAID_LLM_USAGE_SOURCE"] = "preinject_recall" if fast else "tool_recall"
         recall_env["QUAID_RECALL_TELEMETRY"] = str(
