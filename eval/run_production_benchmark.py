@@ -393,6 +393,14 @@ def _ensure_nested_runtime_auth(env: Dict[str, str]) -> Dict[str, str]:
     return out
 
 
+def _is_benchmark_runtime_env(env: Dict[str, str]) -> bool:
+    """Return whether env is the real benchmark Quaid runtime env."""
+    return bool(
+        str(env.get("QUAID_HOME", "") or "").strip()
+        or str(env.get("CLAWDBOT_WORKSPACE", "") or "").strip()
+    )
+
+
 _ANTHROPIC_OAUTH_IDENTITY_TEXT = (
     "You are Claude Code, Anthropic's official CLI for Claude."
 )
@@ -9144,7 +9152,7 @@ def _tool_memory_recall(
     timeout_s = _recall_subprocess_timeout_seconds(fast=fast)
     try:
         recall_env = dict(env)
-        if _BACKEND == "oauth":
+        if _BACKEND == "oauth" and _is_benchmark_runtime_env(recall_env):
             # Tool-call recall runs in a nested Quaid subprocess. Keep its
             # planner LLM auth aligned with the credential used by eval itself.
             recall_env = _ensure_nested_runtime_auth(recall_env)

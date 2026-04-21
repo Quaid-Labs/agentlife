@@ -4579,6 +4579,8 @@ def test_tool_memory_recall_rehydrates_oauth_auth_for_subprocess(tmp_path, monke
         workspace,
         {
             "PATH": os.environ.get("PATH", ""),
+            "QUAID_HOME": str(workspace),
+            "CLAWDBOT_WORKSPACE": str(workspace),
             "ANTHROPIC_API_KEY": "",
             "BENCHMARK_ANTHROPIC_OAUTH_TOKEN": "",
         },
