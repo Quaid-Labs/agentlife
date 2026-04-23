@@ -5944,6 +5944,7 @@ class TestSetupWorkspaceConfig:
     @pytest.fixture(autouse=True)
     def _stub_product_project_registration(self, monkeypatch):
         monkeypatch.setattr(rpb, "_register_benchmark_projects", lambda _workspace: None)
+        monkeypatch.setattr(rpb, "_ensure_project_docs_supervisor_running", lambda _workspace: None)
 
     def test_workspace_seeds_janitor_checkpoint_and_clears_deferred_notices(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
