@@ -2986,9 +2986,10 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
     (workspace / "TOOLS.md").write_text(root_tools.rstrip() + "\n", encoding="utf-8")
     print("  Core markdowns seeded")
 
-    # 4. Seed project docs. Keep these as project-creation scaffolds only;
-    # future state belongs in synced artifacts and runtime project-log updates.
+    # 4. Register projects before docs are visible. Docs workers scope through
+    # the product registry; seeding docs first can create unlinked/tombstone races.
     if project_docs_enabled:
+        _register_benchmark_projects(workspace)
         recipe_desc = (
             "Recipe app project workspace. Current facts, features, stack, "
             "and motivations should be learned from source artifacts and conversations."
@@ -3019,7 +3020,6 @@ def setup_workspace(workspace: Path, *, extraction_model: Optional[str] = None) 
         )
         _seed_quaid_project_docs(workspace)
         _seed_instance_identity_from_sources(workspace, prefer_project_templates=False)
-        _register_benchmark_projects(workspace)
         _ensure_project_docs_supervisor_running(workspace)
         print("  Project docs seeded")
     else:

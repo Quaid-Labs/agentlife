@@ -75,14 +75,33 @@ def test_base_project_md_scaffold_does_not_seed_future_project_facts():
 def test_project_docs_enabled_does_not_stub_support_docs(monkeypatch, tmp_path):
     """Ordinary benchmark apps should not get TOOLS.md/AGENTS.md placeholders."""
     workspace = tmp_path / "ws"
+    events = []
+
+    def _fake_register(seed_workspace: Path) -> None:
+        events.append("register")
+        assert not (seed_workspace / "projects" / "recipe-app" / "PROJECT.md").exists()
+        assert not (seed_workspace / "projects" / "portfolio-site" / "PROJECT.md").exists()
+
+    def _fake_seed_quaid(seed_workspace: Path) -> None:
+        events.append("seed_quaid")
+        assert events[0] == "register"
+
+    def _fake_seed_identity(seed_workspace: Path, **_kwargs) -> None:
+        events.append("seed_identity")
+        assert events[0] == "register"
+
+    def _fake_supervisor(seed_workspace: Path) -> None:
+        events.append("supervisor")
+
     monkeypatch.delenv("BENCHMARK_DISABLE_PROJECT_DOCS", raising=False)
-    monkeypatch.setattr(rpb, "_seed_quaid_project_docs", lambda *_a, **_k: None)
-    monkeypatch.setattr(rpb, "_seed_instance_identity_from_sources", lambda *_a, **_k: None)
-    monkeypatch.setattr(rpb, "_register_benchmark_projects", lambda *_a, **_k: None)
-    monkeypatch.setattr(rpb, "_ensure_project_docs_supervisor_running", lambda *_a, **_k: None)
+    monkeypatch.setattr(rpb, "_seed_quaid_project_docs", _fake_seed_quaid)
+    monkeypatch.setattr(rpb, "_seed_instance_identity_from_sources", _fake_seed_identity)
+    monkeypatch.setattr(rpb, "_register_benchmark_projects", _fake_register)
+    monkeypatch.setattr(rpb, "_ensure_project_docs_supervisor_running", _fake_supervisor)
 
     rpb.setup_workspace(workspace)
 
+    assert events == ["register", "seed_quaid", "seed_identity", "supervisor"]
     for project in ("recipe-app", "portfolio-site"):
         project_dir = workspace / "projects" / project
         assert (project_dir / "PROJECT.md").is_file()
