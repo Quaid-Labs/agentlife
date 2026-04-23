@@ -4665,12 +4665,27 @@ def _wait_project_docs_fresh(workspace: Path, project: str, session_num: int) ->
         current_head = last_status.get("current_shadow_head")
         cursor_head = last_status.get("docs_cursor_head")
         cursor_matches_source = not source_root or (bool(current_head) and current_head == cursor_head)
-        if bool(last_status.get("fresh")) and isinstance(heartbeat, dict) and cursor_matches_source:
+        pending_changes = last_status.get("pending_source_changes") or []
+        try:
+            pending_change_count = int(
+                last_status.get("pending_source_change_count")
+                if last_status.get("pending_source_change_count") is not None
+                else len(pending_changes)
+            )
+        except Exception:
+            pending_change_count = len(pending_changes) if isinstance(pending_changes, list) else 1
+        try:
+            project_log_pending = int(last_status.get("project_log_bytes_pending") or 0)
+        except Exception:
+            project_log_pending = 0
+        source_error = str(last_status.get("source_error") or "").strip()
+        no_pending_work = pending_change_count == 0 and project_log_pending == 0 and not source_error
+        if bool(last_status.get("fresh")) and isinstance(heartbeat, dict) and (cursor_matches_source or no_pending_work):
             print(
                 f"    Project docs fresh: project={project} s{session_num} "
                 f"shadow={current_head or '-'} "
                 f"cursor={cursor_head or '-'} "
-                f"log_pending={last_status.get('project_log_bytes_pending', 0)}"
+                f"log_pending={project_log_pending}"
             )
             return last_status
         time.sleep(poll_s)

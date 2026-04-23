@@ -226,6 +226,30 @@ def test_project_source_change_waits_for_product_supervisor_freshness(monkeypatc
     assert [c[0] for c in calls] == ["supervisor", "collect"]
 
 
+def test_wait_project_docs_fresh_accepts_no_pending_work_without_shadow_cursor(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    status = {
+        "project": "recipe-app",
+        "status": "fresh",
+        "fresh": True,
+        "source_root": str(workspace / "project-sources" / "recipe-app"),
+        "current_shadow_head": None,
+        "docs_cursor_head": None,
+        "source_error": None,
+        "pending_source_changes": [],
+        "pending_source_change_count": 0,
+        "project_log_bytes_pending": 0,
+        "worker_heartbeat": {"status": "idle", "heartbeat_at": "2026-04-24T00:00:00+00:00"},
+    }
+    monkeypatch.setattr(rpb, "_project_docs_wait_timeout_seconds", lambda: 1)
+    monkeypatch.setattr(rpb, "_project_docs_poll_seconds", lambda: 0)
+    monkeypatch.setattr(rpb, "_project_status_json", lambda *_a, **_k: status)
+
+    result = rpb._wait_project_docs_fresh(workspace, "recipe-app", 157)
+
+    assert result is status
+
+
 def test_register_benchmark_projects_uses_product_project_registry(monkeypatch, tmp_path):
     workspace = tmp_path / "ws"
     (workspace / "projects" / "recipe-app").mkdir(parents=True)
