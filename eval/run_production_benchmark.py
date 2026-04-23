@@ -1331,7 +1331,7 @@ def _validate_answer_model_policy(
     violations: List[str] = []
     if mode in {"full", "eval", "per-day"} and not _is_haiku_answer_model(eval_model):
         violations.append(f"eval model '{eval_model}'")
-    if mode == "fc":
+    if mode in {"fc", "fc-tier5"}:
         for model in fc_models:
             if not _is_haiku_answer_model(model):
                 violations.append(f"FC answer model '{model}'")
@@ -1352,6 +1352,10 @@ def _fc_result_stem(answer_model: str) -> str:
 
 def _tier5_fc_result_stem(answer_model: str) -> str:
     return f"tier5_fc_{answer_model.replace('-', '_')}"
+
+
+def _fc_score_stem(answer_model: str) -> str:
+    return f"{_fc_result_stem(answer_model)}_scores"
 
 
 def _fc_resume_checkpoint_path(results_dir: Path, stem: str) -> Path:
@@ -9142,6 +9146,7 @@ def _tool_memory_recall(
     docs_requested = "docs" in requested_stores
     memory_requested = (not requested_stores) or any(s != "docs" for s in requested_stores)
     call_id = str(top_level_call_id or uuid.uuid4().hex[:12])
+    timeout_s = _recall_subprocess_timeout_seconds(fast=fast)
 
     # For mixed memory+docs calls with temporal filtering, split the work so memory
     # stays filterable while docs still surface through the canonical recall path.
@@ -9204,6 +9209,10 @@ def _tool_memory_recall(
         cfg = {
             "owner": "maya",
             "limit": limit,
+            # Keep checkpoint-side store-plan timeouts aligned with the harness
+            # subprocess budget so explicit store requests do not trip an older
+            # internal default earlier than the caller is willing to wait.
+            "timeout_ms": int(timeout_s * 1000),
         }
         if stores:
             cfg["stores"] = list(stores)
@@ -9220,7 +9229,6 @@ def _tool_memory_recall(
         if planner_profile:
             cfg["planner_profile"] = planner_profile
         cmd += ["recall", query, json.dumps(cfg), "--json"]
-    timeout_s = _recall_subprocess_timeout_seconds(fast=fast)
     try:
         recall_env = dict(env)
         if _BACKEND == "oauth" and _is_benchmark_runtime_env(recall_env):
@@ -10843,9 +10851,12 @@ def run_tier5_fc_baseline(
     # Save
     if results_dir:
         results_dir.mkdir(parents=True, exist_ok=True)
+        model_tier5_path = results_dir / f"{_tier5_fc_result_stem(answer_model)}.json"
+        with open(model_tier5_path, "w") as f:
+            json.dump(results, f, indent=2)
         with open(results_dir / "tier5_results.json", "w") as f:
             json.dump(results, f, indent=2)
-        print(f"\nSaved to {results_dir / 'tier5_results.json'}")
+        print(f"\nSaved to {model_tier5_path}")
 
     return results
 
@@ -10918,6 +10929,72 @@ def _merge_tier5_into_scores(scores: dict, tier5_results: List[dict]) -> dict:
         "max_points": float(merged_scored),
     }
     return scores
+
+
+def _load_fc_baseline_results(results_dir: Path, answer_model: str) -> List[dict]:
+    path = results_dir / f"{_fc_result_stem(answer_model)}_results.json"
+    if not path.exists():
+        raise RuntimeError(
+            f"FC baseline results not found for {answer_model}: {path}. "
+            "Run --mode fc first before fc-tier5 backfill."
+        )
+    payload = json.loads(path.read_text())
+    if not isinstance(payload, list):
+        raise RuntimeError(f"Invalid FC baseline payload in {path}: expected list")
+    return payload
+
+
+def _write_fc_scores_payload(
+    results_dir: Path,
+    *,
+    answer_model: str,
+    scores: dict,
+    mode: str,
+    tier5_results: Optional[List[dict]] = None,
+) -> dict:
+    payload = {
+        "scores": scores,
+        "metadata": {
+            "timestamp": datetime.now().isoformat(),
+            "mode": mode,
+            "answer_model": answer_model,
+            "tier5_included": bool(tier5_results),
+        },
+    }
+    if tier5_results is not None:
+        payload["tier5_count"] = len(tier5_results)
+    model_scores_path = results_dir / f"{_fc_score_stem(answer_model)}.json"
+    with open(model_scores_path, "w") as f:
+        json.dump(payload, f, indent=2)
+    with open(results_dir / "fc_scores.json", "w") as f:
+        json.dump(payload, f, indent=2)
+    return payload
+
+
+def run_fc_tier5_backfill(
+    api_key: str,
+    *,
+    answer_model: str,
+    max_sessions: Optional[int] = None,
+    results_dir: Path,
+) -> dict:
+    base_results = _load_fc_baseline_results(results_dir, answer_model)
+    base_scores = score_results(base_results)
+    tier5_results = run_tier5_fc_baseline(
+        api_key,
+        answer_model=answer_model,
+        max_sessions=max_sessions,
+        results_dir=results_dir,
+    )
+    merged_scores = _merge_tier5_into_scores(base_scores, tier5_results)
+    return _write_fc_scores_payload(
+        results_dir,
+        answer_model=answer_model,
+        scores=merged_scores,
+        mode="fc-tier5",
+        tier5_results=tier5_results,
+    )
+
 
 def _make_env(
     workspace: Path,
@@ -11219,7 +11296,7 @@ def _require_openai_compatible_role_contract(args: argparse.Namespace) -> None:
         required = ("deep", "fast")
     elif mode == "eval":
         required = ("deep", "fast", "answer", "judge")
-    elif mode in {"full", "per-day", "fc"}:
+    elif mode in {"full", "per-day", "fc", "fc-tier5"}:
         required = ("deep", "fast", "answer", "judge")
     else:
         return
@@ -12912,8 +12989,8 @@ def _parse_claude_stream_output(stdout_text: str) -> Tuple[str, List[str], List[
 
 def main():
     parser = argparse.ArgumentParser(description="AgentLife Production Benchmark")
-    parser.add_argument("--mode", choices=["full", "ingest", "eval", "fc", "per-day"],
-                        default="full", help="Run mode (per-day = daily extraction+janitor, fc = full-context baseline)")
+    parser.add_argument("--mode", choices=["full", "ingest", "eval", "fc", "fc-tier5", "per-day"],
+                        default="full", help="Run mode (per-day = daily extraction+janitor, fc = full-context baseline, fc-tier5 = Tier-5 backfill onto existing FC baseline)")
     parser.add_argument("--ingest-schedule", choices=["per-day", "obd", "rolling-obd", "plain-obd"], default="per-day",
                         help="Ingest schedule for --mode full/ingest (per-day = normal daily lifecycle, obd = compatibility alias for rolling-obd, rolling-obd = rolling staged one-big-day flush, plain-obd = legacy one-big-day compaction path)")
     parser.add_argument("--results-dir", type=str,
@@ -13018,7 +13095,7 @@ def main():
         args.ingest_schedule = "obd"
     args.dataset = _normalize_dataset_name(args.dataset)
     os.environ["BENCHMARK_DATASET"] = args.dataset
-    fc_models = _parse_fc_models(args.fc_models) if args.mode == "fc" else []
+    fc_models = _parse_fc_models(args.fc_models) if args.mode in {"fc", "fc-tier5"} else []
     allow_non_haiku_answer_model = _allow_non_haiku_answer_model(args.allow_non_haiku_answer_model)
     _validate_answer_model_policy(
         mode=args.mode,
@@ -13072,7 +13149,7 @@ def main():
     _require_openai_compatible_role_contract(args)
     judge_label = str(args.judge or "").strip().lower()
     wants_local_style_judge = any(tok in judge_label for tok in ("gemma", "qwen", "llama", "mistral"))
-    if args.backend == "vllm" and args.mode in {"eval", "full", "per-day", "fc"}:
+    if args.backend == "vllm" and args.mode in {"eval", "full", "per-day", "fc", "fc-tier5"}:
         if wants_local_style_judge:
             if not str(args.vllm_judge_url or "").strip():
                 raise SystemExit(
@@ -13082,7 +13159,7 @@ def main():
                 raise SystemExit(
                     "--backend vllm with local judge model requires --vllm-judge-model (no implicit judge fallback)"
                 )
-    if args.backend == "llama-cpp" and args.mode in {"eval", "full", "per-day", "fc"}:
+    if args.backend == "llama-cpp" and args.mode in {"eval", "full", "per-day", "fc", "fc-tier5"}:
         if wants_local_style_judge:
             if not str(args.llama_cpp_judge_url or "").strip():
                 raise SystemExit(
@@ -13162,7 +13239,7 @@ def main():
         f"atomic_rules={'yes' if prompt_telemetry['atomic_rules'] else 'no'} "
         f"canonical_entity_rules={'yes' if prompt_telemetry['canonical_entity_rules'] else 'no'}"
     )
-    if args.mode == "fc":
+    if args.mode in {"fc", "fc-tier5"}:
         print(f"  FC answer models: {', '.join(fc_models)}")
     print()
 
@@ -13596,15 +13673,44 @@ def main():
             o = fc_scores["overall"]
             print(f"\n  FC {fc_model}: {o['accuracy']:.1f}% "
                   f"({o['correct']}C/{o['partial']}P/{o['wrong']}W)")
-
-        # FC Tier 5 if requested
-        if args.tier5:
-            for fc_model in ["claude-sonnet-4-6"]:
-                run_tier5_fc_baseline(
-                    api_key, answer_model=fc_model,
+            tier5_results = None
+            if args.tier5:
+                tier5_results = run_tier5_fc_baseline(
+                    api_key,
+                    answer_model=fc_model,
                     max_sessions=args.max_sessions,
                     results_dir=fc_results_dir,
                 )
+                fc_scores = _merge_tier5_into_scores(fc_scores, tier5_results)
+                merged = fc_scores["overall"]
+                print(
+                    "  FC combined weighted accuracy (T1-5): "
+                    f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
+                )
+            _write_fc_scores_payload(
+                fc_results_dir,
+                answer_model=fc_model,
+                scores=fc_scores,
+                mode="fc",
+                tier5_results=tier5_results,
+            )
+
+    if args.mode == "fc-tier5":
+        fc_results_dir = workspace / "fc_baselines"
+        fc_results_dir.mkdir(parents=True, exist_ok=True)
+
+        for fc_model in fc_models:
+            fc_payload = run_fc_tier5_backfill(
+                api_key,
+                answer_model=fc_model,
+                max_sessions=args.max_sessions,
+                results_dir=fc_results_dir,
+            )
+            merged = fc_payload["scores"]["overall"]
+            print(
+                "  FC Tier-5 backfill combined weighted accuracy (T1-5): "
+                f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
+            )
 
     elapsed = time.time() - t_global
     _write_run_metadata(

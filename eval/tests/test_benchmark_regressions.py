@@ -779,6 +779,132 @@ class TestFcBaselinesFailHard:
         assert usage["eval"]["api_calls"] == 3
         assert not checkpoint_path.exists()
 
+    def test_run_tier5_fc_baseline_writes_model_specific_artifact(self, monkeypatch, tmp_path):
+        assets_dir = tmp_path / "assets"
+        assets_dir.mkdir()
+        results_dir = tmp_path / "fc_baselines"
+        results_dir.mkdir()
+
+        monkeypatch.setattr(
+            rpb,
+            "_load_reviews_with_dataset_gate",
+            lambda max_sessions: (assets_dir, [_FakeReview(1)], [_FakeReview(1)], "v-test", 268),
+        )
+        monkeypatch.setattr(
+            rpb._DATASET,
+            "get_tier5_queries",
+            lambda: [
+                {
+                    "ei_id": "EI-01",
+                    "ei_category": "relationship",
+                    "question": "How should Maya handle this sensitively?",
+                    "sensitivity_context": "",
+                    "rubric": {},
+                }
+            ],
+        )
+        monkeypatch.setattr(
+            rpb,
+            "_build_fc_transcript_context",
+            lambda *a, **k: (
+                "session transcript",
+                {
+                    "context_tokens": 123,
+                    "compaction_count": 0,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "api_calls": 0,
+                },
+            ),
+        )
+        monkeypatch.setattr(
+            rpb,
+            "_call_anthropic_cached",
+            lambda *a, **k: ("Be gentle", {"input_tokens": 20, "output_tokens": 10, "api_calls": 1}),
+        )
+        monkeypatch.setattr(rpb, "_judge_tier5", lambda *a, **k: (2, "good"))
+
+        results = rpb.run_tier5_fc_baseline(
+            api_key="test-key",
+            answer_model="claude-sonnet-4-6",
+            results_dir=results_dir,
+        )
+
+        assert len(results) == 1
+        assert (results_dir / "tier5_fc_claude_sonnet_4_6.json").exists()
+        assert (results_dir / "tier5_results.json").exists()
+
+    def test_run_fc_tier5_backfill_merges_existing_baseline(self, monkeypatch, tmp_path):
+        results_dir = tmp_path / "fc_baselines"
+        results_dir.mkdir()
+        baseline_path = results_dir / "fc_claude_sonnet_4_6_results.json"
+        baseline_path.write_text(json.dumps([
+            {
+                "question": "Q1",
+                "ground_truth": "A1",
+                "prediction": "A1",
+                "judge_label": "CORRECT",
+                "score": 1.0,
+                "query_type": "factual_recall",
+                "recall_difficulty": "unknown",
+                "source_session": 1,
+            },
+            {
+                "question": "Q2",
+                "ground_truth": "A2",
+                "prediction": "wrong",
+                "judge_label": "WRONG",
+                "score": 0.0,
+                "query_type": "factual_recall",
+                "recall_difficulty": "unknown",
+                "source_session": 1,
+            },
+        ], indent=2))
+
+        captured = {}
+
+        def _fake_tier5(*_args, **kwargs):
+            captured["answer_model"] = kwargs.get("answer_model")
+            return [
+                {"ei_score": 2, "ei_category": "relationship"},
+                {"ei_score": 1, "ei_category": "relationship"},
+            ]
+
+        monkeypatch.setattr(rpb, "run_tier5_fc_baseline", _fake_tier5)
+        monkeypatch.setattr(
+            rpb,
+            "score_results",
+            lambda _rows: {
+                "overall": {
+                    "count": 2,
+                    "scored": 2,
+                    "accuracy": 50.0,
+                    "correct": 1,
+                    "partial": 0,
+                    "wrong": 1,
+                    "error": 0,
+                    "points": 1.0,
+                    "max_points": 2.0,
+                }
+            },
+        )
+
+        payload = rpb.run_fc_tier5_backfill(
+            api_key="test-key",
+            answer_model="claude-sonnet-4-6",
+            results_dir=results_dir,
+        )
+
+        overall = payload["scores"]["overall"]
+        assert captured["answer_model"] == "claude-sonnet-4-6"
+        assert overall["count"] == 4
+        assert overall["correct"] == 2
+        assert overall["partial"] == 1
+        assert overall["wrong"] == 1
+        assert overall["accuracy"] == 62.5
+        assert (results_dir / "fc_claude_sonnet_4_6_scores.json").exists()
+        assert (results_dir / "fc_scores.json").exists()
+
     def test_eval_resume_checkpoint_round_trip_preserves_sparse_results(self, tmp_path):
         workspace = tmp_path / "ws"
         questions = [
@@ -4647,6 +4773,38 @@ def test_tool_memory_recall_uses_longer_timeout_for_deliberate_calls(tmp_path, m
     assert captured["timeout"] == 90
     assert meta["harness_telemetry"]["top_level_source"] == "tool"
     assert meta["harness_telemetry"]["top_level_call_id"]
+
+
+def test_tool_memory_recall_passes_deliberate_timeout_budget_into_cfg(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+
+    captured: dict[str, object] = {}
+
+    def _fake_run(cmd, **kwargs):
+        captured["cmd"] = list(cmd)
+        captured["timeout"] = kwargs.get("timeout")
+        return SimpleNamespace(
+            stdout=json.dumps({"results": [], "meta": {"mode": "deliberate"}}),
+            stderr="",
+            returncode=0,
+        )
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    _text, meta = rpb._tool_memory_recall(
+        "coffee",
+        workspace,
+        {"PATH": os.environ.get("PATH", "")},
+        stores=["vector", "graph"],
+    )
+
+    cfg_arg = next(part for part in captured["cmd"] if isinstance(part, str) and part.startswith("{"))
+    cfg = json.loads(cfg_arg)
+    assert cfg["stores"] == ["vector", "graph"]
+    assert cfg["timeout_ms"] == 90000
+    assert captured["timeout"] == 90
+    assert meta["mode"] == "deliberate"
 
 
 def test_tool_memory_recall_passes_planner_profile_for_fast_calls(tmp_path, monkeypatch):
