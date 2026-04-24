@@ -731,6 +731,46 @@ class TestOpenClawNativeReindex:
 
 
 class TestVmEvalIsolation:
+    def test_oc_native_gateway_call_repairs_pairing_and_retries(self):
+        calls = []
+
+        class _Vm:
+            def __init__(self):
+                self.gateway_calls = 0
+
+            def ssh(self, command, **kwargs):
+                calls.append((command, kwargs))
+
+                class _Result:
+                    def __init__(self, returncode=0, stdout="", stderr=""):
+                        self.returncode = returncode
+                        self.stdout = stdout
+                        self.stderr = stderr
+
+                if "openclaw gateway call agent --json" in command:
+                    self.gateway_calls += 1
+                    if self.gateway_calls == 1:
+                        return _Result(
+                            1,
+                            "",
+                            "gateway connect failed: GatewayClientRequestError: pairing required",
+                        )
+                    return _Result(0, '{"runId":"run-123","status":"accepted"}', "")
+                if "OC_NATIVE_PAIR_REPAIR" in command:
+                    return _Result(0, '{"approved": true, "requestId":"req-123"}', "")
+                return _Result()
+
+        payload = vmb._oc_native_gateway_call(
+            _Vm(),
+            "agent",
+            {"message": "hello"},
+            timeout_s=30,
+        )
+        assert payload["runId"] == "run-123"
+        repair_calls = [kwargs for command, kwargs in calls if "OC_NATIVE_PAIR_REPAIR" in command]
+        assert repair_calls
+        assert all(not kwargs.get("raw", False) for kwargs in repair_calls)
+
     def test_run_oc_native_gateway_turn_uses_gateway_rpc_and_reads_last_assistant_text(self):
         calls = []
 

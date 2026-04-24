@@ -699,9 +699,11 @@ def _warm_oc_native_embed_upstream() -> None:
         },
     )
     try:
-        # The first Ollama embedding after a fresh VM restore can take well over
-        # a minute while the 8B model fully spins up on the host.
-        with urlopen(req, timeout=240) as resp:
+        # This is only a best-effort host-side prewarm hint. The real fail-hard
+        # gate is the later guest-visible embedding validation. Keep this short
+        # so OC-native launches do not spend minutes waiting on a cold host
+        # embed call that we are prepared to skip anyway.
+        with urlopen(req, timeout=45) as resp:
             data = json.load(resp)
     except Exception as exc:
         raise RuntimeError(f"oc-native embed upstream warmup failed: {exc}") from exc
@@ -714,7 +716,14 @@ def _warm_oc_native_embed_upstream() -> None:
 def _ensure_oc_native_embed_proxy() -> None:
     """Ensure a host-local OpenAI-compatible proxy exists before tunneling it into the VM."""
     upstream = OC_NATIVE_EMBED_UPSTREAM.rstrip("/")
-    healthy, detail = _probe_json_url(f"{upstream}/v1/models")
+    healthy = False
+    detail = "unprobed"
+    for attempt in range(3):
+        healthy, detail = _probe_json_url(f"{upstream}/v1/models", timeout=15)
+        if healthy:
+            break
+        if attempt < 2:
+            time.sleep(2)
     if not healthy:
         raise RuntimeError(f"oc-native host embed upstream not ready: {detail}")
     try:
@@ -901,6 +910,95 @@ def _extract_oc_native_gateway_run_id(payload: dict) -> str:
     return run_id.strip() if isinstance(run_id, str) else ""
 
 
+def _extract_json_object_from_mixed_stdout(text: str) -> dict:
+    text = text or ""
+    start = text.find("{")
+    if start < 0:
+        raise ValueError("no JSON object found")
+    return json.loads(text[start:])
+
+
+def _repair_oc_native_loopback_pairing(vm: TartVM) -> bool:
+    """Approve the latest local loopback device repair request if present."""
+    repair_script = (
+        "import json, time\n"
+        "from pathlib import Path\n"
+        "# OC_NATIVE_PAIR_REPAIR\n"
+        "base = Path.home() / '.openclaw' / 'devices'\n"
+        "pending_path = base / 'pending.json'\n"
+        "paired_path = base / 'paired.json'\n"
+        "pending = json.loads(pending_path.read_text()) if pending_path.exists() else {}\n"
+        "paired = json.loads(paired_path.read_text()) if paired_path.exists() else {}\n"
+        "if not pending:\n"
+        "    print(json.dumps({'approved': False, 'reason': 'no-pending'}))\n"
+        "    raise SystemExit(0)\n"
+        "request_id, req = sorted(\n"
+        "    pending.items(),\n"
+        "    key=lambda kv: (kv[1] or {}).get('ts', 0),\n"
+        "    reverse=True,\n"
+        ")[0]\n"
+        "device_id = str((req or {}).get('deviceId') or '').strip()\n"
+        "if not device_id:\n"
+        "    print(json.dumps({'approved': False, 'reason': 'missing-device-id'}))\n"
+        "    raise SystemExit(0)\n"
+        "existing = dict(paired.get(device_id) or {})\n"
+        "merged_scopes = []\n"
+        "for scope in list(existing.get('approvedScopes') or existing.get('scopes') or []) + list(req.get('scopes') or []):\n"
+        "    if isinstance(scope, str) and scope and scope not in merged_scopes:\n"
+        "        merged_scopes.append(scope)\n"
+        "roles = []\n"
+        "for role in list(existing.get('roles') or []) + list(req.get('roles') or []):\n"
+        "    if isinstance(role, str) and role and role not in roles:\n"
+        "        roles.append(role)\n"
+        "role = req.get('role') or existing.get('role')\n"
+        "now = int(time.time() * 1000)\n"
+        "tokens = dict(existing.get('tokens') or {})\n"
+        "if isinstance(role, str) and role:\n"
+        "    token_entry = dict(tokens.get(role) or {})\n"
+        "    if token_entry:\n"
+        "        token_entry['scopes'] = merged_scopes\n"
+        "        token_entry.setdefault('createdAtMs', now)\n"
+        "        token_entry['rotatedAtMs'] = now\n"
+        "        tokens[role] = token_entry\n"
+        "paired[device_id] = {\n"
+        "    **existing,\n"
+        "    'deviceId': device_id,\n"
+        "    'publicKey': req.get('publicKey') or existing.get('publicKey'),\n"
+        "    'displayName': req.get('displayName') or existing.get('displayName'),\n"
+        "    'platform': req.get('platform') or existing.get('platform'),\n"
+        "    'deviceFamily': req.get('deviceFamily') or existing.get('deviceFamily'),\n"
+        "    'clientId': req.get('clientId') or existing.get('clientId'),\n"
+        "    'clientMode': req.get('clientMode') or existing.get('clientMode'),\n"
+        "    'role': role,\n"
+        "    'roles': roles or existing.get('roles') or ([role] if role else []),\n"
+        "    'scopes': merged_scopes,\n"
+        "    'approvedScopes': merged_scopes,\n"
+        "    'remoteIp': req.get('remoteIp') or existing.get('remoteIp'),\n"
+        "    'tokens': tokens,\n"
+        "    'createdAtMs': existing.get('createdAtMs') or now,\n"
+        "    'approvedAtMs': now,\n"
+        "}\n"
+        "del pending[request_id]\n"
+        "base.mkdir(parents=True, exist_ok=True)\n"
+        "pending_path.write_text(json.dumps(pending, indent=2) + '\\n')\n"
+        "paired_path.write_text(json.dumps(paired, indent=2) + '\\n')\n"
+        "print(json.dumps({'approved': True, 'requestId': request_id, 'deviceId': device_id}))\n"
+    )
+    repair_result = vm.ssh(
+        "python3 - <<'PY'\n" + repair_script + "PY",
+        timeout=45,
+    )
+    if repair_result.returncode != 0:
+        return False
+    try:
+        payload = _extract_json_object_from_mixed_stdout(
+            (repair_result.stdout or "") + "\n" + (repair_result.stderr or "")
+        )
+    except Exception:
+        return False
+    return bool(payload.get("approved"))
+
+
 def _oc_native_gateway_call(
     vm: TartVM,
     method: str,
@@ -916,10 +1014,10 @@ def _oc_native_gateway_call(
         f"--params {shlex.quote(json.dumps(params, ensure_ascii=False))} "
         f"--timeout {int(timeout_s * 1000)}"
     )
-    result = vm.ssh(
-        command,
-        timeout=ssh_timeout_s or max(timeout_s + 15, 30),
-    )
+    result = vm.ssh(command, timeout=ssh_timeout_s or max(timeout_s + 15, 30))
+    if result.returncode != 0 and "pairing required" in ((result.stderr or "") + (result.stdout or "")):
+        if _repair_oc_native_loopback_pairing(vm):
+            result = vm.ssh(command, timeout=ssh_timeout_s or max(timeout_s + 15, 30))
     if result.returncode != 0:
         detail = (result.stderr or result.stdout).strip()
         raise RuntimeError(
