@@ -40,7 +40,10 @@ class TestOpenClawNativeConfig:
     def test_native_config_uses_local_ollama_qwen_embeddings(self):
         script = vmb._build_openclaw_native_config_script(enable_session_hook=True)
         assert "plugins.setdefault('slots', {})['memory'] = 'memory-core'" in script
+        assert "plugins['allow'] = [item for item in (plugins.get('allow') or []) if item != 'matrix']" in script
+        assert "entries.setdefault('matrix', {})['enabled'] = False" in script
         assert "memory['backend'] = 'builtin'" in script
+        assert "channels.setdefault('matrix', {})['enabled'] = False" in script
         assert f"tools['allow'] = {vmb.OC_NATIVE_MEMORY_TOOLS!r}" in script
         assert "tools.pop('deny', None)" in script
         assert "entries.setdefault('active-memory', {})['enabled'] = True" in script
@@ -93,13 +96,13 @@ class TestOpenClawNativeConfig:
                         self.stdout = stdout
                         self.stderr = stderr
 
-                if "openclaw memory status" in command:
+                if len(calls) == 1:
                     return _Result(
                         0,
-                        '[{"status":{"provider":"openai","model":"qwen3-embedding:8b"}}]',
+                        '{"provider":"openai","model":"qwen3-embedding:8b","baseUrl":"http://127.0.0.1:11435/v1"}',
                         "",
                     )
-                if len([c for c in calls if "python3 -c" in c]) == 1:
+                if len(calls) == 2:
                     return _Result(1, "", "socket.timeout: timed out")
                 return _Result(0, '{"ok": true, "dims": 4096}', "")
 
@@ -107,6 +110,121 @@ class TestOpenClawNativeConfig:
         monkeypatch.setattr(vmb.time, "sleep", lambda seconds: sleeps.append(seconds))
         vmb._validate_openclaw_native_memory(_Vm())
         assert sleeps == [3]
+
+    def test_ensure_oc_native_embed_proxy_reuses_healthy_endpoint(self, monkeypatch):
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_BASE_URL", "http://127.0.0.1:11435/v1")
+        probe_calls = []
+        warm_calls = []
+
+        def _probe(url, timeout=5):
+            probe_calls.append(url)
+            if url == "http://127.0.0.1:11434/v1/models":
+                return True, '{"ok":true}'
+            return True, '{"ok":true}'
+
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_UPSTREAM", "http://127.0.0.1:11434")
+        monkeypatch.setattr(vmb, "_probe_json_url", _probe)
+        monkeypatch.setattr(vmb, "_warm_oc_native_embed_upstream", lambda: warm_calls.append("warm"))
+        popen_calls = []
+        monkeypatch.setattr(vmb.subprocess, "Popen", lambda *args, **kwargs: popen_calls.append((args, kwargs)))
+        vmb._ensure_oc_native_embed_proxy()
+        assert popen_calls == []
+        assert warm_calls == ["warm"]
+        assert probe_calls == ["http://127.0.0.1:11434/v1/models", "http://127.0.0.1:11435/v1/models"]
+
+    def test_ensure_oc_native_embed_proxy_tolerates_warmup_failure(self, monkeypatch):
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_BASE_URL", "http://127.0.0.1:11435/v1")
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_UPSTREAM", "http://127.0.0.1:11434")
+        probe_calls = []
+
+        def _probe(url, timeout=5):
+            probe_calls.append(url)
+            return True, '{"ok":true}'
+
+        monkeypatch.setattr(vmb, "_probe_json_url", _probe)
+        monkeypatch.setattr(vmb, "_warm_oc_native_embed_upstream", lambda: (_ for _ in ()).throw(RuntimeError("cold start hung")))
+        popen_calls = []
+        monkeypatch.setattr(vmb.subprocess, "Popen", lambda *args, **kwargs: popen_calls.append((args, kwargs)))
+        vmb._ensure_oc_native_embed_proxy()
+        assert popen_calls == []
+        assert probe_calls == ["http://127.0.0.1:11434/v1/models", "http://127.0.0.1:11435/v1/models"]
+
+    def test_ensure_oc_native_embed_proxy_starts_proxy_when_endpoint_unhealthy(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_BASE_URL", "http://127.0.0.1:11435/v1")
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_UPSTREAM", "http://127.0.0.1:11434")
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_PROXY_SCRIPT", tmp_path / "proxy.py")
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_PROXY_PIDFILE", tmp_path / "proxy.pid")
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_PROXY_LOG", tmp_path / "proxy.log")
+        monkeypatch.setattr(vmb.time, "sleep", lambda _seconds: None)
+        monkeypatch.setattr(vmb, "_warm_oc_native_embed_upstream", lambda: None)
+        probe_results = iter([
+            (True, '{"ok":true}'),
+            (False, "refused"),
+            (True, '{"ok":true}'),
+        ])
+        monkeypatch.setattr(vmb, "_probe_json_url", lambda url, timeout=5: next(probe_results))
+        popen_calls = []
+
+        class _Proc:
+            pid = 43210
+
+        monkeypatch.setattr(vmb.subprocess, "Popen", lambda *args, **kwargs: popen_calls.append((args, kwargs)) or _Proc())
+        vmb._ensure_oc_native_embed_proxy()
+        args, kwargs = popen_calls[0]
+        assert args[0][0] == vmb.sys.executable
+        assert "--host" in args[0]
+        assert "0.0.0.0" in args[0]
+        assert "--port" in args[0]
+        assert "11435" in args[0]
+        assert kwargs["stdout"] is not None
+        assert kwargs["stderr"] is not None
+        assert kwargs["stdin"] == vmb.subprocess.DEVNULL
+        assert (tmp_path / "proxy.pid").read_text().strip() == "43210"
+
+    def test_ensure_oc_native_embed_proxy_raises_when_host_upstream_unhealthy(self, monkeypatch):
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_UPSTREAM", "http://127.0.0.1:11434")
+        monkeypatch.setattr(vmb, "_probe_json_url", lambda url, timeout=5: (False, "refused"))
+        with pytest.raises(RuntimeError, match="host embed upstream not ready"):
+            vmb._ensure_oc_native_embed_proxy()
+
+    def test_warm_oc_native_embed_upstream_rejects_empty_embedding(self, monkeypatch):
+        monkeypatch.setattr(vmb, "OC_NATIVE_EMBED_UPSTREAM", "http://127.0.0.1:11434")
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        monkeypatch.setattr(vmb, "urlopen", lambda req, timeout=120: _Resp())
+        monkeypatch.setattr(vmb.json, "load", lambda resp: {"data": [{"embedding": []}]})
+        with pytest.raises(RuntimeError, match="empty embedding"):
+            vmb._warm_oc_native_embed_upstream()
+
+    def test_validate_native_memory_reads_config_and_embedding_probe(self):
+        calls = []
+
+        class _Vm:
+            def ssh(self, command, **_kwargs):
+                calls.append(command)
+
+                class _Result:
+                    def __init__(self, returncode=0, stdout="", stderr=""):
+                        self.returncode = returncode
+                        self.stdout = stdout
+                        self.stderr = stderr
+
+                if len(calls) == 1:
+                    return _Result(
+                        0,
+                        '{"provider":"openai","model":"qwen3-embedding:8b","baseUrl":"http://127.0.0.1:11435/v1"}',
+                        "",
+                    )
+                return _Result(0, '{"ok": true, "dims": 4096}', "")
+
+        vmb._validate_openclaw_native_memory(_Vm())
+        assert "openclaw memory status" not in "\n".join(calls)
 
     def test_oc_native_session_ids_are_stable_per_review(self):
         arc = type("Review", (), {"session_num": 3})()
@@ -427,6 +545,73 @@ class TestTartVmSsh:
         assert captured["timeout"] == 15
         assert captured["raw"] is True
 
+    def test_restore_falls_back_to_single_running_local_vm(self, monkeypatch):
+        calls = []
+
+        def _fake_tart_cmd(*parts, **_kwargs):
+            calls.append(parts)
+
+            class _Result:
+                def __init__(self, returncode=0, stdout="", stderr=""):
+                    self.returncode = returncode
+                    self.stdout = stdout
+                    self.stderr = stderr
+
+            if parts == ("list",):
+                return _Result(stdout=(
+                    "Source Name State\n"
+                    "local quaid-livetest-run running\n"
+                ))
+            if parts == ("ip", "quaid-livetest-run"):
+                return _Result(stdout="192.168.64.107\n")
+            if parts == ("help",):
+                return _Result(stdout="")
+            return _Result()
+
+        monkeypatch.setattr(vmb.TartVM, "_tart_cmd", lambda self, *parts, **kwargs: _fake_tart_cmd(*parts, **kwargs))
+        monkeypatch.setattr(vmb.TartVM, "is_ready", lambda self: True)
+
+        vm = vmb.TartVM(ip="192.168.64.3", vm_name="test-openclaw")
+        vm.restore("clean-openclaw")
+
+        assert vm.vm_name == "quaid-livetest-run"
+        assert vm.ip == "192.168.64.107"
+
+    def test_wait_ready_refreshes_ip_from_tart(self, monkeypatch):
+        state = {"ssh_calls": 0}
+
+        def _fake_tart_cmd(self, *parts, **_kwargs):
+            class _Result:
+                def __init__(self, returncode=0, stdout="", stderr=""):
+                    self.returncode = returncode
+                    self.stdout = stdout
+                    self.stderr = stderr
+
+            if parts == ("list",):
+                return _Result(stdout="Source Name State\nlocal quaid-livetest-run running\n")
+            if parts == ("ip", "quaid-livetest-run"):
+                return _Result(stdout="192.168.64.107\n")
+            return _Result()
+
+        def _fake_ssh(_cmd, timeout=0, raw=False, **_kwargs):
+            state["ssh_calls"] += 1
+
+            class _Result:
+                returncode = 0
+                stdout = "ready\n"
+                stderr = ""
+
+            return _Result()
+
+        vm = vmb.TartVM(ip="192.168.64.3", vm_name="test-openclaw")
+        monkeypatch.setattr(vmb.TartVM, "_tart_cmd", _fake_tart_cmd)
+        monkeypatch.setattr(vm, "ssh", _fake_ssh)
+
+        assert vm.wait_ready(timeout=5) is True
+        assert vm.vm_name == "quaid-livetest-run"
+        assert vm.ip == "192.168.64.107"
+        assert state["ssh_calls"] >= 1
+
 
 class TestOpenClawNativeReindex:
     def test_force_reindex_requires_selected_source_chunks(self):
@@ -546,6 +731,35 @@ class TestOpenClawNativeReindex:
 
 
 class TestVmEvalIsolation:
+    def test_run_oc_native_gateway_turn_uses_gateway_rpc_and_reads_last_assistant_text(self):
+        calls = []
+
+        class _Vm:
+            def ssh(self, command, **_kwargs):
+                calls.append(command)
+
+                class _Result:
+                    def __init__(self, returncode=0, stdout="", stderr=""):
+                        self.returncode = returncode
+                        self.stdout = stdout
+                        self.stderr = stderr
+
+                if "gateway call agent --json" in command:
+                    return _Result(stdout='{"runId":"run-123","status":"accepted"}')
+                if "gateway call agent.wait --json" in command:
+                    return _Result(stdout='{"runId":"run-123","status":"ok"}')
+                if "python3 -c " in command:
+                    return _Result(stdout="assistant-answer\n")
+                return _Result()
+
+        answer = vmb._run_oc_native_gateway_turn(_Vm(), "eval-q007", "Who is Maya?", timeout_s=30)
+        assert answer == "assistant-answer"
+        assert "openclaw gateway call agent --json" in calls[0]
+        assert '"sessionId": "eval-q007"' in calls[0]
+        assert '"message": "Who is Maya?"' in calls[0]
+        assert "openclaw gateway call agent.wait --json" in calls[1]
+        assert '"runId": "run-123"' in calls[1]
+
     def test_register_session_persists_session_file_pointer(self, monkeypatch):
         calls = []
 
@@ -567,58 +781,79 @@ class TestVmEvalIsolation:
     def test_evaluate_vm_agent_registers_fresh_session(self, monkeypatch):
         calls = []
 
-        class _Vm:
-            def ssh(self, command, **_kwargs):
-                calls.append(command)
-
-                class _Result:
-                    returncode = 0
-                    stdout = "ok"
-                    stderr = ""
-
-                return _Result()
-
         monkeypatch.setattr(vmb, "_register_session", lambda vm, session_id: calls.append(f"register:{session_id}"))
+        monkeypatch.setattr(
+            vmb,
+            "_run_oc_native_gateway_turn",
+            lambda vm, session_id, question, timeout_s: calls.append(
+                f"gateway:{session_id}:{question}:{timeout_s}"
+            ) or "ok",
+        )
         monkeypatch.setattr(vmb, "_extract_agent_answer", lambda raw: raw)
-        answer = vmb._evaluate_vm_agent(_Vm(), "Who is Maya?", 7, "oc-native")
+        answer = vmb._evaluate_vm_agent(object(), "Who is Maya?", 7, "oc-native")
         assert answer == "ok"
         assert calls[0] == "register:eval-q007"
-        assert "--session-id eval-q007" in calls[1]
+        assert calls[1] == f"gateway:eval-q007:Who is Maya?:{vmb.VM_AGENT_EVAL_TIMEOUT_S}"
 
     def test_evaluate_vm_agent_retries_timeout_then_succeeds(self, monkeypatch):
         calls = []
         attempts = {"n": 0}
 
-        class _Vm:
-            def ssh(self, command, **_kwargs):
-                calls.append(command)
-                attempts["n"] += 1
-                if attempts["n"] == 1:
-                    raise subprocess.TimeoutExpired(command, timeout=1)
-
-                class _Result:
-                    returncode = 0
-                    stdout = "ok-after-retry"
-                    stderr = ""
-
-                return _Result()
-
         monkeypatch.setattr(vmb, "_register_session", lambda vm, session_id: calls.append(f"register:{session_id}"))
+        def _turn(_vm, session_id, question, timeout_s):
+            calls.append(f"gateway:{session_id}:{question}:{timeout_s}")
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                raise subprocess.TimeoutExpired("gateway", timeout=1)
+            return "ok-after-retry"
+
+        monkeypatch.setattr(vmb, "_run_oc_native_gateway_turn", _turn)
         monkeypatch.setattr(vmb, "_extract_agent_answer", lambda raw: raw)
-        answer = vmb._evaluate_vm_agent(_Vm(), "Who is Maya?", 8, "oc-native")
+        answer = vmb._evaluate_vm_agent(object(), "Who is Maya?", 8, "oc-native")
         assert answer == "ok-after-retry"
         assert attempts["n"] == 2
         assert calls[0] == "register:eval-q008"
-        assert "--session-id eval-q008" in calls[1]
+        assert calls[1] == f"gateway:eval-q008:Who is Maya?:{vmb.VM_AGENT_EVAL_TIMEOUT_S}"
+        assert calls[2] == f"gateway:eval-q008:Who is Maya?:{vmb.VM_AGENT_EVAL_TIMEOUT_S}"
 
-    def test_evaluate_vm_agent_timeout_retries_exhaust_fail_hard(self, monkeypatch):
-        class _Vm:
-            def ssh(self, command, **_kwargs):
-                raise subprocess.TimeoutExpired(command, timeout=1)
+    def test_run_oc_native_session_hook_uses_gateway_and_restores_transcript(self, monkeypatch):
+        calls = []
 
         monkeypatch.setattr(vmb, "_register_session", lambda *_args, **_kwargs: None)
+        monkeypatch.setattr(vmb, "_read_vm_session_jsonl", lambda *_args, **_kwargs: "original-jsonl\n")
+        monkeypatch.setattr(
+            vmb,
+            "_run_oc_native_gateway_turn",
+            lambda _vm, session_id, message, timeout_s: calls.append(
+                f"gateway:{session_id}:{message}:{timeout_s}"
+            ) or "hook-ok",
+        )
+
+        class _Result:
+            returncode = 0
+            stdout = ""
+            stderr = ""
+
+        monkeypatch.setattr(
+            vmb,
+            "_write_vm_session_jsonl",
+            lambda _vm, session_id, jsonl, append=False: calls.append(
+                f"restore:{session_id}:{append}:{jsonl.strip()}"
+            ) or _Result(),
+        )
+        vmb._run_oc_native_session_hook(object(), "hook-test")
+        assert calls[0] == "gateway:hook-test:hello:45"
+        assert calls[1] == "restore:hook-test:False:original-jsonl"
+
+    def test_evaluate_vm_agent_timeout_retries_exhaust_fail_hard(self, monkeypatch):
+        monkeypatch.setattr(vmb, "_register_session", lambda *_args, **_kwargs: None)
+        monkeypatch.setattr(
+            vmb,
+            "_run_oc_native_gateway_turn",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(subprocess.TimeoutExpired("gateway", timeout=1)),
+        )
         with pytest.raises(RuntimeError, match="Eval query timed out"):
-            vmb._evaluate_vm_agent(_Vm(), "Who is Maya?", 9, "oc-native")
+            vmb._evaluate_vm_agent(object(), "Who is Maya?", 9, "oc-native")
 
 
 class TestOcNativeGatewayStartup:
@@ -910,4 +1145,36 @@ class TestVmBenchmarkCli:
 
         vmb.main()
         assert captured["results_dir"] == tmp_path / "results" / "oc-native-timeout"
-        assert captured["judge_model"] == "gpt-4o-mini"
+
+
+class TestSetupSystem:
+    def test_oc_native_setup_is_config_driven(self, monkeypatch):
+        calls = []
+
+        class _Vm:
+            def restore(self, name):
+                calls.append(("restore", name))
+
+            def ssh(self, command, **_kwargs):
+                calls.append(("ssh", command))
+
+                class _Result:
+                    returncode = 0
+                    stdout = ""
+                    stderr = ""
+
+                return _Result()
+
+        monkeypatch.setattr(vmb, "_ensure_oc_native_embed_proxy", lambda: calls.append(("ensure_proxy", None)))
+        monkeypatch.setattr(vmb, "_patch_openclaw_native_memory", lambda vm, enable_session_hook=True: calls.append(("patch_native", enable_session_hook)))
+        monkeypatch.setattr(vmb, "_clear_vm_session_state", lambda vm: calls.append(("clear_sessions", None)))
+        monkeypatch.setattr(vmb, "_clear_vm_native_memory_state", lambda vm: calls.append(("clear_native", None)))
+        monkeypatch.setattr(vmb, "_restart_oc_native_gateway", lambda vm, port=18789: calls.append(("restart_gateway", port)))
+        monkeypatch.setattr(vmb, "_validate_openclaw_native_memory", lambda vm: calls.append(("validate_native", None)))
+
+        vmb.setup_system(_Vm(), "oc-native", snapshot_base="clean-openclaw")
+
+        ssh_commands = [payload for kind, payload in calls if kind == "ssh"]
+        assert not any("openclaw plugins " in cmd for cmd in ssh_commands)
+        assert ("ensure_proxy", None) in calls
+        assert ("patch_native", True) in calls

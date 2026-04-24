@@ -301,15 +301,22 @@ What we validated on the OC rerun path:
 Current scored-rerun status:
 
 - the fresh neutral OC-native smoke succeeded end-to-end
-- the first scored neutral `AL-S` OC-native rerun did not produce valid headline
-  numbers because native indexing stalled after injection with the store still
-  marked `dirty=true` and `files=0 / chunks=0`
-- because the scored rerun did not complete cleanly, no fresh OC headline rows
-  are inserted into this report yet
+- the original scored neutral `AL-S` OC-native rerun failed because native
+  indexing stalled after injection with the store still marked `dirty=true` and
+  `files=0 / chunks=0`
+- that OC blocker is now cleared on the benchmark side:
+  - loopback device repair approval was completed on the VM
+  - the harness OC-native path now uses gateway `agent` / `agent.wait` RPCs
+    instead of the hanging `openclaw agent --local` path
+  - the corrected smoke got through setup, synthetic hook turn, forced reindex,
+    wiki sync, and eval successfully
+- a fresh scored neutral `AL-S` OC-native rerun is now in flight on the
+  corrected harness path
 
 Implication:
 
-- existing OC-native comparison rows remain provisional for now
+- existing OC-native comparison rows remain provisional until the fresh scored
+  rerun finishes
 - this report should still be read as the current Quaid headline study first
 - fresh OC comparison rows should only be added once a neutral scored OC rerun
   completes successfully on the corrected harness path

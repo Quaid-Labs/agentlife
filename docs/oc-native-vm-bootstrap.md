@@ -27,8 +27,10 @@ For `oc-native`, the benchmark itself enables:
 - bundled `session-memory` hook
 - `active-memory` blocking recall sub-agent
 - `memory-wiki` bridge/import/compile flow
-- embeddings pinned to `http://192.168.64.1:11434/v1`
+- embeddings pinned to `http://192.168.64.1:11435/v1`
 - model `qwen3-embedding:8b`
+- the harness starts/reuses a host-side TCP forward on `0.0.0.0:11435`
+  so the VM can reach the host Ollama endpoint at `192.168.64.1:11435`
 
 ## Bootstrap
 
@@ -37,6 +39,7 @@ Provision a clean target:
 ```bash
 cd ~/agentlife-benchmark
 scripts/bootstrap-oc-native-vm.sh \
+  --vm-name quaid-livetest-run \
   --vm-ip 192.168.64.3 \
   --user admin \
   --password admin
@@ -73,10 +76,15 @@ Once the target is clean and healthy:
 ```bash
 cd ~/agentlife-benchmark
 scripts/snapshot-oc-native-vm.sh \
-  --vm-name test-openclaw \
+  --vm-name quaid-livetest-run \
   --snapshot clean-openclaw \
   --replace
 ```
+
+If the VM name/IP drifts, `eval/vm_benchmark.py` now accepts `--vm-name` and,
+for local Tart runs, can fall back to the single running VM and refresh its IP
+from Tart before SSH probes. Passing both explicitly is still the most stable
+path for scored runs.
 
 ## Smoke
 
@@ -86,6 +94,7 @@ Dry-run:
 cd ~/agentlife-benchmark
 python3 eval/vm_benchmark.py \
   --system oc-native \
+  --vm-name quaid-livetest-run \
   --vm-ip 192.168.64.3 \
   --answer-model openai/gpt-5.4 \
   --dry-run
@@ -97,6 +106,7 @@ Small smoke:
 cd ~/agentlife-benchmark
 python3 eval/vm_benchmark.py \
   --system oc-native \
+  --vm-name quaid-livetest-run \
   --vm-ip 192.168.64.3 \
   --answer-model openai/gpt-5.4 \
   --limit-sessions 2 \
@@ -112,6 +122,7 @@ Run `AL-S` as the arc-only small lane:
 cd ~/agentlife-benchmark
 python3 eval/vm_benchmark.py \
   --system oc-native \
+  --vm-name quaid-livetest-run \
   --vm-ip 192.168.64.3 \
   --snapshot clean-openclaw \
   --results-dir data/results-vm-oc-native-current-als \
@@ -127,6 +138,7 @@ Run `AL-L` as the arc-plus-filler long lane:
 cd ~/agentlife-benchmark
 python3 eval/vm_benchmark.py \
   --system oc-native \
+  --vm-name quaid-livetest-run \
   --vm-ip 192.168.64.3 \
   --snapshot clean-openclaw \
   --results-dir data/results-vm-oc-native-current-all \
@@ -143,9 +155,20 @@ scored lane. The VM harness result suffix does not encode `--no-filler`, so
 
 The `oc-native` VM lane measures current OpenClaw native memory behavior, not
 Quaid. The harness writes benchmark transcripts into real OpenClaw session
-files, runs the bundled `/new` `session-memory` hook for each synthetic session,
-forces `openclaw memory index --agent main --force`, then imports/compiles the
-`memory-wiki` bridge before evaluation.
+files, runs a benign gateway-driven agent turn to trigger the bundled
+`session-memory` startup/session hook for each synthetic session, restores the
+synthetic transcript, forces `openclaw memory index --agent main --force`, then
+imports/compiles the `memory-wiki` bridge before evaluation.
+
+Current operational note:
+- on the current VM, `openclaw agent --local` can hang during benchmark
+  automation even when the underlying gateway path is healthy
+- the harness therefore uses `openclaw gateway call agent` plus
+  `openclaw gateway call agent.wait` for the OC-native hook/eval path
+- loopback CLI pairing must be fully approved for operator scopes before scored
+  runs; otherwise gateway calls fail with `pairing required`
+- initial gateway/device commands can take noticeably longer than normal while
+  the local gateway finishes booting
 
 The evaluated stack is:
 - `memory-core` with builtin memory backend
@@ -162,7 +185,7 @@ scored runs do **not** explicitly drive dream/finalize cycles by simulated day.
 
 What is exercised:
 - per-session transcript ingestion
-- bundled `/new` `session-memory` hook execution
+- bundled `session-memory` hook execution via gateway-driven benign turn
 - forced `openclaw memory index --agent main --force`
 - memory-wiki bridge import/compile before eval
 

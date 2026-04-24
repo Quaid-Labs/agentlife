@@ -37,17 +37,30 @@ import shlex
 import subprocess
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from urllib.error import URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 _DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _DIR.parent
 _WORKSPACE = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
 _RUNNER_DIR = _WORKSPACE / "memory-stress-test" / "runner"
+OC_NATIVE_EMBED_PROXY_SCRIPT = _REPO_ROOT / "scripts" / "ollama-openai-embed-proxy.py"
+OC_NATIVE_EMBED_PROXY_PIDFILE = Path("/tmp/oc-native-embed-proxy.pid")
+OC_NATIVE_EMBED_PROXY_LOG = Path("/tmp/oc-native-embed-proxy.log")
+OC_NATIVE_EMBED_TUNNEL_PIDFILE = Path("/tmp/oc-native-embed-tunnel.pid")
+OC_NATIVE_EMBED_TUNNEL_LOG = Path("/tmp/oc-native-embed-tunnel.log")
+OC_NATIVE_EMBED_UPSTREAM = os.environ.get(
+    "OPENCLAW_NATIVE_OLLAMA_UPSTREAM_URL",
+    "http://127.0.0.1:11434",
+)
 OC_NATIVE_EMBED_BASE_URL = os.environ.get(
     "OPENCLAW_NATIVE_OLLAMA_BASE_URL",
-    "http://192.168.64.1:11434/v1",
+    "http://192.168.64.1:11435/v1",
 )
 
 sys.path.insert(0, str(_DIR))
@@ -168,6 +181,51 @@ class TartVM:
         self.password = password
         self.vm_name = vm_name
         self.tart_host = str(tart_host or "").strip() or None
+
+    def _list_local_tart_vms(self) -> list[tuple[str, str]]:
+        """Return local Tart VMs as (name, state)."""
+        result = self._tart_cmd("list", timeout=10)
+        if result.returncode != 0:
+            return []
+        rows: list[tuple[str, str]] = []
+        for raw in result.stdout.splitlines():
+            line = raw.strip()
+            if not line or line.lower().startswith("source "):
+                continue
+            parts = line.split()
+            if len(parts) < 3:
+                continue
+            rows.append((parts[1], parts[-1]))
+        return rows
+
+    def _resolve_local_vm_name(self) -> None:
+        """Prefer a real local Tart VM when the baked-in default is stale."""
+        if self.tart_host:
+            return
+        vms = self._list_local_tart_vms()
+        if any(name == self.vm_name for name, _state in vms):
+            return
+        running = [name for name, state in vms if state == "running"]
+        if len(running) == 1:
+            print(
+                f"  VM name fallback: configured {self.vm_name!r} not found; "
+                f"using running VM {running[0]!r}"
+            )
+            self.vm_name = running[0]
+
+    def _refresh_ip_from_tart(self) -> None:
+        """Update VM IP from Tart when available."""
+        if self.tart_host:
+            return
+        result = self._tart_cmd("ip", self.vm_name, timeout=10)
+        if result.returncode != 0:
+            return
+        resolved = str(result.stdout or "").strip()
+        if not resolved:
+            return
+        if resolved != self.ip:
+            print(f"  VM IP refresh: {self.ip} -> {resolved}")
+            self.ip = resolved
 
     def _readiness_probe_timeout(self) -> int:
         """SSH probe timeout for readiness checks."""
@@ -349,6 +407,8 @@ class TartVM:
 
     def restore(self, name: str):
         """Restore VM to snapshot (or just verify VM is running if snapshots unavailable)."""
+        self._resolve_local_vm_name()
+        self._refresh_ip_from_tart()
         print(f"  Restoring snapshot: {name}")
 
         # Check if tart supports snapshots
@@ -381,6 +441,8 @@ class TartVM:
 
     def wait_ready(self, timeout: int = 120):
         """Wait for SSH to be responsive."""
+        self._resolve_local_vm_name()
+        self._refresh_ip_from_tart()
         print(f"  Waiting for VM at {self.ip}...")
         probe_timeout = self._readiness_probe_timeout()
         deadline = time.monotonic() + timeout
@@ -388,6 +450,8 @@ class TartVM:
         last_error = ""
         while time.monotonic() < deadline:
             attempts += 1
+            if not self.tart_host and attempts % 3 == 1:
+                self._refresh_ip_from_tart()
             try:
                 result = self.ssh("echo ready", timeout=probe_timeout, raw=True)
                 if result.returncode == 0 and "ready" in result.stdout:
@@ -521,7 +585,9 @@ def _build_openclaw_native_config_script(enable_session_hook: bool = True) -> st
         "plugins = d.setdefault('plugins', {})\n"
         "plugins.setdefault('enabled', True)\n"
         "plugins.setdefault('slots', {})['memory'] = 'memory-core'\n"
+        "plugins['allow'] = [item for item in (plugins.get('allow') or []) if item != 'matrix']\n"
         "entries = plugins.setdefault('entries', {})\n"
+        "entries.setdefault('matrix', {})['enabled'] = False\n"
         "entries.setdefault('memory-core', {})['enabled'] = True\n"
         "entries.setdefault('active-memory', {})['enabled'] = True\n"
         "active_memory = entries.setdefault('active-memory', {}).setdefault('config', {})\n"
@@ -560,6 +626,8 @@ def _build_openclaw_native_config_script(enable_session_hook: bool = True) -> st
         "entries.pop('quaid', None)\n"
         "memory = d.setdefault('memory', {})\n"
         "memory['backend'] = 'builtin'\n"
+        "channels = d.setdefault('channels', {})\n"
+        "channels.setdefault('matrix', {})['enabled'] = False\n"
         "agents = d.setdefault('agents', {}).setdefault('defaults', {})\n"
         "tools = d.setdefault('tools', {})\n"
         f"tools['allow'] = {OC_NATIVE_MEMORY_TOOLS!r}\n"
@@ -601,20 +669,130 @@ def _patch_openclaw_native_memory(vm: TartVM, enable_session_hook: bool = True):
         print(f"  {result.stdout.strip()}")
 
 
+def _read_text_tail(path: Path, limit: int = 800) -> str:
+    try:
+        text = path.read_text(errors="replace")
+    except Exception:
+        return ""
+    return text[-limit:]
+
+
+def _probe_json_url(url: str, timeout: int = 5) -> tuple[bool, str]:
+    try:
+        req = Request(url, headers={"Accept": "application/json"})
+        with urlopen(req, timeout=timeout) as resp:
+            payload = json.load(resp)
+        return True, json.dumps(payload)[:200]
+    except Exception as exc:
+        return False, str(exc)
+
+
+def _warm_oc_native_embed_upstream() -> None:
+    upstream = OC_NATIVE_EMBED_UPSTREAM.rstrip("/")
+    payload = json.dumps({"model": "qwen3-embedding:8b", "input": ["ping"]}).encode("utf-8")
+    req = Request(
+        f"{upstream}/v1/embeddings",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ollama-local",
+        },
+    )
+    try:
+        # The first Ollama embedding after a fresh VM restore can take well over
+        # a minute while the 8B model fully spins up on the host.
+        with urlopen(req, timeout=240) as resp:
+            data = json.load(resp)
+    except Exception as exc:
+        raise RuntimeError(f"oc-native embed upstream warmup failed: {exc}") from exc
+    emb = (((data.get("data") or [{}])[0]).get("embedding") or [])
+    if not emb:
+        raise RuntimeError("oc-native embed upstream warmup returned empty embedding")
+    print(f"  OC native embed upstream warmed ({len(emb)} dims)")
+
+
+def _ensure_oc_native_embed_proxy() -> None:
+    """Ensure a host-local OpenAI-compatible proxy exists before tunneling it into the VM."""
+    upstream = OC_NATIVE_EMBED_UPSTREAM.rstrip("/")
+    healthy, detail = _probe_json_url(f"{upstream}/v1/models")
+    if not healthy:
+        raise RuntimeError(f"oc-native host embed upstream not ready: {detail}")
+    try:
+        _warm_oc_native_embed_upstream()
+    except Exception as exc:
+        # Keep the real fail-hard gate on the VM-side embedding probe below.
+        # Host-side warmup is only a cold-start acceleration hint and can hang
+        # even when the guest-visible embedding path later validates cleanly.
+        print(f"  WARN: oc-native embed upstream warmup skipped: {exc}")
+
+    parsed = urlparse(OC_NATIVE_EMBED_BASE_URL)
+    port = parsed.port or 80
+    healthy, _detail = _probe_json_url(f"http://127.0.0.1:{port}/v1/models")
+    if healthy:
+        print(f"  OC native embed proxy ready on host localhost:{port}")
+        return
+
+    pid = None
+    if OC_NATIVE_EMBED_PROXY_PIDFILE.exists():
+        try:
+            pid = int(OC_NATIVE_EMBED_PROXY_PIDFILE.read_text().strip())
+        except ValueError:
+            pid = None
+    if pid:
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            OC_NATIVE_EMBED_PROXY_PIDFILE.unlink(missing_ok=True)
+
+    with OC_NATIVE_EMBED_PROXY_LOG.open("ab") as log:
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                str(OC_NATIVE_EMBED_PROXY_SCRIPT),
+                "--host",
+                "0.0.0.0",
+                "--port",
+                str(port),
+                "--upstream",
+                upstream,
+            ],
+            stdout=log,
+            stderr=log,
+            stdin=subprocess.DEVNULL,
+        )
+    OC_NATIVE_EMBED_PROXY_PIDFILE.write_text(f"{proc.pid}\n")
+
+    last_detail = "proxy startup probe unavailable"
+    for _ in range(20):
+        healthy, last_detail = _probe_json_url(f"http://127.0.0.1:{port}/v1/models")
+        if healthy:
+            print(f"  OC native embed proxy ready on host localhost:{port}")
+            return
+        time.sleep(0.5)
+
+    tail = _read_text_tail(OC_NATIVE_EMBED_PROXY_LOG)
+    raise RuntimeError(
+        "oc-native embed proxy did not become ready: "
+        f"{last_detail} | log_tail={tail}"
+    )
+
+
 def _validate_openclaw_native_memory(vm: TartVM):
     """Fail fast if the native OpenClaw memory baseline is not actually usable."""
-    result = vm.ssh(
-        "openclaw memory status --agent main --json",
-        timeout=30,
+    config_script = (
+        "import json, os\n"
+        "cfg = json.load(open(os.path.expanduser('~/.openclaw/openclaw.json')))\n"
+        "ms = (((cfg.get('agents') or {}).get('defaults') or {}).get('memorySearch') or {})\n"
+        "print(json.dumps({'provider': ms.get('provider'), 'model': ms.get('model'), 'baseUrl': (ms.get('remote') or {}).get('baseUrl')}, ensure_ascii=False))\n"
     )
-    if result.returncode != 0:
-        raise RuntimeError(f"openclaw memory status failed: {result.stderr[:200]}")
+    config_result = vm.ssh("python3 -c " + shlex.quote(config_script), timeout=30)
+    if config_result.returncode != 0:
+        raise RuntimeError(f"oc-native config read failed: {config_result.stderr[:200]}")
     try:
-        payload = _extract_openclaw_memory_status(result.stdout)
-        status = payload[0]["status"]
+        status = json.loads(config_result.stdout.strip())
     except Exception as exc:
         raise RuntimeError(
-            f"Could not parse openclaw memory status JSON: {result.stdout[:300]}"
+            f"Could not parse oc-native memory config JSON: {config_result.stdout[:300]}"
         ) from exc
 
     provider = status.get("provider")
@@ -706,6 +884,151 @@ def _list_vm_session_jsonl_files(vm: TartVM) -> List[str]:
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
+def _read_vm_session_jsonl(vm: TartVM, session_id: str) -> str:
+    """Read a VM session JSONL file, returning an empty string if missing."""
+    result = vm.ssh(
+        f"cat {VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl 2>/dev/null || true",
+        timeout=15,
+        raw=True,
+    )
+    return result.stdout or ""
+
+
+def _extract_oc_native_gateway_run_id(payload: dict) -> str:
+    run_id = payload.get("runId") if isinstance(payload, dict) else None
+    if (not isinstance(run_id, str) or not run_id.strip()) and isinstance(payload.get("result"), dict):
+        run_id = payload["result"].get("runId")
+    return run_id.strip() if isinstance(run_id, str) else ""
+
+
+def _oc_native_gateway_call(
+    vm: TartVM,
+    method: str,
+    params: dict,
+    *,
+    timeout_s: int,
+    ssh_timeout_s: Optional[int] = None,
+) -> dict:
+    """Call the OC-native gateway on the VM and return parsed JSON."""
+    command = (
+        "OPENCLAW_CONFIG_PATH=$HOME/.openclaw/openclaw.json "
+        f"openclaw gateway call {method} --json "
+        f"--params {shlex.quote(json.dumps(params, ensure_ascii=False))} "
+        f"--timeout {int(timeout_s * 1000)}"
+    )
+    result = vm.ssh(
+        command,
+        timeout=ssh_timeout_s or max(timeout_s + 15, 30),
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(
+            f"oc-native gateway call failed method={method}: {detail[:300]}"
+        )
+    try:
+        return json.loads(result.stdout or "{}")
+    except Exception as exc:
+        raise RuntimeError(
+            f"oc-native gateway call returned invalid JSON for {method}: {(result.stdout or '')[:200]}"
+        ) from exc
+
+
+def _read_oc_native_last_assistant_message(vm: TartVM, session_id: str) -> str:
+    """Read the latest assistant text content from an OC-native session file."""
+    script = (
+        "import json\n"
+        "from pathlib import Path\n"
+        f"session_id = {session_id!r}\n"
+        "path = Path.home()/'.openclaw'/'agents'/'main'/'sessions'/f'{session_id}.jsonl'\n"
+        "answer = ''\n"
+        "if path.exists():\n"
+        "    for raw in reversed(path.read_text(errors='replace').splitlines()):\n"
+        "        if not raw.strip():\n"
+        "            continue\n"
+        "        try:\n"
+        "            event = json.loads(raw)\n"
+        "        except Exception:\n"
+        "            continue\n"
+        "        if event.get('type') != 'message':\n"
+        "            continue\n"
+        "        message = event.get('message') or {}\n"
+        "        if message.get('role') != 'assistant':\n"
+        "            continue\n"
+        "        parts = []\n"
+        "        for item in message.get('content') or []:\n"
+        "            if isinstance(item, dict) and item.get('type') == 'text':\n"
+        "                text = item.get('text')\n"
+        "                if isinstance(text, str) and text.strip():\n"
+        "                    parts.append(text)\n"
+        "        answer = '\\n'.join(parts).strip()\n"
+        "        break\n"
+        "print(answer)\n"
+    )
+    result = vm.ssh(
+        "python3 -c " + shlex.quote(script),
+        timeout=20,
+        raw=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"oc-native session parse failed for {session_id}: {(result.stderr or result.stdout)[:200]}"
+        )
+    return (result.stdout or "").strip()
+
+
+def _run_oc_native_gateway_turn(
+    vm: TartVM,
+    session_id: str,
+    message: str,
+    *,
+    timeout_s: int,
+) -> str:
+    """Run an OC-native agent turn via gateway RPC and return the assistant text."""
+    payload = _oc_native_gateway_call(
+        vm,
+        "agent",
+        {
+            "agentId": "main",
+            "sessionKey": "agent:main:main",
+            "sessionId": session_id,
+            "message": message,
+            "idempotencyKey": f"bench-oc-{session_id}-{uuid.uuid4().hex[:12]}",
+        },
+        timeout_s=max(timeout_s, 45),
+        ssh_timeout_s=max(timeout_s + 30, 90),
+    )
+    run_id = _extract_oc_native_gateway_run_id(payload)
+    if run_id:
+        wait_payload = _oc_native_gateway_call(
+            vm,
+            "agent.wait",
+            {
+                "runId": run_id,
+                "timeoutMs": min((timeout_s + 60) * 1000, 240000),
+            },
+            timeout_s=max(timeout_s + 30, 90),
+            ssh_timeout_s=max(timeout_s + 45, 120),
+        )
+        status = str(
+            wait_payload.get("status")
+            or wait_payload.get("state")
+            or (
+                wait_payload.get("result", {}).get("status")
+                if isinstance(wait_payload.get("result"), dict)
+                else ""
+            )
+            or ""
+        ).strip().lower()
+        if status not in {"ok", "succeeded", "success", "done", "completed", "complete"}:
+            raise RuntimeError(
+                f"oc-native agent.wait did not complete cleanly for {session_id}: {wait_payload}"
+            )
+    answer = _read_oc_native_last_assistant_message(vm, session_id)
+    if not answer:
+        raise RuntimeError(f"oc-native gateway turn produced no assistant text for {session_id}")
+    return answer
+
+
 def _force_openclaw_native_reindex(
     vm: TartVM, source_name: str = "sessions", min_indexed_files: int = 1
 ) -> dict:
@@ -793,57 +1116,21 @@ def _sync_openclaw_native_wiki(vm: TartVM):
 
 
 def _run_oc_native_session_hook(vm: TartVM, session_id: str):
-    """Run the bundled session-memory hook via `/new`, then restore transcript.
+    """Run the bundled session-memory hook via a benign agent turn, then restore transcript.
 
-    The hook writes markdown into workspace/memory, but `/new` can rotate or clear
-    the active transcript. We restore the latest reset copy so native session
-    indexing can still see the original synthetic benchmark conversation.
+    A full `/new` round-trip is flaky on the current OC VM. A short normal agent
+    turn through the gateway still exercises the same startup/session hook path.
+    We restore the synthetic transcript afterward so native session indexing sees
+    only the benchmark conversation, not the benign hook turn.
     """
     _register_session(vm, session_id)
-    before_files = set(_list_vm_session_jsonl_files(vm))
-    result = vm.ssh(
-        f"openclaw agent --agent main --session-id {session_id} --message '/new'",
-        timeout=90,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"oc-native session hook failed for {session_id}: {result.stderr[:200]}")
-    after_files = set(_list_vm_session_jsonl_files(vm))
-    extra_files = sorted(after_files - before_files - {f"{session_id}.jsonl"})
-    script = (
-        "from pathlib import Path\n"
-        "import json\n"
-        f"sid = {session_id!r}\n"
-        f"extra_files = {extra_files!r}\n"
-        "base = Path.home()/'.openclaw'/'agents'/'main'/'sessions'\n"
-        "active = base / f'{sid}.jsonl'\n"
-        "resets = sorted(base.glob(f'{sid}.jsonl.reset.*'))\n"
-        "if resets:\n"
-        "    active.write_text(resets[-1].read_text())\n"
-        "store = base / 'sessions.json'\n"
-        "payload = {}\n"
-        "if store.exists():\n"
-        "    try:\n"
-        "        payload = json.loads(store.read_text() or '{}')\n"
-        "    except Exception:\n"
-        "        payload = {}\n"
-        "sessions = payload.get('sessions')\n"
-        "if isinstance(sessions, list):\n"
-        "    payload['sessions'] = [entry for entry in sessions if entry.get('id') not in {name[:-6] for name in extra_files if name.endswith('.jsonl')}]\n"
-        "elif isinstance(payload, dict):\n"
-        "    for name in extra_files:\n"
-        "        if name.endswith('.jsonl'):\n"
-        "            payload.pop(name[:-6], None)\n"
-        "if payload and store.exists():\n"
-        "    store.write_text(json.dumps(payload, indent=2))\n"
-        "for name in extra_files:\n"
-        "    (base / name).unlink(missing_ok=True)\n"
-        "for path in resets:\n"
-        "    path.unlink(missing_ok=True)\n"
-        "print('hook-complete')\n"
-    )
-    restore = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
+    original = _read_vm_session_jsonl(vm, session_id)
+    _run_oc_native_gateway_turn(vm, session_id, "hello", timeout_s=45)
+    restore = _write_vm_session_jsonl(vm, session_id, original, append=False)
     if restore.returncode != 0:
-        raise RuntimeError(f"oc-native transcript restore failed for {session_id}: {restore.stderr[:200]}")
+        raise RuntimeError(
+            f"oc-native transcript restore failed for {session_id}: {(restore.stderr or restore.stdout)[:200]}"
+        )
 
 
 def _probe_vm_tcp_port(vm: TartVM, host: str, port: int, timeout_s: float = 3.0) -> bool:
@@ -900,7 +1187,7 @@ def _restart_oc_native_gateway(vm: TartVM, port: int = 18789):
         ">/tmp/openclaw-gateway-bench.log 2>&1 || true",
         timeout=60,
     )
-    if _wait_for_vm_tcp_port(vm, "127.0.0.1", port, timeout_s=15.0, probe_timeout_s=3.0):
+    if _wait_for_vm_tcp_port(vm, "127.0.0.1", port, timeout_s=40.0, probe_timeout_s=3.0):
         print("  Gateway verified: responding")
         return
     vm.ssh(
@@ -908,7 +1195,7 @@ def _restart_oc_native_gateway(vm: TartVM, port: int = 18789):
         ">/tmp/openclaw-gateway-bench.log 2>&1 &",
         timeout=20,
     )
-    if not _wait_for_vm_tcp_port(vm, "127.0.0.1", port, timeout_s=20.0, probe_timeout_s=3.0):
+    if not _wait_for_vm_tcp_port(vm, "127.0.0.1", port, timeout_s=30.0, probe_timeout_s=3.0):
         raise RuntimeError("oc-native gateway did not become reachable after restart")
     print("  Gateway verified: responding")
 
@@ -2224,10 +2511,22 @@ def _evaluate_vm_agent(vm: TartVM, question: str, query_idx: int,
 
     for attempt in range(1, VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES + 2):
         try:
-            result = vm.ssh(
-                f"openclaw agent --agent main --session-id {session_id} --message {escaped_question}",
-                timeout=VM_AGENT_EVAL_TIMEOUT_S,
-            )
+            if system == "oc-native":
+                response = _run_oc_native_gateway_turn(
+                    vm,
+                    session_id,
+                    question,
+                    timeout_s=VM_AGENT_EVAL_TIMEOUT_S,
+                )
+            else:
+                command = (
+                    f"openclaw agent --agent main --session-id {session_id} "
+                    f"--message {escaped_question}"
+                )
+                result = vm.ssh(
+                    command,
+                    timeout=VM_AGENT_EVAL_TIMEOUT_S,
+                )
             break
         except subprocess.TimeoutExpired as exc:
             if attempt <= VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES:
@@ -2240,6 +2539,9 @@ def _evaluate_vm_agent(vm: TartVM, question: str, query_idx: int,
                 f"Eval query timed out after {VM_AGENT_EVAL_TIMEOUT_S}s "
                 f"(session={session_id}, query_idx={query_idx})"
             ) from exc
+
+    if system == "oc-native":
+        return _extract_agent_answer(response)
 
     if result.returncode != 0:
         return f"Error: {result.stderr[:200]}"
@@ -2582,11 +2884,11 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         # - active-memory blocking recall sub-agent enabled
         # - memory-wiki bridge enabled and synced after injection
         # - direct session transcript indexing enabled
-        vm.ssh("openclaw plugins disable quaid 2>/dev/null || true")
-        vm.ssh("openclaw plugins disable memory-lancedb 2>/dev/null || true")
-        vm.ssh("openclaw plugins enable memory-core 2>/dev/null || true")
-        vm.ssh("openclaw plugins enable active-memory 2>/dev/null || true")
-        vm.ssh("openclaw plugins enable memory-wiki 2>/dev/null || true")
+        #
+        # Keep this config-driven. On current OC VMs, `openclaw plugins
+        # enable/disable ...` can hang over SSH even though directly patching
+        # ~/.openclaw/openclaw.json is sufficient and more stable.
+        _ensure_oc_native_embed_proxy()
         _patch_openclaw_native_memory(vm, enable_session_hook=True)
         print(
             "  OpenClaw native configured "
@@ -2733,6 +3035,7 @@ def run_benchmark(
     system: str,
     mode: str = "natural",
     vm_ip: str = "192.168.64.3",
+    vm_name: str = "test-openclaw",
     tart_host: Optional[str] = None,
     results_base: Optional[Path] = None,
     assets_dir: Optional[Path] = None,
@@ -2809,7 +3112,7 @@ def run_benchmark(
             print(f"  Timestamps: {ts_path} ({'exists' if ts_path.exists() else 'MISSING'})")
         return {"system": system, "mode": mode, "splitting": splitting, "dry_run": True}
 
-    vm = TartVM(ip=vm_ip, tart_host=tart_host)
+    vm = TartVM(ip=vm_ip, vm_name=vm_name, tart_host=tart_host)
 
     # Phase 1: Setup
     if not eval_only:
@@ -2934,6 +3237,8 @@ def main():
                         help="Compaction strategy")
     parser.add_argument("--vm-ip", type=str, default="192.168.64.3",
                         help="Tart VM IP address")
+    parser.add_argument("--vm-name", type=str, default="test-openclaw",
+                        help="Tart VM name (used for local restore/ip refresh)")
     parser.add_argument("--tart-host", type=str, default="",
                         help="Optional SSH host that runs Tart (e.g. alfie.local)")
     parser.add_argument("--results-dir", type=str,
@@ -3003,6 +3308,7 @@ def main():
             system=system,
             mode=args.mode,
             vm_ip=args.vm_ip,
+            vm_name=args.vm_name,
             tart_host=args.tart_host or None,
             results_base=results_base,
             assets_dir=assets_dir,
