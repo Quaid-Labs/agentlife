@@ -182,7 +182,7 @@ class TestOpenClawNativeConfig:
         )
         assert resolved == "openai/gpt-5.4"
 
-    def test_provision_openclaw_openai_key_writes_auth_profile(self, monkeypatch):
+    def test_provision_openclaw_openai_key_writes_env_and_auth_profile(self, monkeypatch):
         calls = []
 
         class _Vm:
@@ -191,7 +191,7 @@ class TestOpenClawNativeConfig:
 
                 class _Result:
                     returncode = 0
-                    stdout = "OpenClaw direct OpenAI auth profile installed\n"
+                    stdout = "OpenClaw direct OpenAI auth installed (.env + auth profile)\n"
                     stderr = ""
 
                 return _Result()
@@ -201,6 +201,8 @@ class TestOpenClawNativeConfig:
         assert calls[0][1] == "sk-test"
         assert "'openai:default'" in calls[0][0]
         assert "last_good" in calls[0][0]
+        assert "OPENAI_API_KEY=" in calls[0][0]
+        assert "env_path" in calls[0][0]
 
     def test_provision_openclaw_openai_key_requires_key(self, monkeypatch):
         monkeypatch.setattr(vmb, "_resolve_openai_api_key_for_vm", lambda: "")

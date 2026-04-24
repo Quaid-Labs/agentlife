@@ -1992,7 +1992,8 @@ def _provision_openclaw_openai_key(vm: TartVM):
         "token = sys.stdin.read().strip()\n"
         "if not token:\n"
         "    raise SystemExit('missing OpenAI token')\n"
-        "p = pathlib.Path.home() / '.openclaw' / 'agents' / 'main' / 'agent' / 'auth-profiles.json'\n"
+        "openclaw_root = pathlib.Path.home() / '.openclaw'\n"
+        "p = openclaw_root / 'agents' / 'main' / 'agent' / 'auth-profiles.json'\n"
         "p.parent.mkdir(parents=True, exist_ok=True)\n"
         "try:\n"
         "    data = json.loads(p.read_text() or '{}') if p.exists() else {}\n"
@@ -2008,7 +2009,16 @@ def _provision_openclaw_openai_key(vm: TartVM):
         "tmp.write_text(json.dumps(data, indent=2) + '\\n')\n"
         "os.chmod(tmp, 0o600)\n"
         "tmp.replace(p)\n"
-        "print('OpenClaw direct OpenAI auth profile installed')\n"
+        "env_path = openclaw_root / '.env'\n"
+        "env_lines = []\n"
+        "if env_path.exists():\n"
+        "    env_lines = [line for line in env_path.read_text().splitlines() if not line.startswith('OPENAI_API_KEY=')]\n"
+        "env_lines.append(f'OPENAI_API_KEY={token}')\n"
+        "tmp_env = env_path.with_suffix('.env.tmp')\n"
+        "tmp_env.write_text('\\n'.join(env_lines) + '\\n')\n"
+        "os.chmod(tmp_env, 0o600)\n"
+        "tmp_env.replace(env_path)\n"
+        "print('OpenClaw direct OpenAI auth installed (.env + auth profile)')\n"
     )
     result = vm.ssh("python3 -c " + shlex.quote(script), input_data=key, timeout=10)
     if result.returncode != 0:

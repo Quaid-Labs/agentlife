@@ -58,10 +58,13 @@ During `oc-native` setup, the VM harness writes that key to:
 
 ```text
 ~/.openclaw/agents/main/agent/auth-profiles.json
+~/.openclaw/.env
 ```
 
-The profile written is `profiles["openai:default"].token`, and
-`lastGood["openai"]` is set to `openai:default`.
+The profile written is `profiles["openai:default"].token`, `lastGood["openai"]`
+is set to `openai:default`, and `OPENAI_API_KEY=...` is written into
+`~/.openclaw/.env` because the current `openclaw agent` path resolves direct
+OpenAI auth from the environment rather than the profile file alone.
 
 ## Snapshot
 
