@@ -897,6 +897,13 @@ class TestVmEvalIsolation:
 
 
 class TestOcNativeGatewayStartup:
+    def test_probe_vm_tcp_port_treats_ssh_timeout_as_not_ready(self):
+        class _Vm:
+            def ssh(self, *_args, **_kwargs):
+                raise subprocess.TimeoutExpired("ssh", timeout=5)
+
+        assert vmb._probe_vm_tcp_port(_Vm(), "127.0.0.1", 18789, timeout_s=3.0) is False
+
     def test_restart_oc_native_gateway_falls_back_to_gateway_run(self, monkeypatch):
         calls = []
         waits = iter([False, True])

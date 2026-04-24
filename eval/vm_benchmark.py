@@ -1250,7 +1250,13 @@ def _probe_vm_tcp_port(vm: TartVM, host: str, port: int, timeout_s: float = 3.0)
         "    except Exception:\n"
         "        pass\n"
     )
-    result = vm.ssh("python3 -c " + shlex.quote(script), timeout=max(5, int(timeout_s) + 2))
+    try:
+        result = vm.ssh(
+            "python3 -c " + shlex.quote(script),
+            timeout=max(10, int(timeout_s) + 5),
+        )
+    except subprocess.TimeoutExpired:
+        return False
     return result.returncode == 0
 
 
