@@ -1093,7 +1093,10 @@ def _run_oc_native_gateway_turn(
             "idempotencyKey": f"bench-oc-{session_id}-{uuid.uuid4().hex[:12]}",
         },
         timeout_s=max(timeout_s, 45),
-        ssh_timeout_s=max(timeout_s + 30, 90),
+        # OC-native gateway acceptance can lag well past the logical RPC
+        # timeout under heavy startup/indexing load. Do not let the outer SSH
+        # wrapper kill a still-live gateway call prematurely.
+        ssh_timeout_s=max(timeout_s + 150, 240),
     )
     run_id = _extract_oc_native_gateway_run_id(payload)
     if run_id:
@@ -1105,7 +1108,7 @@ def _run_oc_native_gateway_turn(
                 "timeoutMs": min((timeout_s + 60) * 1000, 240000),
             },
             timeout_s=max(timeout_s + 30, 90),
-            ssh_timeout_s=max(timeout_s + 45, 120),
+            ssh_timeout_s=max(timeout_s + 180, 300),
         )
         status = str(
             wait_payload.get("status")

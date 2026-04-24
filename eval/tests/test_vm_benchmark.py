@@ -771,34 +771,36 @@ class TestVmEvalIsolation:
         assert repair_calls
         assert all(not kwargs.get("raw", False) for kwargs in repair_calls)
 
-    def test_run_oc_native_gateway_turn_uses_gateway_rpc_and_reads_last_assistant_text(self):
-        calls = []
+    def test_run_oc_native_gateway_turn_uses_gateway_rpc_and_reads_last_assistant_text(self, monkeypatch):
+        gateway_calls = []
 
-        class _Vm:
-            def ssh(self, command, **_kwargs):
-                calls.append(command)
+        def _fake_gateway_call(vm, method, params, *, timeout_s, ssh_timeout_s=None):
+            gateway_calls.append(
+                {
+                    "method": method,
+                    "params": params,
+                    "timeout_s": timeout_s,
+                    "ssh_timeout_s": ssh_timeout_s,
+                }
+            )
+            if method == "agent":
+                return {"runId": "run-123", "status": "accepted"}
+            if method == "agent.wait":
+                return {"runId": "run-123", "status": "ok"}
+            raise AssertionError(method)
 
-                class _Result:
-                    def __init__(self, returncode=0, stdout="", stderr=""):
-                        self.returncode = returncode
-                        self.stdout = stdout
-                        self.stderr = stderr
+        monkeypatch.setattr(vmb, "_oc_native_gateway_call", _fake_gateway_call)
+        monkeypatch.setattr(vmb, "_read_oc_native_last_assistant_message", lambda _vm, _sid: "assistant-answer")
 
-                if "gateway call agent --json" in command:
-                    return _Result(stdout='{"runId":"run-123","status":"accepted"}')
-                if "gateway call agent.wait --json" in command:
-                    return _Result(stdout='{"runId":"run-123","status":"ok"}')
-                if "python3 -c " in command:
-                    return _Result(stdout="assistant-answer\n")
-                return _Result()
-
-        answer = vmb._run_oc_native_gateway_turn(_Vm(), "eval-q007", "Who is Maya?", timeout_s=30)
+        answer = vmb._run_oc_native_gateway_turn(object(), "eval-q007", "Who is Maya?", timeout_s=30)
         assert answer == "assistant-answer"
-        assert "openclaw gateway call agent --json" in calls[0]
-        assert '"sessionId": "eval-q007"' in calls[0]
-        assert '"message": "Who is Maya?"' in calls[0]
-        assert "openclaw gateway call agent.wait --json" in calls[1]
-        assert '"runId": "run-123"' in calls[1]
+        assert gateway_calls[0]["method"] == "agent"
+        assert gateway_calls[0]["params"]["sessionId"] == "eval-q007"
+        assert gateway_calls[0]["params"]["message"] == "Who is Maya?"
+        assert gateway_calls[0]["ssh_timeout_s"] == 240
+        assert gateway_calls[1]["method"] == "agent.wait"
+        assert gateway_calls[1]["params"]["runId"] == "run-123"
+        assert gateway_calls[1]["ssh_timeout_s"] == 300
 
     def test_register_session_persists_session_file_pointer(self, monkeypatch):
         calls = []
