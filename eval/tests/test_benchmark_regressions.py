@@ -1514,12 +1514,13 @@ class TestObdMessageStream:
             _Review(2, [{"maya": "three"}, {"agent": "four"}]),
         ]
         out = rpb._build_obd_message_stream(reviews)
-        assert out == [
-            {"role": "user", "content": "one"},
-            {"role": "assistant", "content": "two"},
-            {"role": "user", "content": "three"},
-            {"role": "assistant", "content": "four"},
-        ]
+        assert [msg["role"] for msg in out] == ["user", "assistant", "user", "assistant"]
+        assert [msg["content"].splitlines()[-1] for msg in out] == ["one", "two", "three", "four"]
+        assert all(msg["content"].startswith("Source Timestamp: ") for msg in out)
+        assert out[0]["created_at"].startswith("2026-03-01T")
+        assert out[1]["created_at"].startswith("2026-03-01T")
+        assert out[2]["created_at"].startswith("2026-03-03T")
+        assert out[3]["created_at"].startswith("2026-03-03T")
 
     def test_skips_blank_turns(self):
         @dataclass
@@ -1529,7 +1530,11 @@ class TestObdMessageStream:
 
         reviews = [_Review(1, [{"maya": "   ", "agent": ""}, {"maya": "hi"}])]
         out = rpb._build_obd_message_stream(reviews)
-        assert out == [{"role": "user", "content": "hi"}]
+        assert len(out) == 1
+        assert out[0]["role"] == "user"
+        assert out[0]["content"].splitlines()[-1] == "hi"
+        assert out[0]["content"].startswith("Source Timestamp: ")
+        assert out[0]["created_at"].startswith("2026-03-01T")
 
 
 class TestRuntimeExtractJsonl:
@@ -9273,8 +9278,8 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
 
     rpb._write_session_jsonl(
         [
-            {"role": "user", "content": "hello"},
-            {"role": "assistant", "content": "world"},
+            {"role": "user", "content": "hello", "created_at": "2026-03-01T09:00:00Z"},
+            {"role": "assistant", "content": "world", "created_at": "2026-03-01T09:01:00Z"},
         ],
         path,
     )
@@ -9283,8 +9288,29 @@ def test_write_session_jsonl_uses_codex_shape_for_codex_backend(tmp_path, monkey
     assert rows[0]["type"] == "response_item"
     assert rows[0]["payload"]["role"] == "user"
     assert rows[0]["payload"]["content"][0]["input_text"] == "hello"
+    assert rows[0]["created_at"] == "2026-03-01T09:00:00Z"
     assert rows[1]["payload"]["role"] == "assistant"
     assert rows[1]["payload"]["content"][0]["output_text"] == "world"
+    assert rows[1]["created_at"] == "2026-03-01T09:01:00Z"
+
+
+def test_write_session_jsonl_preserves_created_at_for_default_backend(tmp_path, monkeypatch):
+    path = tmp_path / "session.jsonl"
+    monkeypatch.setattr(rpb, "_BACKEND", "anthropic-api")
+
+    rpb._write_session_jsonl(
+        [
+            {"role": "user", "content": "hello", "created_at": "2026-03-01T09:00:00Z"},
+            {"role": "assistant", "content": "world"},
+        ],
+        path,
+    )
+
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    assert rows == [
+        {"role": "user", "content": "hello", "created_at": "2026-03-01T09:00:00Z"},
+        {"role": "assistant", "content": "world"},
+    ]
 
     def test_project_log_writes_use_benchmark_instance(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"

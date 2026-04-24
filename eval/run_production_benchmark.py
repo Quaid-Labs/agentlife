@@ -4348,18 +4348,98 @@ def _estimate_text_tokens(text: str) -> int:
             pass
     return max(1, len(text.split()) * 4 // 3)
 
+def _review_session_key(review) -> str:
+    snum = int(getattr(review, "session_num", 0) or 0)
+    if snum > 0:
+        return f"S{snum:02d}"
+    if snum < 0:
+        return f"F{abs(snum):03d}"
+    return "unknown"
+
+
+def _format_source_created_at(value: datetime) -> str:
+    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _session_start_for_source_timestamps(review) -> datetime:
+    return _parse_review_timestamp(review)
+
+
+def _annotated_obd_message_content(text: str, created_at: str) -> str:
+    body = str(text or "").strip()
+    if not body:
+        return ""
+    if re.search(r"(?im)^Source Timestamp:\s*", body):
+        return body
+    return f"Source Timestamp: {created_at}\n{body}"
+
+
+def _message_created_ats_for_review(review, turns: List[Dict[str, Any]]) -> List[str]:
+    try:
+        from annotate_timestamps import generate_message_timestamps  # type: ignore
+
+        seed = f"obd-source-ts:{_review_session_key(review)}"
+        rng = random.Random(seed)
+        rows = generate_message_timestamps(_session_start_for_source_timestamps(review), turns, rng)
+        created_ats: List[str] = []
+        for row in rows:
+            ts_ms = row.get("timestamp_ms")
+            if ts_ms is None:
+                continue
+            try:
+                created_ats.append(
+                    _format_source_created_at(datetime.fromtimestamp(int(ts_ms) / 1000, tz=timezone.utc))
+                )
+            except Exception:
+                continue
+        if created_ats:
+            return created_ats
+    except Exception:
+        pass
+
+    fallback = _format_source_created_at(_session_start_for_source_timestamps(review))
+    return [fallback] * sum(
+        1
+        for turn in turns
+        if isinstance(turn, dict)
+        for text in (str(turn.get("maya", "") or "").strip(), str(turn.get("agent", "") or "").strip())
+        if text
+    )
+
+
 def _messages_from_review(review) -> List[Dict[str, str]]:
     """Convert a review transcript into role/content message pairs."""
+    turns = [turn for turn in (getattr(review, "transcript_turns", []) or []) if isinstance(turn, dict)]
+    created_ats = _message_created_ats_for_review(review, turns) if turns else []
+    next_idx = 0
     messages: List[Dict[str, str]] = []
-    for turn in getattr(review, "transcript_turns", []) or []:
-        if not isinstance(turn, dict):
-            continue
+    for turn in turns:
         user_text = str(turn.get("maya", "") or "").strip()
         if user_text:
-            messages.append({"role": "user", "content": user_text})
+            created_at = created_ats[next_idx] if next_idx < len(created_ats) else _format_source_created_at(
+                _session_start_for_source_timestamps(review)
+            )
+            messages.append(
+                {
+                    "role": "user",
+                    "content": _annotated_obd_message_content(user_text, created_at),
+                    "created_at": created_at,
+                }
+            )
+            next_idx += 1
         assistant_text = str(turn.get("agent", "") or "").strip()
         if assistant_text:
-            messages.append({"role": "assistant", "content": assistant_text})
+            created_at = created_ats[next_idx] if next_idx < len(created_ats) else _format_source_created_at(
+                _session_start_for_source_timestamps(review)
+            )
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": _annotated_obd_message_content(assistant_text, created_at),
+                    "created_at": created_at,
+                }
+            )
+            next_idx += 1
     if messages:
         return messages
 
@@ -4367,7 +4447,14 @@ def _messages_from_review(review) -> List[Dict[str, str]]:
     # transcript text. Preserve a runtime-usable message stream in that case.
     transcript = format_transcript_for_extraction(review).strip()
     if transcript:
-        messages.append({"role": "user", "content": transcript})
+        created_at = _format_source_created_at(_session_start_for_source_timestamps(review))
+        messages.append(
+            {
+                "role": "user",
+                "content": _annotated_obd_message_content(transcript, created_at),
+                "created_at": created_at,
+            }
+        )
     return messages
 
 
@@ -5031,25 +5118,28 @@ def _write_session_jsonl(messages: List[Dict[str, str]], path: Path) -> None:
         for msg in messages:
             role = str(msg.get("role") or "").strip().lower()
             content = str(msg.get("content") or "")
+            created_at = str(msg.get("created_at") or "").strip()
             if _BACKEND == "codex":
-                payload_role = "assistant" if role == "assistant" else "user"
-                text_key = "output_text" if payload_role == "assistant" else "input_text"
-                f.write(
-                    json.dumps(
-                        {
-                            "type": "response_item",
-                            "payload": {
-                                "type": "message",
-                                "role": payload_role,
-                                "content": [{text_key: content}],
-                            },
-                        },
-                        ensure_ascii=True,
-                    )
-                    + "\n"
-                )
+                row = {
+                    "type": "response_item",
+                    "payload": {
+                        "type": "message",
+                        "role": "assistant" if role == "assistant" else "user",
+                        "content": [
+                            {
+                                "output_text" if role == "assistant" else "input_text": content,
+                            }
+                        ],
+                    },
+                }
+                if created_at:
+                    row["created_at"] = created_at
+                f.write(json.dumps(row, ensure_ascii=True) + "\n")
                 continue
-            f.write(json.dumps({"role": role, "content": content}, ensure_ascii=True) + "\n")
+            row = {"role": role, "content": content}
+            if created_at:
+                row["created_at"] = created_at
+            f.write(json.dumps(row, ensure_ascii=True) + "\n")
 
 
 def _sync_project_snapshot(
