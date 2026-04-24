@@ -6868,6 +6868,72 @@ def test_dataset_variant_jp_loads_translated_eval_corpus(monkeypatch):
         dataset.get_statement_context_queries()
 
 
+def test_enforce_dataset_version_uses_variant_specific_latest_pin(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("benchmark_run_variant_gate_ok", ROOT / "run_production_benchmark.py")
+    assert spec is not None and spec.loader is not None
+    fresh_rpb = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fresh_rpb)
+
+    assets_dir = tmp_path / "sessions-jp"
+    assets_dir.mkdir()
+    (assets_dir / "dataset.version.json").write_text(
+        json.dumps({"version": "canonical-20260313", "variant": "jp"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        fresh_rpb,
+        "_load_dataset_registry",
+        lambda: {
+            "latest": "canonical-20260421d",
+            "latest_by_variant": {
+                "canonical": "canonical-20260421d",
+                "jp": "canonical-20260313",
+            },
+            "versions": {
+                "canonical-20260313": {"expected_queries": 268},
+                "canonical-20260421d": {"expected_queries": 268},
+            },
+        },
+    )
+
+    version, expected_queries = fresh_rpb._enforce_dataset_version(assets_dir)
+
+    assert version == "canonical-20260313"
+    assert expected_queries == 268
+
+
+def test_enforce_dataset_version_rejects_wrong_variant_pin(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("benchmark_run_variant_gate_bad", ROOT / "run_production_benchmark.py")
+    assert spec is not None and spec.loader is not None
+    fresh_rpb = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fresh_rpb)
+
+    assets_dir = tmp_path / "sessions-jp"
+    assets_dir.mkdir()
+    (assets_dir / "dataset.version.json").write_text(
+        json.dumps({"version": "canonical-20260313", "variant": "jp"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        fresh_rpb,
+        "_load_dataset_registry",
+        lambda: {
+            "latest": "canonical-20260421d",
+            "latest_by_variant": {
+                "canonical": "canonical-20260421d",
+                "jp": "canonical-20260421d",
+            },
+            "versions": {
+                "canonical-20260313": {"expected_queries": 268},
+                "canonical-20260421d": {"expected_queries": 268},
+            },
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="variant=jp"):
+        fresh_rpb._enforce_dataset_version(assets_dir)
+
+
 def test_judge_non_question_uses_openai_compatible_when_requested(monkeypatch):
     seen = {}
 

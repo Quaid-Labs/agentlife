@@ -1,5 +1,9 @@
 {
   "latest": "canonical-20260421d",
+  "latest_by_variant": {
+    "canonical": "canonical-20260421d",
+    "jp": "canonical-20260313"
+  },
   "versions": {
     "canonical-20260313": {
       "expected_queries": 268

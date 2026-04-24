@@ -736,8 +736,8 @@ def _record_runtime_rolling_driver_failure_context(
     return failure_path
 
 
-def _read_dataset_version(assets_dir: Path) -> str:
-    """Read dataset version from assets metadata."""
+def _read_dataset_metadata(assets_dir: Path) -> Dict[str, str]:
+    """Read dataset version metadata from assets metadata."""
     candidates = [
         assets_dir / "dataset.version.json",
         assets_dir / "dataset_version.json",
@@ -751,12 +751,21 @@ def _read_dataset_version(assets_dir: Path) -> str:
             raise RuntimeError(f"Dataset version file is invalid JSON: {p} ({exc})") from exc
         version = str(data.get("version") or data.get("dataset_version") or "").strip()
         if version:
-            return version
+            variant = str(data.get("variant") or "canonical").strip() or "canonical"
+            return {
+                "version": version,
+                "variant": variant,
+            }
         raise RuntimeError(f"Dataset version file missing 'version': {p}")
     raise RuntimeError(
         f"Dataset version metadata missing in assets dir: {assets_dir}. "
         "Expected dataset.version.json or dataset_version.json"
     )
+
+
+def _read_dataset_version(assets_dir: Path) -> str:
+    """Read dataset version from assets metadata."""
+    return _read_dataset_metadata(assets_dir)["version"]
 
 
 def _load_dataset_registry() -> dict:
@@ -780,12 +789,19 @@ def _load_dataset_registry() -> dict:
 def _enforce_dataset_version(assets_dir: Path) -> Tuple[str, Optional[int]]:
     """Fail if assets dataset version is not the pinned latest."""
     registry = _load_dataset_registry()
-    latest = str(registry.get("latest")).strip()
-    current = _read_dataset_version(assets_dir)
+    dataset_meta = _read_dataset_metadata(assets_dir)
+    current = dataset_meta["version"]
+    variant = dataset_meta["variant"]
+    latest_by_variant = registry.get("latest_by_variant")
+    latest = ""
+    if isinstance(latest_by_variant, dict):
+        latest = str(latest_by_variant.get(variant) or "").strip()
+    if not latest:
+        latest = str(registry.get("latest") or "").strip()
     if current != latest:
         raise RuntimeError(
             "Dataset version gate failed: "
-            f"assets={current} latest={latest}. "
+            f"assets={current} latest={latest} variant={variant}. "
             "Refusing to run on stale/non-canonical dataset."
         )
     version_meta = (registry.get("versions") or {}).get(latest, {}) if isinstance(registry.get("versions"), dict) else {}
