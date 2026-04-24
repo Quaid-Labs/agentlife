@@ -7069,6 +7069,89 @@ class TestMainTier5Auto:
         assert called["eval"] == 1
         assert called["tier5"] == 0
 
+    def test_fc_runs_tier5_by_default(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "run"
+        called = {"fc": 0, "tier5": 0}
+
+        monkeypatch.setattr(rpb, "_get_api_key", lambda: "test-key")
+        monkeypatch.setattr(
+            rpb,
+            "run_fc_baseline",
+            lambda *_a, **_k: called.__setitem__("fc", called["fc"] + 1) or [],
+        )
+        monkeypatch.setattr(
+            rpb,
+            "run_tier5_fc_baseline",
+            lambda *_a, **_k: called.__setitem__("tier5", called["tier5"] + 1) or [],
+        )
+        monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            rpb,
+            "score_results",
+            lambda _results: {
+                "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+                "per_type": {},
+                "per_difficulty": {},
+            },
+        )
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "run_production_benchmark.py",
+                "--mode", "fc",
+                "--results-dir", str(workspace),
+                "--backend", "oauth",
+                "--fc-models", "claude-haiku-4-5-20251001",
+            ],
+        )
+
+        rpb.main()
+        assert called["fc"] == 1
+        assert called["tier5"] == 1
+
+    def test_fc_can_skip_tier5(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "run"
+        called = {"fc": 0, "tier5": 0}
+
+        monkeypatch.setattr(rpb, "_get_api_key", lambda: "test-key")
+        monkeypatch.setattr(
+            rpb,
+            "run_fc_baseline",
+            lambda *_a, **_k: called.__setitem__("fc", called["fc"] + 1) or [],
+        )
+        monkeypatch.setattr(
+            rpb,
+            "run_tier5_fc_baseline",
+            lambda *_a, **_k: called.__setitem__("tier5", called["tier5"] + 1) or [],
+        )
+        monkeypatch.setattr(rpb, "_save_token_usage", lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            rpb,
+            "score_results",
+            lambda _results: {
+                "overall": {"accuracy": 0.0, "count": 0, "scored": 0, "correct": 0, "partial": 0, "wrong": 0, "error": 0},
+                "per_type": {},
+                "per_difficulty": {},
+            },
+        )
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "run_production_benchmark.py",
+                "--mode", "fc",
+                "--results-dir", str(workspace),
+                "--backend", "oauth",
+                "--fc-models", "claude-haiku-4-5-20251001",
+                "--skip-tier5",
+            ],
+        )
+
+        rpb.main()
+        assert called["fc"] == 1
+        assert called["tier5"] == 0
+
     def test_eval_sets_tier5_judge_thinking_env(self, tmp_path, monkeypatch):
         workspace = tmp_path / "run"
         (workspace / "data").mkdir(parents=True)

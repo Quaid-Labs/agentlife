@@ -13028,9 +13028,9 @@ def main():
     parser.add_argument("--judge", type=str, default="gpt-4o-mini",
                         help="Judge model (default: gpt-4o-mini for cross-vendor fairness)")
     parser.add_argument("--tier5", action="store_true",
-                        help="(Deprecated) Tier-5 auto-runs whenever eval runs")
+                        help="(Deprecated) Tier-5 now auto-runs for eval and FC unless --skip-tier5")
     parser.add_argument("--skip-tier5", action="store_true",
-                        help="Skip Tier-5 so eval only runs T1-T4")
+                        help="Skip Tier-5 so eval/FC only runs T1-T4")
     parser.add_argument(
         "--tier5-judge-thinking",
         choices=["auto", "on", "off"],
@@ -13676,6 +13676,7 @@ def main():
     if args.mode == "fc":
         fc_results_dir = workspace / "fc_baselines"
         fc_results_dir.mkdir(parents=True, exist_ok=True)
+        run_fc_tier5 = not args.skip_tier5
 
         for fc_model in fc_models:
             fc_results = run_fc_baseline(
@@ -13689,7 +13690,7 @@ def main():
             print(f"\n  FC {fc_model}: {o['accuracy']:.1f}% "
                   f"({o['correct']}C/{o['partial']}P/{o['wrong']}W)")
             tier5_results = None
-            if args.tier5:
+            if run_fc_tier5:
                 tier5_results = run_tier5_fc_baseline(
                     api_key,
                     answer_model=fc_model,
@@ -13702,6 +13703,8 @@ def main():
                     "  FC combined weighted accuracy (T1-5): "
                     f"{merged['accuracy']:.1f}% ({merged['correct']}C/{merged['partial']}P/{merged['wrong']}W)"
                 )
+            else:
+                print("  Tier 5 skipped (--skip-tier5)")
             _write_fc_scores_payload(
                 fc_results_dir,
                 answer_model=fc_model,
