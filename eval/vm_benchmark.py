@@ -376,6 +376,71 @@ class TartVM:
             stderr=subprocess.DEVNULL,
         )
 
+    @staticmethod
+    def _is_auth_failure(stderr: str) -> bool:
+        detail = str(stderr or "")
+        return "Permission denied" in detail or "publickey,password,keyboard-interactive" in detail
+
+    def _guest_ssh_shell_cmd(self, remote_cmd: str, prefer_password: bool = False) -> str:
+        parts: list[str] = []
+        if prefer_password and self.password:
+            parts.extend([
+                "sshpass", "-p", shlex.quote(self.password),
+                "ssh", "-o", "StrictHostKeyChecking=no",
+                "-o", "ConnectTimeout=10",
+                "-o", "PreferredAuthentications=password",
+                "-o", "PubkeyAuthentication=no",
+                "-o", "IdentitiesOnly=yes",
+            ])
+        else:
+            parts.extend([
+                "ssh", "-o", "BatchMode=yes",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", "ConnectTimeout=10",
+            ])
+        parts.extend([
+            shlex.quote(f"{self.user}@{self.ip}"),
+            shlex.quote(remote_cmd),
+        ])
+        return " ".join(parts)
+
+    def _guest_scp_shell_cmd(self, source: str, dest: str, prefer_password: bool = False) -> str:
+        parts: list[str] = []
+        if prefer_password and self.password:
+            parts.extend([
+                "sshpass", "-p", shlex.quote(self.password),
+                "scp", "-o", "StrictHostKeyChecking=no",
+                "-o", "PreferredAuthentications=password",
+                "-o", "PubkeyAuthentication=no",
+                "-o", "IdentitiesOnly=yes",
+            ])
+        else:
+            parts.extend([
+                "scp", "-o", "BatchMode=yes",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", "ConnectTimeout=10",
+            ])
+        parts.extend([shlex.quote(source), shlex.quote(dest)])
+        return " ".join(parts)
+
+    def _run_guest_host_command(
+        self,
+        key_cmd: str,
+        password_cmd: Optional[str] = None,
+        *,
+        timeout: int = 120,
+    ) -> subprocess.CompletedProcess:
+        args = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, key_cmd]
+        result = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        if result.returncode == 0 or not password_cmd or not self._is_auth_failure(result.stderr):
+            return result
+        return subprocess.run(
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, password_cmd],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
     def ssh(self, cmd: str, input_data: Optional[str] = None,
             timeout: int = 120, raw: bool = False) -> subprocess.CompletedProcess:
         """Execute command on VM via SSH.
@@ -393,21 +458,8 @@ class TartVM:
             self._refresh_ip_from_tart()
             attempt_ip = self.ip
             if self.tart_host:
-                guest_cmd = " ".join([
-                    "sshpass", "-p", shlex.quote(self.password),
-                    "ssh", "-o", "StrictHostKeyChecking=no",
-                    "-o", "ConnectTimeout=10",
-                    "-o", "PreferredAuthentications=password",
-                    "-o", "PubkeyAuthentication=no",
-                    "-o", "IdentitiesOnly=yes",
-                    shlex.quote(f"{self.user}@{self.ip}"),
-                    shlex.quote(full_cmd),
-                ])
-                args = [
-                    "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
-                    self.tart_host,
-                    guest_cmd,
-                ]
+                key_guest_cmd = self._guest_ssh_shell_cmd(full_cmd, prefer_password=False)
+                password_guest_cmd = self._guest_ssh_shell_cmd(full_cmd, prefer_password=True)
             else:
                 args = [
                     "sshpass", "-p", self.password,
@@ -420,13 +472,22 @@ class TartVM:
                     full_cmd,
                 ]
             try:
-                result = subprocess.run(
-                    args,
-                    input=input_data,
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
+                if self.tart_host:
+                    if input_data is not None:
+                        raise RuntimeError("input_data is not supported for tart_host guest SSH")
+                    result = self._run_guest_host_command(
+                        key_guest_cmd,
+                        password_guest_cmd,
+                        timeout=timeout,
+                    )
+                else:
+                    result = subprocess.run(
+                        args,
+                        input=input_data,
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout,
+                    )
             except subprocess.TimeoutExpired:
                 self._refresh_ip_from_tart()
                 if self.ip != attempt_ip and attempt < attempts - 1:
@@ -449,16 +510,13 @@ class TartVM:
         """Copy file from host to VM."""
         self._refresh_ip_from_tart()
         if self.tart_host:
-            remote_cmd = " ".join([
+            key_remote_cmd = " ".join([
                 "cat", shlex.quote("/tmp/vm-benchmark-upload"), "|",
-                "sshpass", "-p", shlex.quote(self.password),
-                "ssh", "-o", "StrictHostKeyChecking=no",
-                "-o", "ConnectTimeout=10",
-                "-o", "PreferredAuthentications=password",
-                "-o", "PubkeyAuthentication=no",
-                "-o", "IdentitiesOnly=yes",
-                shlex.quote(f"{self.user}@{self.ip}"),
-                shlex.quote(f"cat > {remote}"),
+                self._guest_ssh_shell_cmd(f"cat > {remote}", prefer_password=False),
+            ])
+            password_remote_cmd = " ".join([
+                "cat", shlex.quote("/tmp/vm-benchmark-upload"), "|",
+                self._guest_ssh_shell_cmd(f"cat > {remote}", prefer_password=True),
             ])
             prep = subprocess.run(
                 ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, "rm -f /tmp/vm-benchmark-upload"],
@@ -472,9 +530,10 @@ class TartVM:
             )
             if copy_to_host.returncode != 0:
                 return copy_to_host
-            return subprocess.run(
-                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, remote_cmd],
-                capture_output=True, text=True, timeout=timeout,
+            return self._run_guest_host_command(
+                key_remote_cmd,
+                password_remote_cmd,
+                timeout=timeout,
             )
         args = [
             "sshpass", "-p", self.password,
@@ -491,18 +550,18 @@ class TartVM:
         """Copy file from VM to host."""
         self._refresh_ip_from_tart()
         if self.tart_host:
-            remote_pull = " ".join([
-                "sshpass", "-p", shlex.quote(self.password),
-                "scp", "-o", "StrictHostKeyChecking=no",
-                "-o", "PreferredAuthentications=password",
-                "-o", "PubkeyAuthentication=no",
-                "-o", "IdentitiesOnly=yes",
-                shlex.quote(f"{self.user}@{self.ip}:{remote}"),
-                shlex.quote("/tmp/vm-benchmark-download"),
-            ])
-            pull = subprocess.run(
-                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, remote_pull],
-                capture_output=True, text=True, timeout=timeout,
+            pull = self._run_guest_host_command(
+                self._guest_scp_shell_cmd(
+                    f"{self.user}@{self.ip}:{remote}",
+                    "/tmp/vm-benchmark-download",
+                    prefer_password=False,
+                ),
+                self._guest_scp_shell_cmd(
+                    f"{self.user}@{self.ip}:{remote}",
+                    "/tmp/vm-benchmark-download",
+                    prefer_password=True,
+                ),
+                timeout=timeout,
             )
             if pull.returncode != 0:
                 return pull

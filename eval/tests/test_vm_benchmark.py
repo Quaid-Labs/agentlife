@@ -1625,6 +1625,70 @@ class TestTartVmSsh:
         assert captured["timeout"] == 15
         assert captured["raw"] is True
 
+    def test_tart_host_ssh_prefers_key_auth_then_falls_back_to_password(self, monkeypatch):
+        calls = []
+
+        def _fake_run(args, **_kwargs):
+            calls.append(args)
+
+            class _Result:
+                def __init__(self, returncode=0, stdout="", stderr=""):
+                    self.returncode = returncode
+                    self.stdout = stdout
+                    self.stderr = stderr
+
+            guest_cmd = args[-1]
+            if "sshpass" not in guest_cmd:
+                return _Result(returncode=255, stderr="Permission denied (publickey,password,keyboard-interactive).")
+            return _Result(returncode=0, stdout="ok\n")
+
+        vm = vmb.TartVM(ip="192.168.64.3", user="admin", password="admin", tart_host="alfie.local")
+        monkeypatch.setattr(vm, "_refresh_ip_from_tart", lambda: None)
+        monkeypatch.setattr(vmb.subprocess, "run", _fake_run)
+
+        result = vm.ssh("echo ok", timeout=5)
+
+        assert result.returncode == 0
+        assert result.stdout == "ok\n"
+        assert len(calls) == 2
+        assert "sshpass" not in calls[0][-1]
+        assert "BatchMode=yes" in calls[0][-1]
+        assert "sshpass" in calls[1][-1]
+
+    def test_tart_host_scp_to_prefers_key_auth_then_falls_back_to_password(self, monkeypatch, tmp_path):
+        calls = []
+        local = tmp_path / "payload.txt"
+        local.write_text("hello", encoding="utf-8")
+
+        def _fake_run(args, **_kwargs):
+            calls.append(args)
+
+            class _Result:
+                def __init__(self, returncode=0, stdout="", stderr=""):
+                    self.returncode = returncode
+                    self.stdout = stdout
+                    self.stderr = stderr
+
+            if args[0] == "scp":
+                return _Result(returncode=0)
+            if args[-1] == "rm -f /tmp/vm-benchmark-upload":
+                return _Result(returncode=0)
+            guest_cmd = args[-1]
+            if "sshpass" not in guest_cmd:
+                return _Result(returncode=255, stderr="Permission denied (publickey,password,keyboard-interactive).")
+            return _Result(returncode=0)
+
+        vm = vmb.TartVM(ip="192.168.64.3", user="admin", password="admin", tart_host="alfie.local")
+        monkeypatch.setattr(vm, "_refresh_ip_from_tart", lambda: None)
+        monkeypatch.setattr(vmb.subprocess, "run", _fake_run)
+
+        result = vm.scp_to(str(local), "~/payload.txt", timeout=5)
+
+        assert result.returncode == 0
+        assert len(calls) == 4
+        assert "sshpass" not in calls[2][-1]
+        assert "sshpass" in calls[3][-1]
+
     def test_restore_refuses_single_running_local_vm_without_override(self, monkeypatch):
         calls = []
 
