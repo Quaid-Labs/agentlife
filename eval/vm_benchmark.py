@@ -30,17 +30,21 @@ Usage:
 """
 
 import argparse
+import base64
 import json
 import os
 import re
 import shlex
+import socket
 import subprocess
 import sys
+import tarfile
+import tempfile
 import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -50,6 +54,7 @@ _REPO_ROOT = _DIR.parent
 _WORKSPACE = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
 _RUNNER_DIR = _WORKSPACE / "memory-stress-test" / "runner"
 OC_NATIVE_EMBED_PROXY_SCRIPT = _REPO_ROOT / "scripts" / "ollama-openai-embed-proxy.py"
+OC_NATIVE_EMBED_PROXY_REMOTE_SCRIPT = "/tmp/oc-native-embed-proxy.py"
 OC_NATIVE_EMBED_PROXY_PIDFILE = Path("/tmp/oc-native-embed-proxy.pid")
 OC_NATIVE_EMBED_PROXY_LOG = Path("/tmp/oc-native-embed-proxy.log")
 OC_NATIVE_EMBED_TUNNEL_PIDFILE = Path("/tmp/oc-native-embed-tunnel.pid")
@@ -62,6 +67,12 @@ OC_NATIVE_EMBED_BASE_URL = os.environ.get(
     "OPENCLAW_NATIVE_OLLAMA_BASE_URL",
     "http://192.168.64.1:11435/v1",
 )
+OC_NATIVE_EMBED_MODEL = "nomic-embed-text"
+OC_NATIVE_EMBED_DIMS = 768
+_OC_NATIVE_GATEWAY_ANSWER_MODEL: Optional[str] = None
+_OC_NATIVE_GATEWAY_OPENAI_AUTH_MODE = "api"
+OC_NATIVE_GATEWAY_CALL_RESTART_LIMIT = 3
+OC_NATIVE_LOCAL_VM_NAMESPACE_PREFIXES = ("benchmark-", "oc-bench-", "oc-native-bench-")
 
 sys.path.insert(0, str(_DIR))
 if str(_REPO_ROOT) not in sys.path:
@@ -89,6 +100,25 @@ CONTEXT_WINDOW = 200_000
 COMPACTION_THRESHOLD = 0.80
 COMPACTION_TOKEN_LIMIT = int(CONTEXT_WINDOW * COMPACTION_THRESHOLD)
 OC_NATIVE_REINDEX_TIMEOUT_S = 3600
+OC_NATIVE_GATEWAY_START_WAIT_S = 120.0
+OC_NATIVE_GATEWAY_RUN_WAIT_S = 180.0
+OC_NATIVE_GATEWAY_LOG_TAIL_LINES = 80
+OC_NATIVE_EMBED_UPSTREAM_WARMUP_TIMEOUT_S = 180
+OC_NATIVE_EMBED_UPSTREAM_READY_WAIT_S = 360
+OC_NATIVE_EMBED_UPSTREAM_READY_POLL_S = 3
+# Keep the host-side warmup client longer than the proxy's own upstream relay
+# budget. If the client disconnects first, the proxy keeps waiting on Ollama,
+# then trips BrokenPipe and leaves overlapping upstream work in flight.
+OC_NATIVE_EMBED_PROXY_WARMUP_TIMEOUT_S = 120
+OC_NATIVE_EMBED_PROXY_READY_WAIT_S = 240
+OC_NATIVE_EMBED_PROXY_READY_POLL_S = 3
+OC_NATIVE_EMBED_VALIDATION_TIMEOUT_S = 180
+OC_NATIVE_EMBED_VALIDATION_PROBE_TIMEOUT_S = 30
+OC_NATIVE_REINDEX_STATUS_WAIT_S = 90.0
+OC_NATIVE_REINDEX_STATUS_POLL_S = 3.0
+OC_NATIVE_SESSION_QUIET_TIMEOUT_S = 15.0
+OC_NATIVE_SESSION_QUIET_WINDOW_S = 1.0
+OC_NATIVE_SESSION_RESTORE_ATTEMPTS = 3
 VM_CLAUDE_JUDGE_TIMEOUT_S = 90
 VM_AGENT_EVAL_TIMEOUT_S = 240
 VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES = 2
@@ -104,7 +134,68 @@ OC_NATIVE_MEMORY_TOOLS = [
 # VM paths — sessions live under agents/{agent-id}/sessions/, NOT ~/.openclaw/sessions/
 VM_AGENT_SESSIONS_DIR = "~/.openclaw/agents/main/sessions"
 VM_SESSION_STORE = "~/.openclaw/agents/main/sessions/sessions.json"
+VM_OC_EVAL_AGENT_ID = "benchmark-eval"
+VM_OC_EVAL_SESSIONS_DIR = f"~/.openclaw/agents/{VM_OC_EVAL_AGENT_ID}/sessions"
 VM_QUAID_DIR = "~/clawd/plugins/quaid"
+VM_QUAID_HOME = "/Users/admin/clawd"
+VM_QUAID_INSTANCE = "openclaw-main"
+VM_QUAID_INSTANCE_ROOT_DIR = f"{VM_QUAID_HOME}/instances/{VM_QUAID_INSTANCE}"
+VM_QUAID_BENCH_SESSIONS_DIR = f"{VM_QUAID_HOME}/runtime/benchmark-sessions"
+VM_QUAID_OLLAMA_URL = "http://192.168.64.1:11435"
+VM_QUAID_INSTANCE_DB_PATH = f"{VM_QUAID_HOME}/instances/{VM_QUAID_INSTANCE}/data/memory.db"
+VM_QUAID_INSTANCE_ARCHIVE_DB_PATH = f"{VM_QUAID_HOME}/instances/{VM_QUAID_INSTANCE}/data/memory_archive.db"
+VM_QUAID_INSTANCE_LOGS_DIR = f"{VM_QUAID_HOME}/instances/{VM_QUAID_INSTANCE}/logs"
+VM_QUAID_INSTANCE_JOURNAL_DIR = f"{VM_QUAID_INSTANCE_ROOT_DIR}/journal"
+VM_QUAID_LLM_USAGE_LOG_PATH = f"{VM_QUAID_INSTANCE_LOGS_DIR}/llm-usage-events.jsonl"
+VM_QUAID_DAEMON_ROLLING_METRICS_PATH = f"{VM_QUAID_INSTANCE_LOGS_DIR}/daemon/rolling-extraction.jsonl"
+VM_QUAID_JANITOR_LATEST_LOG = f"{VM_QUAID_INSTANCE_LOGS_DIR}/janitor-latest.log"
+VM_QUAID_JANITOR_STATS_PATH = f"{VM_QUAID_INSTANCE_LOGS_DIR}/janitor-stats.json"
+VM_BENCHMARK_PROJECTS = {
+    "recipe-app": {
+        "label": "Recipe App",
+        "description": "Recipe app project workspace",
+        "home_dir": f"{VM_QUAID_HOME}/projects/recipe-app",
+        "source_root": f"{VM_QUAID_HOME}/projects/recipe-app",
+        "patterns": ["*.md", "*.js", "*.json", "*.html", "*.css"],
+        "exclude": ["node_modules/", "*.db", ".git/", "package-lock.json"],
+        "project_md": """# Recipe App Project
+
+## Overview
+Recipe app project workspace. Current details should be learned from source artifacts and conversations.
+
+## Tech Stack
+To be updated as the project evolves.
+
+## Features
+To be updated as features are built.
+
+## Status
+In development.
+""",
+    },
+    "portfolio-site": {
+        "label": "Portfolio Site",
+        "description": "Portfolio site project workspace",
+        "home_dir": f"{VM_QUAID_HOME}/projects/portfolio-site",
+        "source_root": f"{VM_QUAID_HOME}/projects/portfolio-site",
+        "patterns": ["*.md", "*.html", "*.css"],
+        "exclude": [".git/"],
+        "project_md": """# Portfolio Site Project
+
+## Overview
+Portfolio site project workspace. Current details should be learned from source artifacts and conversations.
+
+## Tech Stack
+To be updated as the project evolves.
+
+## Features
+To be updated as features are built.
+
+## Status
+In development.
+""",
+    },
+}
 
 # Systems
 SYSTEMS = ["base", "qmd", "quaid", "mem0"]
@@ -199,19 +290,39 @@ class TartVM:
         return rows
 
     def _resolve_local_vm_name(self) -> None:
-        """Prefer a real local Tart VM when the baked-in default is stale."""
+        """Resolve the configured local Tart VM name safely.
+
+        Benchmarks must not silently hijack an unrelated running VM, especially
+        a coordinator/live-test VM. Allow the old single-running-VM fallback
+        only under an explicit override.
+        """
         if self.tart_host:
             return
         vms = self._list_local_tart_vms()
         if any(name == self.vm_name for name, _state in vms):
             return
         running = [name for name, state in vms if state == "running"]
-        if len(running) == 1:
+        allow_fallback = str(os.environ.get("VM_BENCHMARK_ALLOW_RUNNING_VM_FALLBACK", "")).strip() == "1"
+        if len(running) == 1 and allow_fallback:
             print(
                 f"  VM name fallback: configured {self.vm_name!r} not found; "
                 f"using running VM {running[0]!r}"
             )
             self.vm_name = running[0]
+            return
+        available = ", ".join(f"{name}({state})" for name, state in vms) or "none"
+        if len(running) == 1:
+            raise RuntimeError(
+                f"Configured Tart VM {self.vm_name!r} not found. "
+                f"Refusing to reuse running VM {running[0]!r}; "
+                "create or pass a dedicated benchmark VM explicitly, or set "
+                "VM_BENCHMARK_ALLOW_RUNNING_VM_FALLBACK=1 to override. "
+                f"Available VMs: {available}"
+            )
+        raise RuntimeError(
+            f"Configured Tart VM {self.vm_name!r} not found. "
+            f"Available VMs: {available}"
+        )
 
     def _refresh_ip_from_tart(self) -> None:
         """Update VM IP from Tart when available."""
@@ -276,43 +387,52 @@ class TartVM:
             raw: If True, skip PATH_PREFIX (for simple echo/cat commands).
         """
         full_cmd = cmd if raw else f"{self.PATH_PREFIX}{cmd}"
-        if self.tart_host:
-            guest_cmd = " ".join([
-                "sshpass", "-p", shlex.quote(self.password),
-                "ssh", "-o", "StrictHostKeyChecking=no",
-                "-o", "ConnectTimeout=10",
-                "-o", "PreferredAuthentications=password",
-                "-o", "PubkeyAuthentication=no",
-                "-o", "IdentitiesOnly=yes",
-                shlex.quote(f"{self.user}@{self.ip}"),
-                shlex.quote(full_cmd),
-            ])
-            args = [
-                "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
-                self.tart_host,
-                guest_cmd,
-            ]
-        else:
-            args = [
-                "sshpass", "-p", self.password,
-                "ssh", "-o", "StrictHostKeyChecking=no",
-                "-o", "ConnectTimeout=10",
-                "-o", "PreferredAuthentications=password",
-                "-o", "PubkeyAuthentication=no",
-                "-o", "IdentitiesOnly=yes",
-                f"{self.user}@{self.ip}",
-                full_cmd,
-            ]
         attempts = 12 if self.tart_host else 3
         last_result = None
         for attempt in range(attempts):
-            result = subprocess.run(
-                args,
-                input=input_data,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
+            self._refresh_ip_from_tart()
+            attempt_ip = self.ip
+            if self.tart_host:
+                guest_cmd = " ".join([
+                    "sshpass", "-p", shlex.quote(self.password),
+                    "ssh", "-o", "StrictHostKeyChecking=no",
+                    "-o", "ConnectTimeout=10",
+                    "-o", "PreferredAuthentications=password",
+                    "-o", "PubkeyAuthentication=no",
+                    "-o", "IdentitiesOnly=yes",
+                    shlex.quote(f"{self.user}@{self.ip}"),
+                    shlex.quote(full_cmd),
+                ])
+                args = [
+                    "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+                    self.tart_host,
+                    guest_cmd,
+                ]
+            else:
+                args = [
+                    "sshpass", "-p", self.password,
+                    "ssh", "-o", "StrictHostKeyChecking=no",
+                    "-o", "ConnectTimeout=10",
+                    "-o", "PreferredAuthentications=password",
+                    "-o", "PubkeyAuthentication=no",
+                    "-o", "IdentitiesOnly=yes",
+                    f"{self.user}@{self.ip}",
+                    full_cmd,
+                ]
+            try:
+                result = subprocess.run(
+                    args,
+                    input=input_data,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                )
+            except subprocess.TimeoutExpired:
+                self._refresh_ip_from_tart()
+                if self.ip != attempt_ip and attempt < attempts - 1:
+                    time.sleep(min(12.0, 2.0 + (attempt * 1.25)))
+                    continue
+                raise
             last_result = result
             stderr = result.stderr or ""
             if result.returncode == 0:
@@ -327,15 +447,18 @@ class TartVM:
 
     def scp_to(self, local: str, remote: str, timeout: int = 60):
         """Copy file from host to VM."""
+        self._refresh_ip_from_tart()
         if self.tart_host:
             remote_cmd = " ".join([
+                "cat", shlex.quote("/tmp/vm-benchmark-upload"), "|",
                 "sshpass", "-p", shlex.quote(self.password),
-                "scp", "-o", "StrictHostKeyChecking=no",
+                "ssh", "-o", "StrictHostKeyChecking=no",
+                "-o", "ConnectTimeout=10",
                 "-o", "PreferredAuthentications=password",
                 "-o", "PubkeyAuthentication=no",
                 "-o", "IdentitiesOnly=yes",
-                shlex.quote(f"{self.user}@{self.ip}:{remote}"),
-                shlex.quote("/tmp/vm-benchmark-upload"),
+                shlex.quote(f"{self.user}@{self.ip}"),
+                shlex.quote(f"cat > {remote}"),
             ])
             prep = subprocess.run(
                 ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, "rm -f /tmp/vm-benchmark-upload"],
@@ -366,6 +489,7 @@ class TartVM:
 
     def scp_from(self, remote: str, local: str, timeout: int = 60):
         """Copy file from VM to host."""
+        self._refresh_ip_from_tart()
         if self.tart_host:
             remote_pull = " ".join([
                 "sshpass", "-p", shlex.quote(self.password),
@@ -482,54 +606,262 @@ class TartVM:
 
 
 # ---------------------------------------------------------------------------
-# Session JSONL conversion (gateway format)
+# Session JSONL conversion
 # ---------------------------------------------------------------------------
 
 def messages_to_gateway_jsonl(messages: List[dict]) -> str:
-    """Convert messages to gateway JSONL format.
-
-    Gateway wraps each message: {"type": "message", "message": {"role": ..., "content": ...}}
-    """
+    """Convert messages to the lightweight gateway JSONL format."""
     lines = []
     for msg in messages:
-        line = json.dumps({
-            "type": "message",
-            "message": {"role": msg["role"], "content": msg["content"]}
-        })
+        line = json.dumps(
+            {
+                "type": "message",
+                "message": {"role": msg["role"], "content": msg["content"]},
+            }
+        )
         lines.append(line)
     return "\n".join(lines) + "\n"
 
 
-def _register_session(vm: TartVM, session_id: str):
+def _oc_native_event_timestamp(timestamp_ms: int) -> str:
+    """Return an ISO-8601 timestamp in the shape OpenClaw session files emit."""
+    return (
+        datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+
+
+def _oc_native_message_content(content) -> List[dict]:
+    """Normalize benchmark transcript content into OpenClaw's typed content array."""
+    if isinstance(content, list):
+        normalized = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type"):
+                normalized.append(item)
+            elif isinstance(item, str):
+                normalized.append({"type": "text", "text": item})
+        if normalized:
+            return normalized
+    if isinstance(content, str):
+        return [{"type": "text", "text": content}]
+    return [{"type": "text", "text": json.dumps(content, ensure_ascii=False)}]
+
+
+def _message_field(message, key: str, default=None):
+    if isinstance(message, dict):
+        return message.get(key, default)
+    return getattr(message, key, default)
+
+
+def messages_to_oc_native_jsonl(
+    messages: List[dict],
+    session_id: str,
+    *,
+    started_at_ms: Optional[int] = None,
+    model_id: str = "gpt-5.4",
+    provider: str = "openai",
+) -> str:
+    """Convert messages to OpenClaw's native session JSONL format.
+
+    OC-native hooks now expect a real OpenClaw session file, not the older
+    lightweight gateway dump. Seed synthetic benchmark transcripts with a valid
+    session header and structured message records so the runtime can append new
+    turns without zeroing or rejecting the file.
+    """
+    if started_at_ms is None and messages:
+        first_ts = _message_field(messages[0], "timestamp_ms")
+        if isinstance(first_ts, (int, float)) and first_ts > 0:
+            started_at_ms = int(first_ts)
+    started_at_ms = started_at_ms or int(time.time() * 1000)
+    timestamp_ms = started_at_ms
+    cwd = str(Path.home() / ".openclaw" / "workspace")
+    parent_id = None
+    lines = [
+        json.dumps(
+            {
+                "type": "session",
+                "version": 3,
+                "id": session_id,
+                "timestamp": _oc_native_event_timestamp(timestamp_ms),
+                "cwd": cwd,
+            },
+            ensure_ascii=False,
+        )
+    ]
+    model_event_id = uuid.uuid4().hex[:8]
+    lines.append(
+        json.dumps(
+            {
+                "type": "model_change",
+                "id": model_event_id,
+                "parentId": parent_id,
+                "timestamp": _oc_native_event_timestamp(timestamp_ms),
+                "provider": provider,
+                "modelId": model_id,
+            },
+            ensure_ascii=False,
+        )
+    )
+    parent_id = model_event_id
+    timestamp_ms += 1
+    for msg in messages:
+        msg_ts = _message_field(msg, "timestamp_ms")
+        if isinstance(msg_ts, (int, float)) and msg_ts > 0:
+            timestamp_ms = int(msg_ts)
+        event_id = uuid.uuid4().hex[:8]
+        lines.append(
+            json.dumps(
+                {
+                    "type": "message",
+                    "id": event_id,
+                    "parentId": parent_id,
+                    "timestamp": _oc_native_event_timestamp(timestamp_ms),
+                    "message": {
+                        "role": _message_field(msg, "role"),
+                        "content": _oc_native_message_content(_message_field(msg, "content")),
+                        "timestamp": timestamp_ms,
+                    },
+                },
+                ensure_ascii=False,
+            )
+        )
+        parent_id = event_id
+        timestamp_ms += 1
+    return "\n".join(lines) + "\n"
+
+
+def _quaid_chunk_session_id(base_session_id: str, chunk, chunk_index: int) -> str:
+    source_ids = [str(s).strip().lower() for s in getattr(chunk, "session_ids", []) if str(s).strip()]
+    if source_ids:
+        return f"{base_session_id}-{'-'.join(source_ids)}"
+    return f"{base_session_id}-chunk{chunk_index + 1:02d}"
+
+
+def _safe_artifact_name(value: str) -> str:
+    cleaned = re.sub(r"[^a-zA-Z0-9._-]+", "-", str(value or "").strip())
+    return cleaned.strip("-._") or "artifact"
+
+
+def _write_local_extraction_artifact(results_dir: Optional[Path], session_id: str, artifact: dict) -> None:
+    if results_dir is None or not isinstance(artifact, dict):
+        return
+    out_dir = Path(results_dir) / "extract-artifacts"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{_safe_artifact_name(session_id)}.json"
+    out_path.write_text(json.dumps(artifact, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _register_session(
+    vm: TartVM,
+    session_id: str,
+    *,
+    session_key: str = "agent:main:main",
+    session_file: Optional[str] = None,
+):
     """Register a session in the gateway's session store.
 
     The gateway resolves sessions via a session store (sessions.json).
     Without this registration, `openclaw agent --session-id X` will
     ignore our session ID and use the default session for the agent.
 
-    The session key "agent:main:main" is the default for the main agent
-    when no --to parameter is provided.
+    The canonical main session key ("agent:main:main") may already be bound to
+    an internal UUID session in current OpenClaw builds. OC-native benchmark
+    paths should therefore use a unique agent session key per synthetic
+    benchmark session so the seeded transcript file actually remains attached to
+    the gateway turn we trigger.
     """
+    if not session_file:
+        session_file = f"{VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl"
     script = (
         "import json, os, time\n"
         f"session_id = '{session_id}'\n"
+        f"session_key = {session_key!r}\n"
         f"store_path = os.path.expanduser('{VM_SESSION_STORE}')\n"
-        f"session_file = os.path.expanduser('{VM_AGENT_SESSIONS_DIR}/' + session_id + '.jsonl')\n"
+        f"session_file = os.path.expanduser({session_file!r})\n"
         "os.makedirs(os.path.dirname(store_path), exist_ok=True)\n"
+        "os.makedirs(os.path.dirname(session_file), exist_ok=True)\n"
         "store = {}\n"
         "if os.path.exists(store_path):\n"
         "    store = json.load(open(store_path))\n"
-        "store['agent:main:main'] = {\n"
+        "store[session_key] = {\n"
         "    'sessionId': session_id,\n"
         "    'sessionFile': session_file,\n"
         "    'updatedAt': int(time.time() * 1000),\n"
         "}\n"
         "json.dump(store, open(store_path, 'w'), indent=2)\n"
-        "print(f'Registered session {session_id} in store')\n"
+        "print(f'Registered session {session_id} in store key={session_key}')\n"
     )
     result = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
     if result.stdout.strip():
         print(f"  {result.stdout.strip()}")
+
+
+def _cleanup_oc_native_eval_session(
+    vm: TartVM,
+    session_id: str,
+    *,
+    session_key: Optional[str] = None,
+):
+    """Remove an OC-native eval session so later eval queries cannot retrieve it."""
+    if not session_key:
+        session_key = _oc_native_session_key(session_id)
+    script = (
+        "import json, os\n"
+        f"session_id = {session_id!r}\n"
+        f"session_key = {session_key!r}\n"
+        "sessions_dir = os.path.realpath(os.path.expanduser('~/.openclaw/agents/main/sessions'))\n"
+        "eval_sessions_dir = os.path.realpath(os.path.expanduser('~/.openclaw/agents/benchmark-eval/sessions'))\n"
+        "store_path = os.path.join(sessions_dir, 'sessions.json')\n"
+        "paths = set()\n"
+        "store_updated = False\n"
+        "fallbacks = {\n"
+        "    os.path.realpath(os.path.join(sessions_dir, session_id + '.jsonl')),\n"
+        "    os.path.realpath(os.path.join(eval_sessions_dir, session_id + '.jsonl')),\n"
+        "}\n"
+        "for fallback in sorted(fallbacks):\n"
+        "    if os.path.commonpath([fallback, sessions_dir]) == sessions_dir or os.path.commonpath([fallback, eval_sessions_dir]) == eval_sessions_dir:\n"
+        "        paths.add(fallback)\n"
+        "store = {}\n"
+        "if os.path.exists(store_path):\n"
+        "    try:\n"
+        "        store = json.load(open(store_path))\n"
+        "    except Exception:\n"
+        "        store = {}\n"
+        "    entry = store.pop(session_key, None)\n"
+        "    if entry is not None:\n"
+        "        store_updated = True\n"
+        "        if isinstance(entry, dict):\n"
+        "            session_file = entry.get('sessionFile')\n"
+        "            if isinstance(session_file, str) and session_file.strip():\n"
+        "                candidate = os.path.realpath(os.path.expanduser(session_file))\n"
+        "                if os.path.commonpath([candidate, sessions_dir]) == sessions_dir or os.path.commonpath([candidate, eval_sessions_dir]) == eval_sessions_dir:\n"
+        "                    paths.add(candidate)\n"
+        "    if store_updated:\n"
+        "        if store:\n"
+        "            json.dump(store, open(store_path, 'w'), indent=2)\n"
+        "        else:\n"
+        "            try:\n"
+        "                os.remove(store_path)\n"
+        "            except FileNotFoundError:\n"
+        "                pass\n"
+        "removed = []\n"
+        "for path in sorted(paths):\n"
+        "    try:\n"
+        "        os.remove(path)\n"
+        "    except FileNotFoundError:\n"
+        "        continue\n"
+        "    except IsADirectoryError:\n"
+        "        continue\n"
+        "    else:\n"
+        "        removed.append(path)\n"
+        "print(json.dumps({'sessionId': session_id, 'sessionKey': session_key, 'removed': removed, 'storeUpdated': store_updated}))\n"
+    )
+    result = vm.ssh("python3 -c " + shlex.quote(script), timeout=20, raw=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"oc-native eval session cleanup failed for {session_id}: {(result.stderr or result.stdout)[:200]}"
+        )
 
 
 def _clear_vm_session_state(vm: TartVM):
@@ -537,22 +869,94 @@ def _clear_vm_session_state(vm: TartVM):
 
     Used before a benchmark run to ensure clean state.
     """
-    vm.ssh(
-        f"mkdir -p {VM_AGENT_SESSIONS_DIR}; "
-        f"find {VM_AGENT_SESSIONS_DIR} -maxdepth 1 -type f "
-        "\\( -name '*.jsonl' -o -name '*.jsonl.reset.*' \\) "
-        "-exec rm -f {} + 2>/dev/null; "
-        f"rm -f {VM_SESSION_STORE} 2>/dev/null; "
-        "rm -f ~/clawd/data/memory.db 2>/dev/null; "
-        "rm -f ~/clawd/journal/*.journal.md 2>/dev/null || true; "
-        "rm -f ~/clawd/journal/archive/*.md 2>/dev/null || true; "
-        "rm -f ~/clawd/*.snippets.md 2>/dev/null || true; "
-        "rm -rf ~/clawd/projects 2>/dev/null || true; "
-        "rm -f ~/clawd/logs/janitor*.log 2>/dev/null || true; "
-        "echo 'Session state cleared'",
-        timeout=10,
-        raw=True,
+    script = (
+        "import os, shutil, subprocess, time\n"
+        "from pathlib import Path\n"
+        "subprocess.run(['pkill', '-f', 'openclaw-gateway'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+        "subprocess.run(['pkill', '-f', 'project_docs_supervisor.py'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+        "subprocess.run(['pkill', '-f', 'core/lifecycle/janitor.py'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+        "subprocess.run(['pkill', '-f', '/Users/admin/extract_compact.py'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+        "time.sleep(1)\n"
+        f"sessions_dir = Path(os.path.expanduser({VM_AGENT_SESSIONS_DIR!r})).resolve()\n"
+        "sessions_dir.mkdir(parents=True, exist_ok=True)\n"
+        f"eval_sessions_dir = Path(os.path.expanduser({VM_OC_EVAL_SESSIONS_DIR!r})).resolve()\n"
+        f"store_path = Path(os.path.expanduser({VM_SESSION_STORE!r})).resolve()\n"
+        "removed = []\n"
+        "for pattern in ('*.jsonl', '*.jsonl.reset.*'):\n"
+        "    for path in sessions_dir.glob(pattern):\n"
+        "        try:\n"
+        "            path.unlink()\n"
+        "            removed.append(str(path))\n"
+        "        except FileNotFoundError:\n"
+        "            pass\n"
+        "shutil.rmtree(eval_sessions_dir, ignore_errors=True)\n"
+        "try:\n"
+        "    store_path.unlink()\n"
+        "except FileNotFoundError:\n"
+        "    pass\n"
+        "direct_files = [\n"
+        "    Path('~/clawd/data/memory.db').expanduser(),\n"
+        f"    Path({VM_QUAID_INSTANCE_DB_PATH!r}).expanduser(),\n"
+        f"    Path({VM_QUAID_INSTANCE_ARCHIVE_DB_PATH!r}).expanduser(),\n"
+        f"    Path({VM_QUAID_DAEMON_ROLLING_METRICS_PATH!r}).expanduser(),\n"
+        f"    Path({VM_QUAID_LLM_USAGE_LOG_PATH!r}).expanduser(),\n"
+        "    Path('~/clawd/USER.md').expanduser(),\n"
+        "    Path('~/clawd/SOUL.md').expanduser(),\n"
+        "    Path('~/clawd/MEMORY.md').expanduser(),\n"
+        "    Path('~/clawd/ENVIRONMENT.md').expanduser(),\n"
+        f"    Path({(VM_QUAID_INSTANCE_ROOT_DIR + '/USER.md')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_INSTANCE_ROOT_DIR + '/SOUL.md')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_INSTANCE_ROOT_DIR + '/MEMORY.md')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_INSTANCE_ROOT_DIR + '/ENVIRONMENT.md')!r}).expanduser(),\n"
+        "]\n"
+        "for path in direct_files:\n"
+        "    try:\n"
+        "        path.unlink()\n"
+        "    except FileNotFoundError:\n"
+        "        pass\n"
+        "state_dirs = [\n"
+        f"    Path({(VM_QUAID_HOME + '/instances/' + VM_QUAID_INSTANCE + '/data/session-cursors')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_HOME + '/instances/' + VM_QUAID_INSTANCE + '/data/extraction-signals')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_HOME + '/instances/' + VM_QUAID_INSTANCE + '/data/rolling-extraction')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_INSTANCE_ROOT_DIR + '/.runtime/locks')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_HOME + '/data/project-docs/locks')!r}).expanduser(),\n"
+        f"    Path({VM_QUAID_BENCH_SESSIONS_DIR!r}).expanduser(),\n"
+        "]\n"
+        "for path in state_dirs:\n"
+        "    shutil.rmtree(path, ignore_errors=True)\n"
+        "glob_patterns = [\n"
+        "    ('~/clawd/journal', '*.journal.md'),\n"
+        "    ('~/clawd/journal/archive', '*.md'),\n"
+        "    ('~/clawd', '*.snippets.md'),\n"
+        f"    ({(VM_QUAID_INSTANCE_ROOT_DIR + '/journal')!r}, '*.journal.md'),\n"
+        f"    ({VM_QUAID_INSTANCE_ROOT_DIR!r}, '*.snippets.md'),\n"
+        "    ('~/clawd/logs', 'janitor*.log'),\n"
+        f"    ({VM_QUAID_INSTANCE_LOGS_DIR!r}, 'janitor*.log'),\n"
+        "]\n"
+        "for root, pattern in glob_patterns:\n"
+        "    root_path = Path(root).expanduser()\n"
+        "    if not root_path.exists():\n"
+        "        continue\n"
+        "    for path in root_path.glob(pattern):\n"
+        "        try:\n"
+        "            path.unlink()\n"
+        "        except FileNotFoundError:\n"
+        "            pass\n"
+        "for extra in [\n"
+        f"    Path({(VM_QUAID_INSTANCE_ROOT_DIR + '/.runtime/events/history.jsonl.lock')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_INSTANCE_ROOT_DIR + '/.runtime/events/queue.json.lock')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_INSTANCE_ROOT_DIR + '/.runtime/notes/delayed-llm-requests.json.lock')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_INSTANCE_LOGS_DIR + '/janitor/pending-approval-requests.json')!r}).expanduser(),\n"
+        f"    Path({(VM_QUAID_INSTANCE_LOGS_DIR + '/janitor/pending-approval-requests.md')!r}).expanduser(),\n"
+        "]:\n"
+        "    try:\n"
+        "        extra.unlink()\n"
+        "    except FileNotFoundError:\n"
+        "        pass\n"
+        "shutil.rmtree(Path('~/clawd/projects').expanduser(), ignore_errors=True)\n"
+        "print('Session state cleared')\n"
     )
+    vm.ssh("python3 -c " + shlex.quote(script), timeout=20, raw=True)
 
 
 def _clear_vm_native_memory_state(vm: TartVM):
@@ -582,11 +986,18 @@ def _build_openclaw_native_config_script(enable_session_hook: bool = True) -> st
         f"enable_hook = {str(enable_session_hook)}\n"
         "p = os.path.expanduser('~/.openclaw/openclaw.json')\n"
         "d = json.load(open(p))\n"
+        "d.pop('slots', None)\n"
         "plugins = d.setdefault('plugins', {})\n"
         "plugins.setdefault('enabled', True)\n"
-        "plugins.setdefault('slots', {})['memory'] = 'memory-core'\n"
-        "plugins['allow'] = [item for item in (plugins.get('allow') or []) if item != 'matrix']\n"
+        "plugins.pop('disable', None)\n"
+        "plugins.pop('disabled', None)\n"
+        "plugins.pop('slots', None)\n"
+        "plugins['allow'] = ['memory-core', 'active-memory', 'memory-wiki']\n"
         "entries = plugins.setdefault('entries', {})\n"
+        "for entry in entries.values():\n"
+        "    if isinstance(entry, dict):\n"
+        "        entry.pop('disable', None)\n"
+        "        entry.pop('disabled', None)\n"
         "entries.setdefault('matrix', {})['enabled'] = False\n"
         "entries.setdefault('memory-core', {})['enabled'] = True\n"
         "entries.setdefault('active-memory', {})['enabled'] = True\n"
@@ -627,6 +1038,10 @@ def _build_openclaw_native_config_script(enable_session_hook: bool = True) -> st
         "memory = d.setdefault('memory', {})\n"
         "memory['backend'] = 'builtin'\n"
         "channels = d.setdefault('channels', {})\n"
+        "for entry in channels.values():\n"
+        "    if isinstance(entry, dict):\n"
+        "        entry.pop('disable', None)\n"
+        "        entry.pop('disabled', None)\n"
         "channels.setdefault('matrix', {})['enabled'] = False\n"
         "agents = d.setdefault('agents', {}).setdefault('defaults', {})\n"
         "tools = d.setdefault('tools', {})\n"
@@ -635,7 +1050,7 @@ def _build_openclaw_native_config_script(enable_session_hook: bool = True) -> st
         "ms = agents.setdefault('memorySearch', {})\n"
         "ms['enabled'] = True\n"
         "ms['provider'] = 'openai'\n"
-        "ms['model'] = 'qwen3-embedding:8b'\n"
+        f"ms['model'] = {OC_NATIVE_EMBED_MODEL!r}\n"
         "remote = ms.setdefault('remote', {})\n"
         f"remote['baseUrl'] = {OC_NATIVE_EMBED_BASE_URL!r}\n"
         "remote['apiKey'] = 'ollama-local'\n"
@@ -655,14 +1070,95 @@ def _build_openclaw_native_config_script(enable_session_hook: bool = True) -> st
         "hooks = d.setdefault('hooks', {}).setdefault('internal', {})\n"
         "hooks['enabled'] = True\n"
         "hook_entries = hooks.setdefault('entries', {})\n"
+        "for entry in hook_entries.values():\n"
+        "    if isinstance(entry, dict):\n"
+        "        entry.pop('disable', None)\n"
+        "        entry.pop('disabled', None)\n"
         "hook_entries.setdefault('session-memory', {})['enabled'] = enable_hook\n"
         "json.dump(d, open(p, 'w'), indent=2)\n"
         "print('Patched OpenClaw native memory config')\n"
     )
 
 
+def _disable_openclaw_quaid_config_guard(vm: TartVM):
+    """Unload the Quaid config guard and kill any live setup wrappers mutating OC config."""
+    kill_script = (
+        "import os, signal, subprocess, time\n"
+        "rows = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,command='], text=True).splitlines()\n"
+        "procs = {}\n"
+        "for row in rows:\n"
+        "    row = row.strip()\n"
+        "    if not row:\n"
+        "        continue\n"
+        "    parts = row.split(None, 2)\n"
+        "    if len(parts) < 3:\n"
+        "        continue\n"
+        "    pid = int(parts[0])\n"
+        "    ppid = int(parts[1])\n"
+        "    procs[pid] = {'ppid': ppid, 'cmd': parts[2]}\n"
+        "targets = set()\n"
+        "for pid, meta in procs.items():\n"
+        "    cmd = meta['cmd']\n"
+        "    if 'openclaw-config-guard.mjs' not in cmd and 'setup-quaid.mjs --agent' not in cmd:\n"
+        "        continue\n"
+        "    targets.add(pid)\n"
+        "    parent = meta['ppid']\n"
+        "    while parent in procs:\n"
+        "        parent_cmd = procs[parent]['cmd']\n"
+        "        if (\n"
+        "            'openclaw-config-guard.mjs' in parent_cmd\n"
+        "            or 'setup-quaid.mjs --agent' in parent_cmd\n"
+        "        ):\n"
+        "            targets.add(parent)\n"
+        "            parent = procs[parent]['ppid']\n"
+        "            continue\n"
+        "        break\n"
+        "changed = True\n"
+        "while changed:\n"
+        "    changed = False\n"
+        "    for pid, meta in procs.items():\n"
+        "        if meta['ppid'] in targets and pid not in targets:\n"
+        "            targets.add(pid)\n"
+        "            changed = True\n"
+        "killed = set()\n"
+        "for sig in (signal.SIGTERM, signal.SIGKILL):\n"
+        "    for pid in sorted(targets, reverse=True):\n"
+        "        try:\n"
+        "            os.kill(pid, sig)\n"
+        "        except (ProcessLookupError, PermissionError):\n"
+        "            continue\n"
+        "        else:\n"
+        "            killed.add(pid)\n"
+        "    if sig == signal.SIGTERM and targets:\n"
+        "        time.sleep(0.5)\n"
+        "msg = 'Quaid config guard disabled'\n"
+        "if killed:\n"
+        "    msg += '; killed=' + ','.join(str(pid) for pid in sorted(killed))\n"
+        "print(msg)\n"
+    )
+    command = (
+        "uid=$(id -u); "
+        "plist=$HOME/Library/LaunchAgents/ai.openclaw.quaid-config-guard.plist; "
+        "launchctl bootout gui/$uid \"$plist\" 2>/dev/null || "
+        "launchctl unload \"$plist\" 2>/dev/null || true; "
+        "launchctl disable gui/$uid/ai.openclaw.quaid-config-guard 2>/dev/null || true; "
+        "launchctl remove ai.openclaw.quaid-config-guard 2>/dev/null || true; "
+        "python3 - <<'PY'\n"
+        f"{kill_script}"
+        "PY\n"
+    )
+    result = vm.ssh(
+        "sh -lc " + shlex.quote(command),
+        timeout=20,
+        raw=True,
+    )
+    if result.stdout.strip():
+        print(f"  {result.stdout.strip()}")
+
+
 def _patch_openclaw_native_memory(vm: TartVM, enable_session_hook: bool = True):
     """Configure the VM for the native OpenClaw memory baseline."""
+    _disable_openclaw_quaid_config_guard(vm)
     script = _build_openclaw_native_config_script(enable_session_hook=enable_session_hook)
     result = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
     if result.stdout.strip():
@@ -677,7 +1173,96 @@ def _read_text_tail(path: Path, limit: int = 800) -> str:
     return text[-limit:]
 
 
-def _probe_json_url(url: str, timeout: int = 5) -> tuple[bool, str]:
+def _run_host_command(
+    args: list[str],
+    *,
+    tart_host: Optional[str] = None,
+    timeout: int = 120,
+) -> subprocess.CompletedProcess:
+    if tart_host:
+        remote_cmd = " ".join(shlex.quote(str(part)) for part in args)
+        return subprocess.run(
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", tart_host, remote_cmd],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    return subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
+
+def _run_host_shell(
+    command: str,
+    *,
+    tart_host: Optional[str] = None,
+    timeout: int = 120,
+) -> subprocess.CompletedProcess:
+    if tart_host:
+        return subprocess.run(
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", tart_host, command],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    return subprocess.run(
+        ["sh", "-lc", command],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
+
+def _read_host_text_tail(path: Path, *, limit: int = 800, tart_host: Optional[str] = None) -> str:
+    if not tart_host:
+        return _read_text_tail(path, limit=limit)
+    script = (
+        "from pathlib import Path\n"
+        "import sys\n"
+        "path = Path(sys.argv[1])\n"
+        "limit = int(sys.argv[2])\n"
+        "try:\n"
+        "    text = path.read_text(errors='replace')\n"
+        "except Exception:\n"
+        "    text = ''\n"
+        "print(text[-limit:], end='')\n"
+    )
+    result = _run_host_command(
+        ["python3", "-c", script, str(path), str(limit)],
+        tart_host=tart_host,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        return ""
+    return (result.stdout or "")[-limit:]
+
+
+def _probe_json_url(url: str, timeout: int = 5, *, tart_host: Optional[str] = None) -> tuple[bool, str]:
+    if tart_host:
+        script = (
+            "import json, sys\n"
+            "from urllib.request import Request, urlopen\n"
+            "url = sys.argv[1]\n"
+            "timeout = float(sys.argv[2])\n"
+            "try:\n"
+            "    req = Request(url, headers={'Accept': 'application/json'})\n"
+            "    with urlopen(req, timeout=timeout) as resp:\n"
+            "        payload = json.load(resp)\n"
+            "    print(json.dumps(payload)[:200])\n"
+            "except Exception as exc:\n"
+            "    print(str(exc))\n"
+            "    raise SystemExit(1)\n"
+        )
+        result = _run_host_command(
+            ["python3", "-c", script, url, str(timeout)],
+            tart_host=tart_host,
+            timeout=max(15, int(timeout) + 10),
+        )
+        detail = (result.stdout or result.stderr or "").strip()
+        return result.returncode == 0, detail[:200]
     try:
         req = Request(url, headers={"Accept": "application/json"})
         with urlopen(req, timeout=timeout) as resp:
@@ -687,72 +1272,309 @@ def _probe_json_url(url: str, timeout: int = 5) -> tuple[bool, str]:
         return False, str(exc)
 
 
-def _warm_oc_native_embed_upstream() -> None:
-    upstream = OC_NATIVE_EMBED_UPSTREAM.rstrip("/")
-    payload = json.dumps({"model": "qwen3-embedding:8b", "input": ["ping"]}).encode("utf-8")
+def _warm_oc_native_embed_endpoint(
+    base_url: str,
+    *,
+    timeout_s: int,
+    tart_host: Optional[str] = None,
+) -> int:
+    if tart_host:
+        script = (
+            "import json, sys\n"
+            "from urllib.request import Request, urlopen\n"
+            "base = sys.argv[1].rstrip('/')\n"
+            "timeout = float(sys.argv[2])\n"
+            f"model = {OC_NATIVE_EMBED_MODEL!r}\n"
+            "payload = json.dumps({'model': model, 'input': ['ping']}).encode('utf-8')\n"
+            "req = Request(\n"
+            "    base + '/v1/embeddings',\n"
+            "    data=payload,\n"
+            "    headers={\n"
+            "        'Content-Type': 'application/json',\n"
+            "        'Authorization': 'Bearer ollama-local',\n"
+            "    },\n"
+            ")\n"
+            "with urlopen(req, timeout=timeout) as resp:\n"
+            "    data = json.load(resp)\n"
+            "emb = (((data.get('data') or [{}])[0]).get('embedding') or [])\n"
+            "if not emb:\n"
+            "    raise RuntimeError('oc-native embed warmup returned empty embedding')\n"
+            "print(len(emb))\n"
+        )
+        result = _run_host_command(
+            ["python3", "-c", script, base_url, str(timeout_s)],
+            tart_host=tart_host,
+            timeout=max(30, int(timeout_s) + 15),
+        )
+        if result.returncode != 0:
+            raise RuntimeError((result.stderr or result.stdout or "").strip() or "remote embed warmup failed")
+        return int((result.stdout or "").strip())
+    base = base_url.rstrip("/")
+    payload = json.dumps({"model": OC_NATIVE_EMBED_MODEL, "input": ["ping"]}).encode("utf-8")
     req = Request(
-        f"{upstream}/v1/embeddings",
+        f"{base}/v1/embeddings",
         data=payload,
         headers={
             "Content-Type": "application/json",
             "Authorization": "Bearer ollama-local",
         },
     )
-    try:
-        # This is only a best-effort host-side prewarm hint. The real fail-hard
-        # gate is the later guest-visible embedding validation. Keep this short
-        # so OC-native launches do not spend minutes waiting on a cold host
-        # embed call that we are prepared to skip anyway.
-        with urlopen(req, timeout=45) as resp:
-            data = json.load(resp)
-    except Exception as exc:
-        raise RuntimeError(f"oc-native embed upstream warmup failed: {exc}") from exc
+    with urlopen(req, timeout=timeout_s) as resp:
+        data = json.load(resp)
     emb = (((data.get("data") or [{}])[0]).get("embedding") or [])
     if not emb:
-        raise RuntimeError("oc-native embed upstream warmup returned empty embedding")
-    print(f"  OC native embed upstream warmed ({len(emb)} dims)")
+        raise RuntimeError("oc-native embed warmup returned empty embedding")
+    return len(emb)
 
 
-def _ensure_oc_native_embed_proxy() -> None:
-    """Ensure a host-local OpenAI-compatible proxy exists before tunneling it into the VM."""
-    upstream = OC_NATIVE_EMBED_UPSTREAM.rstrip("/")
-    healthy = False
-    detail = "unprobed"
-    for attempt in range(3):
-        healthy, detail = _probe_json_url(f"{upstream}/v1/models", timeout=15)
-        if healthy:
-            break
-        if attempt < 2:
-            time.sleep(2)
-    if not healthy:
-        raise RuntimeError(f"oc-native host embed upstream not ready: {detail}")
+def _warm_oc_native_embed_upstream(*, tart_host: Optional[str] = None) -> None:
+    dims = _warm_oc_native_embed_endpoint(
+        OC_NATIVE_EMBED_UPSTREAM,
+        timeout_s=OC_NATIVE_EMBED_UPSTREAM_WARMUP_TIMEOUT_S,
+        tart_host=tart_host,
+    )
+    print(f"  OC native embed upstream warmed ({dims} dims)")
+
+
+def _list_loaded_ollama_models(*, tart_host: Optional[str] = None) -> list[str]:
+    """Return loaded host-local Ollama models."""
+    if tart_host:
+        script = (
+            "import json\n"
+            "from urllib.request import Request, urlopen\n"
+            f"url = {OC_NATIVE_EMBED_UPSTREAM.rstrip('/') + '/api/ps'!r}\n"
+            "req = Request(url, headers={'Accept': 'application/json'})\n"
+            "try:\n"
+            "    with urlopen(req, timeout=10) as resp:\n"
+            "        payload = json.load(resp)\n"
+            "except Exception:\n"
+            "    print('[]')\n"
+            "    raise SystemExit(0)\n"
+            "models = []\n"
+            "for item in payload.get('models') or []:\n"
+            "    model = item.get('model') or item.get('name')\n"
+            "    if isinstance(model, str) and model not in models:\n"
+            "        models.append(model)\n"
+            "print(json.dumps(models))\n"
+        )
+        result = _run_host_command(
+            ["python3", "-c", script],
+            tart_host=tart_host,
+            timeout=20,
+        )
+        if result.returncode != 0:
+            return []
+        try:
+            return json.loads((result.stdout or "[]").strip() or "[]")
+        except Exception:
+            return []
+    req = Request(
+        f"{OC_NATIVE_EMBED_UPSTREAM.rstrip('/')}/api/ps",
+        headers={"Accept": "application/json"},
+    )
     try:
-        _warm_oc_native_embed_upstream()
-    except Exception as exc:
-        # Keep the real fail-hard gate on the VM-side embedding probe below.
-        # Host-side warmup is only a cold-start acceleration hint and can hang
-        # even when the guest-visible embedding path later validates cleanly.
-        print(f"  WARN: oc-native embed upstream warmup skipped: {exc}")
+        with urlopen(req, timeout=10) as resp:
+            payload = json.load(resp)
+    except Exception:
+        return []
+    models = []
+    for item in payload.get("models") or []:
+        model = item.get("model") or item.get("name")
+        if isinstance(model, str) and model not in models:
+            models.append(model)
+    return models
 
-    parsed = urlparse(OC_NATIVE_EMBED_BASE_URL)
-    port = parsed.port or 80
-    healthy, _detail = _probe_json_url(f"http://127.0.0.1:{port}/v1/models")
-    if healthy:
-        print(f"  OC native embed proxy ready on host localhost:{port}")
+
+def _stop_ollama_model(model: str, *, tart_host: Optional[str] = None) -> None:
+    try:
+        _run_host_command(
+            ["ollama", "stop", model],
+            tart_host=tart_host,
+            timeout=30,
+        )
+    except Exception:
         return
 
-    pid = None
+
+def _prepare_oc_native_embed_upstream(*, tart_host: Optional[str] = None) -> None:
+    """Unload resident Ollama models so the OC-native embed model can cold-start cleanly."""
+    loaded = _list_loaded_ollama_models(tart_host=tart_host)
+    if not loaded:
+        return
+    print(f"  Reclaiming Ollama model memory: {', '.join(loaded)}")
+    for model in loaded:
+        _stop_ollama_model(model, tart_host=tart_host)
+    time.sleep(2)
+
+
+def _wait_for_oc_native_embed_upstream_ready(*, tart_host: Optional[str] = None) -> None:
+    """Wait until the host-local Ollama embeddings endpoint is actually serving."""
+    deadline = time.time() + OC_NATIVE_EMBED_UPSTREAM_READY_WAIT_S
+    last_exc: Exception | None = None
+    while time.time() < deadline:
+        try:
+            _warm_oc_native_embed_upstream(tart_host=tart_host)
+            return
+        except Exception as exc:
+            last_exc = exc
+            time.sleep(OC_NATIVE_EMBED_UPSTREAM_READY_POLL_S)
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("oc-native embed upstream readiness wait elapsed without a probe result")
+
+
+def _warm_oc_native_embed_proxy(port: int, *, tart_host: Optional[str] = None) -> None:
+    dims = _warm_oc_native_embed_endpoint(
+        f"http://127.0.0.1:{port}",
+        timeout_s=OC_NATIVE_EMBED_PROXY_WARMUP_TIMEOUT_S,
+        tart_host=tart_host,
+    )
+    print(f"  OC native embed proxy warmed ({dims} dims)")
+
+
+def _wait_for_oc_native_embed_proxy_ready(port: int, *, tart_host: Optional[str] = None) -> None:
+    """Wait until the host-side proxy can actually serve embeddings."""
+    deadline = time.time() + OC_NATIVE_EMBED_PROXY_READY_WAIT_S
+    last_exc: Exception | None = None
+    while time.time() < deadline:
+        try:
+            _warm_oc_native_embed_proxy(port, tart_host=tart_host)
+            return
+        except Exception as exc:
+            last_exc = exc
+            time.sleep(OC_NATIVE_EMBED_PROXY_READY_POLL_S)
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("oc-native embed proxy readiness wait elapsed without a probe result")
+
+
+def _sync_oc_native_embed_proxy_script(tart_host: str) -> None:
+    result = subprocess.run(
+        [
+            "scp",
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "ConnectTimeout=10",
+            str(OC_NATIVE_EMBED_PROXY_SCRIPT),
+            f"{tart_host}:{OC_NATIVE_EMBED_PROXY_REMOTE_SCRIPT}",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "failed to sync oc-native embed proxy script to tart host: "
+            f"{(result.stderr or result.stdout or '').strip()}"
+        )
+
+
+def _stop_oc_native_embed_proxy(port: int, *, tart_host: Optional[str] = None) -> None:
+    if tart_host:
+        script = (
+            f"PIDFILE={shlex.quote(str(OC_NATIVE_EMBED_PROXY_PIDFILE))}\n"
+            f"PROXY={shlex.quote(OC_NATIVE_EMBED_PROXY_REMOTE_SCRIPT)}\n"
+            "pids=''\n"
+            "if [ -f \"$PIDFILE\" ]; then pids=\"$pids $(cat \"$PIDFILE\" 2>/dev/null || true)\"; fi\n"
+            f"pids=\"$pids $(lsof -tiTCP:{port} -sTCP:LISTEN 2>/dev/null || true)\"\n"
+            "pids=\"$pids $(pgrep -f \"$PROXY\" 2>/dev/null || true)\"\n"
+            "for pid in $pids; do kill \"$pid\" 2>/dev/null || true; done\n"
+            "sleep 1\n"
+            "for pid in $pids; do kill -9 \"$pid\" 2>/dev/null || true; done\n"
+            "rm -f \"$PIDFILE\"\n"
+        )
+        _run_host_shell(script, tart_host=tart_host, timeout=30)
+        return
+    pids: set[int] = set()
     if OC_NATIVE_EMBED_PROXY_PIDFILE.exists():
         try:
-            pid = int(OC_NATIVE_EMBED_PROXY_PIDFILE.read_text().strip())
+            pids.add(int(OC_NATIVE_EMBED_PROXY_PIDFILE.read_text().strip()))
         except ValueError:
-            pid = None
-    if pid:
+            pass
+    try:
+        listeners = (
+            subprocess.check_output(
+                ["lsof", f"-tiTCP:{port}", "-sTCP:LISTEN"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+            .strip()
+            .splitlines()
+        )
+    except subprocess.CalledProcessError:
+        listeners = []
+    for raw_pid in listeners:
+        try:
+            pids.add(int(raw_pid))
+        except ValueError:
+            pass
+    try:
+        proxy_pids = (
+            subprocess.check_output(
+                ["pgrep", "-f", str(OC_NATIVE_EMBED_PROXY_SCRIPT)],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+            .strip()
+            .splitlines()
+        )
+    except subprocess.CalledProcessError:
+        proxy_pids = []
+    for raw_pid in proxy_pids:
+        try:
+            pids.add(int(raw_pid))
+        except ValueError:
+            pass
+    for pid in sorted(pids):
+        try:
+            os.kill(pid, 15)
+        except OSError:
+            pass
+    deadline = time.time() + 3
+    while time.time() < deadline:
+        remaining = []
+        for pid in sorted(pids):
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                continue
+            remaining.append(pid)
+        if not remaining:
+            break
+        time.sleep(0.2)
+    for pid in sorted(pids):
         try:
             os.kill(pid, 0)
         except OSError:
-            OC_NATIVE_EMBED_PROXY_PIDFILE.unlink(missing_ok=True)
+            continue
+        try:
+            os.kill(pid, 9)
+        except OSError:
+            pass
+    OC_NATIVE_EMBED_PROXY_PIDFILE.unlink(missing_ok=True)
 
+
+def _start_oc_native_embed_proxy(upstream: str, port: int, *, tart_host: Optional[str] = None) -> None:
+    if tart_host:
+        _stop_oc_native_embed_proxy(port, tart_host=tart_host)
+    else:
+        _stop_oc_native_embed_proxy(port)
+    if tart_host:
+        _sync_oc_native_embed_proxy_script(tart_host)
+        command = (
+            f"nohup python3 {shlex.quote(OC_NATIVE_EMBED_PROXY_REMOTE_SCRIPT)} "
+            f"--host 0.0.0.0 --port {port} --upstream {shlex.quote(upstream)} "
+            f">{shlex.quote(str(OC_NATIVE_EMBED_PROXY_LOG))} 2>&1 </dev/null & "
+            f"echo $! > {shlex.quote(str(OC_NATIVE_EMBED_PROXY_PIDFILE))}"
+        )
+        result = _run_host_shell(command, tart_host=tart_host, timeout=30)
+        if result.returncode != 0:
+            raise RuntimeError(
+                "failed to start remote oc-native embed proxy: "
+                f"{(result.stderr or result.stdout or '').strip()}"
+            )
+        return
     with OC_NATIVE_EMBED_PROXY_LOG.open("ab") as log:
         proc = subprocess.Popen(
             [
@@ -771,15 +1593,49 @@ def _ensure_oc_native_embed_proxy() -> None:
         )
     OC_NATIVE_EMBED_PROXY_PIDFILE.write_text(f"{proc.pid}\n")
 
+
+def _ensure_oc_native_embed_proxy(tart_host: Optional[str] = None) -> None:
+    """Ensure a fresh host-local OpenAI-compatible proxy exists before tunneling it into the VM."""
+    upstream = OC_NATIVE_EMBED_UPSTREAM.rstrip("/")
+    maybe_remote = {"tart_host": tart_host} if tart_host else {}
+    healthy = False
+    detail = "unprobed"
+    for attempt in range(3):
+        healthy, detail = _probe_json_url(f"{upstream}/v1/models", timeout=15, **maybe_remote)
+        if healthy:
+            break
+        if attempt < 2:
+            time.sleep(2)
+    if not healthy:
+        raise RuntimeError(f"oc-native host embed upstream not ready: {detail}")
+    _prepare_oc_native_embed_upstream(**maybe_remote)
+    try:
+        _wait_for_oc_native_embed_upstream_ready(**maybe_remote)
+    except Exception as exc:
+        raise RuntimeError(f"oc-native host embed upstream embeddings not ready: {exc}") from exc
+
+    parsed = urlparse(OC_NATIVE_EMBED_BASE_URL)
+    port = parsed.port or 80
+    _start_oc_native_embed_proxy(upstream, port, **maybe_remote)
+
     last_detail = "proxy startup probe unavailable"
     for _ in range(20):
-        healthy, last_detail = _probe_json_url(f"http://127.0.0.1:{port}/v1/models")
+        healthy, last_detail = _probe_json_url(f"http://127.0.0.1:{port}/v1/models", **maybe_remote)
         if healthy:
-            print(f"  OC native embed proxy ready on host localhost:{port}")
+            try:
+                _wait_for_oc_native_embed_proxy_ready(port, **maybe_remote)
+            except Exception as exc:
+                tail = _read_host_text_tail(OC_NATIVE_EMBED_PROXY_LOG, **maybe_remote)
+                raise RuntimeError(
+                    "oc-native embed proxy became reachable but embeddings never became ready: "
+                    f"{exc} | log_tail={tail}"
+                ) from exc
+            proxy_host = tart_host or "localhost"
+            print(f"  OC native embed proxy ready on host {proxy_host}:{port}")
             return
         time.sleep(0.5)
 
-    tail = _read_text_tail(OC_NATIVE_EMBED_PROXY_LOG)
+    tail = _read_host_text_tail(OC_NATIVE_EMBED_PROXY_LOG, **maybe_remote)
     raise RuntimeError(
         "oc-native embed proxy did not become ready: "
         f"{last_detail} | log_tail={tail}"
@@ -808,10 +1664,11 @@ def _validate_openclaw_native_memory(vm: TartVM):
     model = status.get("model")
     if provider != "openai":
         raise RuntimeError(f"oc-native memory search resolved provider={provider!r}, expected 'openai'")
-    if model != "qwen3-embedding:8b":
+    if model != OC_NATIVE_EMBED_MODEL:
         raise RuntimeError(
-            f"oc-native memory search resolved model={model!r}, expected 'qwen3-embedding:8b'"
+            f"oc-native memory search resolved model={model!r}, expected {OC_NATIVE_EMBED_MODEL!r}"
         )
+    probe_timeout = max(5, min(OC_NATIVE_EMBED_VALIDATION_PROBE_TIMEOUT_S, int(OC_NATIVE_EMBED_VALIDATION_TIMEOUT_S)))
     probe_script = (
         "import json, os, urllib.request\n"
         "cfg = json.load(open(os.path.expanduser('~/.openclaw/openclaw.json')))\n"
@@ -828,21 +1685,106 @@ def _validate_openclaw_native_memory(vm: TartVM):
         "    data=json.dumps({'model': model, 'input': ['ping']}).encode('utf-8'),\n"
         "    headers=headers,\n"
         ")\n"
-        "with urllib.request.urlopen(req, timeout=60) as resp:\n"
+        f"with urllib.request.urlopen(req, timeout={probe_timeout}) as resp:\n"
         "    data = json.load(resp)\n"
         "emb = (((data.get('data') or [{}])[0]).get('embedding') or [])\n"
         "print(json.dumps({'ok': True, 'dims': len(emb)}))\n"
     )
     last_detail = "embedding probe unavailable"
-    for attempt in range(3):
-        probe_result = vm.ssh("python3 -c " + shlex.quote(probe_script), timeout=90)
+    deadline = time.time() + OC_NATIVE_EMBED_VALIDATION_TIMEOUT_S
+    attempt = 0
+    while time.time() < deadline:
+        attempt += 1
+        refresh_ip = getattr(vm, "_refresh_ip_from_tart", None)
+        if callable(refresh_ip):
+            refresh_ip()
+        probe_result = vm.ssh(
+            "python3 -c " + shlex.quote(probe_script),
+            timeout=probe_timeout + 15,
+        )
         if probe_result.returncode == 0:
+            try:
+                probe_status = json.loads(probe_result.stdout.strip())
+            except Exception as exc:
+                raise RuntimeError(
+                    f"oc-native embeddings probe returned invalid JSON: {probe_result.stdout[:300]}"
+                ) from exc
+            dims = probe_status.get("dims")
+            if dims != OC_NATIVE_EMBED_DIMS:
+                raise RuntimeError(
+                    f"oc-native embeddings probe returned dims={dims!r}, expected {OC_NATIVE_EMBED_DIMS}"
+                )
             print(f"  Native memory verified: provider={provider} model={model}")
             return
         last_detail = probe_result.stderr.strip() or probe_result.stdout.strip() or last_detail
-        if attempt < 2:
-            time.sleep(3)
+        if time.time() + 3 >= deadline:
+            break
+        time.sleep(3)
     raise RuntimeError(f"oc-native embeddings not ready: {last_detail}")
+
+
+def _validate_quaid_vm_embeddings(
+    vm: TartVM,
+    *,
+    instance_id: str = VM_QUAID_INSTANCE,
+    ollama_url: str = VM_QUAID_OLLAMA_URL,
+) -> None:
+    """Fail fast if the Quaid VM cannot reach the host embeddings proxy."""
+    probe_timeout = max(
+        5,
+        min(
+            OC_NATIVE_EMBED_VALIDATION_PROBE_TIMEOUT_S,
+            int(OC_NATIVE_EMBED_VALIDATION_TIMEOUT_S),
+        ),
+    )
+    probe_script = (
+        "import json, urllib.request\n"
+        f"base = {ollama_url!r}.rstrip('/')\n"
+        f"model = {OC_NATIVE_EMBED_MODEL!r}\n"
+        "headers = {'Content-Type': 'application/json'}\n"
+        "req = urllib.request.Request(\n"
+        "    base + '/api/embed',\n"
+        "    data=json.dumps({'model': model, 'input': ['ping'], 'keep_alive': -1}).encode('utf-8'),\n"
+        "    headers=headers,\n"
+        ")\n"
+        f"with urllib.request.urlopen(req, timeout={probe_timeout}) as resp:\n"
+        "    data = json.load(resp)\n"
+        "embeddings = data.get('embeddings') or []\n"
+        "first = embeddings[0] if embeddings else []\n"
+        "print(json.dumps({'ok': True, 'dims': len(first)}))\n"
+    )
+    last_detail = "embedding probe unavailable"
+    deadline = time.time() + OC_NATIVE_EMBED_VALIDATION_TIMEOUT_S
+    while time.time() < deadline:
+        refresh_ip = getattr(vm, "_refresh_ip_from_tart", None)
+        if callable(refresh_ip):
+            refresh_ip()
+        probe_result = vm.ssh(
+            "python3 -c " + shlex.quote(probe_script),
+            timeout=probe_timeout + 15,
+        )
+        if probe_result.returncode == 0:
+            try:
+                probe_status = json.loads(probe_result.stdout.strip())
+            except Exception as exc:
+                raise RuntimeError(
+                    f"quaid vm embeddings probe returned invalid JSON: {probe_result.stdout[:300]}"
+                ) from exc
+            dims = probe_status.get("dims")
+            if dims != OC_NATIVE_EMBED_DIMS:
+                raise RuntimeError(
+                    f"quaid vm embeddings probe returned dims={dims!r}, expected {OC_NATIVE_EMBED_DIMS}"
+                )
+            print(
+                "  Quaid embeddings verified: "
+                f"instance={instance_id} model={OC_NATIVE_EMBED_MODEL} url={ollama_url}"
+            )
+            return
+        last_detail = probe_result.stderr.strip() or probe_result.stdout.strip() or last_detail
+        if time.time() + 3 >= deadline:
+            break
+        time.sleep(3)
+    raise RuntimeError(f"quaid vm embeddings not ready for instance={instance_id}: {last_detail}")
 
 
 def _extract_openclaw_memory_status(stdout: str) -> list:
@@ -856,6 +1798,11 @@ def _extract_openclaw_memory_status(stdout: str) -> list:
     return json.loads(payload)
 
 
+def _is_openclaw_memory_status_unsupported(detail: str) -> bool:
+    lowered = str(detail or "").lower()
+    return "unknown command 'memory'" in lowered
+
+
 def _oc_native_session_id(review, ordinal: int) -> str:
     """Build a stable per-review session id for the native OpenClaw baseline."""
     snum = getattr(review, "session_num", None)
@@ -867,11 +1814,72 @@ def _oc_native_session_id(review, ordinal: int) -> str:
     return f"benchmark-oc-native-r{ordinal:03d}"
 
 
-def _write_vm_session_jsonl(vm: TartVM, session_id: str, jsonl: str, append: bool = True):
+def _oc_native_session_key(session_id: str) -> str:
+    """Return a stable agent-scoped session key for OC-native gateway turns."""
+    return f"agent:main:{session_id}"
+
+
+def _oc_native_eval_session_key(session_id: str) -> str:
+    """Return a hook-scoped key for OC-native eval turns.
+
+    Hook-prefixed keys are excluded from the adapter's user-session fallback
+    scans, which prevents eval turns from being rediscovered as candidate user
+    transcripts while keeping prompt-time recall injection enabled.
+    """
+    return f"agent:main:hook:{session_id}"
+
+
+def _oc_native_eval_session_file(session_id: str) -> str:
+    """Store OC eval transcripts under a sibling agent's session tree.
+
+    OpenClaw normalizes session transcripts into an ``agents/<id>/sessions``
+    layout. Keeping eval turns under a sibling agent preserves the live
+    transcript path but keeps them outside the main agent's native-memory
+    session index.
+    """
+    return f"{VM_OC_EVAL_SESSIONS_DIR}/{session_id}.jsonl"
+
+
+def _uses_oc_gateway_eval_isolation(system: str) -> bool:
+    """Return True when eval turns must stay on hook-scoped OC sessions.
+
+    Both the native OpenClaw baseline and Quaid-on-OC-VM answer through the
+    OpenClaw agent stack. Their eval turns must therefore avoid the default
+    ``agent:main:main`` store key and ``main/sessions`` transcript path, or the
+    live eval session can be recalled during scoring.
+    """
+    return system in {"oc-native", "quaid"}
+
+
+def _require_quaid_extraction_usage(extraction_usage: dict, *, context: str) -> dict:
+    """Fail hard when Quaid extraction did not report real token usage.
+
+    A zero-usage return means the extraction path failed, short-circuited, or
+    stopped emitting the structured usage payload the benchmark relies on. Any
+    of those states invalidate the run and must abort immediately.
+    """
+    if extraction_usage.get("input_tokens", 0) <= 0:
+        raise RuntimeError(f"Quaid extraction failed to report usage ({context})")
+    return extraction_usage
+
+
+def _quaid_benchmark_session_file(session_id: str) -> str:
+    """Keep benchmark transcript files out of OpenClaw's watched live-session dir."""
+    return f"{VM_QUAID_BENCH_SESSIONS_DIR}/{session_id}.jsonl"
+
+
+def _write_vm_session_jsonl(
+    vm: TartVM,
+    session_id: str,
+    jsonl: str,
+    append: bool = True,
+    *,
+    sessions_dir: str = VM_AGENT_SESSIONS_DIR,
+):
     """Write transcript JSONL to a VM session file."""
     operator = ">>" if append else ">"
     return vm.ssh(
-        f"mkdir -p {VM_AGENT_SESSIONS_DIR} && cat {operator} {VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl",
+        f"mkdir -p {sessions_dir} && cat {operator} {sessions_dir}/{session_id}.jsonl",
         input_data=jsonl,
         timeout=30,
     )
@@ -903,6 +1911,53 @@ def _read_vm_session_jsonl(vm: TartVM, session_id: str) -> str:
     return result.stdout or ""
 
 
+def _wait_for_vm_session_jsonl_quiet(
+    vm: TartVM,
+    session_id: str,
+    *,
+    timeout_s: float = OC_NATIVE_SESSION_QUIET_TIMEOUT_S,
+    quiet_s: float = OC_NATIVE_SESSION_QUIET_WINDOW_S,
+) -> None:
+    """Wait until a session file stops changing before restoring benchmark content."""
+    script = (
+        "from pathlib import Path\n"
+        "import sys, time\n"
+        f"session_id = {session_id!r}\n"
+        f"timeout_s = float({timeout_s!r})\n"
+        f"quiet_s = float({quiet_s!r})\n"
+        "path = Path.home()/'.openclaw'/'agents'/'main'/'sessions'/f'{session_id}.jsonl'\n"
+        "deadline = time.time() + timeout_s\n"
+        "last_sig = None\n"
+        "stable_since = None\n"
+        "while time.time() < deadline:\n"
+        "    if path.exists():\n"
+        "        stat = path.stat()\n"
+        "        sig = (stat.st_size, stat.st_mtime_ns)\n"
+        "        now = time.time()\n"
+        "        if sig == last_sig:\n"
+        "            if stable_since is None:\n"
+        "                stable_since = now\n"
+        "            if now - stable_since >= quiet_s:\n"
+        "                print(f'{sig[0]}:{sig[1]}')\n"
+        "                sys.exit(0)\n"
+        "        else:\n"
+        "            last_sig = sig\n"
+        "            stable_since = now\n"
+        "    time.sleep(0.25)\n"
+        "print('timeout')\n"
+        "sys.exit(1)\n"
+    )
+    result = vm.ssh(
+        "python3 -c " + shlex.quote(script),
+        timeout=max(int(timeout_s) + 5, 20),
+        raw=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"oc-native session file did not go quiet for {session_id}: {(result.stdout or result.stderr)[:200]}"
+        )
+
+
 def _extract_oc_native_gateway_run_id(payload: dict) -> str:
     run_id = payload.get("runId") if isinstance(payload, dict) else None
     if (not isinstance(run_id, str) or not run_id.strip()) and isinstance(payload.get("result"), dict):
@@ -916,6 +1971,15 @@ def _extract_json_object_from_mixed_stdout(text: str) -> dict:
     if start < 0:
         raise ValueError("no JSON object found")
     return json.loads(text[start:])
+
+
+def _is_oc_native_invalid_config_error(detail: str) -> bool:
+    lower_detail = str(detail or "").lower()
+    return (
+        "invalid config at" in lower_detail
+        or "config invalid" in lower_detail
+        or ("unrecognized key" in lower_detail and "plugins.entries." in lower_detail)
+    )
 
 
 def _repair_oc_native_loopback_pairing(vm: TartVM) -> bool:
@@ -1014,12 +2078,33 @@ def _oc_native_gateway_call(
         f"--params {shlex.quote(json.dumps(params, ensure_ascii=False))} "
         f"--timeout {int(timeout_s * 1000)}"
     )
-    result = vm.ssh(command, timeout=ssh_timeout_s or max(timeout_s + 15, 30))
-    if result.returncode != 0 and "pairing required" in ((result.stderr or "") + (result.stdout or "")):
-        if _repair_oc_native_loopback_pairing(vm):
-            result = vm.ssh(command, timeout=ssh_timeout_s or max(timeout_s + 15, 30))
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout).strip()
+    ssh_timeout = ssh_timeout_s or max(timeout_s + 15, 30)
+    repaired_pairing = False
+    gateway_restart_attempts = 0
+    invalid_config_restart_attempts = 0
+    result = None
+    detail = ""
+    while True:
+        result = vm.ssh(command, timeout=ssh_timeout)
+        detail = ((result.stderr or "") + "\n" + (result.stdout or "")).strip()
+        if result.returncode == 0:
+            break
+        lower_detail = detail.lower()
+        if not repaired_pairing and "pairing required" in lower_detail:
+            repaired_pairing = True
+            if _repair_oc_native_loopback_pairing(vm):
+                continue
+        if "gateway closed" in lower_detail and gateway_restart_attempts < OC_NATIVE_GATEWAY_CALL_RESTART_LIMIT:
+            gateway_restart_attempts += 1
+            _restart_oc_native_gateway(vm)
+            continue
+        if (
+            _is_oc_native_invalid_config_error(detail)
+            and invalid_config_restart_attempts < OC_NATIVE_GATEWAY_CALL_RESTART_LIMIT
+        ):
+            invalid_config_restart_attempts += 1
+            _restart_oc_native_gateway(vm)
+            continue
         raise RuntimeError(
             f"oc-native gateway call failed method={method}: {detail[:300]}"
         )
@@ -1031,16 +2116,53 @@ def _oc_native_gateway_call(
         ) from exc
 
 
-def _read_oc_native_last_assistant_message(vm: TartVM, session_id: str) -> str:
-    """Read the latest assistant text content from an OC-native session file."""
+def _read_oc_native_session_tail_state(
+    vm: TartVM,
+    session_id: str,
+    *,
+    session_key: Optional[str] = None,
+) -> dict:
+    """Return the latest assistant event details from an OC-native session file.
+
+    OC gateway may remap a session key onto a generated session id/file even when
+    the caller supplied a stable benchmark session id. Follow the session store
+    first, then fall back to the legacy <session_id>.jsonl path.
+    """
     script = (
         "import json\n"
         "from pathlib import Path\n"
         f"session_id = {session_id!r}\n"
-        "path = Path.home()/'.openclaw'/'agents'/'main'/'sessions'/f'{session_id}.jsonl'\n"
-        "answer = ''\n"
-        "if path.exists():\n"
-        "    for raw in reversed(path.read_text(errors='replace').splitlines()):\n"
+        f"session_key = {session_key!r}\n"
+        "sessions_dir = Path.home()/'.openclaw'/'agents'/'main'/'sessions'\n"
+        "path = None\n"
+        "store = sessions_dir/'sessions.json'\n"
+        "if session_key and store.exists():\n"
+        "    try:\n"
+        "        data = json.loads(store.read_text(errors='replace'))\n"
+        "    except Exception:\n"
+        "        data = {}\n"
+        "    entry = data.get(session_key)\n"
+        "    if isinstance(entry, dict):\n"
+        "        session_file = entry.get('sessionFile')\n"
+        "        if isinstance(session_file, str) and session_file.strip():\n"
+        "            candidate = Path(session_file)\n"
+        "            if candidate.exists():\n"
+        "                path = candidate\n"
+        "if path is None:\n"
+        "    fallback = sessions_dir/f'{session_id}.jsonl'\n"
+        "    if fallback.exists():\n"
+        "        path = fallback\n"
+        "state = {\n"
+        "    'path': str(path) if path else '',\n"
+        "    'line_count': 0,\n"
+        "    'assistant_text': '',\n"
+        "    'assistant_event_id': '',\n"
+        "    'assistant_timestamp': '',\n"
+        "}\n"
+        "if path and path.exists():\n"
+        "    lines = path.read_text(errors='replace').splitlines()\n"
+        "    state['line_count'] = len(lines)\n"
+        "    for raw in reversed(lines):\n"
         "        if not raw.strip():\n"
         "            continue\n"
         "        try:\n"
@@ -1058,9 +2180,11 @@ def _read_oc_native_last_assistant_message(vm: TartVM, session_id: str) -> str:
         "                text = item.get('text')\n"
         "                if isinstance(text, str) and text.strip():\n"
         "                    parts.append(text)\n"
-        "        answer = '\\n'.join(parts).strip()\n"
+        "        state['assistant_text'] = '\\n'.join(parts).strip()\n"
+        "        state['assistant_event_id'] = str(event.get('id') or '')\n"
+        "        state['assistant_timestamp'] = str(event.get('timestamp') or '')\n"
         "        break\n"
-        "print(answer)\n"
+        "print(json.dumps(state))\n"
     )
     result = vm.ssh(
         "python3 -c " + shlex.quote(script),
@@ -1071,7 +2195,80 @@ def _read_oc_native_last_assistant_message(vm: TartVM, session_id: str) -> str:
         raise RuntimeError(
             f"oc-native session parse failed for {session_id}: {(result.stderr or result.stdout)[:200]}"
         )
-    return (result.stdout or "").strip()
+    try:
+        state = json.loads((result.stdout or "").strip() or "{}")
+    except Exception as exc:
+        raise RuntimeError(
+            f"oc-native session state parse failed for {session_id}: {(result.stdout or '')[:200]}"
+        ) from exc
+    if not isinstance(state, dict):
+        raise RuntimeError(f"oc-native session state was not an object for {session_id}")
+    return state
+
+
+def _read_oc_native_last_assistant_message(
+    vm: TartVM,
+    session_id: str,
+    *,
+    session_key: Optional[str] = None,
+) -> str:
+    state = _read_oc_native_session_tail_state(vm, session_id, session_key=session_key)
+    return str(state.get("assistant_text") or "").strip()
+
+
+def _wait_for_oc_native_session_completion(
+    vm: TartVM,
+    session_id: str,
+    *,
+    session_key: Optional[str],
+    previous_state: dict,
+    timeout_s: int = 20,
+) -> str:
+    """Accept late OC completion only when the session transcript proves progress."""
+    deadline = time.time() + max(timeout_s, 1)
+    previous_line_count = int(previous_state.get("line_count") or 0)
+    previous_event_id = str(previous_state.get("assistant_event_id") or "")
+    previous_timestamp = str(previous_state.get("assistant_timestamp") or "")
+    while time.time() < deadline:
+        state = _read_oc_native_session_tail_state(vm, session_id, session_key=session_key)
+        line_count = int(state.get("line_count") or 0)
+        assistant_text = str(state.get("assistant_text") or "").strip()
+        assistant_event_id = str(state.get("assistant_event_id") or "")
+        assistant_timestamp = str(state.get("assistant_timestamp") or "")
+        progressed = line_count > previous_line_count
+        assistant_changed = (
+            assistant_event_id != previous_event_id
+            or assistant_timestamp != previous_timestamp
+        )
+        if progressed and assistant_changed and assistant_text:
+            print(
+                f"  WARN: oc-native agent.wait timed out for {session_id}; "
+                "using transcript-confirmed completion"
+            )
+            return assistant_text
+        time.sleep(2)
+    return ""
+
+
+def _count_vm_session_jsonl_files(vm: TartVM) -> Optional[int]:
+    """Count guest session transcript files when native status underreports them."""
+    script = (
+        "from pathlib import Path\n"
+        "path = Path.home()/'.openclaw'/'agents'/'main'/'sessions'\n"
+        "count = sum(1 for child in path.glob('*.jsonl') if child.is_file())\n"
+        "print(count)\n"
+    )
+    result = vm.ssh(
+        "python3 -c " + shlex.quote(script),
+        timeout=20,
+        raw=True,
+    )
+    if result.returncode != 0:
+        return None
+    try:
+        return int((result.stdout or "").strip())
+    except Exception:
+        return None
 
 
 def _run_oc_native_gateway_turn(
@@ -1080,14 +2277,22 @@ def _run_oc_native_gateway_turn(
     message: str,
     *,
     timeout_s: int,
+    session_key: Optional[str] = None,
 ) -> str:
     """Run an OC-native agent turn via gateway RPC and return the assistant text."""
+    if not session_key:
+        session_key = _oc_native_session_key(session_id)
+    previous_state = _read_oc_native_session_tail_state(
+        vm,
+        session_id,
+        session_key=session_key,
+    )
     payload = _oc_native_gateway_call(
         vm,
         "agent",
         {
             "agentId": "main",
-            "sessionKey": "agent:main:main",
+            "sessionKey": session_key,
             "sessionId": session_id,
             "message": message,
             "idempotencyKey": f"bench-oc-{session_id}-{uuid.uuid4().hex[:12]}",
@@ -1100,16 +2305,35 @@ def _run_oc_native_gateway_turn(
     )
     run_id = _extract_oc_native_gateway_run_id(payload)
     if run_id:
-        wait_payload = _oc_native_gateway_call(
-            vm,
-            "agent.wait",
-            {
-                "runId": run_id,
-                "timeoutMs": min((timeout_s + 60) * 1000, 240000),
-            },
-            timeout_s=max(timeout_s + 30, 90),
-            ssh_timeout_s=max(timeout_s + 180, 300),
-        )
+        wait_timeout_s = min(timeout_s + 60, 240)
+        try:
+            wait_payload = _oc_native_gateway_call(
+                vm,
+                "agent.wait",
+                {
+                    "runId": run_id,
+                    "timeoutMs": wait_timeout_s * 1000,
+                },
+                # Keep the gateway-call transport timeout at or above the logical
+                # wait window. Otherwise the CLI can self-time out before the
+                # requested agent.wait deadline is reached.
+                timeout_s=max(wait_timeout_s + 15, 120),
+                ssh_timeout_s=max(wait_timeout_s + 180, 300),
+            )
+        except RuntimeError as exc:
+            transcript_answer = _wait_for_oc_native_session_completion(
+                vm,
+                session_id,
+                session_key=session_key,
+                previous_state=previous_state,
+            )
+            if transcript_answer:
+                print(
+                    f"  WARN: oc-native agent.wait transport failed for {session_id}; "
+                    "using transcript-confirmed completion"
+                )
+                return transcript_answer
+            raise exc
         status = str(
             wait_payload.get("status")
             or wait_payload.get("state")
@@ -1121,76 +2345,145 @@ def _run_oc_native_gateway_turn(
             or ""
         ).strip().lower()
         if status not in {"ok", "succeeded", "success", "done", "completed", "complete"}:
+            transcript_answer = _wait_for_oc_native_session_completion(
+                vm,
+                session_id,
+                session_key=session_key,
+                previous_state=previous_state,
+            )
+            if transcript_answer:
+                return transcript_answer
             raise RuntimeError(
                 f"oc-native agent.wait did not complete cleanly for {session_id}: {wait_payload}"
             )
-    answer = _read_oc_native_last_assistant_message(vm, session_id)
+    answer = _read_oc_native_last_assistant_message(vm, session_id, session_key=session_key)
     if not answer:
         raise RuntimeError(f"oc-native gateway turn produced no assistant text for {session_id}")
     return answer
+
+
+def _sync_openclaw_native_memory(
+    vm: TartVM,
+    source_name: str = "sessions",
+    min_indexed_files: int = 1,
+    *,
+    force: bool = False,
+) -> dict:
+    """Run OC native memory indexing directly, then require clean indexed status."""
+    # The OC guest can respawn setup-quaid and drift the config mid-run.
+    # Reapply the benchmark-owned config immediately before every native sync.
+    _patch_openclaw_native_memory(vm, enable_session_hook=True)
+    force_flag = " --force" if force else ""
+    action = "reindexed" if force else "synced"
+    index_result = vm.ssh(
+        "sh -lc 'export PATH=/opt/homebrew/bin:$PATH; "
+        f"openclaw memory index --agent main{force_flag} > /tmp/oc-native-reindex.log 2>&1'",
+        timeout=OC_NATIVE_REINDEX_TIMEOUT_S + 120,
+    )
+    if index_result.returncode != 0:
+        log = vm.ssh("tail -80 /tmp/oc-native-reindex.log 2>/dev/null", timeout=10, raw=True)
+        log_detail = log.stdout.strip() if log.returncode == 0 else ""
+        raise RuntimeError(
+            f"oc-native memory index failed: {log_detail[:500] or (index_result.stderr or index_result.stdout)[:200]}"
+        )
+    index_log = vm.ssh("tail -80 /tmp/oc-native-reindex.log 2>/dev/null", timeout=10, raw=True)
+    index_log_detail = index_log.stdout.strip() if index_log.returncode == 0 else ""
+
+    deadline = time.time() + OC_NATIVE_REINDEX_STATUS_WAIT_S
+    last_detail = ""
+    last_status = None
+    while True:
+        result = vm.ssh(
+            "openclaw memory status --agent main --json",
+            timeout=90,
+        )
+        if result.returncode == 0 and result.stdout:
+            try:
+                payload = _extract_openclaw_memory_status(result.stdout)
+                status = payload[0]["status"]
+            except Exception:
+                last_detail = f"Could not parse openclaw native reindex status: {result.stdout[:300]}"
+            else:
+                source_counts = {entry.get("source"): entry for entry in (status.get("sourceCounts") or [])}
+                source = source_counts.get(source_name) or {}
+                indexed_files = int(source.get("files") or 0)
+                indexed_chunks = int(source.get("chunks") or 0)
+                dirty = bool(status.get("dirty"))
+                last_status = {
+                    "dirty": dirty,
+                    "files": indexed_files,
+                    "chunks": indexed_chunks,
+                }
+                if not dirty and indexed_files >= min_indexed_files and indexed_chunks > 0:
+                    print(f"  Native memory {action}: {source_name} files={indexed_files} chunks={indexed_chunks}")
+                    return status
+                if (
+                    source_name == "sessions"
+                    and not dirty
+                    and indexed_chunks > 0
+                    and indexed_files < min_indexed_files
+                    and "Memory index updated (" in index_log_detail
+                ):
+                    disk_session_files = _count_vm_session_jsonl_files(vm)
+                    if disk_session_files is not None and disk_session_files >= min_indexed_files:
+                        source["files"] = disk_session_files
+                        if not source_counts.get(source_name):
+                            status.setdefault("sourceCounts", []).append(source)
+                        print(
+                            "  Native memory "
+                            f"{action}: {source_name} files>={disk_session_files} chunks={indexed_chunks} "
+                            "(compat fallback: status underreported sourceCounts.files)"
+                        )
+                        return status
+                last_detail = (
+                    f"oc-native {source_name} did not finish indexing "
+                    f"(dirty={dirty}, files={indexed_files}, chunks={indexed_chunks}, expected files>={min_indexed_files})"
+                )
+        else:
+            detail = (result.stderr or result.stdout or "").strip()
+            if _is_openclaw_memory_status_unsupported(detail):
+                if "Memory index updated (" in index_log_detail:
+                    print(
+                        "  Native memory "
+                        f"{action}: {source_name} files>={min_indexed_files} "
+                        "(compat fallback: memory status unavailable)"
+                    )
+                    return {
+                        "dirty": False,
+                        "sourceCounts": [
+                            {
+                                "source": source_name,
+                                "files": min_indexed_files,
+                                "chunks": 1,
+                            }
+                        ],
+                    }
+            last_detail = f"oc-native memory status failed after index: {detail[:200]}".strip()
+
+        if time.time() >= deadline:
+            log = vm.ssh("tail -80 /tmp/oc-native-reindex.log 2>/dev/null", timeout=10, raw=True)
+            log_detail = log.stdout.strip() if log.returncode == 0 else ""
+            if last_status:
+                raise RuntimeError(
+                    f"oc-native {source_name} did not finish indexing "
+                    f"(dirty={last_status['dirty']}, files={last_status['files']}, chunks={last_status['chunks']}, "
+                    f"expected files>={min_indexed_files}) {log_detail[:500]}".strip()
+                )
+            raise RuntimeError(
+                f"{last_detail} {log_detail[:500]}".strip()
+            )
+        time.sleep(OC_NATIVE_REINDEX_STATUS_POLL_S)
 
 
 def _force_openclaw_native_reindex(
     vm: TartVM, source_name: str = "sessions", min_indexed_files: int = 1
 ) -> dict:
     """Force a native OpenClaw memory reindex and require one source to finish indexing."""
-    # Keep benchmark runs on the stable production code path. The unsafe
-    # reindex test toggle can break schema invariants (missing chunks_vec).
-    start_result = vm.ssh(
-        "nohup sh -lc 'export PATH=/opt/homebrew/bin:$PATH; "
-        "openclaw memory index --agent main --force > /tmp/oc-native-reindex.log 2>&1' "
-        ">/dev/null 2>&1 & echo $!",
-        timeout=30,
-    )
-    if start_result.returncode != 0:
-        raise RuntimeError(f"openclaw native reindex failed to start: {start_result.stderr[:200]}")
-
-    deadline = time.monotonic() + OC_NATIVE_REINDEX_TIMEOUT_S
-    last_stdout = ""
-    last_status = None
-    while time.monotonic() < deadline:
-        result = vm.ssh(
-            "openclaw memory status --agent main --json",
-            timeout=60,
-        )
-        if result.returncode == 0 and result.stdout:
-            last_stdout = result.stdout
-            try:
-                payload = _extract_openclaw_memory_status(result.stdout)
-                status = payload[0]["status"]
-            except Exception:
-                status = None
-            if status is not None:
-                last_status = status
-                source_counts = {
-                    entry.get("source"): entry for entry in (status.get("sourceCounts") or [])
-                }
-                source = source_counts.get(source_name) or {}
-                indexed_files = int(source.get("files") or 0)
-                indexed_chunks = int(source.get("chunks") or 0)
-                dirty = bool(status.get("dirty"))
-                if not dirty and indexed_files >= min_indexed_files and indexed_chunks > 0:
-                    print(
-                        "  Native memory reindexed: "
-                        f"{source_name} files={indexed_files} chunks={indexed_chunks}"
-                    )
-                    return status
-        time.sleep(10)
-
-    if last_status is not None:
-        source_counts = {
-            entry.get("source"): entry for entry in (last_status.get("sourceCounts") or [])
-        }
-        source = source_counts.get(source_name) or {}
-        indexed_files = int(source.get("files") or 0)
-        indexed_chunks = int(source.get("chunks") or 0)
-        dirty = bool(last_status.get("dirty"))
-        raise RuntimeError(
-            f"oc-native {source_name} did not finish indexing "
-            f"(dirty={dirty}, files={indexed_files}, chunks={indexed_chunks}, expected files>={min_indexed_files})"
-        )
-    raise RuntimeError(
-        f"Could not parse openclaw native reindex status: {last_stdout[:300]}"
+    return _sync_openclaw_native_memory(
+        vm,
+        source_name=source_name,
+        min_indexed_files=min_indexed_files,
+        force=True,
     )
 
 
@@ -1224,14 +2517,28 @@ def _run_oc_native_session_hook(vm: TartVM, session_id: str):
     We restore the synthetic transcript afterward so native session indexing sees
     only the benchmark conversation, not the benign hook turn.
     """
-    _register_session(vm, session_id)
+    session_key = _oc_native_session_key(session_id)
+    _register_session(vm, session_id, session_key=session_key)
     original = _read_vm_session_jsonl(vm, session_id)
-    _run_oc_native_gateway_turn(vm, session_id, "hello", timeout_s=45)
-    restore = _write_vm_session_jsonl(vm, session_id, original, append=False)
-    if restore.returncode != 0:
-        raise RuntimeError(
-            f"oc-native transcript restore failed for {session_id}: {(restore.stderr or restore.stdout)[:200]}"
+    _run_oc_native_gateway_turn(vm, session_id, "hello", timeout_s=45, session_key=session_key)
+    last_restore_detail = ""
+    for attempt in range(1, OC_NATIVE_SESSION_RESTORE_ATTEMPTS + 1):
+        _wait_for_vm_session_jsonl_quiet(vm, session_id)
+        restore = _write_vm_session_jsonl(vm, session_id, original, append=False)
+        if restore.returncode != 0:
+            raise RuntimeError(
+                f"oc-native transcript restore failed for {session_id}: {(restore.stderr or restore.stdout)[:200]}"
+            )
+        restored = _read_vm_session_jsonl(vm, session_id)
+        if restored == original:
+            return
+        last_restore_detail = (
+            f"attempt={attempt} expected_bytes={len(original)} restored_bytes={len(restored)}"
         )
+        time.sleep(0.5 * attempt)
+    raise RuntimeError(
+        f"oc-native transcript restore did not stick for {session_id}: {last_restore_detail}"
+    )
 
 
 def _probe_vm_tcp_port(vm: TartVM, host: str, port: int, timeout_s: float = 3.0) -> bool:
@@ -1272,12 +2579,50 @@ def _wait_for_vm_tcp_port(
     probe_timeout_s: float = 3.0,
     poll_interval_s: float = 1.0,
 ) -> bool:
-    deadline = time.time() + timeout_s
-    while time.time() < deadline:
-        if _probe_vm_tcp_port(vm, host, port, timeout_s=probe_timeout_s):
-            return True
-        time.sleep(poll_interval_s)
-    return False
+    script = (
+        "import socket, sys, time\n"
+        f"host = {host!r}\n"
+        f"port = {port}\n"
+        f"deadline = time.time() + float({timeout_s!r})\n"
+        f"probe_timeout_s = float({probe_timeout_s!r})\n"
+        f"poll_interval_s = float({poll_interval_s!r})\n"
+        "while time.time() < deadline:\n"
+        "    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n"
+        "    sock.settimeout(probe_timeout_s)\n"
+        "    try:\n"
+        "        sock.connect((host, port))\n"
+        "    except Exception:\n"
+        "        time.sleep(poll_interval_s)\n"
+        "    else:\n"
+        "        print('ready')\n"
+        "        sys.exit(0)\n"
+        "    finally:\n"
+        "        try:\n"
+        "            sock.close()\n"
+        "        except Exception:\n"
+        "            pass\n"
+        "print('timeout')\n"
+        "sys.exit(1)\n"
+    )
+    try:
+        result = vm.ssh(
+            "python3 -c " + shlex.quote(script),
+            timeout=max(int(timeout_s + probe_timeout_s + 15), 20),
+        )
+    except subprocess.TimeoutExpired:
+        return False
+    return result.returncode == 0
+
+
+def _tail_vm_file(vm: TartVM, path: str, *, lines: int = OC_NATIVE_GATEWAY_LOG_TAIL_LINES) -> str:
+    try:
+        result = vm.ssh(
+            f"tail -n {int(lines)} {shlex.quote(path)} 2>/dev/null || true",
+            timeout=20,
+        )
+    except Exception:
+        return ""
+    return str(result.stdout or "").strip()
 
 
 def _restart_oc_native_gateway(vm: TartVM, port: int = 18789):
@@ -1287,23 +2632,125 @@ def _restart_oc_native_gateway(vm: TartVM, port: int = 18789):
     actually loaded. For the native benchmark we probe the port and fall back to
     `gateway run` when the service path is a no-op.
     """
+    _disable_openclaw_quaid_config_guard(vm)
+    _patch_openclaw_native_memory(vm, enable_session_hook=True)
+    _reapply_oc_native_gateway_runtime(vm)
     vm.ssh(
+        "rm -f /tmp/openclaw-gateway-bench.log 2>/dev/null || true; "
         "pkill -f 'openclaw-gateway' 2>/dev/null || true; "
         "sleep 2; "
-        f"openclaw gateway start --allow-unconfigured --port {port} "
-        ">/tmp/openclaw-gateway-bench.log 2>&1 || true",
-        timeout=60,
+        "nohup env PATH=/opt/homebrew/bin:$PATH openclaw gateway start "
+        "</dev/null >/tmp/openclaw-gateway-bench.log 2>&1 &",
+        timeout=20,
     )
-    if _wait_for_vm_tcp_port(vm, "127.0.0.1", port, timeout_s=40.0, probe_timeout_s=3.0):
+    if _wait_for_vm_tcp_port(
+        vm,
+        "127.0.0.1",
+        port,
+        timeout_s=OC_NATIVE_GATEWAY_START_WAIT_S,
+        probe_timeout_s=3.0,
+    ):
         print("  Gateway verified: responding")
         return
     vm.ssh(
-        f"nohup openclaw gateway run --allow-unconfigured --force --port {port} "
-        ">/tmp/openclaw-gateway-bench.log 2>&1 &",
+        f"nohup env PATH=/opt/homebrew/bin:$PATH openclaw gateway run --force --port {port} "
+        "</dev/null >/tmp/openclaw-gateway-bench.log 2>&1 &",
         timeout=20,
     )
-    if not _wait_for_vm_tcp_port(vm, "127.0.0.1", port, timeout_s=30.0, probe_timeout_s=3.0):
-        raise RuntimeError("oc-native gateway did not become reachable after restart")
+    if not _wait_for_vm_tcp_port(
+        vm,
+        "127.0.0.1",
+        port,
+        timeout_s=OC_NATIVE_GATEWAY_RUN_WAIT_S,
+        probe_timeout_s=3.0,
+    ):
+        gateway_tail = _tail_vm_file(vm, "/tmp/openclaw-gateway-bench.log")
+        detail = f"; gateway log tail:\n{gateway_tail}" if gateway_tail else ""
+        raise RuntimeError(f"oc-native gateway did not become reachable after restart{detail}")
+    print("  Gateway verified: responding")
+
+
+def _configure_openclaw_quaid_plugin(vm: TartVM) -> None:
+    """Wire the benchmark VM's OpenClaw config to the synced Quaid extension."""
+    _disable_openclaw_quaid_config_guard(vm)
+    stage = vm.ssh(
+        "test -d ~/clawd/plugins/quaid && "
+        "mkdir -p ~/.openclaw/extensions && "
+        "rm -rf ~/.openclaw/extensions/quaid && "
+        "cp -R ~/clawd/plugins/quaid ~/.openclaw/extensions/quaid",
+        raw=True,
+        timeout=60,
+    )
+    if stage.returncode != 0:
+        raise RuntimeError(
+            "Failed to stage Quaid OpenClaw extension on benchmark VM: "
+            f"{(stage.stderr or stage.stdout or '').strip()[:300]}"
+        )
+    script = (
+        "import json, pathlib\n"
+        f"workspace = pathlib.Path({VM_QUAID_HOME!r}).expanduser()\n"
+        f"instance_id = {VM_QUAID_INSTANCE!r}\n"
+        "cfg_path = pathlib.Path.home() / '.openclaw' / 'openclaw.json'\n"
+        "parsed = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}\n"
+        "plugins = parsed.setdefault('plugins', {})\n"
+        "plugins['enabled'] = True\n"
+        "allow = [str(entry or '').strip() for entry in plugins.get('allow', []) if str(entry or '').strip()]\n"
+        "allow = [entry for entry in allow if entry not in ('active-memory', 'memory-core', 'memory-wiki')]\n"
+        "for entry in ('quaid', 'telegram', 'openai', 'anthropic'):\n"
+        "    if entry not in allow:\n"
+        "        allow.append(entry)\n"
+        "plugins['allow'] = allow\n"
+        "entries = plugins.setdefault('entries', {})\n"
+        "for entry in ('active-memory', 'memory-core', 'memory-wiki'):\n"
+        "    entries.pop(entry, None)\n"
+        "quaid = entries.get('quaid') or {}\n"
+        "quaid['enabled'] = True\n"
+        "quaid.pop('workspace', None)\n"
+        "quaid.pop('hooks', None)\n"
+        "entries['quaid'] = quaid\n"
+        "plugins.setdefault('slots', {})['memory'] = 'quaid'\n"
+        "env_block = parsed.setdefault('env', {})\n"
+        "vars_block = env_block.setdefault('vars', {})\n"
+        "for target in (env_block, vars_block):\n"
+        "    target['QUAID_HOME'] = str(workspace)\n"
+        "    target['QUAID_INSTANCE'] = instance_id\n"
+        "    target['OPENCLAW_WORKSPACE'] = str(workspace)\n"
+        "cfg_path.write_text(json.dumps(parsed, indent=2) + '\\n')\n"
+        "print('Configured OpenClaw to load Quaid memory plugin')\n"
+    )
+    result = vm.ssh("python3 -c " + shlex.quote(script), timeout=20)
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Failed to configure OpenClaw for Quaid benchmark lane: "
+            f"{(result.stderr or result.stdout or '').strip()[:300]}"
+        )
+    if result.stdout.strip():
+        print(f"  {result.stdout.strip()}")
+
+
+def _restart_quaid_gateway(vm: TartVM, port: int = 18789) -> None:
+    """Start the benchmark-owned OpenClaw gateway under the Quaid VM environment."""
+    vm.ssh(
+        f"rm -f /tmp/openclaw-gateway-bench.log 2>/dev/null || true; "
+        f"pkill -f 'openclaw-gateway' 2>/dev/null || true; "
+        f"sleep 2; "
+        f"nohup env PATH=/opt/homebrew/bin:$PATH "
+        f"QUAID_HOME={shlex.quote(VM_QUAID_HOME)} "
+        f"QUAID_INSTANCE={shlex.quote(VM_QUAID_INSTANCE)} "
+        f"openclaw gateway run --force --port {port} "
+        "</dev/null >/tmp/openclaw-gateway-bench.log 2>&1 &",
+        timeout=20,
+    )
+    if not _wait_for_vm_tcp_port(
+        vm,
+        "127.0.0.1",
+        port,
+        timeout_s=OC_NATIVE_GATEWAY_RUN_WAIT_S,
+        probe_timeout_s=3.0,
+    ):
+        gateway_tail = _tail_vm_file(vm, "/tmp/openclaw-gateway-bench.log")
+        detail = f"; gateway log tail:\n{gateway_tail}" if gateway_tail else ""
+        raise RuntimeError(f"quaid gateway did not become reachable after restart{detail}")
     print("  Gateway verified: responding")
 
 
@@ -1386,6 +2833,11 @@ def _create_core_files(vm: TartVM, user_name: str = "Maya"):
     for fname, content in files.items():
         escaped = content.replace("'", "'\\''")
         vm.ssh(f"echo '{escaped}' > ~/clawd/{fname}", raw=True)
+        vm.ssh(
+            f"mkdir -p {shlex.quote(VM_QUAID_INSTANCE_ROOT_DIR)} && "
+            f"echo '{escaped}' > {shlex.quote(VM_QUAID_INSTANCE_ROOT_DIR)}/{fname}",
+            raw=True,
+        )
 
     # Journal files (empty but with headers)
     journal_files = {
@@ -1393,40 +2845,82 @@ def _create_core_files(vm: TartVM, user_name: str = "Maya"):
         "USER.journal.md": "# USER Journal\n",
         "MEMORY.journal.md": "# MEMORY Journal\n",
     }
-    vm.ssh("mkdir -p ~/clawd/journal ~/clawd/journal/archive", raw=True)
+    vm.ssh(
+        f"mkdir -p ~/clawd/journal ~/clawd/journal/archive "
+        f"{shlex.quote(VM_QUAID_INSTANCE_JOURNAL_DIR)}",
+        raw=True,
+    )
     for fname, content in journal_files.items():
         escaped = content.replace("'", "'\\''")
         vm.ssh(f"echo '{escaped}' > ~/clawd/journal/{fname}", raw=True)
+        vm.ssh(
+            f"echo '{escaped}' > {shlex.quote(VM_QUAID_INSTANCE_JOURNAL_DIR)}/{fname}",
+            raw=True,
+        )
 
     print(f"  Core files created: SOUL.md, USER.md, MEMORY.md + journal/")
 
 
 def _create_project_files(vm: TartVM, user_name: str = "Maya"):
-    """Create project directory and register the recipe app project.
-
-    The recipe app is the main coding project discussed across sessions.
-    Without project files, the project_state queries can't be answered.
-    """
+    """Create benchmark project home dirs and seed minimal PROJECT.md files."""
     _ = user_name
-    vm.ssh("mkdir -p ~/clawd/projects/recipe-app", raw=True)
+    for name, spec in VM_BENCHMARK_PROJECTS.items():
+        vm.ssh(f"mkdir -p {shlex.quote(spec['home_dir'])}", raw=True)
+        vm.ssh(
+            f"cat > {shlex.quote(spec['home_dir'])}/PROJECT.md << 'PROJEOF'\n"
+            f"{spec['project_md']}PROJEOF",
+            raw=True,
+        )
+    print("  Project files created: projects/recipe-app/PROJECT.md, projects/portfolio-site/PROJECT.md")
 
-    project_md = f"""# Recipe App Project
 
-## Overview
-Recipe app project workspace. Current details should be learned from source artifacts and conversations.
-
-## Tech Stack
-To be updated as the project evolves.
-
-## Features
-To be updated as features are built.
-
-## Status
-In development.
-"""
-    escaped = project_md.replace("'", "'\\''")
-    vm.ssh(f"cat > ~/clawd/projects/recipe-app/PROJECT.md << 'PROJEOF'\n{project_md}PROJEOF", raw=True)
-    print(f"  Project files created: projects/recipe-app/PROJECT.md")
+def _register_vm_benchmark_projects(vm: TartVM) -> None:
+    """Register and link benchmark projects through Quaid's product project CLI."""
+    projects_payload = [
+        {
+            "name": name,
+            "description": spec["description"],
+            "source_root": spec["source_root"],
+        }
+        for name, spec in VM_BENCHMARK_PROJECTS.items()
+    ]
+    command = (
+        f"cd {VM_QUAID_DIR} && "
+        f"QUAID_HOME={shlex.quote(VM_QUAID_HOME)} "
+        f"QUAID_INSTANCE={shlex.quote(VM_QUAID_INSTANCE)} "
+        "python3 - <<'PY'\n"
+        "import subprocess, sys\n"
+        f"projects = {json.dumps(projects_payload)}\n"
+        "for project in projects:\n"
+        "    name = str(project['name'])\n"
+        "    description = str(project['description'])\n"
+        "    source_root = str(project['source_root'])\n"
+        "    create = subprocess.run(\n"
+        "        ['./quaid', 'project', 'create', name, '--description', description, '--source-root', source_root],\n"
+        "        capture_output=True,\n"
+        "        text=True,\n"
+        "    )\n"
+        "    if create.returncode != 0:\n"
+        "        detail = (create.stderr or create.stdout or '').strip()\n"
+        "        if 'Project already exists' not in detail:\n"
+        "            raise SystemExit(f'project create failed for {name}: {detail[:800]}')\n"
+        "    for cmd in (\n"
+        "        ['./quaid', 'project', 'link', name],\n"
+        "        ['./quaid', 'project', 'update', name, '--description', description, '--source-root', source_root],\n"
+        "    ):\n"
+        "        result = subprocess.run(cmd, capture_output=True, text=True)\n"
+        "        if result.returncode != 0:\n"
+        "            detail = (result.stderr or result.stdout or '').strip()\n"
+        "            raise SystemExit(f'project command failed for {name}: {cmd[2]} {detail[:800]}')\n"
+        "print('registered benchmark projects via product CLI')\n"
+        "PY"
+    )
+    result = vm.ssh(command, timeout=120, raw=True)
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(f"VM benchmark project registration failed: {detail[:1200]}")
+    if result.stdout.strip():
+        print(f"  {result.stdout.strip()}")
 
 
 def _scrape_janitor_errors(vm: TartVM) -> list[str]:
@@ -1435,9 +2929,9 @@ def _scrape_janitor_errors(vm: TartVM) -> list[str]:
     Returns list of error lines found. Prints warnings for any errors.
     """
     result = vm.ssh(
-        "cat ~/clawd/logs/janitor-latest.log 2>/dev/null | "
+        f"tr -d '\\000' < {shlex.quote(VM_QUAID_JANITOR_LATEST_LOG)} 2>/dev/null | "
         "grep -aiE '(error|exception|traceback|failed|FAIL)' | "
-        "grep -viE '(edge_errors|Binary file|Errors encountered: 0|tests_failed: 0|errors: 0|_failed: 0|WORKSPACE AUDIT COMPLETE|\\[INFO\\])' | "
+        "grep -viE '(edge_errors|Binary file|Errors encountered: 0|tests_failed: 0|errors: 0|_failed: 0|WORKSPACE AUDIT COMPLETE|\\[INFO\\]|^Decayed \\()' | "
         "head -20",
         timeout=10,
     )
@@ -1465,7 +2959,7 @@ def _validate_post_injection(vm: TartVM, system: str) -> dict:
     result = vm.ssh(
         f"cd {VM_QUAID_DIR} && python3 -c \""
         "import sqlite3; "
-        "conn = sqlite3.connect('/Users/admin/clawd/data/memory.db'); "
+        f"conn = sqlite3.connect({VM_QUAID_INSTANCE_DB_PATH!r}); "
         "nodes = conn.execute('SELECT count(*) FROM nodes').fetchone()[0]; "
         "edges = conn.execute('SELECT count(*) FROM edges').fetchone()[0]; "
         "by_status = dict(conn.execute('SELECT status, count(*) FROM nodes GROUP BY status').fetchall()); "
@@ -1482,23 +2976,38 @@ def _validate_post_injection(vm: TartVM, system: str) -> dict:
             print(f"  [VALIDATE WARN] No edges in DB")
     validation["checks"]["db"] = result.stdout.strip()
 
-    # Check core markdown files
+    # Check core markdown files (instance silo first, then root fallback)
     for fname in ["SOUL.md", "USER.md", "MEMORY.md"]:
-        result = vm.ssh(f"wc -l < ~/clawd/{fname} 2>/dev/null || echo 0", raw=True)
+        result = vm.ssh(
+            f"if [ -f {shlex.quote(VM_QUAID_INSTANCE_ROOT_DIR)}/{fname} ]; then "
+            f"wc -l < {shlex.quote(VM_QUAID_INSTANCE_ROOT_DIR)}/{fname}; "
+            f"else wc -l < ~/clawd/{fname} 2>/dev/null || echo 0; fi",
+            raw=True,
+        )
         lines = result.stdout.strip()
         if lines == "0":
             print(f"  [VALIDATE WARN] {fname} is empty or missing")
         validation["checks"][fname] = int(lines) if lines.isdigit() else 0
 
-    # Check snippets
-    result = vm.ssh("ls ~/clawd/*.snippets.md 2>/dev/null | wc -l", raw=True)
+    # Check snippets (instance silo first, then root fallback)
+    result = vm.ssh(
+        f"count=$(ls {shlex.quote(VM_QUAID_INSTANCE_ROOT_DIR)}/*.snippets.md 2>/dev/null | wc -l); "
+        "if [ \"$count\" = \"0\" ]; then count=$(ls ~/clawd/*.snippets.md 2>/dev/null | wc -l); fi; "
+        "echo $count",
+        raw=True,
+    )
     snippet_count = result.stdout.strip()
     if snippet_count == "0":
         print(f"  [VALIDATE WARN] No snippet files found")
     validation["checks"]["snippets"] = int(snippet_count) if snippet_count.isdigit() else 0
 
-    # Check journal
-    result = vm.ssh("ls ~/clawd/journal/*.journal.md 2>/dev/null | wc -l", raw=True)
+    # Check journal (instance silo first, then root fallback)
+    result = vm.ssh(
+        f"count=$(ls {shlex.quote(VM_QUAID_INSTANCE_JOURNAL_DIR)}/*.journal.md 2>/dev/null | wc -l); "
+        "if [ \"$count\" = \"0\" ]; then count=$(ls ~/clawd/journal/*.journal.md 2>/dev/null | wc -l); fi; "
+        "echo $count",
+        raw=True,
+    )
     journal_count = result.stdout.strip()
     validation["checks"]["journals"] = int(journal_count) if journal_count.isdigit() else 0
 
@@ -1642,15 +3151,27 @@ def inject_sessions(
                 if session_tokens > 0:
                     print(f"  [DAILY EXTRACT — {session_tokens:,} tokens]", end="")
                     e_usage = _trigger_compaction(
-                        vm, session_id, system, extract_model=extract_model,
+                        vm,
+                        session_id,
+                        system,
+                        extract_model=extract_model,
+                        session_file=_quaid_benchmark_session_file(session_id) if system == "quaid" else None,
                         sim_date=current_day,
+                    )
+                    e_usage = _require_quaid_extraction_usage(
+                        e_usage,
+                        context=f"per-day extract session={session_id} date={current_day}",
                     )
                     compaction_count += 1
                     tracker.add_compaction()
                     total_extraction_in += e_usage.get("input_tokens", 0)
                     total_extraction_out += e_usage.get("output_tokens", 0)
                     # Truncate session file after extraction (like /compact clears context)
-                    session_file = f"{VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl"
+                    session_file = (
+                        _quaid_benchmark_session_file(session_id)
+                        if system == "quaid"
+                        else f"{VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl"
+                    )
                     vm.ssh(f": > {session_file}", timeout=5, raw=True)
                     session_tokens = 0
                 # Run janitor at day boundaries — simulates nightly run
@@ -1660,14 +3181,31 @@ def inject_sessions(
                 total_janitor_out += j_usage["output_tokens"]
                 total_janitor_calls += j_usage["api_calls"]
                 total_janitor_cost += j_usage["cost_usd"]
+            if system == "oc-native" and sessions_injected > 0:
+                _sync_openclaw_native_memory(
+                    vm,
+                    source_name="sessions",
+                    min_indexed_files=sessions_injected,
+                )
 
         # Nightly mode (A/B variant): force compact at day boundary
         # This is a PROPOSED FEATURE, not base system behavior.
         nightly_compacted = False
         if mode == "nightly" and day_changed and session_tokens > 0:
             print(f"  [NIGHTLY COMPACT — {session_tokens:,} tokens]", end="")
-            e_usage = _trigger_compaction(vm, session_id, system, extract_model=extract_model,
-                                          sim_date=current_day)
+            e_usage = _trigger_compaction(
+                vm,
+                session_id,
+                system,
+                extract_model=extract_model,
+                session_file=_quaid_benchmark_session_file(session_id) if system == "quaid" else None,
+                sim_date=current_day,
+            )
+            if system == "quaid":
+                e_usage = _require_quaid_extraction_usage(
+                    e_usage,
+                    context=f"nightly extract session={session_id} date={current_day}",
+                )
             compaction_count += 1
             tracker.add_compaction()
             total_extraction_in += e_usage.get("input_tokens", 0)
@@ -1677,17 +3215,28 @@ def inject_sessions(
 
         current_day = session_day
 
-        # Convert to gateway JSONL and append to VM session file
-        jsonl = messages_to_gateway_jsonl(messages)
         write_session_id = session_id
         append_mode = True
         if system == "oc-native":
             write_session_id = _oc_native_session_id(review, review_idx)
             append_mode = False
-        session_file = f"{VM_AGENT_SESSIONS_DIR}/{write_session_id}.jsonl"
+            jsonl = messages_to_oc_native_jsonl(messages, write_session_id)
+        else:
+            jsonl = messages_to_gateway_jsonl(messages)
+        session_file = (
+            _quaid_benchmark_session_file(write_session_id)
+            if system == "quaid"
+            else f"{VM_AGENT_SESSIONS_DIR}/{write_session_id}.jsonl"
+        )
 
         # Append via SSH (use heredoc to avoid shell escaping issues)
-        result = _write_vm_session_jsonl(vm, write_session_id, jsonl, append=append_mode)
+        result = _write_vm_session_jsonl(
+            vm,
+            write_session_id,
+            jsonl,
+            append=append_mode,
+            sessions_dir=VM_QUAID_BENCH_SESSIONS_DIR if system == "quaid" else VM_AGENT_SESSIONS_DIR,
+        )
         if result.returncode != 0:
             print(f" [INJECT FAILED: {result.stderr[:100]}]")
             continue
@@ -1749,7 +3298,18 @@ def inject_sessions(
     # Final compaction for any remaining un-compacted messages
     if session_tokens > 0:
         print(f"  [FINAL COMPACT — {session_tokens:,} tokens remaining]")
-        e_usage = _trigger_compaction(vm, session_id, system, sim_date=current_day)
+        e_usage = _trigger_compaction(
+            vm,
+            session_id,
+            system,
+            session_file=_quaid_benchmark_session_file(session_id) if system == "quaid" else None,
+            sim_date=current_day,
+        )
+        if system == "quaid":
+            e_usage = _require_quaid_extraction_usage(
+                e_usage,
+                context=f"final extract session={session_id} date={current_day}",
+            )
         compaction_count += 1
         tracker.add_compaction()
         total_extraction_in += e_usage.get("input_tokens", 0)
@@ -1766,7 +3326,7 @@ def inject_sessions(
     elapsed = round(time.monotonic() - t0, 1)
 
     if system == "oc-native":
-        _force_openclaw_native_reindex(
+        _sync_openclaw_native_memory(
             vm, source_name="sessions", min_indexed_files=sessions_injected
         )
         _sync_openclaw_native_wiki(vm)
@@ -1935,15 +3495,35 @@ def _inject_chunks(
 
         current_day = chunk_day
 
-        # Convert chunk messages to gateway JSONL
-        gateway_messages = [{"role": m.role, "content": m.content} for m in chunk.messages]
-        jsonl = messages_to_gateway_jsonl(gateway_messages)
+        write_session_id = session_id
+        append_mode = True
+        if system == "quaid":
+            write_session_id = _quaid_chunk_session_id(session_id, chunk, ci)
+            append_mode = False
+            jsonl = messages_to_oc_native_jsonl(
+                chunk.messages,
+                write_session_id,
+                started_at_ms=chunk.messages[0].timestamp_ms if chunk.messages else None,
+                model_id=extract_model,
+                provider="anthropic",
+            )
+        else:
+            # Convert chunk messages to gateway JSONL
+            gateway_messages = [{"role": m.role, "content": m.content} for m in chunk.messages]
+            jsonl = messages_to_gateway_jsonl(gateway_messages)
+        session_file = (
+            _quaid_benchmark_session_file(write_session_id)
+            if system == "quaid"
+            else f"{VM_AGENT_SESSIONS_DIR}/{write_session_id}.jsonl"
+        )
 
-        # Append to VM session file
-        result = vm.ssh(
-            f"mkdir -p {VM_AGENT_SESSIONS_DIR} && cat >> {session_file}",
-            input_data=jsonl,
-            timeout=30,
+        # Write chunk session file
+        result = _write_vm_session_jsonl(
+            vm,
+            write_session_id,
+            jsonl,
+            append=append_mode,
+            sessions_dir=VM_QUAID_BENCH_SESSIONS_DIR if system == "quaid" else VM_AGENT_SESSIONS_DIR,
         )
         if result.returncode != 0:
             print(f" [INJECT FAILED: {result.stderr[:100]}]")
@@ -1963,8 +3543,16 @@ def _inject_chunks(
         # Extract this chunk
         print(f" [EXTRACT]", end="", flush=True)
         e_usage = _trigger_compaction(
-            vm, session_id, system, extract_model=extract_model,
+            vm,
+            write_session_id,
+            system,
+            extract_model=extract_model,
+            session_file=session_file if system == "quaid" else None,
             sim_date=chunk_day,
+        )
+        e_usage = _require_quaid_extraction_usage(
+            e_usage,
+            context=f"timeout chunk={ci+1}/{len(chunks)} session={write_session_id} date={chunk_day}",
         )
         extraction_ok = e_usage.get("input_tokens", 0) > 0
         if extraction_ok:
@@ -1972,8 +3560,7 @@ def _inject_chunks(
             tracker.add_compaction()
             total_extraction_in += e_usage.get("input_tokens", 0)
             total_extraction_out += e_usage.get("output_tokens", 0)
-        else:
-            print(f" [EXTRACT MAY HAVE FAILED — keeping session file]", end="")
+            _write_local_extraction_artifact(results_dir, write_session_id, e_usage.get("artifact"))
 
         # Truncate session file after successful extraction only
         # If extraction failed, keep messages for retry in next chunk
@@ -2086,6 +3673,7 @@ def _inject_chunks(
 def _trigger_compaction(vm: TartVM, session_id: str, system: str,
                         user_name: str = "Maya", owner_id: str = "maya",
                         extract_model: str = "claude-sonnet-4-5-20250929",
+                        session_file: str | None = None,
                         sim_date: str | None = None) -> dict:
     """Trigger compaction on the VM. Returns extraction token usage.
 
@@ -2094,12 +3682,19 @@ def _trigger_compaction(vm: TartVM, session_id: str, system: str,
 
     For other systems: sends /compact via openclaw agent.
     """
-    session_file = f"{VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl"
+    session_file = session_file or f"{VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl"
     extraction_usage = {"input_tokens": 0, "output_tokens": 0, "model": extract_model}
 
     if system == "quaid":
         date_flag = f" --date {sim_date}" if sim_date else ""
         result = vm.ssh(
+            f"QUAID_HOME={VM_QUAID_HOME} "
+            f"QUAID_INSTANCE={VM_QUAID_INSTANCE} "
+            f"QUAID_LLM_USAGE_LOG_PATH={shlex.quote(VM_QUAID_LLM_USAGE_LOG_PATH)} "
+            f"QUAID_LLM_USAGE_PHASE=ingest "
+            f"QUAID_LLM_USAGE_SOURCE=benchmark_extract "
+            f"BENCHMARK_EXTRACTION_PROMPT_FILE=~/clawd/plugins/quaid/prompts/extraction.txt "
+            f"BENCHMARK_EXTRACTION_INCLUDE_ARTIFACT=1 "
             f"python3 ~/extract_compact.py "
             f"--session-file {session_file} "
             f"--workspace ~/clawd "
@@ -2110,8 +3705,11 @@ def _trigger_compaction(vm: TartVM, session_id: str, system: str,
             f"{date_flag}",
             timeout=300,
         )
+        compact_error = None
         if result.returncode != 0:
             print(f" [COMPACT FAILED: {result.stderr[:200]}]", end="")
+            detail = (result.stderr or result.stdout).strip()
+            compact_error = detail or "no stderr/stdout from extract_compact.py"
         elif result.stdout.strip():
             lines = result.stdout.strip().split("\n")
             for line in lines:
@@ -2127,6 +3725,8 @@ def _trigger_compaction(vm: TartVM, session_id: str, system: str,
                         data = json.loads(line.strip())
                         if "extraction_usage" in data:
                             extraction_usage = data["extraction_usage"]
+                        if "artifact" in data:
+                            extraction_usage["artifact"] = data["artifact"]
                     except json.JSONDecodeError:
                         pass
         # Log stderr (edge errors, store errors, etc.)
@@ -2134,6 +3734,11 @@ def _trigger_compaction(vm: TartVM, session_id: str, system: str,
             for line in result.stderr.strip().split("\n"):
                 if line and not line.startswith("[config]"):
                     print(f"\n  [extract stderr] {line}", end="")
+        if compact_error is not None:
+            raise RuntimeError(
+                f"Quaid compaction failed for session={session_id} date={sim_date or 'unknown'}: "
+                f"{compact_error[:300]}"
+            )
     else:
         # For base/qmd: send a benign message to trigger safeguard compaction.
         # The gateway auto-compacts when context exceeds ~80% of contextTokens (200K default).
@@ -2153,8 +3758,17 @@ def _run_vm_janitor(vm: TartVM) -> dict:
     """Run Quaid janitor on VM and return token usage stats."""
     print(f" [JANITOR]", end="", flush=True)
     result = vm.ssh(
-        f"cd {VM_QUAID_DIR} && python3 janitor.py --task all --apply 2>&1 | "
-        f"tee ~/clawd/logs/janitor-latest.log | tail -5",
+        f"cd {VM_QUAID_DIR} && "
+        f"mkdir -p {shlex.quote(VM_QUAID_INSTANCE_LOGS_DIR)} && "
+        f"QUAID_HOME={shlex.quote(VM_QUAID_HOME)} "
+        f"QUAID_INSTANCE={shlex.quote(VM_QUAID_INSTANCE)} "
+        f"QUAID_LLM_USAGE_LOG_PATH={shlex.quote(VM_QUAID_LLM_USAGE_LOG_PATH)} "
+        f"QUAID_LLM_USAGE_PHASE=janitor "
+        f"QUAID_LLM_USAGE_SOURCE=benchmark_janitor "
+        f"QUAID_BENCHMARK_MODE=1 "
+        f"./quaid janitor --task all --apply --approve --no-resume-checkpoint "
+        f"> {shlex.quote(VM_QUAID_JANITOR_LATEST_LOG)} 2>&1; "
+        f"janitor_rc=$?; tail -5 {shlex.quote(VM_QUAID_JANITOR_LATEST_LOG)} 2>/dev/null || true; exit $janitor_rc",
         timeout=600,
     )
     if result.returncode != 0:
@@ -2162,13 +3776,40 @@ def _run_vm_janitor(vm: TartVM) -> dict:
         if result.stdout:
             for line in result.stdout.strip().split("\n")[-3:]:
                 print(f"\n    {line}", end="")
+        raise RuntimeError(
+            f"Quaid janitor failed rc={result.returncode}: "
+            f"{(result.stdout or result.stderr or '').strip()[:300]}"
+        )
     # Quick error scrape
     errors = _scrape_janitor_errors(vm)
     if errors:
         print(f" [{len(errors)} errors]", end="")
+    status_result = vm.ssh(
+        "python3 -c "
+        + shlex.quote(
+            "import json, sqlite3; "
+            f"conn=sqlite3.connect({VM_QUAID_INSTANCE_DB_PATH!r}); "
+            "rows=conn.execute(\"SELECT status, COUNT(*) FROM nodes GROUP BY status\").fetchall(); "
+            "print(json.dumps({str(k): int(v) for k, v in rows}))"
+        ),
+        timeout=10,
+    )
+    if status_result.returncode == 0 and status_result.stdout.strip():
+        try:
+            status_counts = json.loads(status_result.stdout.strip())
+        except json.JSONDecodeError:
+            status_counts = None
+        if isinstance(status_counts, dict):
+            pending = int(status_counts.get("pending", 0) or 0)
+            approved = int(status_counts.get("approved", 0) or 0)
+            if pending > 0 or approved > 0:
+                raise RuntimeError(
+                    "Quaid janitor left unresolved node statuses: "
+                    f"pending={pending}, approved={approved}, counts={status_counts}"
+                )
     # Scrape real token usage from janitor-stats.json
     usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0, "cost_usd": 0.0}
-    stats_result = vm.ssh("cat ~/clawd/logs/janitor-stats.json 2>/dev/null", timeout=10)
+    stats_result = vm.ssh(f"cat {shlex.quote(VM_QUAID_JANITOR_STATS_PATH)} 2>/dev/null", timeout=10)
     if stats_result.returncode == 0 and stats_result.stdout.strip():
         try:
             stats = json.loads(stats_result.stdout.strip())
@@ -2195,7 +3836,7 @@ def _collect_golden_data(vm: TartVM, results_dir: Path):
     print(f"\n  Collecting golden data to {results_dir}")
 
     # Copy memory.db
-    db_result = vm.scp_from("~/clawd/data/memory.db", str(results_dir / "memory.db"))
+    db_result = vm.scp_from(VM_QUAID_INSTANCE_DB_PATH, str(results_dir / "memory.db"))
     if db_result.returncode == 0:
         print(f"    memory.db: OK")
     else:
@@ -2206,14 +3847,20 @@ def _collect_golden_data(vm: TartVM, results_dir: Path):
     ws_dir.mkdir(exist_ok=True)
 
     for fname in ["SOUL.md", "USER.md", "MEMORY.md", "IDENTITY.md"]:
-        r = vm.scp_from(f"~/clawd/{fname}", str(ws_dir / fname))
+        r = vm.scp_from(f"{VM_QUAID_INSTANCE_ROOT_DIR}/{fname}", str(ws_dir / fname))
+        if r.returncode != 0:
+            r = vm.scp_from(f"~/clawd/{fname}", str(ws_dir / fname))
         print(f"    {fname}: {'OK' if r.returncode == 0 else 'not found'}")
 
     # Copy journal directory
     journal_dir = ws_dir / "journal"
     journal_dir.mkdir(exist_ok=True)
     # Use tar to grab the whole directory
-    vm.ssh(f"cd ~/clawd && tar czf /tmp/journal-golden.tar.gz journal/ 2>/dev/null || true")
+    vm.ssh(
+        f"if [ -d {shlex.quote(VM_QUAID_INSTANCE_JOURNAL_DIR)} ]; then "
+        f"cd {shlex.quote(VM_QUAID_INSTANCE_ROOT_DIR)} && tar czf /tmp/journal-golden.tar.gz journal/ 2>/dev/null || true; "
+        "else cd ~/clawd && tar czf /tmp/journal-golden.tar.gz journal/ 2>/dev/null || true; fi"
+    )
     tar_result = vm.scp_from("/tmp/journal-golden.tar.gz", str(ws_dir / "journal-golden.tar.gz"))
     if tar_result.returncode == 0:
         subprocess.run(
@@ -2224,7 +3871,11 @@ def _collect_golden_data(vm: TartVM, results_dir: Path):
         print(f"    journal/: OK")
 
     # Copy snippets files
-    vm.ssh(f"cd ~/clawd && tar czf /tmp/snippets-golden.tar.gz *.snippets.md 2>/dev/null || true")
+    vm.ssh(
+        f"cd {shlex.quote(VM_QUAID_INSTANCE_ROOT_DIR)} && "
+        "tar czf /tmp/snippets-golden.tar.gz *.snippets.md 2>/dev/null || "
+        "cd ~/clawd && tar czf /tmp/snippets-golden.tar.gz *.snippets.md 2>/dev/null || true"
+    )
     tar_result = vm.scp_from("/tmp/snippets-golden.tar.gz", str(ws_dir / "snippets-golden.tar.gz"))
     if tar_result.returncode == 0:
         subprocess.run(
@@ -2275,13 +3926,17 @@ def _resolve_gateway_answer_model(
     model = str(answer_model or "").strip()
     if not model:
         return model
-    if (
-        system == "oc-native"
-        and openai_auth_mode == "codex-oauth"
-        and model.startswith("openai/")
-    ):
+    if openai_auth_mode == "codex-oauth" and model.startswith("openai/"):
         return "openai-codex/" + model.split("/", 1)[1]
     return model
+
+
+def _set_oc_native_gateway_runtime_context(answer_model: Optional[str], openai_auth_mode: str = "api"):
+    """Record the benchmark-owned OC gateway runtime state for later restarts."""
+    global _OC_NATIVE_GATEWAY_ANSWER_MODEL, _OC_NATIVE_GATEWAY_OPENAI_AUTH_MODE
+    model = str(answer_model or "").strip()
+    _OC_NATIVE_GATEWAY_ANSWER_MODEL = model or None
+    _OC_NATIVE_GATEWAY_OPENAI_AUTH_MODE = str(openai_auth_mode or "api").strip() or "api"
 
 
 def _resolve_openai_api_key_for_vm() -> str:
@@ -2299,8 +3954,117 @@ def _resolve_openai_api_key_for_vm() -> str:
         return ""
 
 
+def _resolve_anthropic_credential_for_vm() -> str:
+    """Resolve the primary Anthropic benchmark credential for guest extraction."""
+    for env_name in ("BENCHMARK_ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY"):
+        direct = os.environ.get(env_name, "").strip()
+        if direct:
+            return direct
+
+    dev_cfg = Path.home() / "quaidcode" / "dev" / ".quaid-dev.local.json"
+    if not dev_cfg.exists():
+        return ""
+    try:
+        cfg = json.loads(dev_cfg.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+
+    anth_cfg = (((cfg or {}).get("auth") or {}).get("anthropic") or {})
+    rel = str(anth_cfg.get("firstKeyPath") or "").strip()
+    if not rel:
+        return ""
+    rel_path = Path(rel).expanduser()
+    base_root = Path.home() / "quaidcode"
+    if rel_path.is_absolute():
+        candidates = [rel_path]
+    else:
+        candidates = [(dev_cfg.parent / rel_path), (base_root / rel_path)]
+    token_path = next((candidate.resolve() for candidate in candidates if candidate.exists()), None)
+    if token_path is None or not token_path.exists():
+        return ""
+    try:
+        return token_path.read_text(encoding="utf-8").strip()
+    except Exception:
+        return ""
+
+
+def _provision_openclaw_anthropic_key(vm: TartVM):
+    """Install the primary Anthropic benchmark credential into guest runtime auth stores."""
+    credential = _resolve_anthropic_credential_for_vm()
+    if not credential:
+        raise RuntimeError(
+            "Anthropic benchmark credential is required to run Quaid extraction on the VM"
+        )
+    script = (
+        "import json, os, pathlib, sys\n"
+        "token = sys.stdin.read().strip()\n"
+        "if not token:\n"
+        "    raise SystemExit('missing Anthropic credential')\n"
+        "env_path = pathlib.Path.home() / '.openclaw' / '.env'\n"
+        "env_path.parent.mkdir(parents=True, exist_ok=True)\n"
+        "env_lines = []\n"
+        "if env_path.exists():\n"
+        "    env_lines = [line for line in env_path.read_text().splitlines() if not line.startswith('ANTHROPIC_API_KEY=')]\n"
+        "env_lines.append(f'ANTHROPIC_API_KEY={token}')\n"
+        "tmp_env = env_path.with_suffix('.env.tmp')\n"
+        "tmp_env.write_text('\\n'.join(env_lines) + '\\n')\n"
+        "os.chmod(tmp_env, 0o600)\n"
+        "tmp_env.replace(env_path)\n"
+        f"runtime_quaid_home = pathlib.Path({VM_QUAID_HOME!r}).expanduser()\n"
+        "paths = [\n"
+        "    pathlib.Path.home() / '.openclaw' / 'shared' / 'auth' / 'credentials.json',\n"
+        "    runtime_quaid_home / 'shared' / 'auth' / 'credentials.json',\n"
+        "    pathlib.Path.home() / '.quaid' / 'shared' / 'auth' / 'credentials.json',\n"
+        "]\n"
+        "for p in paths:\n"
+        "    p.parent.mkdir(parents=True, exist_ok=True)\n"
+        "    try:\n"
+        "        data = json.loads(p.read_text() or '{}') if p.exists() else {}\n"
+        "    except Exception:\n"
+        "        data = {}\n"
+        "    creds = data.setdefault('credentials', {})\n"
+        "    creds['anthropic_oauth'] = {'token': token}\n"
+        "    tmp = p.with_suffix(p.suffix + '.tmp')\n"
+        "    tmp.write_text(json.dumps(data, indent=2, sort_keys=True) + '\\n')\n"
+        "    os.chmod(tmp, 0o600)\n"
+        "    tmp.replace(p)\n"
+        "print('OpenClaw Anthropic runtime credential installed (.env + shared auth)')\n"
+    )
+    result = vm.ssh("python3 -c " + shlex.quote(script), input_data=credential, timeout=10)
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Failed to provision Anthropic credential on benchmark VM: "
+            f"{(result.stderr or result.stdout or '').strip()}"
+        )
+    if result.stdout.strip():
+        print(f"  {result.stdout.strip()}")
+
+
 def _resolve_codex_oauth_profile_for_vm() -> dict:
     """Resolve a Codex OAuth profile payload used by OpenClaw on the benchmark VM."""
+    direct_path = os.environ.get("BENCHMARK_CODEX_TOKEN_PATH", "").strip()
+    if direct_path:
+        try:
+            raw = Path(direct_path).expanduser().resolve().read_text(encoding="utf-8").strip()
+        except Exception:
+            raw = ""
+        if raw:
+            try:
+                data = json.loads(raw)
+            except Exception:
+                return {
+                    "type": "oauth",
+                    "provider": "openai-codex",
+                    "access": raw,
+                }
+            if isinstance(data, dict):
+                access = str(data.get("access") or data.get("token") or "").strip()
+                if access:
+                    profile = dict(data)
+                    profile.setdefault("type", "oauth")
+                    profile.setdefault("provider", "openai-codex")
+                    return profile
+
     direct = os.environ.get("BENCHMARK_CODEX_API_KEY", "").strip()
     if direct:
         return {
@@ -2308,6 +4072,28 @@ def _resolve_codex_oauth_profile_for_vm() -> dict:
             "provider": "openai-codex",
             "access": direct,
         }
+    codex_cli_auth = Path.home() / ".codex" / "auth.json"
+    if codex_cli_auth.exists():
+        try:
+            data = json.loads(codex_cli_auth.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+        tokens = (data or {}).get("tokens")
+        if isinstance(tokens, dict):
+            access = str(tokens.get("access_token") or "").strip()
+            if access:
+                profile = {
+                    "type": "oauth",
+                    "provider": "openai-codex",
+                    "access": access,
+                }
+                refresh = str(tokens.get("refresh_token") or "").strip()
+                if refresh:
+                    profile["refresh"] = refresh
+                account_id = str(tokens.get("account_id") or "").strip()
+                if account_id:
+                    profile["accountId"] = account_id
+                return profile
     try:
         from run_production_benchmark import _read_codex_auth_token
     except Exception:
@@ -2374,6 +4160,56 @@ def _resolve_codex_oauth_profile_for_vm() -> dict:
     return {}
 
 
+def _decode_jwt_claims_unverified(token: str) -> dict:
+    """Best-effort JWT payload decode without signature verification."""
+    parts = str(token).split(".")
+    if len(parts) < 2:
+        return {}
+    payload = parts[1]
+    payload += "=" * (-len(payload) % 4)
+    try:
+        raw = base64.urlsafe_b64decode(payload.encode("ascii"))
+        data = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _normalize_codex_oauth_profile_for_openclaw(profile: dict) -> dict:
+    """Shape a Codex OAuth payload to match OpenClaw's auth-profiles schema."""
+    access = str((profile or {}).get("access") or (profile or {}).get("token") or "").strip()
+    if not access:
+        return {}
+
+    normalized = {
+        "type": "oauth",
+        "provider": "openai-codex",
+        "access": access,
+    }
+    refresh = str((profile or {}).get("refresh") or "").strip()
+    if refresh:
+        normalized["refresh"] = refresh
+    account_id = str((profile or {}).get("accountId") or "").strip()
+    expires = (profile or {}).get("expires")
+
+    claims = _decode_jwt_claims_unverified(access)
+    if not account_id:
+        auth_claims = claims.get("https://api.openai.com/auth")
+        if isinstance(auth_claims, dict):
+            account_id = str(auth_claims.get("chatgpt_account_id") or "").strip()
+    if account_id:
+        normalized["accountId"] = account_id
+
+    if not isinstance(expires, int):
+        exp = claims.get("exp")
+        if isinstance(exp, int):
+            expires = exp * 1000
+    if isinstance(expires, int) and expires > 0:
+        normalized["expires"] = expires
+
+    return normalized
+
+
 def _provision_openclaw_openai_key(vm: TartVM):
     """Install direct OpenAI API auth for OpenClaw on the benchmark VM."""
     key = _resolve_openai_api_key_for_vm()
@@ -2393,9 +4229,14 @@ def _provision_openclaw_openai_key(vm: TartVM):
         "    data = json.loads(p.read_text() or '{}') if p.exists() else {}\n"
         "except Exception:\n"
         "    data = {}\n"
+        "data.setdefault('version', 1)\n"
         "profiles = data.setdefault('profiles', {})\n"
         "profile = profiles.get('openai:default') if isinstance(profiles.get('openai:default'), dict) else {}\n"
-        "profile['token'] = token\n"
+        "profile['type'] = 'api_key'\n"
+        "profile['provider'] = 'openai'\n"
+        "profile['key'] = token\n"
+        "profile.pop('token', None)\n"
+        "profile.pop('access', None)\n"
         "profiles['openai:default'] = profile\n"
         "last_good = data.setdefault('lastGood', {})\n"
         "last_good['openai'] = 'openai:default'\n"
@@ -2423,15 +4264,17 @@ def _provision_openclaw_openai_key(vm: TartVM):
 
 def _provision_openclaw_codex_oauth(vm: TartVM):
     """Install Codex OAuth shared credentials for OpenClaw on the benchmark VM."""
-    profile = _resolve_codex_oauth_profile_for_vm()
-    access = str(profile.get("access") or profile.get("token") or "").strip()
+    raw_profile = _resolve_codex_oauth_profile_for_vm()
+    profile = _normalize_codex_oauth_profile_for_openclaw(raw_profile)
+    access = str(profile.get("access") or "").strip()
     if not access:
         raise RuntimeError(
             "Codex OAuth profile is required to run oc-native with Codex OAuth transport"
         )
     script = (
         "import json, os, pathlib, sys\n"
-        "token = json.loads(sys.stdin.read()).get('token', '').strip()\n"
+        "payload = json.loads(sys.stdin.read())\n"
+        "token = str(payload.get('access') or '').strip()\n"
         "if not token:\n"
         "    raise SystemExit('missing Codex OAuth token')\n"
         "auth_profiles = pathlib.Path.home() / '.openclaw' / 'agents' / 'main' / 'agent' / 'auth-profiles.json'\n"
@@ -2440,14 +4283,54 @@ def _provision_openclaw_codex_oauth(vm: TartVM):
         "    auth_data = json.loads(auth_profiles.read_text() or '{}') if auth_profiles.exists() else {}\n"
         "except Exception:\n"
         "    auth_data = {}\n"
+        "profiles = auth_data.setdefault('profiles', {})\n"
+        "profile = profiles.get('openai-codex:default') if isinstance(profiles.get('openai-codex:default'), dict) else {}\n"
+        "profile['type'] = 'oauth'\n"
+        "profile['provider'] = 'openai-codex'\n"
+        "profile['access'] = token\n"
+        "refresh = str(payload.get('refresh') or '').strip()\n"
+        "if refresh:\n"
+        "    profile['refresh'] = refresh\n"
+        "else:\n"
+        "    profile.pop('refresh', None)\n"
+        "expires = payload.get('expires')\n"
+        "if isinstance(expires, int) and expires > 0:\n"
+        "    profile['expires'] = expires\n"
+        "else:\n"
+        "    profile.pop('expires', None)\n"
+        "account_id = str(payload.get('accountId') or '').strip()\n"
+        "if account_id:\n"
+        "    profile['accountId'] = account_id\n"
+        "else:\n"
+        "    profile.pop('accountId', None)\n"
+        "for legacy_key in ('mode', 'token', 'key', 'access_token', 'accessToken'):\n"
+        "    profile.pop(legacy_key, None)\n"
+        "profiles['openai-codex:default'] = profile\n"
         "last_good = auth_data.setdefault('lastGood', {})\n"
-        "last_good['openai-codex'] = str(last_good.get('openai-codex') or 'openai-codex:default')\n"
+        "last_good['openai-codex'] = 'openai-codex:default'\n"
         "tmp_auth = auth_profiles.with_suffix(auth_profiles.suffix + '.tmp')\n"
         "tmp_auth.write_text(json.dumps(auth_data, indent=2) + '\\n')\n"
         "os.chmod(tmp_auth, 0o600)\n"
         "tmp_auth.replace(auth_profiles)\n"
+        "env_path = pathlib.Path.home() / '.openclaw' / '.env'\n"
+        "env_lines = []\n"
+        "if env_path.exists():\n"
+        "    env_lines = [line for line in env_path.read_text().splitlines() if not line.startswith('OPENAI_OAUTH_TOKEN=')]\n"
+        "env_lines.append(f'OPENAI_OAUTH_TOKEN={token}')\n"
+        "tmp_env = env_path.with_suffix('.env.tmp')\n"
+        "tmp_env.write_text('\\n'.join(env_lines) + '\\n')\n"
+        "os.chmod(tmp_env, 0o600)\n"
+        "tmp_env.replace(env_path)\n"
+        f"runtime_quaid_home = pathlib.Path({VM_QUAID_HOME!r}).expanduser()\n"
+        "adapter_token = runtime_quaid_home / 'adaptors' / 'openclaw' / '.auth-token'\n"
+        "adapter_token.parent.mkdir(parents=True, exist_ok=True)\n"
+        "tmp_token = adapter_token.with_suffix('.tmp')\n"
+        "tmp_token.write_text(token + '\\n')\n"
+        "os.chmod(tmp_token, 0o600)\n"
+        "tmp_token.replace(adapter_token)\n"
         "paths = [\n"
         "    pathlib.Path.home() / '.openclaw' / 'shared' / 'auth' / 'credentials.json',\n"
+        "    runtime_quaid_home / 'shared' / 'auth' / 'credentials.json',\n"
         "    pathlib.Path.home() / '.quaid' / 'shared' / 'auth' / 'credentials.json',\n"
         "]\n"
         "for p in paths:\n"
@@ -2466,7 +4349,7 @@ def _provision_openclaw_codex_oauth(vm: TartVM):
     )
     result = vm.ssh(
         "python3 -c " + shlex.quote(script),
-        input_data=json.dumps({"token": access}),
+        input_data=json.dumps(profile),
         timeout=10,
     )
     if result.returncode != 0:
@@ -2475,17 +4358,67 @@ def _provision_openclaw_codex_oauth(vm: TartVM):
         print(f"  {result.stdout.strip()}")
 
 
-def _patch_memory_json(vm: TartVM, extract_model: str, owner_id: str = "maya"):
+def _provision_openclaw_gateway_openai_auth(
+    vm: TartVM,
+    answer_model: Optional[str],
+    openai_auth_mode: str,
+) -> None:
+    """Provision guest OpenAI auth when the gateway answer model uses OpenAI."""
+    model = str(answer_model or "").strip()
+    if not model.startswith("openai/"):
+        return
+    if str(openai_auth_mode or "api").strip() == "codex-oauth":
+        _provision_openclaw_codex_oauth(vm)
+    else:
+        _provision_openclaw_openai_key(vm)
+
+
+def _reapply_oc_native_gateway_runtime(vm: TartVM):
+    """Reassert the benchmark-owned auth/model state after an OC gateway restart."""
+    model = _OC_NATIVE_GATEWAY_ANSWER_MODEL
+    if not model:
+        return
+    auth_mode = _OC_NATIVE_GATEWAY_OPENAI_AUTH_MODE
+    _provision_openclaw_gateway_openai_auth(vm, model, auth_mode)
+    gateway_model = _resolve_gateway_answer_model(
+        model,
+        system="oc-native",
+        openai_auth_mode=auth_mode,
+    )
+    _patch_gateway_model(vm, gateway_model)
+
+
+def _patch_memory_json(
+    vm: TartVM,
+    extract_model: str,
+    owner_id: str = "maya",
+    user_name: str = "Maya",
+):
     """Patch Quaid's memory.json on the VM for benchmark use.
 
     Sets the extraction model and default owner for the benchmark persona.
     """
+    project_definitions = json.dumps({
+        name: {
+            "label": spec["label"],
+            "homeDir": f"projects/{name}/",
+            "sourceRoots": [spec["source_root"]],
+            "autoIndex": True,
+            "patterns": spec["patterns"],
+            "exclude": spec["exclude"],
+            "description": spec["description"],
+        }
+        for name, spec in VM_BENCHMARK_PROJECTS.items()
+    })
     script = (
         "import json, glob, os\n"
         f"model = '{extract_model}'\n"
         f"owner = '{owner_id}'\n"
+        f"display_name = {user_name!r}\n"
+        f"project_definitions = json.loads({json.dumps(project_definitions)!r})\n"
         "paths = [\n"
         "    os.path.expanduser('~/clawd/config/memory.json'),\n"
+        f"    os.path.expanduser('{VM_QUAID_INSTANCE_ROOT_DIR}/config.json'),\n"
         "    os.path.expanduser('~/.config/openclaw/config/memory.json'),\n"
         "]\n"
         "for p in paths:\n"
@@ -2493,23 +4426,123 @@ def _patch_memory_json(vm: TartVM, extract_model: str, owner_id: str = "maya"):
         "        d = json.load(open(p))\n"
         "        d['models']['highReasoning'] = model\n"
         "        if 'users' not in d: d['users'] = {}\n"
+        "        d['users']['default_owner'] = owner\n"
         "        d['users']['defaultOwner'] = owner\n"
         "        if 'identities' not in d['users']: d['users']['identities'] = {}\n"
-        "        d['users']['identities'][owner] = {'personNodeName': owner.title()}\n"
+        "        identity = d['users']['identities'].get(owner) or {}\n"
+        "        identity['person_node_name'] = display_name\n"
+        "        identity['personNodeName'] = display_name\n"
+        "        d['users']['identities'][owner] = identity\n"
         "        if 'projects' not in d: d['projects'] = {}\n"
         "        if 'definitions' not in d['projects']: d['projects']['definitions'] = {}\n"
-        "        d['projects']['definitions']['recipe-app'] = {\n"
-        "            'label': 'Recipe App',\n"
-        "            'homeDir': 'projects/recipe-app/',\n"
-        "            'sourceRoots': ['projects/recipe-app/'],\n"
-        "            'autoIndex': True,\n"
-        "            'patterns': ['*.md'],\n"
-        "            'exclude': [],\n"
-        "            'description': 'Personal recipe management application'\n"
-        "        }\n"
+        "        d['projects']['definitions'].update(project_definitions)\n"
         "        d['projects']['enabled'] = True\n"
         "        json.dump(d, open(p, 'w'), indent=2)\n"
         "        print(f'Patched: {p}')\n"
+    )
+    result = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
+    if result.stdout.strip():
+        print(result.stdout.strip())
+
+
+def _derive_quaid_runtime_llm_config(
+    *,
+    extract_model: str,
+    answer_model: Optional[str] = None,
+) -> dict[str, str]:
+    """Resolve the Quaid runtime LLM config for VM lanes.
+
+    Quaid's direct extraction script chooses its own extraction model, but
+    store-time helper calls (dedup, review, janitor) still resolve through the
+    runtime instance config under QUAID_HOME. Without concrete tier models the
+    adapter passes the literal string "default" down to providers.
+
+    For Quaid-on-OC-VM apples-to-apples runs, Quaid itself should stay on its
+    native Anthropic Sonnet/Haiku split even when the outer OC answer lane is
+    patched to an OpenAI OAuth gateway model. The gateway answer lane is
+    configured separately; this runtime config is only for Quaid-owned helper
+    calls.
+    """
+    deep_model = str(extract_model or "").strip() or "claude-sonnet-4-5-20250929"
+    fast_model = "claude-haiku-4-5-20251001"
+    return {
+        "llmProvider": "anthropic",
+        "fastReasoningProvider": "anthropic",
+        "deepReasoningProvider": "anthropic",
+        "fastReasoning": fast_model,
+        "deepReasoning": deep_model,
+        "fastReasoningEffort": "none",
+        "deepReasoningEffort": "high",
+        "llm_provider": "anthropic",
+        "fast_reasoning_provider": "anthropic",
+        "deep_reasoning_provider": "anthropic",
+        "fast_reasoning": fast_model,
+        "deep_reasoning": deep_model,
+        "fast_reasoning_effort": "none",
+        "deep_reasoning_effort": "high",
+    }
+
+
+def _patch_quaid_runtime_instance_config(
+    vm: TartVM,
+    instance_id: str = VM_QUAID_INSTANCE,
+    ollama_url: str = VM_QUAID_OLLAMA_URL,
+    *,
+    extract_model: str = "claude-sonnet-4-5-20250929",
+    answer_model: Optional[str] = None,
+    owner_id: str = "maya",
+    user_name: str = "Maya",
+):
+    """Patch the active Quaid instance config used by gateway/store subprocesses."""
+    llm_config = _derive_quaid_runtime_llm_config(
+        extract_model=extract_model,
+        answer_model=answer_model,
+    )
+    script = (
+        "import json, os\n"
+        f"instance_id = {instance_id!r}\n"
+        f"ollama_url = {ollama_url!r}\n"
+        f"owner = {owner_id!r}\n"
+        f"display_name = {user_name!r}\n"
+        f"llm_config = {json.dumps(llm_config, sort_keys=True)!r}\n"
+        "path = os.path.expanduser(f'~/clawd/instances/{instance_id}/config.json')\n"
+        "os.makedirs(os.path.dirname(path), exist_ok=True)\n"
+        "try:\n"
+        "    d = json.load(open(path))\n"
+        "    if not isinstance(d, dict):\n"
+        "        d = {}\n"
+        "except Exception:\n"
+        "    d = {}\n"
+        "d.setdefault('instance', {})\n"
+        "d['instance'].setdefault('id', instance_id)\n"
+        "d.setdefault('adapter', {})\n"
+        "d['adapter'].setdefault('type', 'openclaw')\n"
+        "d.setdefault('users', {})\n"
+        "d['users']['default_owner'] = owner\n"
+        "d['users']['defaultOwner'] = owner\n"
+        "identities = d['users'].setdefault('identities', {})\n"
+        "identity = identities.get(owner) or {}\n"
+        "identity['person_node_name'] = display_name\n"
+        "identity['personNodeName'] = display_name\n"
+        "identities[owner] = identity\n"
+        "d.setdefault('models', {})\n"
+        "for key, value in json.loads(llm_config).items():\n"
+        "    d['models'][key] = value\n"
+        "d.setdefault('retrieval', {})\n"
+        "d['retrieval']['defaultLimit'] = 5\n"
+        "d['retrieval']['maxLimit'] = 8\n"
+        "d['retrieval']['failHard'] = True\n"
+        "d['retrieval']['fail_hard'] = True\n"
+        "d['models']['embeddings_provider'] = 'ollama'\n"
+        "d['models']['embeddingsProvider'] = 'ollama'\n"
+        "d.setdefault('ollama', {})\n"
+        "d['ollama']['url'] = ollama_url\n"
+        "d['ollama']['embeddingModel'] = 'nomic-embed-text'\n"
+        "d['ollama']['embeddingDim'] = 768\n"
+        "d['ollama']['embedding_model'] = 'nomic-embed-text'\n"
+        "d['ollama']['embedding_dim'] = 768\n"
+        "json.dump(d, open(path, 'w'), indent=2)\n"
+        "print(f'Patched runtime config: {path}')\n"
     )
     result = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
     if result.stdout.strip():
@@ -2610,52 +4643,70 @@ def _evaluate_vm_agent(vm: TartVM, question: str, query_idx: int,
                        system: str) -> str:
     """Send a question to the VM agent and get the response.
 
-    Uses a fresh eval session per query to avoid cross-contamination.
+    Uses a fresh eval session per query to avoid cross-contamination. For
+    oc-native, the guest eval session is deleted immediately after capture so
+    later eval queries cannot retrieve prior eval transcripts.
     """
     session_id = f"eval-q{query_idx:03d}"
     escaped_question = shlex.quote(question)
-    _register_session(vm, session_id)
+    session_key = None
+    use_oc_gateway_eval = _uses_oc_gateway_eval_isolation(system)
+    if use_oc_gateway_eval:
+        session_key = _oc_native_eval_session_key(session_id)
+        _register_session(
+            vm,
+            session_id,
+            session_key=session_key,
+            session_file=_oc_native_eval_session_file(session_id),
+        )
+    else:
+        _register_session(vm, session_id)
 
-    for attempt in range(1, VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES + 2):
-        try:
-            if system == "oc-native":
-                response = _run_oc_native_gateway_turn(
-                    vm,
-                    session_id,
-                    question,
-                    timeout_s=VM_AGENT_EVAL_TIMEOUT_S,
-                )
-            else:
-                command = (
-                    f"openclaw agent --agent main --session-id {session_id} "
-                    f"--message {escaped_question}"
-                )
-                result = vm.ssh(
-                    command,
-                    timeout=VM_AGENT_EVAL_TIMEOUT_S,
-                )
-            break
-        except subprocess.TimeoutExpired as exc:
-            if attempt <= VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES:
-                print(
-                    f"  WARN: eval query timeout ({attempt}/{VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES + 1}) "
-                    f"session={session_id}; retrying..."
-                )
-                continue
-            raise RuntimeError(
-                f"Eval query timed out after {VM_AGENT_EVAL_TIMEOUT_S}s "
-                f"(session={session_id}, query_idx={query_idx})"
-            ) from exc
+    try:
+        for attempt in range(1, VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES + 2):
+            try:
+                if use_oc_gateway_eval:
+                    response = _run_oc_native_gateway_turn(
+                        vm,
+                        session_id,
+                        question,
+                        timeout_s=VM_AGENT_EVAL_TIMEOUT_S,
+                        session_key=session_key,
+                    )
+                else:
+                    command = (
+                        f"openclaw agent --agent main --session-id {session_id} "
+                        f"--message {escaped_question}"
+                    )
+                    result = vm.ssh(
+                        command,
+                        timeout=VM_AGENT_EVAL_TIMEOUT_S,
+                    )
+                break
+            except subprocess.TimeoutExpired as exc:
+                if attempt <= VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES:
+                    print(
+                        f"  WARN: eval query timeout ({attempt}/{VM_AGENT_EVAL_MAX_TIMEOUT_RETRIES + 1}) "
+                        f"session={session_id}; retrying..."
+                    )
+                    continue
+                raise RuntimeError(
+                    f"Eval query timed out after {VM_AGENT_EVAL_TIMEOUT_S}s "
+                    f"(session={session_id}, query_idx={query_idx})"
+                ) from exc
 
-    if system == "oc-native":
+        if use_oc_gateway_eval:
+            return _extract_agent_answer(response)
+
+        if result.returncode != 0:
+            return f"Error: {result.stderr[:200]}"
+
+        # Parse agent response (strip tool use logs, keep final text)
+        response = result.stdout.strip()
         return _extract_agent_answer(response)
-
-    if result.returncode != 0:
-        return f"Error: {result.stderr[:200]}"
-
-    # Parse agent response (strip tool use logs, keep final text)
-    response = result.stdout.strip()
-    return _extract_agent_answer(response)
+    finally:
+        if use_oc_gateway_eval:
+            _cleanup_oc_native_eval_session(vm, session_id, session_key=session_key)
 
 
 def _extract_agent_answer(raw_response: str) -> str:
@@ -2794,6 +4845,16 @@ def _load_resume_results(results_dir: Path, queries: List[dict]) -> List[dict]:
                 f"{idx}: {actual!r} != {expected!r}"
             )
     return data
+
+
+def _apply_vm_eval_query_profile(queries: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Apply the shared eval-query selectors used by the non-VM harness."""
+    try:
+        from run_production_benchmark import _apply_eval_query_profile
+    except ImportError:
+        return list(queries), {"profile": "full", "requested": len(queries), "selected": len(queries)}
+
+    return _apply_eval_query_profile(list(queries))
 
 
 def rejudge_results(results_dir: Path, judge_model: str) -> dict:
@@ -2948,6 +5009,87 @@ def _results_suffix(mode: str, splitting: str) -> str:
 def _resolve_results_dir(results_base: Path, system: str, mode: str, splitting: str) -> Path:
     return results_base / f"{system}{_results_suffix(mode, splitting)}"
 
+
+def _resolve_local_quaid_plugin_dir() -> Path:
+    """Resolve the local Quaid plugin/module tree for VM sync."""
+    explicit = os.environ.get("BENCHMARK_PLUGIN_DIR", "").strip()
+    if explicit:
+        p = Path(explicit).expanduser().resolve()
+        if p.exists():
+            return p
+
+    candidates = [
+        Path.home() / "quaidcode" / "benchmark-checkpoint" / "modules" / "quaid",
+        Path.home() / "quaidcode" / "benchmark-checkpoint" / "plugins" / "quaid",
+        Path(__file__).resolve().parent.parent / "benchmark-checkpoint" / "modules" / "quaid",
+        Path(__file__).resolve().parent.parent / "benchmark-checkpoint" / "plugins" / "quaid",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+
+    try:
+        from run_production_benchmark import _resolve_quaid_dir  # type: ignore
+    except Exception:
+        resolved = None
+    else:
+        try:
+            resolved = Path(_resolve_quaid_dir()).expanduser().resolve()
+        except Exception:
+            resolved = None
+    if resolved and resolved.exists():
+        return resolved
+    raise FileNotFoundError("Could not resolve local Quaid plugin/module directory for VM sync")
+
+
+def _resolve_local_quaid_memory_example(plugin_dir: Path) -> Optional[Path]:
+    """Resolve memory.json.example adjacent to the local Quaid tree."""
+    candidates = [
+        plugin_dir / "memory.json.example",
+        plugin_dir.parent.parent / "memory.json.example",
+        plugin_dir.parent / "memory.json.example",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return None
+
+
+def _build_local_quaid_plugin_tarball(plugin_dir: Path) -> Path:
+    """Bundle the local Quaid tree for guest upload, excluding bulky dev-only dirs."""
+    excludes = {"node_modules", "__pycache__", ".pytest_cache", "tests"}
+    handle = tempfile.NamedTemporaryFile(prefix="quaid-plugin-", suffix=".tar.gz", delete=False)
+    archive_path = Path(handle.name)
+    handle.close()
+
+    def _filter(info: tarfile.TarInfo) -> Optional[tarfile.TarInfo]:
+        rel = Path(info.name)
+        if any(part in excludes for part in rel.parts):
+            return None
+        return info
+
+    with tarfile.open(archive_path, "w:gz") as bundle:
+        bundle.add(plugin_dir, arcname=".", filter=_filter)
+    return archive_path
+
+
+def _upload_local_file_via_vm_ssh(vm: "TartVM", local_path: Path, remote_path: str, *, timeout: int = 300):
+    """Upload a local file to the guest over the already-working SSH command path."""
+    payload = base64.b64encode(local_path.read_bytes()).decode("ascii")
+    script = (
+        "import base64, pathlib, sys\n"
+        f"target = pathlib.Path({remote_path!r}).expanduser()\n"
+        "target.parent.mkdir(parents=True, exist_ok=True)\n"
+        "target.write_bytes(base64.b64decode(sys.stdin.read()))\n"
+    )
+    return vm.ssh(
+        "python3 -c " + shlex.quote(script),
+        input_data=payload,
+        timeout=timeout,
+        raw=True,
+    )
+
+
 def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
                  extract_model: str = "claude-sonnet-4-5-20250929",
                  local_plugin: bool = False,
@@ -2964,6 +5106,13 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         answer_model: Override gateway agent model (e.g. "openai/gpt-5.4")
         openai_auth_mode: "api" for direct OpenAI API auth, "codex-oauth" for Codex OAuth shared auth
     """
+    # Quaid VM benchmarks should exercise the local checkpoint under test, not
+    # a stale guest install or a fresh GitHub clone. There is no CLI false
+    # override today, so treat the local checkpoint plugin as the benchmark
+    # default for Quaid lanes.
+    if system == "quaid":
+        local_plugin = True
+
     if system == "mem0":
         # Mem0 runs on host, no VM setup needed
         print(f"  Mem0 runs on host — no VM setup needed")
@@ -2971,6 +5120,7 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
 
     print(f"\n--- Setting up {system} ---")
     vm.restore(snapshot_base)
+    _set_oc_native_gateway_runtime_context(answer_model if system == "oc-native" else None, openai_auth_mode)
 
     if system == "base":
         # Disable all memory plugins
@@ -2995,7 +5145,7 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         # Keep this config-driven. On current OC VMs, `openclaw plugins
         # enable/disable ...` can hang over SSH even though directly patching
         # ~/.openclaw/openclaw.json is sufficient and more stable.
-        _ensure_oc_native_embed_proxy()
+        _ensure_oc_native_embed_proxy(vm.tart_host)
         _patch_openclaw_native_memory(vm, enable_session_hook=True)
         print(
             "  OpenClaw native configured "
@@ -3003,39 +5153,60 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         )
 
     elif system == "quaid":
+        _ensure_oc_native_embed_proxy(vm.tart_host)
         if local_plugin:
-            # Rsync local plugin to VM (includes v12 changes to soul_snippets.py etc.)
-            local_plugin_dir = str(Path(__file__).resolve().parent.parent.parent / "plugins" / "quaid")
-            vm.ssh("mkdir -p ~/clawd/plugins/quaid ~/clawd/config ~/clawd/data ~/clawd/journal", raw=True)
-            rsync_result = subprocess.run(
-                ["rsync", "-az", "--exclude", "node_modules", "--exclude", "__pycache__",
-                 "--exclude", ".pytest_cache", "--exclude", "tests",
-                 f"{local_plugin_dir}/", f"admin@{vm.ip}:~/clawd/plugins/quaid/"],
-                capture_output=True, text=True, timeout=60,
-                env={**os.environ, "SSHPASS": "admin"},
-            )
-            if rsync_result.returncode != 0:
-                # Fall back to scp-based rsync
-                subprocess.run(
-                    ["sshpass", "-p", "admin", "rsync", "-az", "-e", "ssh -o StrictHostKeyChecking=no",
-                     "--exclude", "node_modules", "--exclude", "__pycache__",
-                     "--exclude", ".pytest_cache", "--exclude", "tests",
-                     f"{local_plugin_dir}/", f"admin@{vm.ip}:~/clawd/plugins/quaid/"],
-                    capture_output=True, text=True, timeout=60,
+            # Upload local Quaid tree to the guest through the existing VM copy path.
+            local_plugin_dir = _resolve_local_quaid_plugin_dir()
+            memory_example = _resolve_local_quaid_memory_example(local_plugin_dir)
+            plugin_archive = _build_local_quaid_plugin_tarball(local_plugin_dir)
+            try:
+                vm.ssh(
+                    "rm -rf ~/clawd/plugins/quaid "
+                    "&& mkdir -p ~/clawd/plugins/quaid ~/clawd/config ~/clawd/data ~/clawd/journal",
+                    raw=True,
                 )
+                upload = _upload_local_file_via_vm_ssh(vm, plugin_archive, "/tmp/quaid-plugin.tgz", timeout=300)
+                if upload.returncode != 0:
+                    raise RuntimeError(
+                        "Failed to upload local Quaid plugin archive to VM: "
+                        f"{(upload.stderr or upload.stdout or '').strip()}"
+                    )
+                unpack = vm.ssh(
+                    "tar -xzf /tmp/quaid-plugin.tgz -C ~/clawd/plugins/quaid "
+                    "&& rm -f /tmp/quaid-plugin.tgz",
+                    raw=True,
+                    timeout=300,
+                )
+                if unpack.returncode != 0:
+                    raise RuntimeError(
+                        "Failed to unpack local Quaid plugin archive on VM: "
+                        f"{(unpack.stderr or unpack.stdout or '').strip()}"
+                    )
+            finally:
+                try:
+                    plugin_archive.unlink()
+                except FileNotFoundError:
+                    pass
+            if memory_example is not None:
+                copied = _upload_local_file_via_vm_ssh(
+                    vm,
+                    memory_example,
+                    "~/clawd/plugins/quaid/memory.json.example",
+                    timeout=120,
+                )
+                if copied.returncode != 0:
+                    raise RuntimeError(
+                        "Failed to upload Quaid memory example to VM: "
+                        f"{(copied.stderr or copied.stdout or '').strip()}"
+                    )
             # Copy config if not present
             vm.ssh(
                 "test -f ~/clawd/config/memory.json || "
                 "cp ~/clawd/plugins/quaid/memory.json.example ~/clawd/config/memory.json 2>/dev/null || true",
                 raw=True,
             )
-            # Install npm deps
-            vm.ssh("cd ~/clawd/plugins/quaid && npm install 2>/dev/null", timeout=120)
-            # Hardcode workspace in index.js
-            vm.ssh(
-                r"cd ~/clawd/plugins/quaid && "
-                r"sed -i '' 's|\${QUAID_WORKSPACE}|/Users/admin/clawd|g' index.js"
-            )
+            # Install runtime deps only; the OpenClaw peer is provided by the host.
+            vm.ssh("cd ~/clawd/plugins/quaid && npm install --omit=dev --legacy-peer-deps", timeout=300)
             print(f"  Quaid synced from local (includes v12 changes)")
         else:
             # Check if Quaid is already installed
@@ -3047,7 +5218,7 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
                     "&& mkdir -p ~/clawd/plugins/quaid ~/clawd/config ~/clawd/data ~/clawd/journal "
                     "&& cp -r /tmp/quaid/plugins/quaid/* ~/clawd/plugins/quaid/ "
                     "&& cp /tmp/quaid/memory.json.example ~/clawd/config/memory.json "
-                    "&& cd ~/clawd/plugins/quaid && npm install",
+                    "&& cd ~/clawd/plugins/quaid && npm install --omit=dev --legacy-peer-deps",
                     timeout=300,
                 )
                 if result.returncode != 0:
@@ -3065,16 +5236,23 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
 
         # Patch memory.json to use the configured extraction model
         print(f"  Setting extraction model: {extract_model}")
-        _patch_memory_json(vm, extract_model)
+        _patch_memory_json(vm, extract_model, owner_id="maya", user_name="Maya")
+        _patch_quaid_runtime_instance_config(
+            vm,
+            extract_model=extract_model,
+            answer_model=answer_model,
+            owner_id="maya",
+            user_name="Maya",
+        )
 
-        # Ensure Ollama points to host
+        # Ensure Quaid embeddings use the host Ollama service, not guest localhost.
         vm.ssh(
             "python3 -c \""
-            "import json; p='/Users/admin/clawd/config/memory.json'; "
-            "d=json.load(open(p)); d['ollama']['url']='http://192.168.64.1:11434'; "
+            f"import json; p='/Users/admin/clawd/config/memory.json'; "
+            f"d=json.load(open(p)); d.setdefault('ollama', {{}})['url']={VM_QUAID_OLLAMA_URL!r}; "
             "json.dump(d,open(p,'w'),indent=2)\" 2>/dev/null || true"
         )
-        print(f"  Ollama: using host at 192.168.64.1:11434")
+        print(f"  Ollama: using host at {VM_QUAID_OLLAMA_URL}")
 
         # SCP extraction script to VM (used by _trigger_compaction for Quaid)
         extract_script = str(_DIR / "extract_compact.py")
@@ -3092,22 +5270,23 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
     if system == "quaid":
         # Create core markdown files (simulates onboarding)
         _create_core_files(vm)
-        # Create project files for the recipe app
+        # Create benchmark project homes and register them through the product CLI.
         _create_project_files(vm)
+        _register_vm_benchmark_projects(vm)
         # Ensure logs directory exists
         vm.ssh("mkdir -p ~/clawd/logs", raw=True)
         # Symlink .env so janitor can find the API key
         # (janitor looks in {workspace}/.env, key lives in ~/.openclaw/.env)
         vm.ssh("ln -sf ~/.openclaw/.env ~/clawd/.env 2>/dev/null || true", raw=True)
         print(f"  API key symlinked: ~/clawd/.env → ~/.openclaw/.env")
+        _provision_openclaw_anthropic_key(vm)
+        _configure_openclaw_quaid_plugin(vm)
 
     # Set gateway agent model if specified
-    if system == "oc-native" and answer_model and answer_model.startswith("openai/"):
-        if openai_auth_mode == "codex-oauth":
-            _provision_openclaw_codex_oauth(vm)
-        else:
-            _provision_openclaw_openai_key(vm)
-    if answer_model:
+    if system == "oc-native":
+        _reapply_oc_native_gateway_runtime(vm)
+    elif answer_model:
+        _provision_openclaw_gateway_openai_auth(vm, answer_model, openai_auth_mode)
         gateway_answer_model = _resolve_gateway_answer_model(
             answer_model,
             system=system,
@@ -3120,8 +5299,9 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         _restart_oc_native_gateway(vm, port=18789)
         _validate_openclaw_native_memory(vm)
     else:
-        vm.ssh("pkill -f 'openclaw-gateway' 2>/dev/null; sleep 2; openclaw gateway start", timeout=60)
-        time.sleep(5)
+        _restart_quaid_gateway(vm, port=18789)
+        if system == "quaid":
+            _validate_quaid_vm_embeddings(vm)
 
         # Verify agent works
         result = vm.ssh(
@@ -3176,6 +5356,27 @@ def run_benchmark(
         if not _get_openai_key():
             raise RuntimeError("OPENAI_API_KEY is required for judge_model=gpt-4o-mini")
 
+    if system == "oc-native":
+        host_name = socket.gethostname().strip().lower()
+        safe_tart_host = str(tart_host or "").strip()
+        safe_vm_name = str(vm_name or "").strip()
+        if not safe_tart_host:
+            if safe_vm_name.startswith("quaid-livetest-"):
+                raise RuntimeError(
+                    "oc-native benchmark refused to use shared local VM "
+                    f"{safe_vm_name!r}; pass --tart-host alfie.local or use a "
+                    "dedicated local benchmark VM name prefixed with "
+                    f"{OC_NATIVE_LOCAL_VM_NAMESPACE_PREFIXES[0]!r}"
+                )
+            if host_name in {"testbench", "testbench.local"} and not safe_vm_name.startswith(
+                OC_NATIVE_LOCAL_VM_NAMESPACE_PREFIXES
+            ):
+                raise RuntimeError(
+                    "oc-native benchmark on testbench.local requires --tart-host "
+                    "alfie.local or a dedicated local benchmark VM name prefixed "
+                    f"with {OC_NATIVE_LOCAL_VM_NAMESPACE_PREFIXES[0]!r}"
+                )
+
     results_base = results_base or _DIR.parent / "data" / "results-vm"
     assets_dir = assets_dir or _DIR.parent.parent.parent / "assets"
     results_dir = _resolve_results_dir(results_base, system, mode, splitting)
@@ -3194,6 +5395,7 @@ def run_benchmark(
     )
     reviews = merge_sessions_chronologically(arc_reviews, filler_reviews)
     queries = get_all_eval_queries(arc_reviews)  # Only arc sessions have eval queries
+    queries, query_profile_meta = _apply_vm_eval_query_profile(queries)
 
     # Apply limits (for smoke testing)
     if limit_sessions:
@@ -3205,6 +5407,13 @@ def run_benchmark(
     if limit_sessions:
         print(f"  (limited to {limit_sessions})")
     print(f"Eval queries: {len(queries)}")
+    if query_profile_meta.get("profile") not in {"full", "canonical"}:
+        print(
+            "  Query profile: "
+            f"{query_profile_meta.get('profile')} "
+            f"({query_profile_meta.get('selected', len(queries))}/"
+            f"{query_profile_meta.get('requested', len(queries))})"
+        )
     if limit_queries:
         print(f"  (limited to {limit_queries})")
 
