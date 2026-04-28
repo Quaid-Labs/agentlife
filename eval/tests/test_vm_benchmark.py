@@ -1124,6 +1124,29 @@ class TestOpenClawNativeConfig:
         with pytest.raises(RuntimeError, match="Anthropic benchmark credential is required"):
             vmb._provision_openclaw_anthropic_key(_Vm())
 
+    def test_normalize_extract_model_aliases(self):
+        assert vmb._normalize_extract_model("sonnet") == "claude-sonnet-4-5-20250929"
+        assert vmb._normalize_extract_model("haiku") == "claude-haiku-4-5-20251001"
+        assert vmb._normalize_extract_model("opus") == "claude-opus-4-6"
+        assert vmb._normalize_extract_model("claude-sonnet-4-5-20250929") == "claude-sonnet-4-5-20250929"
+
+    def test_patch_memory_json_normalizes_extract_model_alias(self):
+        calls = []
+
+        class _Vm:
+            def ssh(self, command, **_kwargs):
+                calls.append(command)
+
+                class _Result:
+                    returncode = 0
+                    stdout = "Patched: /Users/admin/clawd/config/memory.json\n"
+                    stderr = ""
+
+                return _Result()
+
+        vmb._patch_memory_json(_Vm(), "sonnet")
+        assert "claude-sonnet-4-5-20250929" in calls[0]
+
     def test_derive_quaid_runtime_llm_config_keeps_anthropic_runtime_for_openai_answer_lane(self):
         cfg = vmb._derive_quaid_runtime_llm_config(
             extract_model="claude-sonnet-4-5-20250929",
@@ -1155,6 +1178,14 @@ class TestOpenClawNativeConfig:
         assert cfg["llm_provider"] == "anthropic"
         assert cfg["fast_reasoning_provider"] == "anthropic"
         assert cfg["deep_reasoning_provider"] == "anthropic"
+
+    def test_derive_quaid_runtime_llm_config_normalizes_extract_model_alias(self):
+        cfg = vmb._derive_quaid_runtime_llm_config(
+            extract_model="sonnet",
+            answer_model=None,
+        )
+        assert cfg["deepReasoning"] == "claude-sonnet-4-5-20250929"
+        assert cfg["deep_reasoning"] == "claude-sonnet-4-5-20250929"
 
     def test_patch_quaid_runtime_instance_config_targets_instance_override(self):
         calls = []

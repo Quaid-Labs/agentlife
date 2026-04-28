@@ -4454,6 +4454,20 @@ def _reapply_oc_native_gateway_runtime(vm: TartVM):
     _patch_gateway_model(vm, gateway_model)
 
 
+def _normalize_extract_model(model: str) -> str:
+    normalized = str(model or "").strip()
+    if not normalized:
+        return "claude-sonnet-4-5-20250929"
+    alias = normalized.lower()
+    if alias == "sonnet":
+        return "claude-sonnet-4-5-20250929"
+    if alias == "haiku":
+        return "claude-haiku-4-5-20251001"
+    if alias == "opus":
+        return "claude-opus-4-6"
+    return normalized
+
+
 def _patch_memory_json(
     vm: TartVM,
     extract_model: str,
@@ -4464,6 +4478,7 @@ def _patch_memory_json(
 
     Sets the extraction model and default owner for the benchmark persona.
     """
+    extract_model = _normalize_extract_model(extract_model)
     project_definitions = json.dumps({
         name: {
             "label": spec["label"],
@@ -4529,7 +4544,7 @@ def _derive_quaid_runtime_llm_config(
     configured separately; this runtime config is only for Quaid-owned helper
     calls.
     """
-    deep_model = str(extract_model or "").strip() or "claude-sonnet-4-5-20250929"
+    deep_model = _normalize_extract_model(extract_model)
     fast_model = "claude-haiku-4-5-20251001"
     return {
         "llmProvider": "anthropic",
@@ -5443,6 +5458,7 @@ def run_benchmark(
                     f"with {OC_NATIVE_LOCAL_VM_NAMESPACE_PREFIXES[0]!r}"
                 )
 
+    extract_model = _normalize_extract_model(extract_model)
     results_base = results_base or _DIR.parent / "data" / "results-vm"
     assets_dir = assets_dir or _DIR.parent.parent.parent / "assets"
     results_dir = _resolve_results_dir(results_base, system, mode, splitting)
