@@ -292,10 +292,98 @@ if raw.startswith("{"):
         print(raw)
         raise SystemExit(0)
     access = str(data.get("access") or data.get("token") or "").strip()
+    if not access:
+        tokens = data.get("tokens")
+        if isinstance(tokens, dict):
+            access = str(tokens.get("access_token") or "").strip()
     if access:
         print(access)
         raise SystemExit(0)
 print(raw)
+PY
+}
+
+write_normalized_codex_profile() {
+  local source_path="${1:-}"
+  local direct_token="${2:-}"
+  python3 - "$source_path" "$direct_token" <<'PY'
+import base64
+import json
+import sys
+from pathlib import Path
+
+source_path = sys.argv[1].strip()
+direct_token = sys.argv[2].strip()
+
+
+def decode_claims(token: str) -> dict:
+    parts = str(token or "").split(".")
+    if len(parts) < 2:
+        return {}
+    payload = parts[1] + "=" * (-len(parts[1]) % 4)
+    try:
+        raw = base64.urlsafe_b64decode(payload.encode("ascii"))
+        data = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def emit_profile(access: str, refresh: str = "", account_id: str = "", expires=None) -> None:
+    profile = {
+        "type": "oauth",
+        "provider": "openai-codex",
+        "access": access,
+    }
+    if refresh:
+        profile["refresh"] = refresh
+    if account_id:
+        profile["accountId"] = account_id
+    if isinstance(expires, int) and expires > 0:
+        profile["expires"] = expires
+    claims = decode_claims(access)
+    if "expires" not in profile:
+        exp = claims.get("exp")
+        if isinstance(exp, int) and exp > 0:
+            profile["expires"] = exp * 1000
+    if "accountId" not in profile:
+        auth = claims.get("https://api.openai.com/auth")
+        if isinstance(auth, dict):
+            account_id = str(auth.get("chatgpt_account_id") or "").strip()
+            if account_id:
+                profile["accountId"] = account_id
+    print(json.dumps(profile))
+    raise SystemExit(0)
+
+
+if direct_token:
+    emit_profile(direct_token)
+
+if source_path:
+    raw = Path(source_path).expanduser().read_text(encoding="utf-8").strip()
+    if raw:
+        if raw.startswith("{"):
+            try:
+                data = json.loads(raw)
+            except Exception:
+                emit_profile(raw)
+            if isinstance(data, dict):
+                access = str(data.get("access") or data.get("token") or "").strip()
+                refresh = str(data.get("refresh") or "").strip()
+                account_id = str(data.get("accountId") or "").strip()
+                expires = data.get("expires")
+                if access:
+                    emit_profile(access, refresh=refresh, account_id=account_id, expires=expires)
+                tokens = data.get("tokens")
+                if isinstance(tokens, dict):
+                    access = str(tokens.get("access_token") or "").strip()
+                    refresh = str(tokens.get("refresh_token") or "").strip()
+                    account_id = str(tokens.get("account_id") or "").strip()
+                    if access:
+                        emit_profile(access, refresh=refresh, account_id=account_id)
+        emit_profile(raw)
+
+raise SystemExit(1)
 PY
 }
 
@@ -421,6 +509,43 @@ for ((i=0; i<${#LAUNCH_ARGS[@]}; i++)); do
     break
   fi
 done
+OPTIONAL_BENCH_ENV=""
+LOCAL_CODEX_TOKEN_PATH=""
+LOCAL_CODEX_TOKEN=""
+LOCAL_CODEX_PROFILE_JSON=""
+if [[ -n "${BENCHMARK_CODEX_TOKEN_PATH:-}" ]]; then
+  LOCAL_CODEX_TOKEN_PATH="$(python3 - <<'PY'
+from pathlib import Path
+import os
+print(Path(os.environ["BENCHMARK_CODEX_TOKEN_PATH"]).expanduser().resolve())
+PY
+)"
+elif [[ -f "$HOME/.codex/auth.json" ]]; then
+  LOCAL_CODEX_TOKEN_PATH="$HOME/.codex/auth.json"
+elif [[ -n "${BENCHMARK_CODEX_API_KEY:-}" ]]; then
+  LOCAL_CODEX_TOKEN="$BENCHMARK_CODEX_API_KEY"
+else
+  LOCAL_CODEX_TOKEN_PATH="$(resolve_local_config_secret_path codex solKeyPath || true)"
+  if [[ -z "$LOCAL_CODEX_TOKEN_PATH" || ! -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
+    LOCAL_CODEX_TOKEN_PATH="$(resolve_local_config_secret_path codex yuniKeyPath || true)"
+  fi
+fi
+if [[ -z "$LOCAL_CODEX_TOKEN" && -n "$LOCAL_CODEX_TOKEN_PATH" && -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
+  LOCAL_CODEX_TOKEN="$(read_codex_token_file "$LOCAL_CODEX_TOKEN_PATH" | tr -d '\r\n')"
+fi
+if [[ -n "$LOCAL_CODEX_TOKEN_PATH" && -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
+  LOCAL_CODEX_PROFILE_JSON="$(write_normalized_codex_profile "$LOCAL_CODEX_TOKEN_PATH" "" || true)"
+elif [[ -n "$LOCAL_CODEX_TOKEN" ]]; then
+  LOCAL_CODEX_PROFILE_JSON="$(write_normalized_codex_profile "" "$LOCAL_CODEX_TOKEN" || true)"
+fi
+if [[ -n "$LOCAL_CODEX_PROFILE_JSON" ]]; then
+  LOCAL_CODEX_TOKEN_PATH="$(mktemp "${TMPDIR:-/tmp}/benchmark-codex-auth.XXXXXX.json")"
+  printf '%s\n' "$LOCAL_CODEX_PROFILE_JSON" > "$LOCAL_CODEX_TOKEN_PATH"
+  chmod 600 "$LOCAL_CODEX_TOKEN_PATH"
+fi
+if [[ "$BACKEND_ARG" == "codex" && -n "$LOCAL_CODEX_TOKEN" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_CODEX_API_KEY=$(printf %q "$LOCAL_CODEX_TOKEN")"$'\n'
+fi
 LOCAL_CLAUDE_CREDS="$HOME/.claude/.credentials.json"
 if [[ -f "$LOCAL_CLAUDE_CREDS" ]]; then
   run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" "mkdir -p ~/.claude"
@@ -435,6 +560,14 @@ if [[ -f "$LOCAL_CLAUDE_CREDS" ]]; then
   fi
 else
   echo "  local ~/.claude/.credentials.json not found; skipping credential sync"
+fi
+if [[ -n "$LOCAL_CODEX_TOKEN_PATH" && -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
+  echo ""
+  echo "--- 1c) Sync benchmark Codex OAuth profile for remote VM answer lanes ---"
+  run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" "mkdir -p ~/.codex"
+  run_cmd scp -p "$LOCAL_CODEX_TOKEN_PATH" "$REMOTE:~/.codex/benchmark-auth.json"
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_CODEX_TOKEN_PATH=~/.codex/benchmark-auth.json"$'\n'
+  echo "  synced benchmark Codex OAuth profile to $REMOTE:~/.codex/benchmark-auth.json"
 fi
 
 echo ""
@@ -488,7 +621,6 @@ fi
 
 echo ""
 echo "--- 6) Launch remote benchmark ---"
-OPTIONAL_BENCH_ENV=""
 if [[ -n "${BENCHMARK_ANTHROPIC_OAUTH_TOKEN:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_ANTHROPIC_OAUTH_TOKEN=$(printf %q "$BENCHMARK_ANTHROPIC_OAUTH_TOKEN")"$'\n'
 else
@@ -523,34 +655,6 @@ else
   if [[ -n "$LOCAL_OPENAI_KEY" ]]; then
     OPTIONAL_BENCH_ENV+="export OPENAI_API_KEY=$(printf %q "$LOCAL_OPENAI_KEY")"$'\n'
   fi
-fi
-LOCAL_CODEX_TOKEN_PATH=""
-LOCAL_CODEX_TOKEN=""
-if [[ -n "${BENCHMARK_CODEX_TOKEN_PATH:-}" ]]; then
-  LOCAL_CODEX_TOKEN_PATH="$(python3 - <<'PY'
-from pathlib import Path
-import os
-print(Path(os.environ["BENCHMARK_CODEX_TOKEN_PATH"]).expanduser().resolve())
-PY
-)"
-elif [[ -f "$HOME/.codex/auth.json" ]]; then
-  LOCAL_CODEX_TOKEN_PATH="$HOME/.codex/auth.json"
-elif [[ -n "${BENCHMARK_CODEX_API_KEY:-}" ]]; then
-  LOCAL_CODEX_TOKEN="$BENCHMARK_CODEX_API_KEY"
-else
-  LOCAL_CODEX_TOKEN_PATH="$(resolve_local_config_secret_path codex solKeyPath || true)"
-  if [[ -z "$LOCAL_CODEX_TOKEN_PATH" || ! -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
-    LOCAL_CODEX_TOKEN_PATH="$(resolve_local_config_secret_path codex yuniKeyPath || true)"
-  fi
-fi
-if [[ -z "$LOCAL_CODEX_TOKEN" && -n "$LOCAL_CODEX_TOKEN_PATH" && -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
-  LOCAL_CODEX_TOKEN="$(read_codex_token_file "$LOCAL_CODEX_TOKEN_PATH" | tr -d '\r\n')"
-fi
-if [[ -n "$LOCAL_CODEX_TOKEN_PATH" && -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
-  OPTIONAL_BENCH_ENV+="export BENCHMARK_CODEX_TOKEN_PATH=$(printf %q "$LOCAL_CODEX_TOKEN_PATH")"$'\n'
-fi
-if [[ "$BACKEND_ARG" == "codex" && -n "$LOCAL_CODEX_TOKEN" ]]; then
-  OPTIONAL_BENCH_ENV+="export BENCHMARK_CODEX_API_KEY=$(printf %q "$LOCAL_CODEX_TOKEN")"$'\n'
 fi
 if [[ -n "${BENCHMARK_REQUIRE_QUERY_COUNT:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_REQUIRE_QUERY_COUNT=$(printf %q "$BENCHMARK_REQUIRE_QUERY_COUNT")"$'\n'

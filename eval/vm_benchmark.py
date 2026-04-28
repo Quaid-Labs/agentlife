@@ -140,7 +140,11 @@ VM_QUAID_DIR = "~/clawd/plugins/quaid"
 VM_QUAID_HOME = "/Users/admin/clawd"
 VM_QUAID_INSTANCE = "openclaw-main"
 VM_QUAID_INSTANCE_ROOT_DIR = f"{VM_QUAID_HOME}/instances/{VM_QUAID_INSTANCE}"
-VM_QUAID_BENCH_SESSIONS_DIR = f"{VM_QUAID_HOME}/runtime/benchmark-sessions"
+# Benchmark-triggered direct compaction needs an adapter-owned transcript path.
+# Keep benchmark files under the OC sessions tree, but isolated in a subdir so
+# cleanup remains scoped. The harness stops the background daemon during
+# injection to avoid the old double-processing race on these files.
+VM_QUAID_BENCH_SESSIONS_DIR = f"{VM_AGENT_SESSIONS_DIR}/benchmark"
 VM_QUAID_OLLAMA_URL = "http://192.168.64.1:11435"
 VM_QUAID_INSTANCE_DB_PATH = f"{VM_QUAID_HOME}/instances/{VM_QUAID_INSTANCE}/data/memory.db"
 VM_QUAID_INSTANCE_ARCHIVE_DB_PATH = f"{VM_QUAID_HOME}/instances/{VM_QUAID_INSTANCE}/data/memory_archive.db"
@@ -288,6 +292,13 @@ class TartVM:
                 continue
             rows.append((parts[1], parts[-1]))
         return rows
+
+    def _current_tart_vm_state(self) -> Optional[str]:
+        """Return the current Tart state for the configured VM when known."""
+        for name, state in self._list_local_tart_vms():
+            if name == self.vm_name:
+                return state
+        return None
 
     def _resolve_local_vm_name(self) -> None:
         """Resolve the configured local Tart VM name safely.
@@ -621,7 +632,11 @@ class TartVM:
         else:
             # No snapshot support — just verify VM is running
             print(f"  (snapshots not supported, verifying VM is running)")
-            if self.is_ready():
+            vm_state = self._current_tart_vm_state()
+            if vm_state and vm_state != "running":
+                self._tart_popen("run", self.vm_name, "--no-graphics")
+                self.wait_ready()
+            elif self.is_ready():
                 print(f"  VM ready")
             else:
                 # Try to start VM
@@ -1930,7 +1945,7 @@ def _require_quaid_extraction_usage(extraction_usage: dict, *, context: str) -> 
 
 
 def _quaid_benchmark_session_file(session_id: str) -> str:
-    """Keep benchmark transcript files out of OpenClaw's watched live-session dir."""
+    """Return the adapter-owned transcript path used for direct Quaid extraction."""
     return f"{VM_QUAID_BENCH_SESSIONS_DIR}/{session_id}.jsonl"
 
 
@@ -2818,6 +2833,24 @@ def _restart_quaid_gateway(vm: TartVM, port: int = 18789) -> None:
         detail = f"; gateway log tail:\n{gateway_tail}" if gateway_tail else ""
         raise RuntimeError(f"quaid gateway did not become reachable after restart{detail}")
     print("  Gateway verified: responding")
+
+
+def _stop_quaid_instance_daemon(vm: TartVM) -> None:
+    """Stop the background Quaid daemon for benchmark-driven extraction."""
+    result = vm.ssh(
+        f"QUAID_HOME={VM_QUAID_HOME} "
+        f"QUAID_INSTANCE={VM_QUAID_INSTANCE} "
+        "~/clawd/plugins/quaid/quaid daemon stop >/tmp/quaid-daemon-stop-bench.log 2>&1 "
+        "|| true; "
+        "for pid in $(pgrep -f extraction_daemon.py 2>/dev/null); do "
+        f"if ps eww $pid 2>/dev/null | grep -q 'QUAID_INSTANCE={VM_QUAID_INSTANCE}'; then "
+        "kill -9 $pid 2>/dev/null || true; fi; "
+        "done",
+        raw=True,
+        timeout=20,
+    )
+    if result.returncode == 0:
+        print("  Quaid daemon stopped for benchmark-driven extraction")
 
 
 def _create_core_files(vm: TartVM, user_name: str = "Maya"):
@@ -4125,6 +4158,23 @@ def _resolve_codex_oauth_profile_for_vm() -> dict:
                 }
             if isinstance(data, dict):
                 access = str(data.get("access") or data.get("token") or "").strip()
+                if not access:
+                    tokens = data.get("tokens")
+                    if isinstance(tokens, dict):
+                        access = str(tokens.get("access_token") or "").strip()
+                        if access:
+                            profile = {
+                                "type": "oauth",
+                                "provider": "openai-codex",
+                                "access": access,
+                            }
+                            refresh = str(tokens.get("refresh_token") or "").strip()
+                            if refresh:
+                                profile["refresh"] = refresh
+                            account_id = str(tokens.get("account_id") or "").strip()
+                            if account_id:
+                                profile["accountId"] = account_id
+                            return profile
                 if access:
                     profile = dict(data)
                     profile.setdefault("type", "oauth")
@@ -4349,7 +4399,13 @@ def _provision_openclaw_codex_oauth(vm: TartVM):
         "    auth_data = json.loads(auth_profiles.read_text() or '{}') if auth_profiles.exists() else {}\n"
         "except Exception:\n"
         "    auth_data = {}\n"
+        "auth_data.setdefault('version', 1)\n"
         "profiles = auth_data.setdefault('profiles', {})\n"
+        "for profile_key in list(profiles.keys()):\n"
+        "    if profile_key == 'openai-codex:default':\n"
+        "        continue\n"
+        "    if profile_key == 'openai-codex' or str(profile_key).startswith('openai-codex:'):\n"
+        "        profiles.pop(profile_key, None)\n"
         "profile = profiles.get('openai-codex:default') if isinstance(profiles.get('openai-codex:default'), dict) else {}\n"
         "profile['type'] = 'oauth'\n"
         "profile['provider'] = 'openai-codex'\n"
@@ -4374,6 +4430,8 @@ def _provision_openclaw_codex_oauth(vm: TartVM):
         "profiles['openai-codex:default'] = profile\n"
         "last_good = auth_data.setdefault('lastGood', {})\n"
         "last_good['openai-codex'] = 'openai-codex:default'\n"
+        "order = auth_data.setdefault('order', {})\n"
+        "order['openai-codex'] = ['openai-codex:default']\n"
         "tmp_auth = auth_profiles.with_suffix(auth_profiles.suffix + '.tmp')\n"
         "tmp_auth.write_text(json.dumps(auth_data, indent=2) + '\\n')\n"
         "os.chmod(tmp_auth, 0o600)\n"
@@ -4422,6 +4480,77 @@ def _provision_openclaw_codex_oauth(vm: TartVM):
         raise RuntimeError(f"OpenClaw Codex OAuth provisioning failed: {result.stderr[:200]}")
     if result.stdout.strip():
         print(f"  {result.stdout.strip()}")
+    _assert_openclaw_codex_oauth_ready(vm)
+
+
+def _read_openclaw_codex_oauth_status(vm: TartVM) -> dict:
+    """Inspect benchmark-owned OpenClaw Codex OAuth profile state on the guest."""
+    script = (
+        "import json, pathlib, time\n"
+        "auth_profiles = pathlib.Path.home() / '.openclaw' / 'agents' / 'main' / 'agent' / 'auth-profiles.json'\n"
+        "if not auth_profiles.exists():\n"
+        "    raise SystemExit('missing auth-profiles.json')\n"
+        "data = json.loads(auth_profiles.read_text() or '{}')\n"
+        "profiles = data.get('profiles', {}) if isinstance(data.get('profiles', {}), dict) else {}\n"
+        "default_profile = profiles.get('openai-codex:default') if isinstance(profiles.get('openai-codex:default'), dict) else {}\n"
+        "expires = default_profile.get('expires')\n"
+        "now_ms = int(time.time() * 1000)\n"
+        "order = data.get('order', {}) if isinstance(data.get('order', {}), dict) else {}\n"
+        "codex_order = order.get('openai-codex') if isinstance(order.get('openai-codex'), list) else []\n"
+        "competing = sorted(\n"
+        "    key for key in profiles.keys()\n"
+        "    if key != 'openai-codex:default' and (key == 'openai-codex' or str(key).startswith('openai-codex:'))\n"
+        ")\n"
+        "print(json.dumps({\n"
+        "    'last_good': (data.get('lastGood', {}) or {}).get('openai-codex'),\n"
+        "    'default_present': bool(default_profile),\n"
+        "    'default_has_access': bool(str(default_profile.get('access') or '').strip()),\n"
+        "    'default_has_refresh': bool(str(default_profile.get('refresh') or '').strip()),\n"
+        "    'default_account_id': str(default_profile.get('accountId') or '').strip(),\n"
+        "    'default_expires': expires,\n"
+        "    'default_expired': bool(isinstance(expires, int) and expires <= now_ms),\n"
+        "    'competing_profiles': competing,\n"
+        "    'codex_order': codex_order,\n"
+        "}))\n"
+    )
+    result = vm.ssh("python3 -c " + shlex.quote(script), timeout=10)
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(f"OpenClaw Codex OAuth status probe failed: {detail[:200]}")
+    try:
+        status = json.loads(result.stdout or "{}")
+    except Exception as exc:
+        raise RuntimeError(
+            f"OpenClaw Codex OAuth status probe returned invalid JSON: {(result.stdout or '')[:200]}"
+        ) from exc
+    if not isinstance(status, dict):
+        raise RuntimeError("OpenClaw Codex OAuth status probe returned non-object payload")
+    return status
+
+
+def _assert_openclaw_codex_oauth_ready(vm: TartVM) -> dict:
+    """Require a single fresh benchmark-owned Codex OAuth profile on the guest."""
+    status = _read_openclaw_codex_oauth_status(vm)
+    problems = []
+    if not status.get("default_present"):
+        problems.append("missing openai-codex:default profile")
+    if not status.get("default_has_access"):
+        problems.append("default profile missing access token")
+    if not status.get("default_has_refresh"):
+        problems.append("default profile missing refresh token")
+    if status.get("default_expired"):
+        problems.append("default profile already expired")
+    if status.get("last_good") != "openai-codex:default":
+        problems.append(f"lastGood.openai-codex={status.get('last_good')!r}")
+    if status.get("competing_profiles"):
+        problems.append(f"competing profiles present={status.get('competing_profiles')!r}")
+    if status.get("codex_order") != ["openai-codex:default"]:
+        problems.append(f"codex order={status.get('codex_order')!r}")
+    if problems:
+        raise RuntimeError(
+            "OpenClaw Codex OAuth guest state invalid: " + "; ".join(problems)
+        )
+    return status
 
 
 def _provision_openclaw_gateway_openai_auth(
@@ -4641,6 +4770,8 @@ def evaluate_queries(
     results_dir: Path,
     judge_model: str = "haiku",
     mem0_adapter=None,
+    answer_model: Optional[str] = None,
+    openai_auth_mode: str = "api",
 ) -> List[dict]:
     """Evaluate all queries against the VM.
 
@@ -4662,6 +4793,18 @@ def evaluate_queries(
     results = _load_resume_results(results_dir, queries)
     if results:
         print(f"  Resuming from existing eval results: {len(results)}/{len(queries)} complete")
+    if (
+        system != "mem0"
+        and str(openai_auth_mode or "api").strip() == "codex-oauth"
+        and str(answer_model or "").strip().startswith("openai/")
+    ):
+        _provision_openclaw_codex_oauth(vm)
+        status = _assert_openclaw_codex_oauth_ready(vm)
+        print(
+            "  OpenClaw Codex OAuth ready: "
+            f"expires={status.get('default_expires')} "
+            f"account={status.get('default_account_id') or 'unknown'}"
+        )
 
     for i, query in enumerate(queries):
         if i < len(results):
@@ -5383,6 +5526,7 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         _restart_quaid_gateway(vm, port=18789)
         if system == "quaid":
             _validate_quaid_vm_embeddings(vm)
+            _stop_quaid_instance_daemon(vm)
 
         # Verify agent works
         result = vm.ssh(
@@ -5585,8 +5729,16 @@ def run_benchmark(
     # Phase 3: Evaluation
     print(f"\n--- Phase 3: Evaluation ({len(queries)} queries) ---")
     _adapter = _mem0_adapter if system == "mem0" and not eval_only else None
-    eval_results = evaluate_queries(vm, queries, system, results_dir, judge_model,
-                                    mem0_adapter=_adapter)
+    eval_results = evaluate_queries(
+        vm,
+        queries,
+        system,
+        results_dir,
+        judge_model,
+        mem0_adapter=_adapter,
+        answer_model=answer_model,
+        openai_auth_mode=openai_auth_mode,
+    )
 
     # Phase 4: Scoring
     scores = score_results(eval_results)

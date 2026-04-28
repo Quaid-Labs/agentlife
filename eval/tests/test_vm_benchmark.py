@@ -629,8 +629,8 @@ class TestOpenClawNativeConfig:
         attempts = iter([RuntimeError("cold"), RuntimeError("still cold"), None])
         sleeps = []
 
-        def _warm(port):
-            calls.append(port)
+        def _warm(port, tart_host=None):
+            calls.append((port, tart_host))
             result = next(attempts)
             if result is not None:
                 raise result
@@ -648,7 +648,7 @@ class TestOpenClawNativeConfig:
 
         monkeypatch.setattr(vmb.time, "sleep", _sleep)
         vmb._wait_for_oc_native_embed_proxy_ready(11435)
-        assert calls == [11435, 11435, 11435]
+        assert calls == [(11435, None), (11435, None), (11435, None)]
         assert sleeps == [3, 3]
 
     def test_ensure_oc_native_embed_proxy_raises_when_host_upstream_unhealthy(self, monkeypatch):
@@ -663,12 +663,12 @@ class TestOpenClawNativeConfig:
         monkeypatch.setattr(
             vmb,
             "_list_loaded_ollama_models",
-            lambda: ["nomic-embed-text:latest", "qwen3-embedding:8b"],
+            lambda tart_host=None: ["nomic-embed-text:latest", "qwen3-embedding:8b"],
         )
-        monkeypatch.setattr(vmb, "_stop_ollama_model", lambda model: stop_calls.append(model))
+        monkeypatch.setattr(vmb, "_stop_ollama_model", lambda model, tart_host=None: stop_calls.append((model, tart_host)))
         monkeypatch.setattr(vmb.time, "sleep", lambda seconds: sleeps.append(seconds))
         vmb._prepare_oc_native_embed_upstream()
-        assert stop_calls == ["nomic-embed-text:latest", "qwen3-embedding:8b"]
+        assert stop_calls == [("nomic-embed-text:latest", None), ("qwen3-embedding:8b", None)]
         assert sleeps == [2]
 
     def test_patch_openclaw_native_memory_disables_quaid_config_guard_first(self):
@@ -1293,6 +1293,14 @@ class TestOpenClawNativeConfig:
                 ),
             },
         )
+        monkeypatch.setattr(
+            vmb,
+            "_assert_openclaw_codex_oauth_ready",
+            lambda _vm: {
+                "last_good": "openai-codex:default",
+                "default_present": True,
+            },
+        )
         vmb._provision_openclaw_codex_oauth(_Vm())
         assert json.loads(calls[0][1]) == {
             "type": "oauth",
@@ -1319,6 +1327,12 @@ class TestOpenClawNativeConfig:
         assert "credentials.json" in calls[0][0]
         assert "openclaw" in calls[0][0]
         assert ".auth-token" in calls[0][0]
+        assert "auth_data.setdefault(" in calls[0][0]
+        assert "version" in calls[0][0]
+        assert "profile_key" in calls[0][0]
+        assert "profiles.pop(profile_key, None)" in calls[0][0]
+        assert "order[" in calls[0][0]
+        assert "openai-codex:default" in calls[0][0]
 
     def test_normalize_codex_oauth_profile_for_openclaw_decodes_jwt_metadata(self):
         profile = vmb._normalize_codex_oauth_profile_for_openclaw(
@@ -1405,6 +1419,31 @@ class TestOpenClawNativeConfig:
             "accountId": "acct-xyz",
         }
 
+    def test_resolve_codex_oauth_profile_reads_nested_tokens_from_direct_path(self, monkeypatch, tmp_path):
+        token_file = tmp_path / "codex-auth.json"
+        token_file.write_text(
+            json.dumps(
+                {
+                    "tokens": {
+                        "access_token": "fresh.codex.jwt",
+                        "refresh_token": "refresh-token",
+                        "account_id": "acct-xyz",
+                    }
+                }
+            )
+        )
+        monkeypatch.setenv("BENCHMARK_CODEX_TOKEN_PATH", str(token_file))
+        monkeypatch.delenv("BENCHMARK_CODEX_API_KEY", raising=False)
+
+        profile = vmb._resolve_codex_oauth_profile_for_vm()
+        assert profile == {
+            "type": "oauth",
+            "provider": "openai-codex",
+            "access": "fresh.codex.jwt",
+            "refresh": "refresh-token",
+            "accountId": "acct-xyz",
+        }
+
     def test_resolve_codex_oauth_profile_prefers_token_path_and_preserves_refresh(
         self, monkeypatch, tmp_path
     ):
@@ -1431,6 +1470,86 @@ class TestOpenClawNativeConfig:
             "type": "oauth",
             "provider": "openai-codex",
         }
+
+    def test_assert_openclaw_codex_oauth_ready_accepts_single_default_profile(self):
+        class _Vm:
+            def ssh(self, _command, **_kwargs):
+                class _Result:
+                    returncode = 0
+                    stdout = json.dumps(
+                        {
+                            "last_good": "openai-codex:default",
+                            "default_present": True,
+                            "default_has_access": True,
+                            "default_has_refresh": True,
+                            "default_account_id": "acct-123",
+                            "default_expires": 9999999999999,
+                            "default_expired": False,
+                            "competing_profiles": [],
+                            "codex_order": ["openai-codex:default"],
+                        }
+                    )
+                    stderr = ""
+
+                return _Result()
+
+        status = vmb._assert_openclaw_codex_oauth_ready(_Vm())
+        assert status["last_good"] == "openai-codex:default"
+
+    def test_assert_openclaw_codex_oauth_ready_rejects_competing_profiles(self):
+        class _Vm:
+            def ssh(self, _command, **_kwargs):
+                class _Result:
+                    returncode = 0
+                    stdout = json.dumps(
+                        {
+                            "last_good": "openai-codex:yunim9621@gmail.com",
+                            "default_present": True,
+                            "default_has_access": True,
+                            "default_has_refresh": True,
+                            "default_account_id": "acct-123",
+                            "default_expires": 9999999999999,
+                            "default_expired": False,
+                            "competing_profiles": ["openai-codex:yunim9621@gmail.com"],
+                            "codex_order": ["openai-codex:yunim9621@gmail.com"],
+                        }
+                    )
+                    stderr = ""
+
+                return _Result()
+
+        with pytest.raises(RuntimeError, match="competing profiles present"):
+            vmb._assert_openclaw_codex_oauth_ready(_Vm())
+
+    def test_evaluate_queries_reasserts_codex_oauth_before_eval(self, monkeypatch, tmp_path):
+        calls = []
+        vm = object()
+        monkeypatch.setattr(vmb, "_load_resume_results", lambda *_args, **_kwargs: [])
+        monkeypatch.setattr(vmb, "_provision_openclaw_codex_oauth", lambda vm: calls.append(("provision", vm)))
+        monkeypatch.setattr(
+            vmb,
+            "_assert_openclaw_codex_oauth_ready",
+            lambda vm: {
+                "default_expires": 9999999999999,
+                "default_account_id": "acct-123",
+            },
+        )
+        monkeypatch.setattr(vmb, "_evaluate_vm_agent", lambda *_args, **_kwargs: "answer")
+        monkeypatch.setattr(vmb, "_judge", lambda *_args, **_kwargs: ("CORRECT", 1.0))
+        monkeypatch.setattr(vmb, "_save_results", lambda *_args, **_kwargs: None)
+        monkeypatch.setattr(vmb, "count_tokens", lambda *_args, **_kwargs: 1)
+
+        results = vmb.evaluate_queries(
+            vm,
+            [{"question": "q", "ground_truth": "gt"}],
+            "quaid",
+            tmp_path,
+            answer_model="openai/gpt-5.4",
+            openai_auth_mode="codex-oauth",
+        )
+
+        assert len(results) == 1
+        assert calls == [("provision", vm)]
 
 
 class TestTartVmSsh:
@@ -1583,7 +1702,7 @@ class TestTartVmSsh:
         vm.ssh("echo ok", raw=True)
         assert captured["args"][0] == "ssh"
         assert "alfie.local" in captured["args"]
-        assert "sshpass -p admin ssh" in captured["args"][-1]
+        assert "ssh -o BatchMode=yes" in captured["args"][-1]
         assert "admin@192.168.64.3" in captured["args"][-1]
 
     def test_scp_to_routes_through_tart_host(self, monkeypatch, tmp_path):
@@ -1608,7 +1727,7 @@ class TestTartVmSsh:
         assert calls[1][0] == "scp"
         assert calls[2][0] == "ssh"
         assert "/tmp/vm-benchmark-upload" in calls[2][-1]
-        assert "sshpass -p admin ssh" in calls[2][-1]
+        assert "ssh -o BatchMode=yes" in calls[2][-1]
         assert "admin@192.168.64.3" in calls[2][-1]
         assert "cat > ~/x.txt" in calls[2][-1]
 
@@ -1804,6 +1923,46 @@ class TestTartVmSsh:
 
         assert vm.vm_name == "quaid-livetest-run"
         assert vm.ip == "192.168.64.107"
+
+    def test_restore_starts_stopped_tart_host_vm_without_is_ready_probe(self, monkeypatch):
+        calls = {"run": [], "wait_ready": 0}
+
+        def _fake_tart_cmd(*parts, **_kwargs):
+            class _Result:
+                def __init__(self, returncode=0, stdout="", stderr=""):
+                    self.returncode = returncode
+                    self.stdout = stdout
+                    self.stderr = stderr
+
+            if parts == ("list",):
+                return _Result(stdout=(
+                    "Source Name          Disk Size SizeOnDisk State\n"
+                    "local  test-openclaw 50   35   35         stopped\n"
+                ))
+            if parts == ("help",):
+                return _Result(stdout="")
+            return _Result()
+
+        def _fake_popen(self, *parts):
+            calls["run"].append(parts)
+
+        def _fake_wait_ready(self, timeout=120):
+            calls["wait_ready"] += 1
+            return True
+
+        def _fail_is_ready(self):
+            raise AssertionError("is_ready should not be called for a stopped Tart VM")
+
+        monkeypatch.setattr(vmb.TartVM, "_tart_cmd", lambda self, *parts, **kwargs: _fake_tart_cmd(*parts, **kwargs))
+        monkeypatch.setattr(vmb.TartVM, "_tart_popen", _fake_popen)
+        monkeypatch.setattr(vmb.TartVM, "wait_ready", _fake_wait_ready)
+        monkeypatch.setattr(vmb.TartVM, "is_ready", _fail_is_ready)
+
+        vm = vmb.TartVM(ip="192.168.64.3", vm_name="test-openclaw", tart_host="alfie.local")
+        vm.restore("clean-openclaw")
+
+        assert calls["run"] == [("run", "test-openclaw", "--no-graphics")]
+        assert calls["wait_ready"] == 1
 
     def test_wait_ready_refreshes_ip_from_tart(self, monkeypatch):
         state = {"ssh_calls": 0}
@@ -3653,10 +3812,10 @@ class TestSetupSystem:
 
 
 class TestQuaidCompaction:
-    def test_quaid_benchmark_session_file_uses_runtime_dir(self):
+    def test_quaid_benchmark_session_file_uses_adapter_owned_benchmark_subdir(self):
         path = vmb._quaid_benchmark_session_file("benchmark-quaid-s07")
         assert path == f"{vmb.VM_QUAID_BENCH_SESSIONS_DIR}/benchmark-quaid-s07.jsonl"
-        assert ".openclaw/agents/main/sessions" not in path
+        assert ".openclaw/agents/main/sessions/benchmark" in path
 
     def test_trigger_compaction_sets_runtime_prompt_file(self):
         calls = []
