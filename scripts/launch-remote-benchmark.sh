@@ -511,6 +511,7 @@ for ((i=0; i<${#LAUNCH_ARGS[@]}; i++)); do
 done
 OPTIONAL_BENCH_ENV=""
 LOCAL_CODEX_TOKEN_PATH=""
+LOCAL_CODEX_TEMP_PATH=""
 LOCAL_CODEX_TOKEN=""
 LOCAL_CODEX_PROFILE_JSON=""
 if [[ -n "${BENCHMARK_CODEX_TOKEN_PATH:-}" ]]; then
@@ -539,9 +540,19 @@ elif [[ -n "$LOCAL_CODEX_TOKEN" ]]; then
   LOCAL_CODEX_PROFILE_JSON="$(write_normalized_codex_profile "" "$LOCAL_CODEX_TOKEN" || true)"
 fi
 if [[ -n "$LOCAL_CODEX_PROFILE_JSON" ]]; then
-  LOCAL_CODEX_TOKEN_PATH="$(mktemp "${TMPDIR:-/tmp}/benchmark-codex-auth.XXXXXX.json")"
+  LOCAL_CODEX_TOKEN_PATH="$(python3 - <<'PY'
+import tempfile
+handle = tempfile.NamedTemporaryFile(prefix="benchmark-codex-auth.", suffix=".json", delete=False)
+handle.close()
+print(handle.name)
+PY
+)"
+  LOCAL_CODEX_TEMP_PATH="$LOCAL_CODEX_TOKEN_PATH"
   printf '%s\n' "$LOCAL_CODEX_PROFILE_JSON" > "$LOCAL_CODEX_TOKEN_PATH"
   chmod 600 "$LOCAL_CODEX_TOKEN_PATH"
+fi
+if [[ -n "$LOCAL_CODEX_TEMP_PATH" ]]; then
+  trap 'rm -f "$LOCAL_CODEX_TEMP_PATH"' EXIT
 fi
 if [[ "$BACKEND_ARG" == "codex" && -n "$LOCAL_CODEX_TOKEN" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_CODEX_API_KEY=$(printf %q "$LOCAL_CODEX_TOKEN")"$'\n'
