@@ -300,3 +300,155 @@ Avoid these claims:
   totals.
 - Do not present OC-native rows as full production-dreaming results until the
   harness can trigger dream cycles deterministically.
+
+## In-Flight Extension Block (2026-04-24)
+
+This draft now has an explicit follow-on run block appended to the end of the
+current study. It is being executed as a chained queue on Spark so that the
+technical study reflects the live run order rather than an after-the-fact
+reconstruction.
+
+Important sequencing note:
+
+- `r1423` was already in flight before the operator pivoted the auth/model
+  sequence.
+- Because of that, the live block starts with the already-running fresh
+  `AL-S Sonnet/Haiku` line, then switches into the Solomon-auth segment, then
+  switches back to Yuni for the remaining FC/`AL-L` work.
+
+Current queued block:
+
+| Order | Run | Surface | Models | Auth | Purpose |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `r1423` | `AL-S` | `Sonnet/Haiku` | existing in-flight run | fresh small-lane source run already launched before the auth pivot |
+| 2 | `r1424` | `AL-S FC` | `Sonnet` | Solomon OAuth | refreshed small-lane FC Sonnet anchor |
+| 3 | `r1425 (r1423)` | `AL-S` | `Sonnet/Sonnet` | Solomon OAuth | eval-only Sonnet re-eval on the fresh `r1423` lineage |
+| 4 | `r1426` | `AL-L OBD` | `Sonnet/Haiku` | Solomon OAuth | fresh long OBD source run |
+| 5 | `r1427` | `AL-S FC` | `Opus 4.7` | Yuni OAuth | small-lane FC Opus 4.7 ceiling datapoint |
+| 6 | `r1428` | `AL-L` | `Sonnet/Haiku` | Yuni OAuth | fresh long per-day source run |
+| 7 | `r1429 (r1426)` | `AL-L OBD` | `Sonnet/Sonnet` | Yuni OAuth | eval-only Sonnet re-eval on the fresh `r1426` lineage |
+| 8 | `r1430 (r1428)` | `AL-L` | `Sonnet/Sonnet` | Yuni OAuth | eval-only Sonnet re-eval on the fresh `r1428` lineage |
+| 9 | `r1431` | `AL-L FC` | `Sonnet` | Yuni OAuth | refreshed large-lane FC Sonnet anchor |
+
+Operational rules for this block:
+
+- FC runs must use Anthropic prompt caching; they are too expensive to run
+  uncached.
+- If any source run fails (`r1423`, `r1426`, or `r1428`), downstream eval-only
+  lineage runs do not continue from a tainted workspace.
+- On source-run failure, the benchmark owner diagnoses the real failure,
+  relaunches a fresh replacement source run, and resumes the chain from the new
+  lineage.
+
+## 2026-04-24 Queue Correction
+
+- `r1425` (`AL-S` Sonnet/Sonnet eval-only from `r1423`) failed on a checkpoint-side explicit-store-plan timeout: the harness gave the recall subprocess 90s, but did not propagate that budget into explicit `stores=["vector","graph"]` deliberate recall config, so checkpoint `_run_recall_store_plan()` fail-hard timed out at its internal 30s default first.
+- Harness fix landed locally as `9ea06e47` in `agentlife-benchmark`: deliberate recall now passes `timeout_ms` through to checkpoint config, and a new `fc-tier5` mode backfills Tier-5 onto an existing FC baseline without rerunning the FC answer sweep.
+- Fresh replacement lineage is `r1433 (r1423)`.
+- Inserted follow-up run is `r1434 (r1424)`: `AL-S` FC Sonnet Tier-5-only backfill on the preserved `r1424` FC baseline.
+- Remaining queued order after `r1434`: `r1426`, `r1427`, `r1428`, `r1429`, `r1430`, `r1431`.
+
+## 2026-04-28 Staged OpenClaw Update
+
+This section supersedes the earlier pending OpenClaw notes in this draft.
+
+The April 26-28 work split the OpenClaw study into two distinct surfaces:
+
+- OpenClaw native memory (`oc-native`)
+- Quaid embedded inside OpenClaw (`quaid-ocvm`)
+
+That split matters. The fixes that raised Quaid-on-OC were mostly Quaid product
+fixes in the bridge/docs/project-recall path, not harness-only tricks and not
+generic OpenClaw-native improvements.
+
+### Current OpenClaw Surface Table
+
+| Surface | Run | Method | Score | Notes |
+| --- | --- | --- | ---: | --- |
+| OpenClaw native `AL-S` | `oc-native-als-20260426aaf` | fresh full, clean eval-isolated | `26.49%` | correct `alfie/test-openclaw` VM; eval contamination fixed; current native baseline |
+| OpenClaw native `AL-L` | `oc-native-all-20260426aag` | fresh full, clean eval-isolated | `31.72%` | same native stack with filler sessions |
+| Quaid on OpenClaw `AL-S` | `quaid-ocvm-full-bridgefix-20260428-010749` | fresh full embedded-Quaid VM run | `80.97%` | current best trustworthy OC-VM Quaid baseline |
+| Quaid direct `AL-S` | `r1421` | fresh full direct harness | `88.62%` | clean direct baseline on the current valid set |
+| Quaid direct `AL-S` Sonnet re-eval | `r1422 (r1421)` | eval-only stronger-answer recheck | `93.10%` | demonstrates direct-path lift from a stronger answer model |
+
+Interpretation:
+
+- The meaningful OC-VM Quaid gap is against the fresh direct Quaid baseline, not
+  against the stronger eval-only Sonnet headline. On that apples-to-apples
+  comparison, Quaid on OpenClaw is down about `7.65pp` (`88.62%` to `80.97%`).
+- The stronger answer-model re-eval (`r1422`) moved the direct Quaid lineage up,
+  not down. This is evidence against the claim that `openai/gpt-5.4` itself is
+  the reason OpenClaw scores lower.
+- The remaining loss is best read as OpenClaw pipeline tax: noisier evidence
+  surfacing, weaker freshness/current-state shaping, and answer-path distortion
+  between stored memory and the final model prompt.
+
+### What Fixed Quaid-on-OC
+
+The critical Quaid product fixes from this study were:
+
+- instance-scoped bridge env preservation
+- bridge docs-bundle materialization into real recall rows
+- dated project-state auto-inject bounded to docs
+- dated project-log recall focus
+- structural graph date-bound enforcement
+- structural freshness rerank / invented-anchor extraction guards
+
+These changes are product/runtime fixes. They explain why the embedded Quaid
+lane moved from broken numbers (`14.93%`) to stable numbers (`72.76%`, then
+`80.97%`).
+
+They do **not** transfer directly to OpenClaw native memory, because native OC
+does not use Quaid's bridge/docs/project-log pipeline. For that reason, the
+native `26.49%` / `31.72%` rows remain a fair current baseline for native
+OpenClaw rather than an artifact of "Quaid got special benchmark handling."
+
+### Remaining Quaid-on-OC Weaknesses
+
+The current full Quaid-on-OC `AL-S` row is no longer failing on project-state
+routing. The weaker families are now:
+
+- `temporal_current`: `62.5%`
+- `agent_retrieved`: `60.0%`
+- `adversarial_false_attribution`: `40.0%`
+
+Project-state is materially healthier:
+
+- `project_state`: `83.3%`
+
+This means the next improvement cycle should focus on answer-surface quality:
+freshness, attribution, and exact assistant-retrieved detail preservation, not
+on the older bridge/docs path failures.
+
+### Dated Project-State Proof
+
+Targeted proof run `quaid-ocvm-projectstate-proof13-20260428-093651` scored
+`75.0%` (`3/4`) on the dated `recipe-app` project-state slice.
+
+The remaining miss should not be treated as a runtime/product failure:
+
+- `session-10-review-v2.txt` states that `dietary.test.js` and
+  `mealplan.test.js` were added before `2026-03-18`
+- `session-16-review-v2.txt` later hardcodes a `2026-05-08` ground truth that
+  omits those suites
+
+The stored `PROJECT.log` and the benchmark answer followed the earlier source
+evidence. The recommendation is:
+
+- treat the dated project-state path as product-pass / `PWN`
+- queue dataset reconciliation post-ship
+
+### Current Publication Guidance For OpenClaw
+
+- Use `80.97%` as the current trustworthy Quaid-on-OpenClaw `AL-S` headline.
+- Use `26.49%` (`AL-S`) and `31.72%` (`AL-L`) as the current clean native
+  OpenClaw baselines.
+- Do not compare the native `26.49%` row against the older `70.15%`
+  `oc-native` eval-only number as if they were the same methodology; the older
+  row is a useful historical reference, but not the current canonical native
+  baseline.
+- Do not blame the Quaid-on-OC gap primarily on `gpt-5.4`; the stronger direct
+  Quaid re-eval shows the answer model can help when the evidence surface is
+  clean.
+- The next required OpenClaw datapoint is a fresh Quaid-on-OpenClaw `AL-L` run
+  on a checkpoint cut from current `dev/main`.
