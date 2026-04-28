@@ -1703,6 +1703,8 @@ class TestTartVmSsh:
         assert captured["args"][0] == "ssh"
         assert "alfie.local" in captured["args"]
         assert "ssh -o BatchMode=yes" in captured["args"][-1]
+        assert "PreferredAuthentications=publickey" in captured["args"][-1]
+        assert "IdentitiesOnly=yes" in captured["args"][-1]
         assert "admin@192.168.64.3" in captured["args"][-1]
 
     def test_scp_to_routes_through_tart_host(self, monkeypatch, tmp_path):
@@ -1728,6 +1730,8 @@ class TestTartVmSsh:
         assert calls[2][0] == "ssh"
         assert "/tmp/vm-benchmark-upload" in calls[2][-1]
         assert "ssh -o BatchMode=yes" in calls[2][-1]
+        assert "PreferredAuthentications=publickey" in calls[2][-1]
+        assert "IdentitiesOnly=yes" in calls[2][-1]
         assert "admin@192.168.64.3" in calls[2][-1]
         assert "cat > ~/x.txt" in calls[2][-1]
 
@@ -1803,6 +1807,8 @@ class TestTartVmSsh:
         assert len(calls) == 2
         assert "sshpass" not in calls[0][-1]
         assert "BatchMode=yes" in calls[0][-1]
+        assert "PreferredAuthentications=publickey" in calls[0][-1]
+        assert "IdentitiesOnly=yes" in calls[0][-1]
         assert "sshpass" in calls[1][-1]
 
     def test_tart_host_ssh_forwards_input_data(self, monkeypatch):
@@ -1861,6 +1867,8 @@ class TestTartVmSsh:
         assert result.returncode == 0
         assert len(calls) == 4
         assert "sshpass" not in calls[2][-1]
+        assert "PreferredAuthentications=publickey" in calls[2][-1]
+        assert "IdentitiesOnly=yes" in calls[2][-1]
         assert "sshpass" in calls[3][-1]
 
     def test_restore_refuses_single_running_local_vm_without_override(self, monkeypatch):

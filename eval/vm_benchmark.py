@@ -408,6 +408,8 @@ class TartVM:
                 "ssh", "-o", "BatchMode=yes",
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "ConnectTimeout=10",
+                "-o", "PreferredAuthentications=publickey",
+                "-o", "IdentitiesOnly=yes",
             ])
         parts.extend([
             shlex.quote(f"{self.user}@{self.ip}"),
@@ -430,6 +432,8 @@ class TartVM:
                 "scp", "-o", "BatchMode=yes",
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "ConnectTimeout=10",
+                "-o", "PreferredAuthentications=publickey",
+                "-o", "IdentitiesOnly=yes",
             ])
         parts.extend([shlex.quote(source), shlex.quote(dest)])
         return " ".join(parts)
