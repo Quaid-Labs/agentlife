@@ -148,6 +148,8 @@ LAUNCH_ARGS_ESCAPED="${LAUNCH_ARGS_ESCAPED% }"
 RESULTS_DIR=""
 WORKSPACE_BASENAME=""
 AUTO_RESULTS_DIR=false
+RUNNER_KIND="production"
+LOCAL_RUNNER_PATH=""
 for ((i=0; i<${#LAUNCH_ARGS[@]}; i++)); do
   if [[ "${LAUNCH_ARGS[$i]}" == "--results-dir" ]] && (( i + 1 < ${#LAUNCH_ARGS[@]} )); then
     RESULTS_DIR="${LAUNCH_ARGS[$((i+1))]}"
@@ -157,6 +159,47 @@ done
 if [[ -z "$RESULTS_DIR" ]]; then
   AUTO_RESULTS_DIR=true
 fi
+
+launch_args_include_flag() {
+  local flag="$1"
+  local arg
+  for arg in "${LAUNCH_ARGS[@]}"; do
+    if [[ "$arg" == "$flag" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+resolve_local_runner() {
+  if [[ "$RUNNER_KIND" == "vm" ]]; then
+    if [[ -f "$LOCAL_BENCH_ROOT/eval/vm_benchmark.py" ]]; then
+      LOCAL_RUNNER_PATH="$LOCAL_BENCH_ROOT/eval/vm_benchmark.py"
+    elif [[ -f "$LOCAL_BENCH_ROOT/agentlife/eval/vm_benchmark.py" ]]; then
+      LOCAL_RUNNER_PATH="$LOCAL_BENCH_ROOT/agentlife/eval/vm_benchmark.py"
+    else
+      echo "ERROR: vm_benchmark.py not found under eval/ or agentlife/eval/" >&2
+      exit 1
+    fi
+  else
+    if [[ -f "$LOCAL_BENCH_ROOT/eval/run_production_benchmark.py" ]]; then
+      LOCAL_RUNNER_PATH="$LOCAL_BENCH_ROOT/eval/run_production_benchmark.py"
+    elif [[ -f "$LOCAL_BENCH_ROOT/agentlife/eval/run_production_benchmark.py" ]]; then
+      LOCAL_RUNNER_PATH="$LOCAL_BENCH_ROOT/agentlife/eval/run_production_benchmark.py"
+    else
+      echo "ERROR: run_production_benchmark.py not found under eval/ or agentlife/eval/" >&2
+      exit 1
+    fi
+  fi
+}
+
+if launch_args_include_flag "--system" \
+  || launch_args_include_flag "--vm-name" \
+  || launch_args_include_flag "--vm-ip" \
+  || launch_args_include_flag "--tart-host"; then
+  RUNNER_KIND="vm"
+fi
+resolve_local_runner
 
 run_cmd() {
   echo "+ $*"
@@ -258,7 +301,7 @@ PY
 
 run_local_checks() {
   echo "--- Local harness checks (required) ---"
-  run_cmd python3 -m py_compile "$LOCAL_BENCH_ROOT/eval/run_production_benchmark.py"
+  run_cmd python3 -m py_compile "$LOCAL_RUNNER_PATH"
   run_cmd bash -lc "cd '$LOCAL_BENCH_ROOT' && env \
     -u BENCHMARK_QUERY_NUMS \
     -u BENCHMARK_QUERY_SHA1S \
@@ -490,6 +533,8 @@ import os
 print(Path(os.environ["BENCHMARK_CODEX_TOKEN_PATH"]).expanduser().resolve())
 PY
 )"
+elif [[ -f "$HOME/.codex/auth.json" ]]; then
+  LOCAL_CODEX_TOKEN_PATH="$HOME/.codex/auth.json"
 elif [[ -n "${BENCHMARK_CODEX_API_KEY:-}" ]]; then
   LOCAL_CODEX_TOKEN="$BENCHMARK_CODEX_API_KEY"
 else
@@ -500,6 +545,9 @@ else
 fi
 if [[ -z "$LOCAL_CODEX_TOKEN" && -n "$LOCAL_CODEX_TOKEN_PATH" && -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
   LOCAL_CODEX_TOKEN="$(read_codex_token_file "$LOCAL_CODEX_TOKEN_PATH" | tr -d '\r\n')"
+fi
+if [[ -n "$LOCAL_CODEX_TOKEN_PATH" && -f "$LOCAL_CODEX_TOKEN_PATH" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_CODEX_TOKEN_PATH=$(printf %q "$LOCAL_CODEX_TOKEN_PATH")"$'\n'
 fi
 if [[ "$BACKEND_ARG" == "codex" && -n "$LOCAL_CODEX_TOKEN" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_CODEX_API_KEY=$(printf %q "$LOCAL_CODEX_TOKEN")"$'\n'
@@ -801,7 +849,17 @@ fi
 if [[ $(printf %q "$BACKEND_ARG") == "claude-code" ]]; then
   export CLAUDE_CODE_TIMEOUT_MULTIPLIER=2
 fi
-if [[ -f eval/run_production_benchmark.py ]]; then
+RUNNER_KIND=$(printf %q "$RUNNER_KIND")
+if [[ "$RUNNER_KIND" == "vm" ]]; then
+  if [[ -f eval/vm_benchmark.py ]]; then
+    RUNNER=eval/vm_benchmark.py
+  elif [[ -f agentlife/eval/vm_benchmark.py ]]; then
+    RUNNER=agentlife/eval/vm_benchmark.py
+  else
+    echo 'ERROR: vm_benchmark.py not found under eval/ or agentlife/eval/' >&2
+    exit 1
+  fi
+elif [[ -f eval/run_production_benchmark.py ]]; then
   RUNNER=eval/run_production_benchmark.py
 elif [[ -f agentlife/eval/run_production_benchmark.py ]]; then
   RUNNER=agentlife/eval/run_production_benchmark.py
