@@ -17,20 +17,31 @@ The native baseline currently means:
 - OpenClaw installed and reachable over SSH
 - gateway healthy
 - no Quaid plugin required in the base image
-- host-visible embeddings endpoint for `qwen3-embedding:8b`
+- host-visible embeddings endpoint for `nomic-embed-text`
 
 Per-system details still happen inside `eval/vm_benchmark.py`.
 
+Important targeting rule:
+- on `testbench.local`, local `quaid-livetest-*` Tart VMs are shared live-test
+  targets and must not be used for benchmark OC runs
+- benchmark OC runs should route Tart through `--tart-host alfie.local`
+- if you intentionally run OC benchmark locally, use a dedicated namespaced VM
+  name such as `benchmark-oc-native-run`
+
 For `oc-native`, the benchmark itself enables:
+- bundled `memory` CLI surface for forced `openclaw memory index/status`
 - `memory-core`
 - builtin memory backend
 - bundled `session-memory` hook
 - `active-memory` blocking recall sub-agent
 - `memory-wiki` bridge/import/compile flow
 - embeddings pinned to `http://192.168.64.1:11435/v1`
-- model `qwen3-embedding:8b`
+- model `nomic-embed-text`
 - the harness starts/reuses a host-side TCP forward on `0.0.0.0:11435`
   so the VM can reach the host Ollama endpoint at `192.168.64.1:11435`
+- that same guest-visible proxy also exposes raw `POST /api/embed`, so the
+  Quaid-on-OC-VM lane can use the same host embedding model without a separate
+  product-side provider change
 
 ## Bootstrap
 
@@ -64,10 +75,11 @@ During `oc-native` setup, the VM harness writes that key to:
 ~/.openclaw/.env
 ```
 
-The profile written is `profiles["openai:default"].token`, `lastGood["openai"]`
-is set to `openai:default`, and `OPENAI_API_KEY=...` is written into
-`~/.openclaw/.env` because the current `openclaw agent` path resolves direct
-OpenAI auth from the environment rather than the profile file alone.
+The profile written is `profiles["openai:default"] = {"type":"api_key",
+"provider":"openai","key":"..."}`, `lastGood["openai"]` is set to
+`openai:default`, and `OPENAI_API_KEY=...` is written into `~/.openclaw/.env`
+because the current OC-native gateway path still benefits from the environment
+copy even when the auth profile is valid.
 
 ## Snapshot
 
@@ -96,6 +108,7 @@ python3 eval/vm_benchmark.py \
   --system oc-native \
   --vm-name quaid-livetest-run \
   --vm-ip 192.168.64.3 \
+  --tart-host alfie.local \
   --answer-model openai/gpt-5.4 \
   --dry-run
 ```
@@ -108,6 +121,7 @@ python3 eval/vm_benchmark.py \
   --system oc-native \
   --vm-name quaid-livetest-run \
   --vm-ip 192.168.64.3 \
+  --tart-host alfie.local \
   --answer-model openai/gpt-5.4 \
   --limit-sessions 2 \
   --limit-queries 4 \
@@ -124,6 +138,7 @@ python3 eval/vm_benchmark.py \
   --system oc-native \
   --vm-name quaid-livetest-run \
   --vm-ip 192.168.64.3 \
+  --tart-host alfie.local \
   --snapshot clean-openclaw \
   --results-dir data/results-vm-oc-native-current-als \
   --answer-model openai/gpt-5.4 \
@@ -140,6 +155,7 @@ python3 eval/vm_benchmark.py \
   --system oc-native \
   --vm-name quaid-livetest-run \
   --vm-ip 192.168.64.3 \
+  --tart-host alfie.local \
   --snapshot clean-openclaw \
   --results-dir data/results-vm-oc-native-current-all \
   --answer-model openai/gpt-5.4 \
@@ -158,7 +174,19 @@ Quaid. The harness writes benchmark transcripts into real OpenClaw session
 files, runs a benign gateway-driven agent turn to trigger the bundled
 `session-memory` startup/session hook for each synthetic session, restores the
 synthetic transcript, forces `openclaw memory index --agent main --force`, then
-imports/compiles the `memory-wiki` bridge before evaluation.
+imports/compiles the `memory-wiki` bridge before evaluation. Eval queries run
+through fresh guest sessions, but those eval sessions are registered under a
+hook-scoped session key and write transcripts under a sibling agent session
+tree (`~/.openclaw/agents/benchmark-eval/sessions`) so the active eval turn
+does not become retrievable main-agent memory during answering. The harness
+then removes each `eval-q*` sibling transcript/store entry immediately after
+answer capture so later eval queries cannot retrieve prior eval transcripts
+while the full OC memory stack remains enabled.
+
+Before each scored run, the harness also kills any lingering guest
+`openclaw-gateway` process and purges both main-agent and sibling-agent eval
+transcripts so an aborted prior run cannot leak stale `eval-q*` files into the
+next lane.
 
 Current operational note:
 - on the current VM, `openclaw agent --local` can hang during benchmark

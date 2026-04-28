@@ -260,12 +260,10 @@ def annotate(scale: str = "L") -> dict:
     """
     rng = random.Random(SEED)
 
-    # assets/ is at repo root: ~/clawd/assets/
-    _eval_dir = Path(__file__).resolve().parent          # eval/
-    _project_dir = _eval_dir.parent                      # projects/agentlife/
-    _repo_root = _project_dir.parent.parent              # ~/clawd/
-    assets_dir = _repo_root / "assets"
-    filler_dir = _project_dir / "data" / "filler-sessions-L"
+    _eval_dir = Path(__file__).resolve().parent
+    _project_dir = _eval_dir.parent
+    assets_dir = _project_dir / "data" / "sessions"
+    filler_dir = _project_dir / "data" / "filler-sessions"
 
     arcs = list(load_all_reviews(assets_dir))
 

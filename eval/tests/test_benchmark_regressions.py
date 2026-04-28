@@ -3475,6 +3475,32 @@ def test_codex_backend_reads_auth_token_file(monkeypatch, tmp_path):
     assert rpb._get_openai_compatible_api_key() == "tok-codex"
 
 
+def test_get_openai_key_falls_back_to_openclaw_auth_profiles(monkeypatch, tmp_path):
+    home = tmp_path / "home"
+    auth_profiles = home / ".openclaw" / "agents" / "main" / "agent" / "auth-profiles.json"
+    auth_profiles.parent.mkdir(parents=True, exist_ok=True)
+    auth_profiles.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "profiles": {
+                    "openai:default": {
+                        "type": "api_key",
+                        "provider": "openai",
+                        "key": "sk-from-auth-profiles",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(rpb, "_CLAWD", home / "clawd")
+    monkeypatch.setattr(rpb.Path, "home", lambda: home)
+
+    assert rpb._get_openai_key() == "sk-from-auth-profiles"
+
+
 def test_call_openai_compatible_chat_uses_codex_oauth_sse_contract(monkeypatch, tmp_path):
     workspace = tmp_path / "ws"
     workspace.mkdir()
@@ -7365,6 +7391,108 @@ def test_extract_compact_date_to_created_at_uses_session_date():
     assert ec._date_to_created_at("") is None
 
 
+def test_extract_compact_signal_type_maps_runtime_triggers():
+    assert ec._quaid_signal_type("Compaction") == "compaction"
+    assert ec._quaid_signal_type("Reset") == "reset"
+    assert ec._quaid_signal_type("session_end") == "session_end"
+    assert ec._quaid_signal_type("timeout") == "timeout"
+
+
+def test_extract_compact_uses_native_daemon_signal_path(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    plugin_root = workspace / "plugins" / "quaid"
+    plugin_root.mkdir(parents=True)
+    session_file = tmp_path / "session.jsonl"
+    session_file.write_text('{"role":"user","content":"hello"}\n', encoding="utf-8")
+
+    metric_path = tmp_path / "rolling-extraction.jsonl"
+    metric_path.write_text(
+        json.dumps({"event": "rolling_flush", "session_id": "old-session", "final_facts_stored": 1}) + "\n",
+        encoding="utf-8",
+    )
+    captured = {"usage_reads": 0}
+
+    fake_daemon = ModuleType("core.extraction_daemon")
+
+    def _rolling_metrics_path():
+        return metric_path
+
+    def _read_usage_totals():
+        captured["usage_reads"] += 1
+        if captured["usage_reads"] == 1:
+            return {"calls": 1, "input_tokens": 10, "output_tokens": 5}
+        return {"calls": 3, "input_tokens": 40, "output_tokens": 17}
+
+    def _usage_delta(before, after):
+        keys = set(before) | set(after)
+        return {key: int(after.get(key, 0) or 0) - int(before.get(key, 0) or 0) for key in keys}
+
+    def process_signal(signal):
+        captured["signal"] = dict(signal)
+        with metric_path.open("a", encoding="utf-8") as fh:
+            fh.write(
+                json.dumps(
+                    {
+                        "event": "rolling_flush",
+                        "session_id": signal["session_id"],
+                        "final_facts_stored": 7,
+                        "final_facts_skipped": 2,
+                        "final_edges_created": 1,
+                        "extract_llm_calls": 1,
+                        "publish_llm_calls": 2,
+                        "extract_input_tokens": 21,
+                        "extract_output_tokens": 8,
+                        "publish_input_tokens": 9,
+                        "publish_output_tokens": 4,
+                        "project_logs_seen": 4,
+                        "project_logs_written": 3,
+                        "project_logs_projects_updated": 1,
+                    }
+                )
+                + "\n"
+            )
+
+    fake_daemon._rolling_metrics_path = _rolling_metrics_path
+    fake_daemon._read_usage_totals = _read_usage_totals
+    fake_daemon._usage_delta = _usage_delta
+    fake_daemon.process_signal = process_signal
+
+    fake_adapter_mod = ModuleType("lib.adapter")
+
+    class _Adapter:
+        def parse_session_jsonl(self, path):
+            captured["parsed_path"] = str(path)
+            return "User: hello"
+
+    fake_adapter_mod.get_adapter = lambda: _Adapter()
+
+    monkeypatch.setitem(sys.modules, "core", ModuleType("core"))
+    monkeypatch.setitem(sys.modules, "core.extraction_daemon", fake_daemon)
+    monkeypatch.setitem(sys.modules, "lib", ModuleType("lib"))
+    monkeypatch.setitem(sys.modules, "lib.adapter", fake_adapter_mod)
+    monkeypatch.setenv("QUAID_NOW", "keep-me")
+
+    out = ec._run_native_daemon_compaction(
+        session_file=str(session_file),
+        workspace=str(workspace),
+        session_id="bench-s01",
+        trigger="Compaction",
+        sim_date="2026-03-01",
+    )
+
+    assert captured["signal"]["type"] == "compaction"
+    assert captured["signal"]["session_id"] == "bench-s01"
+    assert captured["signal"]["transcript_path"] == str(session_file)
+    assert captured["parsed_path"] == str(session_file)
+    assert out["usage"]["input_tokens"] == 30
+    assert out["usage"]["output_tokens"] == 12
+    assert out["usage"]["calls"] == 3
+    assert out["metric"]["final_facts_stored"] == 7
+    assert out["metric"]["project_logs_written"] == 3
+    assert out["transcript"] == "User: hello"
+    assert os.environ["QUAID_NOW"] == "keep-me"
+
+
 class TestBuildTranscript:
     """Tests for build_transcript: message filtering and formatting."""
 
@@ -7536,6 +7664,58 @@ class TestStoreFact:
         idx = captured["cmd"].index("--created-at")
         assert captured["cmd"][idx + 1] == "2026-03-18T09:15:00Z"
 
+    def test_store_fact_raises_on_store_error(self, monkeypatch, tmp_path):
+        def _fake_run(cmd, capture_output, text, timeout, cwd):
+            return SimpleNamespace(returncode=1, stdout="", stderr="Unsupported domains for node abc: ['professional']")
+
+        monkeypatch.setattr(ec, "_resolve_quaid_dir", lambda workspace: str(tmp_path))
+        monkeypatch.setattr(subprocess, "run", _fake_run)
+
+        with pytest.raises(RuntimeError, match="Unsupported domains"):
+            ec.store_fact(
+                workspace=str(tmp_path),
+                text="Maya works at TechFlow",
+                owner_id="maya",
+                domains=["professional"],
+            )
+
+
+class TestExtractCompactRuntimeContext:
+    def test_load_runtime_allowed_domains_reads_active_domain_registry(self, monkeypatch, tmp_path):
+        db_path = tmp_path / "memory.db"
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "CREATE TABLE domain_registry(domain TEXT PRIMARY KEY, description TEXT, active INTEGER)"
+            )
+            conn.execute(
+                "INSERT INTO domain_registry(domain, description, active) VALUES (?, ?, 1)",
+                ("work", "job/team/process decisions"),
+            )
+            conn.execute(
+                "INSERT INTO domain_registry(domain, description, active) VALUES (?, ?, 1)",
+                ("project", "project status"),
+            )
+            conn.commit()
+
+        monkeypatch.setattr(ec, "_resolve_effective_memory_db_path", lambda _workspace: db_path)
+
+        assert ec._load_runtime_allowed_domains(str(tmp_path)) == {
+            "project": "project status",
+            "work": "job/team/process decisions",
+        }
+
+    def test_build_extraction_prompt_accepts_runtime_domains_and_projects(self):
+        prompt = ec.build_extraction_prompt(
+            "Maya",
+            allowed_domains={"work": "job/team/process decisions"},
+            known_projects={"recipe-app": "Recipe app project workspace"},
+        )
+
+        assert "AVAILABLE DOMAINS" in prompt
+        assert "- work: job/team/process decisions" in prompt
+        assert "REGISTERED PROJECTS" in prompt
+        assert "- recipe-app: Recipe app project workspace" in prompt
+
 
 class TestBenchmarkStoreFacts:
     def test_store_facts_tolerates_null_edges(self, monkeypatch, tmp_path):
@@ -7628,7 +7808,11 @@ class TestStoreSessionFacts:
         monkeypatch.setitem(sys.modules, "dataset", dataset_stub)
         monkeypatch.setitem(sys.modules, "claude_backend", claude_backend_stub)
         monkeypatch.setitem(sys.modules, "memory_graph", memory_graph_stub)
-        ingest_mod = importlib.import_module("ingest")
+        ingest_path = Path("/Users/clawdbot/agentlife-benchmark/eval/ingest.py")
+        spec = importlib.util.spec_from_file_location("benchmark_eval_ingest", ingest_path)
+        assert spec and spec.loader
+        ingest_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ingest_mod)
 
         def _fake_store(**kwargs):
             captured.update(kwargs)
@@ -7938,11 +8122,30 @@ class TestReadSessionMessages:
 class TestWriteProjectLogs:
     """Tests for write_project_logs: env setup, path resolution, legacy fallback."""
 
+    def test_resolve_effective_memory_db_path_uses_quaid_runtime_config(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = workspace / "modules" / "quaid"
+        lib_dir = quaid_dir / "lib"
+        lib_dir.mkdir(parents=True, exist_ok=True)
+        (lib_dir / "__init__.py").write_text("", encoding="utf-8")
+        expected = workspace / "instances" / "benchrunner" / "data" / "memory.db"
+        (lib_dir / "config.py").write_text(
+            "from pathlib import Path\n"
+            f"def get_db_path():\n    return Path({str(expected)!r})\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(ec, "_resolve_quaid_dir", lambda _workspace: str(quaid_dir))
+
+        resolved = ec._resolve_effective_memory_db_path(str(workspace))
+
+        assert resolved == expected
+
     def test_sets_workspace_env_and_writes(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         quaid_dir = workspace / "modules" / "quaid"
         (workspace / "data").mkdir(parents=True, exist_ok=True)
         quaid_dir.mkdir(parents=True, exist_ok=True)
+        resolved_db = workspace / "instances" / "benchrunner" / "data" / "memory.db"
 
         captured = {}
 
@@ -7966,6 +8169,7 @@ class TestWriteProjectLogs:
         monkeypatch.setitem(sys.modules, "datastore.docsdb", ddb)
         monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
         monkeypatch.setenv("CLAWDBOT_WORKSPACE", str(workspace))
+        monkeypatch.setattr(ec, "_resolve_effective_memory_db_path", lambda _workspace: resolved_db)
 
         metrics = ec.write_project_logs(
             workspace=str(workspace),
@@ -7978,7 +8182,7 @@ class TestWriteProjectLogs:
         assert metrics["entries_written"] == 2
         assert captured["workspace_env"] == str(workspace)
         assert captured["quaid_home_env"] == str(workspace)
-        assert captured["memory_db_env"] == str(workspace / "data" / "memory.db")
+        assert captured["memory_db_env"] == str(resolved_db)
         assert captured["instance_env"] == "benchrunner"
         assert captured["project_logs"]["recipe-app"] == ["note one", "note two"]
 
@@ -8000,6 +8204,11 @@ class TestWriteProjectLogs:
         monkeypatch.setitem(sys.modules, "datastore.docsdb", ddb)
         monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
         monkeypatch.setenv("CLAWDBOT_WORKSPACE", str(workspace))
+        monkeypatch.setattr(
+            ec,
+            "_resolve_effective_memory_db_path",
+            lambda _workspace: workspace / "instances" / "benchrunner" / "data" / "memory.db",
+        )
 
         metrics = ec.write_project_logs(
             workspace=str(workspace),
@@ -8040,6 +8249,11 @@ class TestWriteProjectLogs:
         monkeypatch.setitem(sys.modules, "datastore.docsdb", ddb)
         monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
         monkeypatch.setenv("CLAWDBOT_WORKSPACE", str(workspace))
+        monkeypatch.setattr(
+            ec,
+            "_resolve_effective_memory_db_path",
+            lambda _workspace: workspace / "instances" / "benchrunner" / "data" / "memory.db",
+        )
 
         ec.write_project_logs(
             str(workspace),
@@ -8047,6 +8261,99 @@ class TestWriteProjectLogs:
             quaid_instance="benchrunner",
         )
         assert captured["logs"] == {"app": ["dup", "real"]}
+
+    def test_preserves_structured_project_log_entries_for_modern_updater(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = workspace / "modules" / "quaid"
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        quaid_dir.mkdir(parents=True, exist_ok=True)
+
+        captured = {}
+
+        def _append(project_logs, **kwargs):
+            captured["logs"] = project_logs
+            return {
+                "projects_seen": 1,
+                "projects_updated": 1,
+                "entries_seen": 2,
+                "entries_written": 2,
+                "projects_unknown": 0,
+                "projects_missing_file": 0,
+            }
+
+        ds, ddb, upd = _fake_updater_module("append_project_logs", _append)
+        monkeypatch.setitem(sys.modules, "datastore", ds)
+        monkeypatch.setitem(sys.modules, "datastore.docsdb", ddb)
+        monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
+        monkeypatch.setenv("CLAWDBOT_WORKSPACE", str(workspace))
+        monkeypatch.setattr(
+            ec,
+            "_resolve_effective_memory_db_path",
+            lambda _workspace: workspace / "instances" / "benchrunner" / "data" / "memory.db",
+        )
+
+        ec.write_project_logs(
+            str(workspace),
+            {
+                "recipe-app": [
+                    {"text": "Added request logging middleware", "created_at": "2026-01-15"},
+                    {"text": "Added request logging middleware", "created_at": "2026-01-15"},
+                    {"text": "Built grocery aggregation", "created_at": "2026-01-15"},
+                ]
+            },
+            quaid_instance="benchrunner",
+        )
+
+        assert captured["logs"] == {
+            "recipe-app": [
+                {"text": "Added request logging middleware", "created_at": "2026-01-15"},
+                {"text": "Built grocery aggregation", "created_at": "2026-01-15"},
+            ]
+        }
+
+    def test_legacy_fallback_stringifies_structured_project_log_entries(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = workspace / "modules" / "quaid"
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        quaid_dir.mkdir(parents=True, exist_ok=True)
+
+        calls = []
+
+        def _legacy_append(project_name, entries):
+            calls.append((project_name, entries))
+            return len(entries)
+
+        ds, ddb, upd = _fake_updater_module("append_project_log_entries", _legacy_append)
+        monkeypatch.setitem(sys.modules, "datastore", ds)
+        monkeypatch.setitem(sys.modules, "datastore.docsdb", ddb)
+        monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
+        monkeypatch.setenv("CLAWDBOT_WORKSPACE", str(workspace))
+        monkeypatch.setattr(
+            ec,
+            "_resolve_effective_memory_db_path",
+            lambda _workspace: workspace / "instances" / "benchrunner" / "data" / "memory.db",
+        )
+
+        ec.write_project_logs(
+            str(workspace),
+            {
+                "recipe-app": [
+                    {"text": "Added request logging middleware", "created_at": "2026-01-15"},
+                    {"text": "Built grocery aggregation", "created_at": "2026-01-15"},
+                ]
+            },
+            quaid_instance="benchrunner",
+        )
+
+        assert calls == [
+            (
+                "recipe-app",
+                [
+                    "Added request logging middleware",
+                    "Built grocery aggregation",
+                ],
+            )
+        ]
 
     def test_env_restored_after_call(self, tmp_path, monkeypatch):
         """Verify env vars are restored even on success."""
@@ -8062,6 +8369,11 @@ class TestWriteProjectLogs:
         monkeypatch.setitem(sys.modules, "datastore", ds)
         monkeypatch.setitem(sys.modules, "datastore.docsdb", ddb)
         monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
+        monkeypatch.setattr(
+            ec,
+            "_resolve_effective_memory_db_path",
+            lambda _workspace: workspace / "instances" / "benchrunner" / "data" / "memory.db",
+        )
 
         original_ws = "ORIGINAL_WS"
         original_instance = "ORIGINAL_INSTANCE"
@@ -8085,9 +8397,49 @@ class TestWriteProjectLogs:
         monkeypatch.setitem(sys.modules, "datastore.docsdb", ddb)
         monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
         monkeypatch.delenv("QUAID_INSTANCE", raising=False)
+        monkeypatch.setattr(
+            ec,
+            "_resolve_effective_memory_db_path",
+            lambda _workspace: workspace / "instances" / "benchrunner" / "data" / "memory.db",
+        )
 
         with pytest.raises(RuntimeError, match="QUAID_INSTANCE"):
             ec.write_project_logs(str(workspace), {"app": ["note"]})
+
+    def test_shallow_script_path_does_not_break_resolution(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        quaid_dir = workspace / "modules" / "quaid"
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        quaid_dir.mkdir(parents=True, exist_ok=True)
+
+        def _append(project_logs, **kwargs):
+            return {
+                "projects_seen": 1,
+                "projects_updated": 1,
+                "entries_seen": 1,
+                "entries_written": 1,
+                "projects_unknown": 0,
+                "projects_missing_file": 0,
+            }
+
+        ds, ddb, upd = _fake_updater_module("append_project_logs", _append)
+        monkeypatch.setitem(sys.modules, "datastore", ds)
+        monkeypatch.setitem(sys.modules, "datastore.docsdb", ddb)
+        monkeypatch.setitem(sys.modules, "datastore.docsdb.project_updater", upd)
+        monkeypatch.setattr(ec, "__file__", "/Users/admin/extract_compact.py")
+        monkeypatch.setattr(
+            ec,
+            "_resolve_effective_memory_db_path",
+            lambda _workspace: workspace / "instances" / "benchrunner" / "data" / "memory.db",
+        )
+
+        metrics = ec.write_project_logs(
+            str(workspace),
+            {"app": ["note"]},
+            quaid_instance="benchrunner",
+        )
+
+        assert metrics["entries_written"] == 1
 
 
 # ===================================================================

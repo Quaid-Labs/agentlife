@@ -11228,6 +11228,17 @@ def _get_openai_key() -> Optional[str]:
             for line in env_path.read_text().split("\n"):
                 if line.startswith("OPENAI_API_KEY="):
                     return line.split("=", 1)[1].strip()
+    auth_profiles = Path.home() / ".openclaw" / "agents" / "main" / "agent" / "auth-profiles.json"
+    if auth_profiles.exists():
+        try:
+            data = json.loads(auth_profiles.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+        profile = ((data or {}).get("profiles") or {}).get("openai:default")
+        if isinstance(profile, dict):
+            key = str(profile.get("key") or "").strip()
+            if key:
+                return key
     return None
 
 

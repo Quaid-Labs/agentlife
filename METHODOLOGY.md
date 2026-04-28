@@ -125,13 +125,14 @@ with OpenClaw installed and no Quaid plugin dependency.
 
 The current native OC memory stack under test is:
 
+- bundled `memory` CLI surface retained for forced `openclaw memory index/status`
 - `memory-core` with builtin memory backend
 - native session transcript indexing
 - bundled `session-memory` hook on `/new`
 - `active-memory` blocking recall sub-agent for direct `main` sessions
 - `memory-wiki` bridge/import/compile flow over memory-core public artifacts
-- host-visible `qwen3-embedding:8b` embeddings through
-  `http://192.168.64.1:11434/v1`
+- host-visible `nomic-embed-text` embeddings through
+  `http://192.168.64.1:11435/v1`
 
 Injection semantics:
 
@@ -143,6 +144,17 @@ Injection semantics:
   import`, and `openclaw wiki compile`
 - evaluation sends each benchmark question through `openclaw agent` in an
   isolated eval session
+- OC eval sessions are registered under a non-user hook-scoped session key and
+  write transcripts under a sibling agent session tree
+  (`~/.openclaw/agents/benchmark-eval/sessions`) so the active eval turn stays
+  outside the indexed main-agent `sessions/` directory during answering
+- each OC eval session sibling transcript/store entry is then removed from the
+  guest immediately after its answer is captured so later eval queries cannot
+  retrieve prior `eval-q*` material while the full OC memory stack remains
+  enabled during each query
+- benchmark startup now kills any lingering guest `openclaw-gateway` process
+  before clearing main/sibling eval transcripts and session state, so aborted
+  prior runs cannot repopulate stale `eval-q*` files into the next scored lane
 
 Run `AL-S` with `--no-filler`. Run `AL-L` without `--no-filler`, using the same
 arc sessions plus filler corpus. Restore the clean VM snapshot before each
@@ -240,6 +252,7 @@ Native OpenClaw VM examples:
 python3 eval/vm_benchmark.py \
   --system oc-native \
   --vm-ip 192.168.64.3 \
+  --tart-host alfie.local \
   --snapshot clean-openclaw \
   --results-dir data/results-vm-oc-native-current-als \
   --answer-model openai/gpt-5.4 \
@@ -251,6 +264,7 @@ python3 eval/vm_benchmark.py \
 python3 eval/vm_benchmark.py \
   --system oc-native \
   --vm-ip 192.168.64.3 \
+  --tart-host alfie.local \
   --snapshot clean-openclaw \
   --results-dir data/results-vm-oc-native-current-all \
   --answer-model openai/gpt-5.4 \

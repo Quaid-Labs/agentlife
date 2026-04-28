@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-"""Direct extraction + compaction for Quaid VM benchmark.
+"""Trigger native Quaid compaction for the VM benchmark.
 
-This script replicates the Quaid plugin's extraction logic in Python,
-bypassing the gateway's /compact command (which only works through the
-auto-reply pipeline, not through `openclaw agent`).
+The benchmark writes native session JSONL files into the OpenClaw session
+store, then needs a deterministic way to force Quaid extraction without
+going through the gateway `/compact` text-command path.
 
-The extraction uses the SAME prompt template and storage backend as the
-production plugin — only the orchestration layer differs (Python vs TypeScript).
-
-Extracts three types of data (matching production):
-  1. Facts + edges → memory DB
-  2. Soul snippets → *.snippets.md files
-  3. Journal entries → journal/*.journal.md files
+This wrapper is benchmark-only orchestration. It does not implement its own
+extraction/store logic anymore; it imports the installed Quaid plugin,
+invokes the real daemon `process_signal()` path against the session file,
+then reads back daemon metrics for benchmark telemetry.
 
 Usage (on VM):
     python3 extract_compact.py \\
@@ -25,14 +22,18 @@ Why this exists:
     The OpenClaw gateway's /compact command only fires from the auto-reply
     pipeline (incoming channel messages). `openclaw agent --message '/compact'`
     sends the text to the LLM as a regular message — the native command handler
-    doesn't intercept it. This script calls the extraction pipeline directly.
+    doesn't intercept it. This wrapper calls Quaid's real extraction daemon
+    signal path directly.
 
     See: openclaw/src/auto-reply/reply/commands-compact.ts (line 47-109)
     vs:  openclaw/src/commands/agent.ts (no /compact interception)
 """
 
 import argparse
+import importlib
+import importlib.util
 import json
+import logging
 import os
 import re
 import shlex
@@ -140,6 +141,129 @@ def _date_to_created_at(date_str: str | None) -> str | None:
     if re.search(r"\b\d{4}-\d{2}-\d{2}\b", raw):
         return raw
     return None
+
+
+def _resolve_runtime_plugin_root(workspace: str) -> Path:
+    workspace_root = Path(os.path.expanduser(workspace))
+    candidates = [
+        workspace_root / "plugins" / "quaid",
+        Path.home() / "quaidcode" / "benchmark-checkpoint" / "modules" / "quaid",
+        Path.home() / "quaidcode" / "dev" / "modules" / "quaid",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    searched = ", ".join(str(path) for path in candidates)
+    raise RuntimeError(f"Unable to locate Quaid runtime plugin root; searched: {searched}")
+
+
+def _quaid_signal_type(trigger: str) -> str:
+    normalized = str(trigger or "").strip().lower()
+    if "reset" in normalized:
+        return "reset"
+    if "session_end" in normalized or "session end" in normalized:
+        return "session_end"
+    if "timeout" in normalized:
+        return "timeout"
+    return "compaction"
+
+
+def _latest_session_metric(metric_path: Path, session_id: str, *, start_offset: int = 0) -> dict:
+    if not metric_path.exists():
+        return {}
+    latest = {}
+    with metric_path.open("r", encoding="utf-8") as fh:
+        if start_offset > 0:
+            fh.seek(start_offset)
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if str(row.get("session_id") or "") != str(session_id or ""):
+                continue
+            if str(row.get("event") or "") not in {"rolling_flush", "rolling_flush_error"}:
+                continue
+            latest = row
+    return latest
+
+
+def _metric_usage(metric: dict, usage_fallback: dict) -> dict:
+    metric = dict(metric or {})
+    usage = dict(usage_fallback or {})
+    extract_input = int(metric.get("extract_input_tokens", 0) or 0)
+    extract_output = int(metric.get("extract_output_tokens", 0) or 0)
+    publish_input = int(metric.get("publish_input_tokens", 0) or 0)
+    publish_output = int(metric.get("publish_output_tokens", 0) or 0)
+    total_input = extract_input + publish_input
+    total_output = extract_output + publish_output
+    if total_input > 0 or total_output > 0:
+        return {
+            "calls": int(metric.get("extract_llm_calls", 0) or 0)
+            + int(metric.get("publish_llm_calls", 0) or 0),
+            "input_tokens": total_input,
+            "output_tokens": total_output,
+            "fast_calls": int(metric.get("extract_fast_calls", 0) or 0)
+            + int(metric.get("publish_fast_calls", 0) or 0),
+            "deep_calls": int(metric.get("extract_deep_calls", 0) or 0)
+            + int(metric.get("publish_deep_calls", 0) or 0),
+        }
+    return usage
+
+
+def _run_native_daemon_compaction(
+    *,
+    session_file: str,
+    workspace: str,
+    session_id: str,
+    trigger: str,
+    sim_date: str | None,
+) -> dict:
+    plugin_root = _resolve_runtime_plugin_root(workspace)
+    if str(plugin_root) not in sys.path:
+        sys.path.insert(0, str(plugin_root))
+
+    daemon = importlib.import_module("core.extraction_daemon")
+    adapter_mod = importlib.import_module("lib.adapter")
+
+    metric_path = daemon._rolling_metrics_path()
+    metric_offset = metric_path.stat().st_size if metric_path.exists() else 0
+    usage_before = daemon._read_usage_totals()
+    adapter = adapter_mod.get_adapter()
+
+    signal = {
+        "type": _quaid_signal_type(trigger),
+        "session_id": session_id,
+        "transcript_path": session_file,
+        "adapter": "openclaw",
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "meta": {"benchmark_trigger": True},
+    }
+
+    previous_quaid_now = os.environ.get("QUAID_NOW")
+    if sim_date:
+        os.environ["QUAID_NOW"] = str(sim_date)
+    try:
+        daemon.process_signal(signal)
+    finally:
+        if sim_date:
+            if previous_quaid_now is None:
+                os.environ.pop("QUAID_NOW", None)
+            else:
+                os.environ["QUAID_NOW"] = previous_quaid_now
+
+    usage_after = daemon._read_usage_totals()
+    metric = _latest_session_metric(metric_path, session_id, start_offset=metric_offset)
+    usage = _metric_usage(metric, daemon._usage_delta(usage_before, usage_after))
+    transcript = adapter.parse_session_jsonl(Path(session_file))
+    return {
+        "usage": usage,
+        "metric": metric,
+        "transcript": transcript,
+    }
 
 
 def _is_anthropic_oauth_token(token: str) -> bool:
@@ -254,6 +378,12 @@ def _load_runtime_extraction_prompt() -> str:
             continue
     searched = ", ".join(str(p) for p in _runtime_prompt_candidates())
     raise RuntimeError(f"Unable to locate Quaid runtime extraction prompt; searched: {searched}")
+
+
+def _benchmark_emit_artifact() -> bool:
+    return str(os.environ.get("BENCHMARK_EXTRACTION_INCLUDE_ARTIFACT", "")).strip().lower() in {
+        "1", "true", "yes", "on"
+    }
 
 
 def _normalize_domain_defs(allowed_domains: object) -> dict[str, str]:
@@ -432,6 +562,95 @@ def _resolve_quaid_dir(workspace: str) -> str:
     return str(candidates[0])
 
 
+def _resolve_effective_memory_db_path(workspace: str) -> Path:
+    """Resolve the active Quaid memory DB path for the current instance.
+
+    Under instance isolation, the runtime DB lives under:
+    `QUAID_HOME/instances/<instance>/data/memory.db`, not necessarily under the
+    workspace root. Ask Quaid's own config helpers so the benchmark follows the
+    product path instead of hardcoding the legacy workspace DB location.
+    """
+    quaid_dir = Path(_resolve_quaid_dir(workspace))
+    config_path = quaid_dir / "lib" / "config.py"
+    if config_path.is_file():
+        spec = importlib.util.spec_from_file_location("_benchmark_quaid_config", config_path)
+        if spec and spec.loader:
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return Path(module.get_db_path())
+
+    quaid_pkg_root = str(quaid_dir)
+    if quaid_pkg_root not in sys.path:
+        sys.path.insert(0, quaid_pkg_root)
+    importlib.invalidate_caches()
+    sys.modules.pop("lib.config", None)
+    from lib.config import get_db_path  # type: ignore
+
+    return Path(get_db_path())
+
+
+def _load_runtime_allowed_domains(workspace: str) -> dict[str, str]:
+    """Load active domain ids/descriptions from the live runtime state."""
+    try:
+        import sqlite3
+
+        db_path = _resolve_effective_memory_db_path(workspace)
+        with sqlite3.connect(db_path) as conn:
+            rows = conn.execute(
+                "SELECT domain, description FROM domain_registry WHERE active = 1 ORDER BY domain"
+            ).fetchall()
+        domains = {
+            str(domain).strip().lower(): str(description or "").strip()
+            for domain, description in rows
+            if str(domain).strip()
+        }
+        if domains:
+            return domains
+    except Exception:
+        pass
+
+    try:
+        quaid_dir = _resolve_quaid_dir(workspace)
+        quaid_pkg_root = str(Path(quaid_dir))
+        if quaid_pkg_root not in sys.path:
+            sys.path.insert(0, quaid_pkg_root)
+        from config import get_config  # type: ignore
+
+        raw = getattr(get_config().retrieval, "domains", {}) or {}
+        if isinstance(raw, dict):
+            return {
+                str(domain).strip().lower(): str(description or "").strip()
+                for domain, description in raw.items()
+                if str(domain).strip()
+            }
+    except Exception:
+        pass
+    return {}
+
+
+def _load_runtime_known_projects(workspace: str) -> dict[str, str]:
+    """Load registered project names/descriptions from the runtime config."""
+    try:
+        quaid_dir = _resolve_quaid_dir(workspace)
+        quaid_pkg_root = str(Path(quaid_dir))
+        if quaid_pkg_root not in sys.path:
+            sys.path.insert(0, quaid_pkg_root)
+        from config import get_config  # type: ignore
+
+        defs = getattr(get_config().projects, "definitions", {}) or {}
+        if not isinstance(defs, dict):
+            return {}
+        out: dict[str, str] = {}
+        for name, definition in defs.items():
+            key = str(name).strip()
+            if not key:
+                continue
+            out[key] = str(getattr(definition, "description", "") or "").strip()
+        return out
+    except Exception:
+        return {}
+
+
 def _memory_cmd(quaid_dir: str, *args: str) -> list[str]:
     qd = Path(quaid_dir)
     cli = qd / "quaid"
@@ -522,7 +741,11 @@ def store_fact(
 
         if result.returncode != 0:
             print(f"  [store FAIL rc={result.returncode}] {result.stderr[:200]}", file=sys.stderr)
+            detail = (result.stderr or result.stdout or "").strip()
+            raise RuntimeError(f"store_fact failed rc={result.returncode}: {detail[:400]}")
         return None
+    except RuntimeError:
+        raise
     except Exception as e:
         print(f"  [store exception] {e}", file=sys.stderr)
         return None
@@ -696,6 +919,25 @@ def write_project_logs(
     if not isinstance(project_logs, dict) or not project_logs:
         return {}
 
+    def _normalize_entry(entry):
+        if isinstance(entry, dict):
+            text = str(
+                entry.get("text", entry.get("entry", entry.get("note", "")))
+            ).strip()
+            if not text:
+                return None
+            normalized = {"text": text}
+            created_at = str(
+                entry.get("created_at", entry.get("timestamp", entry.get("date", "")))
+            ).strip()
+            if created_at:
+                normalized["created_at"] = created_at
+            return normalized
+        text = str(entry).strip()
+        if not text:
+            return None
+        return text
+
     normalized = {}
     for raw_name, raw_entries in project_logs.items():
         name = str(raw_name).strip()
@@ -703,12 +945,24 @@ def write_project_logs(
             continue
         entries = raw_entries if isinstance(raw_entries, list) else [raw_entries]
         cleaned = []
+        seen = set()
         for entry in entries:
-            text = str(entry).strip()
-            if text:
-                cleaned.append(text)
+            normalized_entry = _normalize_entry(entry)
+            if not normalized_entry:
+                continue
+            if isinstance(normalized_entry, dict):
+                dedupe_key = (
+                    normalized_entry["text"],
+                    normalized_entry.get("created_at", ""),
+                )
+            else:
+                dedupe_key = normalized_entry
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            cleaned.append(normalized_entry)
         if cleaned:
-            normalized[name] = list(dict.fromkeys(cleaned))
+            normalized[name] = cleaned
     if not normalized:
         return {}
 
@@ -727,15 +981,15 @@ def write_project_logs(
             Path(clawd_ws) / "plugins" / "quaid" if clawd_ws else None,
             Path(clawd_ws) / "benchmark-checkpoint" / "modules" / "quaid" if clawd_ws else None,
             Path(clawd_ws) / "benchmark-checkpoint" / "plugins" / "quaid" if clawd_ws else None,
-            Path(__file__).resolve().parents[2] / "modules" / "quaid",
-            Path(__file__).resolve().parents[2] / "plugins" / "quaid",
-            Path(__file__).resolve().parents[2] / "benchmark-checkpoint" / "modules" / "quaid",
-            Path(__file__).resolve().parents[2] / "benchmark-checkpoint" / "plugins" / "quaid",
-            Path(__file__).resolve().parents[3] / "modules" / "quaid",
-            Path(__file__).resolve().parents[3] / "plugins" / "quaid",
-            Path(__file__).resolve().parents[3] / "benchmark-checkpoint" / "modules" / "quaid",
-            Path(__file__).resolve().parents[3] / "benchmark-checkpoint" / "plugins" / "quaid",
         ]
+        script_parents = list(Path(__file__).resolve().parents)
+        for base in script_parents[2:4]:
+            candidates.extend([
+                base / "modules" / "quaid",
+                base / "plugins" / "quaid",
+                base / "benchmark-checkpoint" / "modules" / "quaid",
+                base / "benchmark-checkpoint" / "plugins" / "quaid",
+            ])
         for candidate in candidates:
             if candidate and candidate.exists():
                 quaid_dir = str(candidate)
@@ -755,7 +1009,7 @@ def write_project_logs(
         try:
             os.environ["CLAWDBOT_WORKSPACE"] = workspace
             os.environ["QUAID_HOME"] = workspace
-            os.environ["MEMORY_DB_PATH"] = str(Path(workspace) / "data" / "memory.db")
+            os.environ["MEMORY_DB_PATH"] = str(_resolve_effective_memory_db_path(workspace))
             resolved_instance = str(quaid_instance or os.environ.get("QUAID_INSTANCE", "")).strip()
             if not resolved_instance:
                 raise RuntimeError(
@@ -786,8 +1040,12 @@ def write_project_logs(
                     "projects_missing_file": 0,
                 }
                 for project_name, entries in normalized.items():
+                    legacy_entries = [
+                        entry["text"] if isinstance(entry, dict) else entry
+                        for entry in entries
+                    ]
                     try:
-                        written = int(legacy_append_fn(project_name, entries) or 0)
+                        written = int(legacy_append_fn(project_name, legacy_entries) or 0)
                         metrics["entries_written"] += max(0, written)
                         if written > 0:
                             metrics["projects_updated"] += 1
@@ -887,114 +1145,41 @@ def main():
         print(f"Session file not found: {session_file}", file=sys.stderr)
         sys.exit(1)
 
-    # Get API key from environment and configured fallback env files.
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        env_paths = [
-            os.path.join(workspace, ".env"),
-            os.path.expanduser("~/.openclaw/.env"),
-        ]
-        for env_file in env_paths:
-            if os.path.exists(env_file):
-                api_key = _read_env_key(env_file, "ANTHROPIC_API_KEY")
-                if api_key:
-                    break
-    if not api_key:
-        print("ANTHROPIC_API_KEY not available", file=sys.stderr)
-        sys.exit(1)
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-    # Read and build transcript
     messages = read_session_messages(session_file)
     if not messages:
         print("No messages in session file")
         return
 
-    transcript = build_transcript(messages, args.agent_name)
+    t0 = time.time()
+    native = _run_native_daemon_compaction(
+        session_file=session_file,
+        workspace=workspace,
+        session_id=args.session_id or Path(session_file).stem,
+        trigger=args.trigger,
+        sim_date=args.date,
+    )
+    elapsed = time.time() - t0
+    transcript = str(native.get("transcript") or "")
     if not transcript.strip():
         print("Empty transcript after filtering")
         return
 
     print(f"Transcript: {len(messages)} messages, {len(transcript)} chars")
+    usage = dict(native.get("usage") or {})
+    metric = dict(native.get("metric") or {})
+    in_tok = int(usage.get("input_tokens", 0) or 0)
+    out_tok = int(usage.get("output_tokens", 0) or 0)
+    print(
+        f"Extraction API call: {elapsed:.1f}s, {in_tok} in + {out_tok} out tokens"
+        f" ({int(usage.get('calls', 0) or 0)} calls)"
+    )
 
-    # Call extraction
-    system_prompt = build_extraction_prompt(args.user_name, args.agent_name)
-    user_message = f"Extract memorable facts from this conversation:\n\n{transcript[:100000]}"
-
-    t0 = time.time()
-    raw_response, extraction_usage = call_anthropic(system_prompt, user_message, args.model, api_key)
-    elapsed = time.time() - t0
-    in_tok = extraction_usage.get("input_tokens", 0)
-    out_tok = extraction_usage.get("output_tokens", 0)
-    cache_read = extraction_usage.get("cache_read_input_tokens", 0)
-    print(f"Extraction API call: {elapsed:.1f}s, {in_tok} in + {out_tok} out tokens"
-          f"{f' ({cache_read} cached)' if cache_read else ''}")
-
-    result = parse_extraction_response(raw_response)
-    facts = result.get("facts", [])
-    print(f"LLM returned {len(facts)} candidate facts")
-
-    # Store facts
-    stored = 0
-    skipped = 0
-    edges_created = 0
+    stored = int(metric.get("final_facts_stored", 0) or 0)
+    skipped = int(metric.get("final_facts_skipped", 0) or 0)
+    edges_created = int(metric.get("final_edges_created", 0) or 0)
     edge_errors = 0
-
-    for fact in facts:
-        text = fact.get("text", "").strip()
-        if not _is_storeable_extracted_fact_text(text):
-            skipped += 1
-            continue
-
-        conf_str = fact.get("extraction_confidence", "medium")
-        conf_num = {"high": 0.9, "medium": 0.6, "low": 0.3}.get(conf_str, 0.6)
-        conf_num = _adjust_extraction_confidence(text, conf_num)
-        category = fact.get("category", "fact")
-        privacy = fact.get("privacy", "shared")
-        keywords = fact.get("keywords")
-        knowledge_type = "preference" if category == "preference" else "fact"
-        sensitivity = fact.get("sensitivity")
-        sensitivity_handling = fact.get("sensitivity_handling")
-        project_name = fact.get("project")
-        if project_name:
-            project_name = str(project_name).strip().replace("\n", " ").replace("\r", "")
-        raw_domains = fact.get("domains", [])
-        if isinstance(raw_domains, str):
-            raw_domains = [d for d in raw_domains.split(",")]
-        if not isinstance(raw_domains, list):
-            raw_domains = []
-        domains = [str(d).strip().lower() for d in raw_domains if str(d).strip()]
-        if not domains:
-            domains = ["projects"] if project_name else ["personal"]
-        created_at = fact.get("created_at") or _date_to_created_at(args.date)
-
-        store_result = store_fact(
-            workspace, text, category, args.owner_id, conf_num,
-            args.session_id, privacy, keywords, knowledge_type, "user",
-            sensitivity=sensitivity, sensitivity_handling=sensitivity_handling,
-            domains=domains, project=project_name, created_at=created_at,
-        )
-
-        if store_result and store_result["status"] in ("created", "updated", "duplicate"):
-            if store_result["status"] != "duplicate":
-                stored += 1
-            else:
-                skipped += 1
-
-            # Create edges for ALL successful stores (including duplicates)
-            # Duplicates link to the existing node; new/updated have their own ID
-            fact_id = store_result.get("id")
-            if fact_id:
-                for edge in fact.get("edges", []):
-                    subj = edge.get("subject")
-                    rel = edge.get("relation")
-                    obj = edge.get("object")
-                    if subj and rel and obj:
-                        if create_edge(workspace, subj, rel, obj, fact_id, owner_id=args.owner_id):
-                            edges_created += 1
-                        else:
-                            edge_errors += 1
-        else:
-            skipped += 1
 
     print(f"Extraction complete: {stored} stored, {skipped} skipped, {edges_created} edges", end="")
     if edge_errors:
@@ -1004,7 +1189,7 @@ def main():
     # Verify DB state after extraction
     try:
         import sqlite3
-        db_path = os.path.join(workspace, "data", "memory.db")
+        db_path = _resolve_effective_memory_db_path(workspace)
         with sqlite3.connect(db_path) as conn:
             db_edges = conn.execute("SELECT count(*) FROM edges").fetchone()[0]
             db_nodes = conn.execute("SELECT count(*) FROM nodes").fetchone()[0]
@@ -1017,55 +1202,25 @@ def main():
     except Exception as e:
         print(f"DB verify failed: {e}", file=sys.stderr)
 
-    # Write soul snippets
-    snippets_written = 0
-    soul_snippets = result.get("soul_snippets", {})
-    sim_date = args.date or datetime.now().strftime("%Y-%m-%d")
-    sim_time = datetime.now().strftime("%H:%M:%S")
+    snippets_written = int(metric.get("snippets_count", 0) or 0)
+    journals_written = int(metric.get("journals_count", 0) or 0)
+    if snippets_written:
+        print(f"  Snippets: {snippets_written} files updated")
+    if journals_written:
+        print(f"  Journal: {journals_written} files updated")
 
-    for filename, bullets in soul_snippets.items():
-        # Handle LLM returning strings instead of arrays
-        if isinstance(bullets, str):
-            bullets = [bullets] if bullets.strip() else []
-        if bullets and write_snippet_entry(workspace, filename, bullets, args.trigger, sim_date, sim_time):
-            snippets_written += 1
-            print(f"  Snippets: {len(bullets)} bullets → {filename}.snippets.md")
-
-    # Write journal entries
-    journals_written = 0
-    journal_entries = result.get("journal_entries", {})
-
-    for filename, content in journal_entries.items():
-        # Handle LLM returning arrays instead of strings
-        if isinstance(content, list):
-            content = "\n\n".join(str(c) for c in content if c)
-        if content and write_journal_entry(workspace, filename, content, args.trigger, sim_date):
-            journals_written += 1
-            print(f"  Journal: {filename}.journal.md updated")
-
-    project_log_metrics = write_project_logs(
-        workspace,
-        result.get("project_logs", {}),
-        trigger=args.trigger,
-        date_str=sim_date,
-    )
+    project_log_metrics = {
+        "entries_seen": int(metric.get("project_logs_seen", 0) or 0),
+        "entries_written": int(metric.get("project_logs_written", 0) or 0),
+        "projects_updated": int(metric.get("project_logs_projects_updated", 0) or 0),
+    }
     if project_log_metrics:
         print(
             "  Project logs: "
             f"seen={project_log_metrics.get('entries_seen', 0)} "
             f"written={project_log_metrics.get('entries_written', 0)} "
-            f"projects_updated={project_log_metrics.get('projects_updated', 0)} "
-            f"unknown={project_log_metrics.get('projects_unknown', 0)} "
-            f"missing={project_log_metrics.get('projects_missing_file', 0)}"
+            f"projects_updated={project_log_metrics.get('projects_updated', 0)}"
         )
-
-    # Truncate session file
-    if not args.no_truncate:
-        summary = None
-        if not args.no_summary:
-            summary = create_summary(transcript, args.model, api_key)
-        truncate_session(session_file, summary)
-        print(f"Session truncated{' with summary' if summary else ''}")
 
     # Output JSON result for the benchmark runner to parse
     print(json.dumps({
@@ -1076,14 +1231,31 @@ def main():
         "snippets_written": snippets_written,
         "journals_written": journals_written,
         "project_log_metrics": project_log_metrics,
-        "total_candidates": len(facts),
+        "total_candidates": None,
         "extraction_usage": {
-            "input_tokens": extraction_usage.get("input_tokens", 0),
-            "output_tokens": extraction_usage.get("output_tokens", 0),
-            "cache_read_tokens": extraction_usage.get("cache_read_input_tokens", 0),
-            "cache_creation_tokens": extraction_usage.get("cache_creation_input_tokens", 0),
+            "input_tokens": int(usage.get("input_tokens", 0) or 0),
+            "output_tokens": int(usage.get("output_tokens", 0) or 0),
+            "calls": int(usage.get("calls", 0) or 0),
+            "fast_calls": int(usage.get("fast_calls", 0) or 0),
+            "deep_calls": int(usage.get("deep_calls", 0) or 0),
             "model": args.model,
         },
+        **(
+            {
+                "artifact": {
+                    "session_file": session_file,
+                    "session_id": args.session_id,
+                    "date": args.date,
+                    "trigger": args.trigger,
+                    "model": args.model,
+                    "messages_count": len(messages),
+                    "transcript": transcript,
+                    "rolling_metric": metric,
+                }
+            }
+            if _benchmark_emit_artifact()
+            else {}
+        ),
     }))
 
 

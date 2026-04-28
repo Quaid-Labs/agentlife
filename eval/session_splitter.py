@@ -470,9 +470,8 @@ def build_message_stream(
 
     _eval_dir = Path(__file__).resolve().parent
     _project_dir = _eval_dir.parent
-    _repo_root = _project_dir.parent.parent
-    assets_dir = _repo_root / "assets"
-    filler_dir = _project_dir / "data" / "filler-sessions-L"
+    assets_dir = _project_dir / "data" / "sessions"
+    filler_dir = _project_dir / "data" / "filler-sessions"
 
     arcs = list(load_all_reviews(assets_dir))
     if scale == "L":
