@@ -1115,6 +1115,66 @@ class TestOpenClawNativeConfig:
         assert "runtime_quaid_home" in calls[0][0]
         assert "credentials.json" in calls[0][0]
 
+    def test_validate_anthropic_credential_for_vm_accepts_oauth_token(self, monkeypatch):
+        seen = {}
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return b'{"id":"msg_test"}'
+
+        def _urlopen(req, timeout=0):
+            seen["req"] = req
+            seen["timeout"] = timeout
+            return _Resp()
+
+        monkeypatch.setattr(vmb, "_resolve_anthropic_credential_for_vm", lambda: "sk-ant-oat01-primary-token")
+        monkeypatch.setattr(vmb, "urlopen", _urlopen)
+
+        vmb._validate_anthropic_credential_for_vm("sonnet")
+
+        req = seen["req"]
+        assert seen["timeout"] == 45
+        assert req.full_url == "https://api.anthropic.com/v1/messages"
+        assert req.get_method() == "POST"
+        assert req.headers["Authorization"] == "Bearer sk-ant-oat01-primary-token"
+        header_map = {k.lower(): v for k, v in req.header_items()}
+        assert "oauth-2025-04-20" in header_map["anthropic-beta"]
+        payload = json.loads(req.data.decode("utf-8"))
+        assert payload["model"] == "claude-sonnet-4-5-20250929"
+        assert payload["messages"][0]["content"][0]["text"] == "Reply with OK."
+
+    def test_validate_anthropic_credential_for_vm_fails_fast_on_http_429(self, monkeypatch):
+        class _Resp:
+            def read(self):
+                return b'{"type":"error","error":{"type":"rate_limit_error","message":"quota exhausted"}}'
+
+            def close(self):
+                return None
+
+        def _urlopen(_req, timeout=0):
+            raise vmb.HTTPError(
+                url="https://api.anthropic.com/v1/messages",
+                code=429,
+                msg="Too Many Requests",
+                hdrs=None,
+                fp=_Resp(),
+            )
+
+        monkeypatch.setattr(vmb, "_resolve_anthropic_credential_for_vm", lambda: "sk-ant-oat01-primary-token")
+        monkeypatch.setattr(vmb, "urlopen", _urlopen)
+
+        with pytest.raises(
+            RuntimeError,
+            match="Anthropic benchmark credential cannot access model claude-sonnet-4-5-20250929: HTTP 429",
+        ):
+            vmb._validate_anthropic_credential_for_vm("sonnet")
+
     def test_provision_openclaw_anthropic_key_requires_credential(self, monkeypatch):
         monkeypatch.setattr(vmb, "_resolve_anthropic_credential_for_vm", lambda: "")
 
@@ -3647,6 +3707,7 @@ class TestSetupSystem:
         monkeypatch.setattr(vmb, "_resolve_local_quaid_memory_example", lambda _plugin_dir: memory_example)
         monkeypatch.setattr(vmb, "_build_local_quaid_plugin_tarball", lambda _plugin_dir: archive)
         monkeypatch.setattr(vmb, "_ensure_oc_native_embed_proxy", lambda _host=None: calls.append(("ensure_proxy", None)))
+        monkeypatch.setattr(vmb, "_validate_anthropic_credential_for_vm", lambda model: calls.append(("validate_anthropic_vm_credential", model)))
         monkeypatch.setattr(vmb, "_provision_openclaw_anthropic_key", lambda _vm: calls.append(("anthropic_key", None)))
         monkeypatch.setattr(vmb, "_configure_openclaw_quaid_plugin", lambda _vm: calls.append(("configure_quaid_plugin", None)))
         monkeypatch.setattr(vmb, "_restart_quaid_gateway", lambda _vm, port=18789: calls.append(("restart_quaid_gateway", port)))
@@ -3664,6 +3725,7 @@ class TestSetupSystem:
         vmb.setup_system(_Vm(), "quaid", snapshot_base="clean-openclaw", local_plugin=True)
 
         assert ("ensure_proxy", None) in calls
+        assert ("validate_anthropic_vm_credential", "claude-sonnet-4-5-20250929") in calls
         assert ("configure_quaid_plugin", None) in calls
         assert ("restart_quaid_gateway", 18789) in calls
         assert ("upload", str(archive), "/tmp/quaid-plugin.tgz", 300) in calls
@@ -3713,6 +3775,7 @@ class TestSetupSystem:
         monkeypatch.setattr(vmb, "_resolve_local_quaid_memory_example", lambda _plugin_dir: memory_example)
         monkeypatch.setattr(vmb, "_build_local_quaid_plugin_tarball", lambda _plugin_dir: archive)
         monkeypatch.setattr(vmb, "_ensure_oc_native_embed_proxy", lambda _host=None: calls.append(("ensure_proxy", None)))
+        monkeypatch.setattr(vmb, "_validate_anthropic_credential_for_vm", lambda model: calls.append(("validate_anthropic_vm_credential", model)))
         monkeypatch.setattr(vmb, "_provision_openclaw_anthropic_key", lambda _vm: calls.append(("anthropic_key", None)))
         monkeypatch.setattr(vmb, "_configure_openclaw_quaid_plugin", lambda _vm: calls.append(("configure_quaid_plugin", None)))
         monkeypatch.setattr(vmb, "_restart_quaid_gateway", lambda _vm, port=18789: calls.append(("restart_quaid_gateway", port)))
@@ -3730,6 +3793,7 @@ class TestSetupSystem:
         vmb.setup_system(_Vm(), "quaid", snapshot_base="clean-openclaw")
 
         assert ("upload", str(archive), "/tmp/quaid-plugin.tgz", 300) in calls
+        assert ("validate_anthropic_vm_credential", "claude-sonnet-4-5-20250929") in calls
         ssh_commands = [entry[1] for entry in calls if entry[0] == "ssh"]
         assert any("tar -xzf /tmp/quaid-plugin.tgz -C ~/clawd/plugins/quaid" in cmd for cmd in ssh_commands)
 
@@ -3772,6 +3836,7 @@ class TestSetupSystem:
         monkeypatch.setattr(vmb, "_resolve_local_quaid_memory_example", lambda _plugin_dir: memory_example)
         monkeypatch.setattr(vmb, "_build_local_quaid_plugin_tarball", lambda _plugin_dir: archive)
         monkeypatch.setattr(vmb, "_ensure_oc_native_embed_proxy", lambda _host=None: calls.append(("ensure_proxy", None)))
+        monkeypatch.setattr(vmb, "_validate_anthropic_credential_for_vm", lambda model: calls.append(("validate_anthropic_vm_credential", model)))
         monkeypatch.setattr(vmb, "_provision_openclaw_anthropic_key", lambda _vm: calls.append(("anthropic_key", None)))
         monkeypatch.setattr(vmb, "_provision_openclaw_codex_oauth", lambda _vm: calls.append(("codex_oauth", None)))
         monkeypatch.setattr(vmb, "_configure_openclaw_quaid_plugin", lambda _vm: calls.append(("configure_quaid_plugin", None)))
@@ -3803,6 +3868,7 @@ class TestSetupSystem:
         )
 
         assert ("ensure_proxy", None) in calls
+        assert ("validate_anthropic_vm_credential", "claude-sonnet-4-5-20250929") in calls
         assert ("codex_oauth", None) in calls
         assert ("configure_quaid_plugin", None) in calls
         assert ("restart_quaid_gateway", 18789) in calls

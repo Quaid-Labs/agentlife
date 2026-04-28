@@ -45,7 +45,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
@@ -4091,6 +4091,67 @@ def _resolve_anthropic_credential_for_vm() -> str:
         return ""
 
 
+def _validate_anthropic_credential_for_vm(extract_model: str) -> None:
+    """Fail fast if the configured Anthropic guest credential cannot access the deep model."""
+    credential = _resolve_anthropic_credential_for_vm()
+    if not credential:
+        raise RuntimeError(
+            "Anthropic benchmark credential is required to validate Quaid VM extraction"
+        )
+
+    model = _normalize_extract_model(extract_model)
+    headers = {
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+    }
+    betas = ["prompt-caching-2024-07-31"]
+    payload: dict[str, Any] = {
+        "model": model,
+        "max_tokens": 8,
+        "messages": [{"role": "user", "content": [{"type": "text", "text": "Reply with OK."}]}],
+    }
+    if credential.startswith("sk-ant-oat"):
+        headers["Authorization"] = f"Bearer {credential}"
+        headers["Accept"] = "application/json"
+        headers["user-agent"] = "claude-cli/2.1.2 (external, cli)"
+        headers["x-app"] = "cli"
+        betas.extend(["claude-code-20250219", "oauth-2025-04-20"])
+        payload["system"] = [
+            {
+                "type": "text",
+                "text": "You are Claude Code, Anthropic's official CLI for Claude.",
+                "cache_control": {"type": "ephemeral"},
+            }
+        ]
+    else:
+        headers["x-api-key"] = credential
+    headers["anthropic-beta"] = ",".join(betas)
+
+    req = Request(
+        "https://api.anthropic.com/v1/messages",
+        data=json.dumps(payload).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=45) as resp:
+            resp.read()
+    except HTTPError as exc:
+        body = ""
+        try:
+            body = exc.read().decode("utf-8", "replace").strip()
+        except Exception:
+            body = ""
+        detail = body or str(exc)
+        raise RuntimeError(
+            f"Anthropic benchmark credential cannot access model {model}: HTTP {exc.code} {detail}"
+        ) from exc
+    except URLError as exc:
+        raise RuntimeError(
+            f"Anthropic benchmark credential probe failed for model {model}: {exc}"
+        ) from exc
+
+
 def _provision_openclaw_anthropic_key(vm: TartVM):
     """Install the primary Anthropic benchmark credential into guest runtime auth stores."""
     credential = _resolve_anthropic_credential_for_vm()
@@ -5496,6 +5557,7 @@ def setup_system(vm: TartVM, system: str, snapshot_base: str = "clean-openclaw",
         _clear_vm_native_memory_state(vm)
 
     if system == "quaid":
+        _validate_anthropic_credential_for_vm(extract_model)
         # Create core markdown files (simulates onboarding)
         _create_core_files(vm)
         # Create benchmark project homes and register them through the product CLI.
