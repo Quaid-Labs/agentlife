@@ -1655,6 +1655,30 @@ class TestTartVmSsh:
         assert "BatchMode=yes" in calls[0][-1]
         assert "sshpass" in calls[1][-1]
 
+    def test_tart_host_ssh_forwards_input_data(self, monkeypatch):
+        captured = {}
+
+        def _fake_run(args, input=None, **_kwargs):
+            captured["args"] = args
+            captured["input"] = input
+
+            class _Result:
+                returncode = 0
+                stdout = "ok\n"
+                stderr = ""
+
+            return _Result()
+
+        vm = vmb.TartVM(ip="192.168.64.3", user="admin", password="admin", tart_host="alfie.local")
+        monkeypatch.setattr(vm, "_refresh_ip_from_tart", lambda: None)
+        monkeypatch.setattr(vmb.subprocess, "run", _fake_run)
+
+        result = vm.ssh("python3 - <<'PY'\nprint('ok')\nPY", input_data="payload", raw=True, timeout=5)
+
+        assert result.returncode == 0
+        assert captured["input"] == "payload"
+        assert "sshpass" not in captured["args"][-1]
+
     def test_tart_host_scp_to_prefers_key_auth_then_falls_back_to_password(self, monkeypatch, tmp_path):
         calls = []
         local = tmp_path / "payload.txt"

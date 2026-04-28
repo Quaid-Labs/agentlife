@@ -428,14 +428,22 @@ class TartVM:
         key_cmd: str,
         password_cmd: Optional[str] = None,
         *,
+        input_data: Optional[str] = None,
         timeout: int = 120,
     ) -> subprocess.CompletedProcess:
         args = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, key_cmd]
-        result = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(
+            args,
+            input=input_data,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
         if result.returncode == 0 or not password_cmd or not self._is_auth_failure(result.stderr):
             return result
         return subprocess.run(
             ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.tart_host, password_cmd],
+            input=input_data,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -473,11 +481,10 @@ class TartVM:
                 ]
             try:
                 if self.tart_host:
-                    if input_data is not None:
-                        raise RuntimeError("input_data is not supported for tart_host guest SSH")
                     result = self._run_guest_host_command(
                         key_guest_cmd,
                         password_guest_cmd,
+                        input_data=input_data,
                         timeout=timeout,
                     )
                 else:
