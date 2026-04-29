@@ -214,6 +214,136 @@ def _metric_usage(metric: dict, usage_fallback: dict) -> dict:
     return usage
 
 
+def _publish_trace_rows(trace_path: Path | None, session_id: str, *, start_offset: int = 0) -> list[dict]:
+    if trace_path is None or not trace_path.exists():
+        return []
+    rows: list[dict] = []
+    with trace_path.open("r", encoding="utf-8") as fh:
+        if start_offset > 0:
+            fh.seek(start_offset)
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if str(row.get("session_id") or "") != str(session_id or ""):
+                continue
+            rows.append(row)
+    return rows
+
+
+def _summarize_raw_fact_for_artifact(fact: object) -> dict:
+    if not isinstance(fact, dict):
+        return {"value": fact}
+    summary: dict[str, object] = {}
+    for key in (
+        "text",
+        "category",
+        "privacy",
+        "project",
+        "created_at",
+        "speaker",
+        "source_type",
+        "subject_entity_name",
+        "_source_label",
+        "_source_id",
+        "_source_child_id",
+    ):
+        value = fact.get(key)
+        if value not in (None, "", [], {}):
+            summary[key] = value
+    confidence = fact.get("extraction_confidence")
+    if confidence not in (None, ""):
+        summary["extraction_confidence"] = confidence
+    domains = fact.get("domains")
+    if isinstance(domains, list) and domains:
+        summary["domains"] = list(domains)
+    keywords = fact.get("keywords")
+    if keywords not in (None, "", [], {}):
+        summary["keywords"] = keywords
+    edges = fact.get("edges")
+    if isinstance(edges, list) and edges:
+        summary["edges"] = list(edges)
+    return summary
+
+
+def _summarize_project_logs_for_artifact(raw_project_logs: object) -> dict[str, list[dict]]:
+    if not isinstance(raw_project_logs, dict):
+        return {}
+    summarized: dict[str, list[dict]] = {}
+    for project_name, items in raw_project_logs.items():
+        if not isinstance(items, list):
+            continue
+        project_rows: list[dict] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            row: dict[str, object] = {}
+            for key in ("text", "created_at", "source", "source_id"):
+                value = item.get(key)
+                if value not in (None, "", [], {}):
+                    row[key] = value
+            if row:
+                project_rows.append(row)
+        if project_rows:
+            summarized[str(project_name)] = project_rows
+    return summarized
+
+
+def _summarize_payload_for_artifact(payload: object) -> dict:
+    if not isinstance(payload, dict):
+        return {}
+    raw_facts = list(payload.get("raw_facts", []) or [])
+    raw_snippets = dict(payload.get("raw_snippets", {}) or {})
+    raw_journal = dict(payload.get("raw_journal", {}) or {})
+    return {
+        "raw_fact_count": len(raw_facts),
+        "raw_facts": [_summarize_raw_fact_for_artifact(fact) for fact in raw_facts],
+        "raw_snippet_files": sorted(str(name) for name in raw_snippets.keys()),
+        "raw_journal_files": sorted(str(name) for name in raw_journal.keys()),
+        "raw_project_logs": _summarize_project_logs_for_artifact(payload.get("raw_project_logs")),
+        "carry_fact_count": len(list(payload.get("carry_facts", []) or [])),
+        "chunks_processed": int(payload.get("chunks_processed", 0) or 0),
+        "chunks_total": int(payload.get("chunks_total", 0) or 0),
+        "facts_stored": int(payload.get("facts_stored", 0) or 0),
+        "facts_skipped": int(payload.get("facts_skipped", 0) or 0),
+        "payload_duplicate_facts_collapsed": int(payload.get("payload_duplicate_facts_collapsed", 0) or 0),
+        "explicit_structural_anchor_facts": int(payload.get("explicit_structural_anchor_facts", 0) or 0),
+    }
+
+
+def _summarize_publish_result_for_artifact(result: object) -> dict:
+    if not isinstance(result, dict):
+        return {}
+    facts = list(result.get("facts", []) or [])
+    summarized_facts: list[dict] = []
+    for fact in facts:
+        if not isinstance(fact, dict):
+            continue
+        entry: dict[str, object] = {}
+        for key in ("text", "status", "reason"):
+            value = fact.get(key)
+            if value not in (None, "", [], {}):
+                entry[key] = value
+        edges = fact.get("edges")
+        if isinstance(edges, list) and edges:
+            entry["edges"] = list(edges)
+        if entry:
+            summarized_facts.append(entry)
+    return {
+        "facts_stored": int(result.get("facts_stored", 0) or 0),
+        "facts_skipped": int(result.get("facts_skipped", 0) or 0),
+        "facts_planned": int(result.get("facts_planned", 0) or 0),
+        "edges_created": int(result.get("edges_created", 0) or 0),
+        "payload_duplicate_facts_collapsed": int(result.get("payload_duplicate_facts_collapsed", 0) or 0),
+        "project_log_metrics": dict(result.get("project_log_metrics", {}) or {}),
+        "facts": summarized_facts,
+    }
+
+
 def _run_native_daemon_compaction(
     *,
     session_file: str,
@@ -228,11 +358,63 @@ def _run_native_daemon_compaction(
 
     daemon = importlib.import_module("core.extraction_daemon")
     adapter_mod = importlib.import_module("lib.adapter")
+    extract_mod = None
+    try:
+        extract_mod = importlib.import_module("ingest.extract")
+    except Exception:
+        extract_mod = None
 
     metric_path = daemon._rolling_metrics_path()
     metric_offset = metric_path.stat().st_size if metric_path.exists() else 0
     usage_before = daemon._read_usage_totals()
     adapter = adapter_mod.get_adapter()
+    publish_trace_path: Path | None = None
+    publish_trace_offset = 0
+    captured_apply_calls: list[dict] = []
+
+    if extract_mod is not None:
+        previous_publish_trace = os.environ.get("QUAID_PUBLISH_TRACE")
+        os.environ["QUAID_PUBLISH_TRACE"] = "1"
+        try:
+            trace_fn = getattr(extract_mod, "_publish_trace_path", None)
+            if callable(trace_fn):
+                maybe_path = trace_fn()
+                if isinstance(maybe_path, Path):
+                    publish_trace_path = maybe_path
+                    publish_trace_offset = maybe_path.stat().st_size if maybe_path.exists() else 0
+        except Exception:
+            publish_trace_path = None
+            publish_trace_offset = 0
+    else:
+        previous_publish_trace = None
+
+    original_apply = getattr(extract_mod, "apply_extracted_payloads", None) if extract_mod is not None else None
+    original_build_flush = getattr(daemon, "build_flush_payload", None)
+    captured_flush_payload: dict[str, object] | None = None
+
+    if callable(original_apply):
+        def _capturing_apply(result_payload, *args, **kwargs):
+            call_summary = {
+                "dry_run": bool(kwargs.get("dry_run", False)),
+                "label": kwargs.get("label"),
+                "session_id": kwargs.get("session_id"),
+                "input": _summarize_payload_for_artifact(result_payload),
+            }
+            out = original_apply(result_payload, *args, **kwargs)
+            call_summary["output"] = _summarize_publish_result_for_artifact(out)
+            captured_apply_calls.append(call_summary)
+            return out
+
+        extract_mod.apply_extracted_payloads = _capturing_apply
+
+    if callable(original_build_flush):
+        def _capturing_build_flush(state, tail_result):
+            nonlocal captured_flush_payload
+            payload = original_build_flush(state, tail_result)
+            captured_flush_payload = _summarize_payload_for_artifact(payload)
+            return payload
+
+        daemon.build_flush_payload = _capturing_build_flush
 
     signal = {
         "type": _quaid_signal_type(trigger),
@@ -249,6 +431,14 @@ def _run_native_daemon_compaction(
     try:
         daemon.process_signal(signal)
     finally:
+        if callable(original_apply) and extract_mod is not None:
+            extract_mod.apply_extracted_payloads = original_apply
+        if callable(original_build_flush):
+            daemon.build_flush_payload = original_build_flush
+        if previous_publish_trace is None:
+            os.environ.pop("QUAID_PUBLISH_TRACE", None)
+        elif extract_mod is not None:
+            os.environ["QUAID_PUBLISH_TRACE"] = previous_publish_trace
         if sim_date:
             if previous_quaid_now is None:
                 os.environ.pop("QUAID_NOW", None)
@@ -259,10 +449,21 @@ def _run_native_daemon_compaction(
     metric = _latest_session_metric(metric_path, session_id, start_offset=metric_offset)
     usage = _metric_usage(metric, daemon._usage_delta(usage_before, usage_after))
     transcript = adapter.parse_session_jsonl(Path(session_file))
+    publish_trace_rows = _publish_trace_rows(
+        publish_trace_path,
+        session_id,
+        start_offset=publish_trace_offset,
+    )
     return {
         "usage": usage,
         "metric": metric,
         "transcript": transcript,
+        "debug": {
+            "flush_payload": captured_flush_payload,
+            "apply_calls": captured_apply_calls,
+            "publish_trace_path": str(publish_trace_path) if publish_trace_path else None,
+            "publish_trace": publish_trace_rows,
+        },
     }
 
 
@@ -1009,13 +1210,13 @@ def write_project_logs(
         try:
             os.environ["CLAWDBOT_WORKSPACE"] = workspace
             os.environ["QUAID_HOME"] = workspace
-            os.environ["MEMORY_DB_PATH"] = str(_resolve_effective_memory_db_path(workspace))
             resolved_instance = str(quaid_instance or os.environ.get("QUAID_INSTANCE", "")).strip()
             if not resolved_instance:
                 raise RuntimeError(
                     "Project log append failed: QUAID_INSTANCE environment variable is not set"
                 )
             os.environ["QUAID_INSTANCE"] = resolved_instance
+            os.environ["MEMORY_DB_PATH"] = str(_resolve_effective_memory_db_path(workspace))
             import datastore.docsdb.project_updater as _project_updater  # type: ignore
 
             append_fn = getattr(_project_updater, "append_project_logs", None)
@@ -1251,6 +1452,7 @@ def main():
                     "messages_count": len(messages),
                     "transcript": transcript,
                     "rolling_metric": metric,
+                    "native_debug": dict(native.get("debug") or {}),
                 }
             }
             if _benchmark_emit_artifact()

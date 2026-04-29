@@ -7493,6 +7493,167 @@ def test_extract_compact_uses_native_daemon_signal_path(monkeypatch, tmp_path):
     assert os.environ["QUAID_NOW"] == "keep-me"
 
 
+def test_extract_compact_artifact_includes_publish_debug(monkeypatch, tmp_path):
+    workspace = tmp_path / "ws"
+    plugin_root = workspace / "plugins" / "quaid"
+    plugin_root.mkdir(parents=True)
+    session_file = tmp_path / "session.jsonl"
+    session_file.write_text('{"role":"user","content":"hello"}\n', encoding="utf-8")
+
+    metric_path = tmp_path / "rolling-extraction.jsonl"
+    metric_path.write_text("", encoding="utf-8")
+    trace_path = tmp_path / "publish-trace.jsonl"
+    captured = {"usage_reads": 0}
+
+    fake_daemon = ModuleType("core.extraction_daemon")
+
+    def _rolling_metrics_path():
+        return metric_path
+
+    def _read_usage_totals():
+        captured["usage_reads"] += 1
+        if captured["usage_reads"] == 1:
+            return {"calls": 0, "input_tokens": 0, "output_tokens": 0}
+        return {"calls": 1, "input_tokens": 12, "output_tokens": 4}
+
+    def _usage_delta(before, after):
+        keys = set(before) | set(after)
+        return {key: int(after.get(key, 0) or 0) - int(before.get(key, 0) or 0) for key in keys}
+
+    def build_flush_payload(state, tail_result):
+        payload = {
+            "raw_facts": list(state.get("raw_facts", [])) + list((tail_result or {}).get("raw_facts", [])),
+            "carry_facts": [],
+            "chunks_processed": 1,
+            "chunks_total": 1,
+            "facts_stored": 0,
+            "facts_skipped": 0,
+        }
+        return payload
+
+    fake_daemon.build_flush_payload = build_flush_payload
+
+    fake_extract_mod = ModuleType("ingest.extract")
+
+    def _publish_trace_path():
+        return trace_path
+
+    def apply_extracted_payloads(result_payload, *, dry_run=False, session_id=None, **_kwargs):
+        trace_rows = [
+            {
+                "event": "publish_fact_start",
+                "session_id": session_id,
+                "text_preview": "Local Foods",
+            },
+            {
+                "event": "publish_fact_done",
+                "session_id": session_id,
+                "status": "stored" if not dry_run else "would_store",
+            },
+        ]
+        with trace_path.open("a", encoding="utf-8") as fh:
+            for row in trace_rows:
+                fh.write(json.dumps(row) + "\n")
+        return {
+            "facts_stored": 0 if dry_run else len(list(result_payload.get("raw_facts", []) or [])),
+            "facts_skipped": 0,
+            "facts_planned": len(list(result_payload.get("raw_facts", []) or [])) if dry_run else 0,
+            "edges_created": 0,
+            "project_log_metrics": {},
+            "facts": [
+                {
+                    "text": str(fact.get("text", "")),
+                    "status": "would_store" if dry_run else "stored",
+                    "edges": [],
+                }
+                for fact in list(result_payload.get("raw_facts", []) or [])
+                if isinstance(fact, dict)
+            ],
+        }
+
+    fake_extract_mod._publish_trace_path = _publish_trace_path
+    fake_extract_mod.apply_extracted_payloads = apply_extracted_payloads
+
+    def process_signal(signal):
+        dry_payload = {
+            "raw_facts": [{"text": "maybe we do a facetime thing for her", "domains": ["personal"]}],
+            "carry_facts": [],
+            "chunks_processed": 1,
+            "chunks_total": 1,
+        }
+        fake_extract_mod.apply_extracted_payloads(
+            dry_payload,
+            session_id=signal["session_id"],
+            label="bench-s01",
+            dry_run=True,
+        )
+        payload = fake_daemon.build_flush_payload(
+            {"raw_facts": [{"text": "Local Foods — more casual", "domains": ["personal"]}]},
+            {"raw_facts": [{"text": "Uchi Houston — too fancy", "domains": ["personal"]}]},
+        )
+        fake_extract_mod.apply_extracted_payloads(
+            payload,
+            session_id=signal["session_id"],
+            label="bench-s01",
+            dry_run=False,
+        )
+        with metric_path.open("a", encoding="utf-8") as fh:
+            fh.write(
+                json.dumps(
+                    {
+                        "event": "rolling_flush",
+                        "session_id": signal["session_id"],
+                        "final_facts_stored": 2,
+                    }
+                )
+                + "\n"
+            )
+
+    fake_daemon._rolling_metrics_path = _rolling_metrics_path
+    fake_daemon._read_usage_totals = _read_usage_totals
+    fake_daemon._usage_delta = _usage_delta
+    fake_daemon.process_signal = process_signal
+
+    fake_adapter_mod = ModuleType("lib.adapter")
+
+    class _Adapter:
+        def parse_session_jsonl(self, path):
+            captured["parsed_path"] = str(path)
+            return "User: hello"
+
+    fake_adapter_mod.get_adapter = lambda: _Adapter()
+
+    monkeypatch.setitem(sys.modules, "core", ModuleType("core"))
+    monkeypatch.setitem(sys.modules, "core.extraction_daemon", fake_daemon)
+    monkeypatch.setitem(sys.modules, "lib", ModuleType("lib"))
+    monkeypatch.setitem(sys.modules, "lib.adapter", fake_adapter_mod)
+    monkeypatch.setitem(sys.modules, "ingest", ModuleType("ingest"))
+    monkeypatch.setitem(sys.modules, "ingest.extract", fake_extract_mod)
+
+    out = ec._run_native_daemon_compaction(
+        session_file=str(session_file),
+        workspace=str(workspace),
+        session_id="bench-s01",
+        trigger="Compaction",
+        sim_date=None,
+    )
+
+    debug = out["debug"]
+    assert debug["flush_payload"]["raw_fact_count"] == 2
+    assert debug["flush_payload"]["raw_facts"][0]["text"] == "Local Foods — more casual"
+    assert len(debug["apply_calls"]) == 2
+    assert debug["apply_calls"][0]["dry_run"] is True
+    assert debug["apply_calls"][0]["input"]["raw_facts"][0]["text"] == "maybe we do a facetime thing for her"
+    assert debug["apply_calls"][1]["dry_run"] is False
+    assert debug["apply_calls"][1]["output"]["facts"][0]["status"] == "stored"
+    assert [row["event"] for row in debug["publish_trace"]] == [
+        "publish_fact_start",
+        "publish_fact_done",
+        "publish_fact_start",
+        "publish_fact_done",
+    ]
+
+
 class TestBuildTranscript:
     """Tests for build_transcript: message filtering and formatting."""
 
