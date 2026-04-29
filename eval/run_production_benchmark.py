@@ -4500,8 +4500,8 @@ _PROJECT_SOURCE_RSYNC_FILTER: List[str] = [
     "--exclude", "*.mdx",
     "--exclude", "docs/",
 ]
-_PROJECT_DOCS_SUPERVISOR_PROC: Optional[subprocess.Popen] = None
 _PROJECT_DOCS_SUPERVISOR_WORKSPACE: Optional[Path] = None
+_PROJECT_DOCS_SUPERVISOR_ATEXIT_REGISTERED = False
 
 
 def _project_docs_collect_enabled() -> bool:
@@ -4655,20 +4655,9 @@ def _run_docs_registry_json_cmd(
 
 
 def _stop_project_docs_supervisor() -> None:
-    global _PROJECT_DOCS_SUPERVISOR_PROC, _PROJECT_DOCS_SUPERVISOR_WORKSPACE
-    proc = _PROJECT_DOCS_SUPERVISOR_PROC
+    global _PROJECT_DOCS_SUPERVISOR_WORKSPACE
     workspace = _PROJECT_DOCS_SUPERVISOR_WORKSPACE
-    _PROJECT_DOCS_SUPERVISOR_PROC = None
     _PROJECT_DOCS_SUPERVISOR_WORKSPACE = None
-    if proc is None:
-        return
-    if proc.poll() is None:
-        proc.terminate()
-        try:
-            proc.wait(timeout=15)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=10)
     if workspace is not None:
         try:
             _run_project_docs_json_cmd(
@@ -4681,55 +4670,28 @@ def _stop_project_docs_supervisor() -> None:
 
 
 def _ensure_project_docs_supervisor_running(workspace: Path) -> None:
-    """Start the product project-docs supervisor for benchmark project updates."""
-    global _PROJECT_DOCS_SUPERVISOR_PROC, _PROJECT_DOCS_SUPERVISOR_WORKSPACE
+    """Ensure the product supervisor is alive for benchmark project updates."""
+    global _PROJECT_DOCS_SUPERVISOR_WORKSPACE, _PROJECT_DOCS_SUPERVISOR_ATEXIT_REGISTERED
     if not _benchmark_project_docs_enabled():
         return
-    if _PROJECT_DOCS_SUPERVISOR_PROC is not None and _PROJECT_DOCS_SUPERVISOR_PROC.poll() is None:
+    if _PROJECT_DOCS_SUPERVISOR_WORKSPACE == workspace:
         return
 
-    logs_dir = workspace / "logs" / "project-docs"
-    logs_dir.mkdir(parents=True, exist_ok=True)
-    stdout_path = logs_dir / "supervisor.stdout.log"
-    stderr_path = logs_dir / "supervisor.stderr.log"
-    env = _benchmark_env(workspace, "ingest")
-    env["PYTHONUNBUFFERED"] = "1"
-    env["QUAID_SUPERVISOR_INTERVAL_SECONDS"] = str(_project_docs_supervisor_interval_seconds())
-    env["QUAID_PROJECT_DOCS_WORKER_INTERVAL_SECONDS"] = str(_project_docs_worker_interval_seconds())
-    # Test runs need quick stale-worker recovery; production defaults remain in runtime.
-    env.setdefault("QUAID_PROJECT_DOCS_WORKER_STALE_SECONDS", "15")
-    cmd = _python_cmd_for_quaid_script(_PROJECT_DOCS_CLI_SCRIPT) + [
-        "supervisor",
-        "run",
-        "--type",
-        "project-docs",
-        "--interval",
-        str(_project_docs_supervisor_interval_seconds()),
-    ]
-    stdout_fh = stdout_path.open("a", encoding="utf-8")
-    stderr_fh = stderr_path.open("a", encoding="utf-8")
-    proc = subprocess.Popen(
-        cmd,
-        env=env,
-        cwd=str(_QUAID_DIR),
-        stdout=stdout_fh,
-        stderr=stderr_fh,
-        text=True,
+    payload = _run_project_docs_json_cmd(
+        workspace,
+        ["supervisor", "ensure", "--type", "project-docs", "--json"],
+        timeout=120,
     )
-    stdout_fh.close()
-    stderr_fh.close()
-    _PROJECT_DOCS_SUPERVISOR_PROC = proc
+    pid = int(payload.get("pid") or 0)
+    if pid <= 0:
+        raise RuntimeError(f"Project docs supervisor ensure returned invalid pid: {payload}")
     _PROJECT_DOCS_SUPERVISOR_WORKSPACE = workspace
-    atexit.register(_stop_project_docs_supervisor)
-    time.sleep(0.5)
-    if proc.poll() is not None:
-        raise RuntimeError(
-            "Project docs supervisor exited during startup; "
-            f"stdout={stdout_path} stderr={stderr_path}"
-        )
+    if not _PROJECT_DOCS_SUPERVISOR_ATEXIT_REGISTERED:
+        atexit.register(_stop_project_docs_supervisor)
+        _PROJECT_DOCS_SUPERVISOR_ATEXIT_REGISTERED = True
     print(
-        "  Project docs supervisor started: "
-        f"pid={proc.pid} interval={_project_docs_supervisor_interval_seconds()}s"
+        "  Project docs supervisor ensured: "
+        f"pid={pid} interval={_project_docs_supervisor_interval_seconds()}s"
     )
 
 
