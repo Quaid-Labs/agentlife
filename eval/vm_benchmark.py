@@ -154,6 +154,9 @@ VM_QUAID_LLM_USAGE_LOG_PATH = f"{VM_QUAID_INSTANCE_LOGS_DIR}/llm-usage-events.js
 VM_QUAID_DAEMON_ROLLING_METRICS_PATH = f"{VM_QUAID_INSTANCE_LOGS_DIR}/daemon/rolling-extraction.jsonl"
 VM_QUAID_JANITOR_LATEST_LOG = f"{VM_QUAID_INSTANCE_LOGS_DIR}/janitor-latest.log"
 VM_QUAID_JANITOR_STATS_PATH = f"{VM_QUAID_INSTANCE_LOGS_DIR}/janitor-stats.json"
+VM_LIFECYCLE_RESUME_ROOT = "vm_lifecycle_resume"
+VM_LIFECYCLE_RESUME_STATE = "resume_state.json"
+VM_LIFECYCLE_RESUME_ARCHIVE = "guest-state.tar.gz"
 VM_BENCHMARK_PROJECTS = {
     "recipe-app": {
         "label": "Recipe App",
@@ -3144,6 +3147,7 @@ def inject_sessions(
     extract_model: str = "claude-sonnet-4-5-20250929",
     splitting: str = "perday",
     scale: str = "L",
+    resume_state: Optional[dict] = None,
 ) -> dict:
     """Inject all sessions into VM, managing compaction.
 
@@ -3189,6 +3193,7 @@ def inject_sessions(
         return _inject_chunks(
             vm, chunks, session_id, results_dir, system,
             extract_model=extract_model, mode=mode,
+            resume_state=resume_state,
         )
     tracker = CostTracker()
     current_day = None
@@ -3526,6 +3531,7 @@ def _inject_chunks(
     system: str,
     extract_model: str = "claude-sonnet-4-5-20250929",
     mode: str = "natural",
+    resume_state: Optional[dict] = None,
 ) -> dict:
     """Inject pre-computed extraction chunks into VM.
 
@@ -3552,29 +3558,42 @@ def _inject_chunks(
         }
 
     tracker = CostTracker()
-    current_day = None
-    compaction_count = 0
-    janitor_runs = 0
-    message_idx = 0
-    total_messages = 0
+    resume_counters = dict((resume_state or {}).get("counters") or {})
+    completed_chunks = max(0, int((resume_state or {}).get("completed_chunks", 0) or 0))
+    current_day_raw = str((resume_state or {}).get("resume_current_day", "") or "").strip()
+    current_day = current_day_raw or None
+    compaction_count = int(resume_counters.get("compaction_count", 0) or 0)
+    janitor_runs = int(resume_counters.get("janitor_runs", 0) or 0)
+    message_idx = int(resume_counters.get("message_idx", 0) or 0)
+    total_messages = int(resume_counters.get("total_messages", 0) or 0)
     # Real token accumulators
-    total_extraction_in = 0
-    total_extraction_out = 0
-    total_janitor_in = 0
-    total_janitor_out = 0
-    total_janitor_calls = 0
-    total_janitor_cost = 0.0
+    total_extraction_in = int(resume_counters.get("total_extraction_in", 0) or 0)
+    total_extraction_out = int(resume_counters.get("total_extraction_out", 0) or 0)
+    total_janitor_in = int(resume_counters.get("total_janitor_in", 0) or 0)
+    total_janitor_out = int(resume_counters.get("total_janitor_out", 0) or 0)
+    total_janitor_calls = int(resume_counters.get("total_janitor_calls", 0) or 0)
+    total_janitor_cost = float(resume_counters.get("total_janitor_cost", 0.0) or 0.0)
     # Simulated session token tracking
-    session_tokens_curve: list = []
-    cumulative_no_compact = 0
-    total_context_burned = 0
-    total_cached_tokens = 0
-    total_fresh_tokens = 0
+    session_tokens_curve: list = list(resume_counters.get("session_tokens_curve") or [])
+    cumulative_no_compact = int(resume_counters.get("cumulative_no_compact", 0) or 0)
+    total_context_burned = int(resume_counters.get("total_context_burned", 0) or 0)
+    total_cached_tokens = int(resume_counters.get("total_cached_tokens", 0) or 0)
+    total_fresh_tokens = int(resume_counters.get("total_fresh_tokens", 0) or 0)
 
     t0 = time.monotonic()
     session_file = f"{VM_AGENT_SESSIONS_DIR}/{session_id}.jsonl"
+    if completed_chunks:
+        print(
+            "  Resuming timeout lifecycle checkpoint: "
+            f"completed_chunks={completed_chunks}/{len(chunks)} "
+            f"current_day={current_day or 'unknown'}"
+        )
+    if completed_chunks >= len(chunks):
+        print("  Injection already completed at latest timeout lifecycle checkpoint")
 
     for ci, chunk in enumerate(chunks):
+        if ci < completed_chunks:
+            continue
         chunk_tokens = chunk.total_tokens
         chunk_day = datetime.fromtimestamp(
             chunk.messages[0].timestamp_ms / 1000, tz=timezone.utc
@@ -3595,6 +3614,35 @@ def _inject_chunks(
             total_janitor_out += j_usage["output_tokens"]
             total_janitor_calls += j_usage["api_calls"]
             total_janitor_cost += j_usage["cost_usd"]
+            if results_dir is not None:
+                checkpoint_counters = {
+                    "compaction_count": compaction_count,
+                    "janitor_runs": janitor_runs,
+                    "message_idx": message_idx,
+                    "total_messages": total_messages,
+                    "total_extraction_in": total_extraction_in,
+                    "total_extraction_out": total_extraction_out,
+                    "total_janitor_in": total_janitor_in,
+                    "total_janitor_out": total_janitor_out,
+                    "total_janitor_calls": total_janitor_calls,
+                    "total_janitor_cost": total_janitor_cost,
+                    "session_tokens_curve": session_tokens_curve,
+                    "cumulative_no_compact": cumulative_no_compact,
+                    "total_context_burned": total_context_burned,
+                    "total_cached_tokens": total_cached_tokens,
+                    "total_fresh_tokens": total_fresh_tokens,
+                }
+                try:
+                    _save_vm_quaid_timeout_resume_checkpoint(
+                        vm,
+                        results_dir,
+                        completed_chunks=ci,
+                        resume_current_day=chunk_day,
+                        last_completed_day=current_day,
+                        counters=checkpoint_counters,
+                    )
+                except Exception as exc:
+                    print(f"  [RESUME CHECKPOINT WARN] save failed: {exc}")
 
         current_day = chunk_day
 
@@ -3688,7 +3736,7 @@ def _inject_chunks(
         print()
 
     # Final janitor run (for the last day's extractions)
-    if system == "quaid" and compaction_count > 0:
+    if system == "quaid" and compaction_count > 0 and completed_chunks < len(chunks):
         print(f"  [FINAL JANITOR]", end="")
         j_usage = _run_vm_janitor(vm)
         janitor_runs += 1
@@ -3696,6 +3744,35 @@ def _inject_chunks(
         total_janitor_out += j_usage["output_tokens"]
         total_janitor_calls += j_usage["api_calls"]
         total_janitor_cost += j_usage["cost_usd"]
+        if results_dir is not None:
+            checkpoint_counters = {
+                "compaction_count": compaction_count,
+                "janitor_runs": janitor_runs,
+                "message_idx": message_idx,
+                "total_messages": total_messages,
+                "total_extraction_in": total_extraction_in,
+                "total_extraction_out": total_extraction_out,
+                "total_janitor_in": total_janitor_in,
+                "total_janitor_out": total_janitor_out,
+                "total_janitor_calls": total_janitor_calls,
+                "total_janitor_cost": total_janitor_cost,
+                "session_tokens_curve": session_tokens_curve,
+                "cumulative_no_compact": cumulative_no_compact,
+                "total_context_burned": total_context_burned,
+                "total_cached_tokens": total_cached_tokens,
+                "total_fresh_tokens": total_fresh_tokens,
+            }
+            try:
+                _save_vm_quaid_timeout_resume_checkpoint(
+                    vm,
+                    results_dir,
+                    completed_chunks=len(chunks),
+                    resume_current_day="",
+                    last_completed_day=current_day,
+                    counters=checkpoint_counters,
+                )
+            except Exception as exc:
+                print(f"  [RESUME CHECKPOINT WARN] final save failed: {exc}")
         print()
 
     elapsed = round(time.monotonic() - t0, 1)
@@ -4000,6 +4077,150 @@ def _collect_golden_data(vm: TartVM, results_dir: Path):
         print(f"    projects/: OK")
 
     print(f"  Golden data collection complete")
+
+
+def _vm_lifecycle_resume_root(results_dir: Path) -> Path:
+    return results_dir / VM_LIFECYCLE_RESUME_ROOT
+
+
+def _vm_lifecycle_resume_state_path(results_dir: Path) -> Path:
+    return _vm_lifecycle_resume_root(results_dir) / VM_LIFECYCLE_RESUME_STATE
+
+
+def _vm_lifecycle_resume_archive_path(results_dir: Path) -> Path:
+    return _vm_lifecycle_resume_root(results_dir) / VM_LIFECYCLE_RESUME_ARCHIVE
+
+
+def _load_vm_lifecycle_resume_state(results_dir: Optional[Path]) -> Optional[dict]:
+    if results_dir is None:
+        return None
+    path = _vm_lifecycle_resume_state_path(results_dir)
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text())
+    archive = _vm_lifecycle_resume_archive_path(results_dir)
+    if not archive.exists():
+        return None
+    payload["archive_path"] = str(archive)
+    return payload
+
+
+def _save_vm_quaid_timeout_resume_checkpoint(
+    vm: TartVM,
+    results_dir: Path,
+    *,
+    completed_chunks: int,
+    resume_current_day: Optional[str],
+    last_completed_day: Optional[str],
+    counters: dict,
+) -> dict:
+    """Persist a latest-only OC Quaid timeout resume checkpoint.
+
+    This is intentionally narrow: it captures the guest state only after a
+    successful Quaid day-boundary janitor or the final janitor. That keeps the
+    resume boundary semantically clean and avoids resuming from partially
+    extracted/pending guest state.
+    """
+    root = _vm_lifecycle_resume_root(results_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    archive_path = _vm_lifecycle_resume_archive_path(results_dir)
+    state_path = _vm_lifecycle_resume_state_path(results_dir)
+    remote_archive = "/tmp/vm-benchmark-lifecycle-resume.tar.gz"
+    build_script = (
+        "python3 - <<'PY'\n"
+        "import tarfile\n"
+        "from pathlib import Path\n"
+        f"root = Path({str(Path('/Users/admin'))!r})\n"
+        f"archive = Path({remote_archive!r})\n"
+        "archive.unlink(missing_ok=True)\n"
+        "targets = [\n"
+        f"    root / {str(Path('clawd/instances/openclaw-main'))!r},\n"
+        f"    root / {str(Path('clawd/projects'))!r},\n"
+        f"    root / {str(Path('.openclaw/agents/main/sessions/benchmark'))!r},\n"
+        "]\n"
+        "with tarfile.open(archive, 'w:gz') as bundle:\n"
+        "    for target in targets:\n"
+        "        if target.exists():\n"
+        "            bundle.add(target, arcname=str(target.relative_to(root)))\n"
+        "    clawd_root = root / 'clawd'\n"
+        "    if clawd_root.exists():\n"
+        "        patterns = ('*.md', '*.snippets.md', '*.journal.md')\n"
+        "        seen = set()\n"
+        "        for pattern in patterns:\n"
+        "            for target in sorted(clawd_root.glob(pattern)):\n"
+        "                if not target.is_file():\n"
+        "                    continue\n"
+        "                rel = target.relative_to(root)\n"
+        "                if str(rel) in seen:\n"
+        "                    continue\n"
+        "                seen.add(str(rel))\n"
+        "                bundle.add(target, arcname=str(rel))\n"
+        "print(archive)\n"
+        "PY"
+    )
+    result = vm.ssh(build_script, timeout=120, raw=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Failed to build VM lifecycle checkpoint: {result.stderr[:200]}")
+    fetched = vm.scp_from(remote_archive, str(archive_path), timeout=120)
+    if fetched.returncode != 0:
+        raise RuntimeError(f"Failed to fetch VM lifecycle checkpoint: {fetched.stderr[:200]}")
+    payload = {
+        "mode": "quaid-timeout",
+        "completed_chunks": int(completed_chunks),
+        "resume_current_day": str(resume_current_day or ""),
+        "last_completed_day": str(last_completed_day or ""),
+        "saved_at": datetime.now(timezone.utc).isoformat(),
+        "archive_path": str(archive_path),
+        "counters": dict(counters or {}),
+    }
+    state_path.write_text(json.dumps(payload, indent=2))
+    return payload
+
+
+def _restore_vm_quaid_timeout_resume_checkpoint(vm: TartVM, results_dir: Path) -> Optional[dict]:
+    payload = _load_vm_lifecycle_resume_state(results_dir)
+    if not payload:
+        return None
+    archive_path = Path(str(payload.get("archive_path", "") or ""))
+    if not archive_path.exists():
+        return None
+    remote_archive = "/tmp/vm-benchmark-lifecycle-resume.tar.gz"
+    copied = vm.scp_to(str(archive_path), remote_archive, timeout=120)
+    if copied.returncode != 0:
+        raise RuntimeError(f"Failed to upload VM lifecycle checkpoint: {copied.stderr[:200]}")
+    restore_script = (
+        "python3 - <<'PY'\n"
+        "import tarfile, shutil\n"
+        "from pathlib import Path\n"
+        f"root = Path({str(Path('/Users/admin'))!r})\n"
+        f"archive = Path({remote_archive!r})\n"
+        "targets = [\n"
+        f"    root / {str(Path('clawd/instances/openclaw-main'))!r},\n"
+        f"    root / {str(Path('clawd/projects'))!r},\n"
+        f"    root / {str(Path('.openclaw/agents/main/sessions/benchmark'))!r},\n"
+        "]\n"
+        "for target in targets:\n"
+        "    if target.exists():\n"
+        "        if target.is_dir():\n"
+        "            shutil.rmtree(target)\n"
+        "        else:\n"
+        "            target.unlink()\n"
+        "clawd_root = root / 'clawd'\n"
+        "if clawd_root.exists():\n"
+        "    patterns = ('*.md', '*.snippets.md', '*.journal.md')\n"
+        "    for pattern in patterns:\n"
+        "        for target in clawd_root.glob(pattern):\n"
+        "            if target.is_file():\n"
+        "                target.unlink()\n"
+        "with tarfile.open(archive, 'r:gz') as bundle:\n"
+        "    bundle.extractall(root)\n"
+        "print('restored')\n"
+        "PY"
+    )
+    restored = vm.ssh(restore_script, timeout=180, raw=True)
+    if restored.returncode != 0:
+        raise RuntimeError(f"Failed to restore VM lifecycle checkpoint: {restored.stderr[:200]}")
+    return payload
 
 
 def _patch_gateway_model(vm: TartVM, answer_model: str):
@@ -5629,6 +5850,7 @@ def run_benchmark(
     answer_model: str | None = None,
     openai_auth_mode: str = "api",
     splitting: str = "perday",
+    resume_day_lifecycle: bool = False,
 ) -> dict:
     """Run full benchmark for a single system.
 
@@ -5727,6 +5949,24 @@ def run_benchmark(
         setup_system(vm, system, snapshot_base, extract_model=extract_model,
                      local_plugin=local_plugin, answer_model=answer_model,
                      openai_auth_mode=openai_auth_mode)
+        if resume_day_lifecycle:
+            if system != "quaid" or splitting != "timeout":
+                raise RuntimeError(
+                    "--resume-day-lifecycle in vm_benchmark currently supports only "
+                    "system=quaid with --splitting timeout"
+                )
+            restored = _restore_vm_quaid_timeout_resume_checkpoint(vm, results_dir)
+            if restored:
+                print(
+                    "  Restored timeout lifecycle checkpoint: "
+                    f"completed_chunks={restored.get('completed_chunks', 0)} "
+                    f"current_day={restored.get('resume_current_day') or 'unknown'}"
+                )
+            else:
+                raise RuntimeError(
+                    "Resume requested but no VM lifecycle checkpoint was found in "
+                    f"{_vm_lifecycle_resume_root(results_dir)}"
+                )
 
     # Phase 2: Injection
     injection_stats = {}
@@ -5761,6 +6001,7 @@ def run_benchmark(
                 extract_model=extract_model,
                 splitting=splitting,
                 scale=scale,
+                resume_state=_load_vm_lifecycle_resume_state(results_dir) if resume_day_lifecycle else None,
             )
         print(f"  Injection complete: {injection_stats.get('total_messages', 0)} messages, "
               f"{injection_stats.get('compaction_count', 0)} compactions, "
@@ -5868,6 +6109,10 @@ def main():
                         help="Filler session files")
     parser.add_argument("--eval-only", action="store_true",
                         help="Skip injection, evaluate existing state")
+    parser.add_argument("--resume-day-lifecycle", action="store_true",
+                        help="Resume Quaid OC timeout injection from the latest saved day/janitor checkpoint in results-dir")
+    parser.add_argument("--resume-extraction", dest="resume_day_lifecycle", action="store_true",
+                        help=argparse.SUPPRESS)
     parser.add_argument("--rejudge-only", action="store_true",
                         help="Rejudge existing eval_results.json without rerunning answers")
     parser.add_argument("--judge-model", type=str, default="gpt-4o-mini",
@@ -5940,6 +6185,7 @@ def main():
             answer_model=args.answer_model,
             openai_auth_mode=args.openai_auth_mode,
             splitting=args.splitting,
+            resume_day_lifecycle=args.resume_day_lifecycle,
         )
         all_results[system] = result
 
@@ -5963,6 +6209,7 @@ def main():
                 answer_model=args.answer_model,
                 openai_auth_mode=args.openai_auth_mode,
                 splitting=args.splitting,
+                resume_day_lifecycle=args.resume_day_lifecycle,
             )
             all_results["quaid-nightly"] = nightly_result
 

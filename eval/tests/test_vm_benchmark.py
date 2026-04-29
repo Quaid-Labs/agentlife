@@ -3400,6 +3400,113 @@ class TestQuaidFailHard:
 
         assert writes[0]["sessions_dir"] == vmb.VM_QUAID_BENCH_SESSIONS_DIR
 
+    def test_inject_chunks_resumes_from_saved_timeout_checkpoint(self, monkeypatch, tmp_path):
+        class _Tracker:
+            def add_message(self, *_args, **_kwargs):
+                return None
+
+            def add_compaction(self, *_args, **_kwargs):
+                return None
+
+            def summary(self):
+                return {}
+
+        class _Msg:
+            role = "user"
+            content = "resume me"
+            tokens = 10
+
+            def __init__(self, timestamp_ms):
+                self.timestamp_ms = timestamp_ms
+
+        class _Chunk:
+            def __init__(self, day, session_id):
+                self.total_tokens = 10
+                self.trigger = "timeout"
+                self.session_ids = [session_id]
+                self.messages = [_Msg(int(datetime.fromisoformat(f"{day}T00:00:00+00:00").timestamp() * 1000))]
+
+        class _Vm:
+            def ssh(self, *_args, **_kwargs):
+                class _Result:
+                    returncode = 0
+                    stdout = ""
+                    stderr = ""
+
+                return _Result()
+
+        trigger_calls = []
+        janitor_calls = []
+        checkpoint_calls = []
+        monkeypatch.setattr(vmb, "CostTracker", _Tracker)
+        monkeypatch.setattr(vmb, "messages_to_oc_native_jsonl", lambda *_args, **_kwargs: '{"ok":true}\n')
+        monkeypatch.setattr(
+            vmb,
+            "_write_vm_session_jsonl",
+            lambda *_args, **_kwargs: type("_Result", (), {"returncode": 0, "stdout": "", "stderr": ""})(),
+        )
+        monkeypatch.setattr(
+            vmb,
+            "_trigger_compaction",
+            lambda *_args, **_kwargs: trigger_calls.append(kwargs := dict(_kwargs)) or {"input_tokens": 3, "output_tokens": 4, "artifact": {"facts": []}},
+        )
+        monkeypatch.setattr(
+            vmb,
+            "_run_vm_janitor",
+            lambda *_args, **_kwargs: janitor_calls.append(True) or {"input_tokens": 1, "output_tokens": 2, "api_calls": 1, "cost_usd": 0.5},
+        )
+        monkeypatch.setattr(
+            vmb,
+            "_save_vm_quaid_timeout_resume_checkpoint",
+            lambda *_args, **_kwargs: checkpoint_calls.append(dict(_kwargs)) or {"completed_chunks": _kwargs["completed_chunks"]},
+        )
+
+        chunks = [
+            _Chunk("2026-03-11", "S07"),
+            _Chunk("2026-03-12", "S08"),
+        ]
+        resume_state = {
+            "completed_chunks": 1,
+            "resume_current_day": "2026-03-12",
+            "counters": {
+                "compaction_count": 1,
+                "janitor_runs": 1,
+                "message_idx": 1,
+                "total_messages": 1,
+                "total_extraction_in": 7,
+                "total_extraction_out": 8,
+                "total_janitor_in": 9,
+                "total_janitor_out": 10,
+                "total_janitor_calls": 1,
+                "total_janitor_cost": 0.25,
+                "session_tokens_curve": [{"session": "chunk-1", "session_tokens": 10, "cumulative_no_compact": 10}],
+                "cumulative_no_compact": 10,
+                "total_context_burned": 10,
+                "total_cached_tokens": 0,
+                "total_fresh_tokens": 10,
+            },
+        }
+
+        stats = vmb._inject_chunks(
+            _Vm(),
+            chunks,
+            "benchmark-quaid",
+            results_dir=tmp_path,
+            system="quaid",
+            extract_model="claude-sonnet-4-5-20250929",
+            mode="natural",
+            resume_state=resume_state,
+        )
+
+        assert len(trigger_calls) == 1
+        assert len(janitor_calls) == 1
+        assert checkpoint_calls[-1]["completed_chunks"] == 2
+        assert stats["compaction_count"] == 2
+        assert stats["janitor_runs"] == 2
+        assert stats["total_messages"] == 2
+        assert stats["real_token_usage"]["extraction"]["input_tokens"] == 10
+        assert stats["real_token_usage"]["janitor"]["api_calls"] == 2
+
 
 class TestVmBenchmarkCli:
     def test_cli_accepts_oc_native_without_affecting_all(self, monkeypatch, tmp_path):
@@ -3500,6 +3607,31 @@ class TestVmBenchmarkCli:
 
         vmb.main()
         assert captured["tart_host"] == "alfie.local"
+
+    def test_cli_passes_resume_day_lifecycle_to_run_benchmark(self, monkeypatch, tmp_path):
+        captured = {}
+
+        def _fake_run_benchmark(**kwargs):
+            captured["resume_day_lifecycle"] = kwargs.get("resume_day_lifecycle")
+            return {"system": kwargs["system"], "dry_run": kwargs["dry_run"]}
+
+        monkeypatch.setattr(vmb, "run_benchmark", _fake_run_benchmark)
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "vm_benchmark.py",
+                "--system",
+                "quaid",
+                "--resume-day-lifecycle",
+                "--dry-run",
+                "--results-dir",
+                str(tmp_path / "results"),
+            ],
+        )
+
+        vmb.main()
+        assert captured["resume_day_lifecycle"] is True
 
     def test_run_benchmark_requires_openai_key_for_gpt_judge(self, monkeypatch):
         fake_rpb = ModuleType("run_production_benchmark")
