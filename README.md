@@ -114,14 +114,15 @@ without platform harness execution-path noise.
 
 | Surface | Quaid | FC Sonnet | Quaid Tokens | FC Tokens |
 | --- | ---: | ---: | ---: | ---: |
-| AL-S | 93.64% | 93.11% | 7.95M | 29.83M |
-| AL-L | 88.52% | 88.69% | 9.64M | 26.50M |
-| AL-L OBD | 88.69% | 88.69% | 8.45M | 26.50M |
+| AgentLife Short | 93.64% | 93.11% | 7.95M | 29.83M |
+| AgentLife Long | 88.52% | 88.69% | 9.64M | 26.50M |
+| AgentLife Long OBD | 88.69% | 88.69% | 8.45M | 26.50M |
 
 Quaid was measured with Haiku fast, Sonnet deep, and a Sonnet answer model on
-the clean harness. `AL-S` is the strongest current direct lane. `AL-L` and
-`AL-L OBD` are the more realistic long-context lanes. `Opus 4.7` was also
-evaluated, but `Sonnet` remains the cleaner headline configuration for Quaid.
+the clean harness. AgentLife Short is the strongest current direct lane.
+AgentLife Long and AgentLife Long OBD are the more realistic long-context
+lanes. `Opus 4.7` was also evaluated, but `Sonnet` remains the cleaner
+headline configuration for Quaid.
 
 ### OpenClaw Execution Results
 
@@ -130,8 +131,8 @@ OpenClaw execution path itself, and we are actively working to improve them.
 
 | Surface | OpenClaw Native | Quaid on OpenClaw |
 | --- | ---: | ---: |
-| AL-S | 26.49% | 80.97% |
-| AL-L | 31.72% | pending refresh |
+| AgentLife Short | 26.49% | 80.97% |
+| AgentLife Long | 31.72% | pending refresh |
 
 The main point of this split is:
 
@@ -141,13 +142,15 @@ The main point of this split is:
   yet measured cleanly enough to be trustworthy
 - the native OC rows here were run with OpenClaw's built-in memory plugins
   enabled: `memory-core`, `session-memory`, and `session-index`
-- the next required OC datapoint is a fresh Quaid-on-OpenClaw `AL-L` lane so
-  the OC table is complete on the same footing as the clean-harness block
+- the next required OC datapoint is a fresh Quaid-on-OpenClaw AgentLife Long
+  lane so the OC table is complete on the same footing as the clean-harness
+  block
 
 ### Multilingual Preview
 
-On the first validated full Japanese `AL-S` harness run, Quaid handled a
-Kanji/Kana benchmark end-to-end at `74.73%` overall (`73.88%` on `T1-T4`).
+On the first validated full Japanese AgentLife Short harness run, Quaid
+handled a Kanji/Kana benchmark end-to-end at `74.73%` overall (`73.88%` on
+`T1-T4`).
 
 We are still actively improving multilingual retrieval and documentation
 surfaces, so this should be read as a preview rather than a headline claim. But
