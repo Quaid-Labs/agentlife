@@ -12007,10 +12007,11 @@ def _call_openai_compatible_chat(
         )
     _assert_openai_compatible_provider_healthy(url, source=source)
 
+    token_limit_key = "max_completion_tokens" if model.lower().startswith("gpt-5") else "max_tokens"
     payload: Dict[str, Any] = {
         "model": model,
         "messages": messages,
-        "max_tokens": max_tokens,
+        token_limit_key: max_tokens,
         "temperature": 0.0,
     }
     if tools:
@@ -12053,6 +12054,7 @@ def _call_openai_compatible_chat(
             "message_tokens_est": message_tokens_est,
             "tools": bool(tools),
             "max_tokens": max_tokens,
+            "token_limit_key": token_limit_key,
         }
         with _OPENAI_COMPAT_ACTIVE_LOCK:
             _OPENAI_COMPAT_ACTIVE_REQUESTS[request_id] = dict(active_row)
@@ -12102,6 +12104,7 @@ def _call_openai_compatible_chat(
                     "message_tokens_est": message_tokens_est,
                     "tools": bool(tools),
                     "max_tokens": max_tokens,
+                    "token_limit_key": token_limit_key,
                     "output_tokens": int(_openai_usage_dict(raw, resolved_model).get("output_tokens", 0) or 0),
                     "content_excerpt": content_excerpt,
                     "reasoning_excerpt": reasoning_excerpt,
@@ -12150,6 +12153,7 @@ def _call_openai_compatible_chat(
                     "message_tokens_est": message_tokens_est,
                     "tools": bool(tools),
                     "max_tokens": max_tokens,
+                    "token_limit_key": token_limit_key,
                     "error": str(last_err),
                 },
             )

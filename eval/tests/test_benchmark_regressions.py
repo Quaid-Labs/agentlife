@@ -3366,6 +3366,53 @@ def test_call_openai_compatible_chat_writes_trace_events(tmp_path, monkeypatch):
     assert rows[1]["duration_ms"] >= 0
 
 
+def test_call_openai_compatible_chat_uses_max_completion_tokens_for_gpt5(tmp_path, monkeypatch):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    monkeypatch.setenv("BENCHMARK_OPENAI_URL", "https://api.openai.com")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setattr(rpb, "_BACKEND", "openai")
+
+    captured = {}
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "model": "gpt-5.5",
+                    "usage": {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18},
+                    "choices": [{"message": {"content": "ok"}}],
+                }
+            ).encode("utf-8")
+
+    def _fake_urlopen(req, timeout=300):
+        captured["payload"] = json.loads(req.data.decode("utf-8"))
+        return _Resp()
+
+    monkeypatch.setattr(rpb.urllib.request, "urlopen", _fake_urlopen)
+
+    data, usage = rpb._call_openai_compatible_chat(
+        messages=[{"role": "user", "content": "hello world"}],
+        model="gpt-5.5",
+        max_tokens=32,
+        timeout=120,
+        workspace=workspace,
+        source="answer_model",
+        provider="openai",
+    )
+
+    assert data["choices"][0]["message"]["content"] == "ok"
+    assert usage["output_tokens"] == 7
+    assert captured["payload"]["max_completion_tokens"] == 32
+    assert "max_tokens" not in captured["payload"]
+
+
 def test_openai_message_text_strips_gemma_control_markers():
     message = {
         "content": (
