@@ -3411,6 +3411,7 @@ def test_call_openai_compatible_chat_uses_max_completion_tokens_for_gpt5(tmp_pat
     assert usage["output_tokens"] == 7
     assert captured["payload"]["max_completion_tokens"] == 32
     assert "max_tokens" not in captured["payload"]
+    assert "temperature" not in captured["payload"]
 
 
 def test_openai_message_text_strips_gemma_control_markers():

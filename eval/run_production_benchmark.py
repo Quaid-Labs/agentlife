@@ -12012,8 +12012,9 @@ def _call_openai_compatible_chat(
         "model": model,
         "messages": messages,
         token_limit_key: max_tokens,
-        "temperature": 0.0,
     }
+    if not model.lower().startswith("gpt-5"):
+        payload["temperature"] = 0.0
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
