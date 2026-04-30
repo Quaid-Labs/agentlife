@@ -4201,6 +4201,21 @@ def _store_facts(
     edge_retry_backoff_s = max(0.0, float(os.environ.get("BENCHMARK_EDGE_RETRY_BACKOFF_SECONDS", "1.5")))
     edge_slow_log_s = max(0.0, float(os.environ.get("BENCHMARK_EDGE_SLOW_LOG_SECONDS", "10.0")))
 
+    def _cached_fact_source_type(fact: dict) -> str:
+        raw = str(fact.get("source_type") or fact.get("source") or "").strip().lower()
+        if raw == "agent":
+            raw = "assistant"
+        if raw in {"user", "assistant", "subagent", "both", "tool", "import"}:
+            return raw
+        speaker = str(fact.get("speaker") or "").strip().lower()
+        if speaker in {"agent", "assistant"}:
+            return "assistant"
+        if speaker == "subagent":
+            return "subagent"
+        if speaker == "tool":
+            return "tool"
+        return "user"
+
     for fact in facts:
         text = fact.get("text", "").strip()
         if not _is_storeable_extracted_fact_text(text):
@@ -4212,6 +4227,9 @@ def _store_facts(
         privacy = str(fact.get("privacy") or "shared").strip() or "shared"
         keywords = str(fact.get("keywords") or "").strip()
         knowledge_type = "preference" if category == "preference" else "fact"
+        source_type = _cached_fact_source_type(fact)
+        speaker = str(fact.get("speaker") or "").strip()
+        structural_anchor_kind = str(fact.get("structural_anchor_kind") or "").strip()
 
         cmd = _python_cmd_for_quaid_script(_MEMORY_GRAPH_SCRIPT) + [
             "store",
@@ -4221,12 +4239,16 @@ def _store_facts(
             "--extraction-confidence", str(conf_num),
             "--privacy", privacy,
             "--knowledge-type", knowledge_type,
-            "--source-type", "user",
+            "--source-type", source_type,
             "--source", "benchmark-extraction",
             "--session-id", f"session-{session_num}",
         ]
         if keywords:
             cmd.extend(["--keywords", keywords])
+        if speaker:
+            cmd.extend(["--speaker", speaker])
+        if structural_anchor_kind:
+            cmd.extend(["--structural-anchor-kind", structural_anchor_kind])
         # Project tagging
         project_name = fact.get("project")
         if project_name:

@@ -8001,6 +8001,49 @@ class TestBenchmarkStoreFacts:
         assert captured["cmd"][captured["cmd"].index("--privacy") + 1] == "shared"
         assert "--keywords" not in captured["cmd"]
 
+    def test_store_facts_preserves_cached_anchor_provenance(self, monkeypatch, tmp_path):
+        workspace = tmp_path / "ws"
+        workspace.mkdir()
+
+        monkeypatch.setattr(rpb, "_load_active_domain_ids", lambda _ws: ["personal"])
+        captured = {}
+
+        def _fake_run(cmd, capture_output, text, timeout, cwd, env):
+            captured["cmd"] = list(cmd)
+            return SimpleNamespace(returncode=0, stdout="Stored: node-1", stderr="")
+
+        monkeypatch.setattr(rpb.subprocess, "run", _fake_run)
+
+        facts = [
+            {
+                "text": "Some things are unforgettable. And Biscuit committing fully to eating a pinecone is definitely one of those things",
+                "category": "fact",
+                "extraction_confidence": "high",
+                "privacy": "shared",
+                "domains": ["personal"],
+                "speaker": "agent",
+                "structural_anchor_kind": "assistant_callback_anchor",
+                "edges": [],
+            }
+        ]
+
+        stored, edges_created = rpb._store_facts(
+            workspace,
+            facts,
+            {"PATH": os.environ.get("PATH", "")},
+            20,
+            "2026-05-26",
+        )
+
+        assert stored == 1
+        assert edges_created == 0
+        assert captured["cmd"][captured["cmd"].index("--source-type") + 1] == "assistant"
+        assert captured["cmd"][captured["cmd"].index("--speaker") + 1] == "agent"
+        assert (
+            captured["cmd"][captured["cmd"].index("--structural-anchor-kind") + 1]
+            == "assistant_callback_anchor"
+        )
+
 
 class TestStoreSessionFacts:
     def test_store_session_facts_prefers_fact_created_at(self, monkeypatch):
