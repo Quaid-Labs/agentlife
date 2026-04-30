@@ -112,7 +112,7 @@ These headline rows are Quaid's numbers on the clean benchmark harness. They
 should be read as the current theoretical maximum for the same memory system
 without platform harness execution-path noise.
 
-| Surface | Quaid Sonnet/Sonnet | FC Sonnet | Quaid Tokens | FC Tokens |
+| Surface | Quaid | FC Sonnet | Quaid Tokens | FC Tokens |
 | --- | ---: | ---: | ---: | ---: |
 | AL-S | 93.64% | 93.11% | 7.95M | 29.83M |
 | AL-L | 88.52% | 88.69% | 9.64M | 26.50M |
