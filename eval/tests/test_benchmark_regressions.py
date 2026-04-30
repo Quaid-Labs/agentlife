@@ -9915,6 +9915,34 @@ class TestPerDayExtraction:
         assert stored_payload["facts"][0]["structural_anchor_kind"] == "user_surprise_recall_anchor"
         assert result["stored"] == 1
 
+    def test_runtime_cached_payload_helper_accepts_direct_quaid_package_root(self, tmp_path, monkeypatch):
+        import importlib
+
+        package_root = tmp_path / "modules" / "quaid"
+        (package_root / "ingest").mkdir(parents=True, exist_ok=True)
+        (package_root / "ingest" / "extract.py").write_text("# stub\n", encoding="utf-8")
+
+        captured = {}
+
+        def _fake_import(name):
+            captured["name"] = name
+            captured["sys_path"] = list(sys.path)
+            return type(
+                "_StubModule",
+                (),
+                {"materialize_cached_extraction_payload": staticmethod(lambda **_kwargs: {"facts": []})},
+            )()
+
+        monkeypatch.setattr(rpb, "_RUNTIME_CACHED_PAYLOAD_HELPER", None)
+        monkeypatch.setattr(rpb, "_QUAID_DIR", package_root)
+        monkeypatch.setattr(importlib, "import_module", _fake_import)
+
+        helper = rpb._load_runtime_cached_payload_helper()
+
+        assert callable(helper)
+        assert captured["name"] == "quaid.ingest.extract"
+        assert str(package_root.parent) in captured["sys_path"]
+
     def test_auto_rolls_oversized_days_through_runtime_extract(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
         (workspace / "logs").mkdir(parents=True, exist_ok=True)

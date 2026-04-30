@@ -228,6 +228,8 @@ def _load_runtime_cached_payload_helper():
         module_roots.append(modules_dir)
     if (quaid_root / "quaid").is_dir():
         module_roots.append(quaid_root)
+    if (quaid_root / "ingest" / "extract.py").is_file():
+        module_roots.append(quaid_root.parent)
     if not module_roots:
         raise RuntimeError(
             f"Checkpoint runtime helper unavailable: could not find Quaid package root under {_QUAID_DIR}"
