@@ -186,21 +186,6 @@ Canonical docs for full tables and methodology:
 
 ## Quick Start
 
-### Branch Workflow
-
-- Canonical branch for development and publish is `main`.
-- If you are carrying an older local checkout from the previous branch model, run:
-
-```bash
-./scripts/adopt-main-workflow.sh origin
-```
-
-Canonical push flow to GitHub:
-
-```bash
-./scripts/push-main.sh origin
-```
-
 ### Prerequisites
 
 - Python 3.11+
