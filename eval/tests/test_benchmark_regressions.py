@@ -9413,6 +9413,25 @@ class TestEvalQueryProfiles:
         assert meta["selected_query_nums"] == [1, 3]
         assert meta["by_type"] == {"factual_recall": 1, "temporal_current": 1}
 
+    def test_apply_eval_query_profile_can_select_query_number_ranges(self, monkeypatch):
+        queries = [
+            {"question": "q7", "query_type": "temporal_current", "recall_difficulty": "Hard", "query_num": 7},
+            {"question": "q11", "query_type": "project_state", "recall_difficulty": "Medium", "query_num": 11},
+            {"question": "q42", "query_type": "factual_recall", "recall_difficulty": "Easy", "query_num": 42},
+            {"question": "q99", "query_type": "project_state", "recall_difficulty": "Hard", "query_num": 99},
+        ]
+        monkeypatch.setenv("BENCHMARK_QUERY_NUMS", "2-4,1")
+
+        selected, meta = rpb._apply_eval_query_profile(queries)
+
+        assert [q["query_num"] for q in selected] == [7, 11, 42, 99]
+        assert meta["profile"] == "query-num-list"
+        assert meta["requested"] == 4
+        assert meta["selected"] == 4
+        assert meta["requested_query_nums"] == [2, 3, 4, 1]
+        assert meta["selected_query_nums"] == [1, 2, 3, 4]
+        assert meta["by_type"] == {"factual_recall": 1, "project_state": 2, "temporal_current": 1}
+
     def test_apply_eval_query_profile_rejects_combined_query_selectors(self, monkeypatch):
         monkeypatch.setenv("BENCHMARK_QUERY_NUMS", "1")
         monkeypatch.setenv("BENCHMARK_QUERY_SHA1S", "deadbeef")

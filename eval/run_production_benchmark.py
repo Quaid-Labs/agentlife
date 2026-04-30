@@ -2335,12 +2335,27 @@ def _apply_eval_query_num_filter(
         token = token.strip()
         if not token:
             continue
-        if not re.fullmatch(r"\d+", token):
-            raise RuntimeError(f"Invalid BENCHMARK_QUERY_NUMS selector {token!r}; expected positive integer query numbers")
-        num = int(token)
-        if num <= 0:
-            raise RuntimeError(f"Invalid BENCHMARK_QUERY_NUMS selector {token!r}; expected positive integer query numbers")
-        requested.append(num)
+        if re.fullmatch(r"\d+", token):
+            num = int(token)
+            if num <= 0:
+                raise RuntimeError(
+                    f"Invalid BENCHMARK_QUERY_NUMS selector {token!r}; expected positive integer query numbers"
+                )
+            requested.append(num)
+            continue
+
+        range_match = re.fullmatch(r"(\d+)-(\d+)", token)
+        if range_match:
+            start = int(range_match.group(1))
+            end = int(range_match.group(2))
+            if start <= 0 or end <= 0 or end < start:
+                raise RuntimeError(
+                    f"Invalid BENCHMARK_QUERY_NUMS selector {token!r}; expected positive integer query numbers"
+                )
+            requested.extend(range(start, end + 1))
+            continue
+
+        raise RuntimeError(f"Invalid BENCHMARK_QUERY_NUMS selector {token!r}; expected positive integer query numbers")
     if not requested:
         raise RuntimeError("BENCHMARK_QUERY_NUMS was set but no query numbers were provided")
 
