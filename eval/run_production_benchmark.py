@@ -198,6 +198,7 @@ def _resolve_quaid_script(*relative_paths: str) -> Path:
 _QUAID_DIR = _resolve_quaid_dir()
 _MEMORY_GRAPH_SCRIPT = _resolve_quaid_script("memory_graph.py", "datastore/memorydb/memory_graph.py")
 _EXTRACTION_PROMPT_FILE = _resolve_quaid_script("prompts/extraction.txt")
+_RUNTIME_CACHED_PAYLOAD_HELPER = None
 _RECALL_TOOL_DESCRIPTION = (
     "Unified Quaid recall across memory and docs stores. "
     "Use one broad query first. If stores are omitted, default memory recall uses vector only. "
@@ -213,6 +214,39 @@ _RECALL_TOOL_DESCRIPTION = (
     "Set project when scoping docs to a known project like recipe-app, portfolio-site, or quaid. "
     "Use concrete entity names and project names, not vague roles."
 )
+
+
+def _load_runtime_cached_payload_helper():
+    global _RUNTIME_CACHED_PAYLOAD_HELPER
+    if _RUNTIME_CACHED_PAYLOAD_HELPER is not None:
+        return _RUNTIME_CACHED_PAYLOAD_HELPER
+
+    quaid_root = Path(_QUAID_DIR)
+    module_roots = []
+    modules_dir = quaid_root / "modules"
+    if modules_dir.is_dir():
+        module_roots.append(modules_dir)
+    if (quaid_root / "quaid").is_dir():
+        module_roots.append(quaid_root)
+    if not module_roots:
+        raise RuntimeError(
+            f"Checkpoint runtime helper unavailable: could not find Quaid package root under {_QUAID_DIR}"
+        )
+    for root in module_roots:
+        root_str = str(root)
+        if root_str not in sys.path:
+            sys.path.insert(0, root_str)
+
+    import importlib
+
+    extract_mod = importlib.import_module("quaid.ingest.extract")
+    helper = getattr(extract_mod, "materialize_cached_extraction_payload", None)
+    if not callable(helper):
+        raise RuntimeError(
+            "Checkpoint runtime helper missing: quaid.ingest.extract.materialize_cached_extraction_payload"
+        )
+    _RUNTIME_CACHED_PAYLOAD_HELPER = helper
+    return helper
 _JANITOR_SCRIPT = _resolve_quaid_script("janitor.py", "core/lifecycle/janitor.py")
 _DOCS_RAG_SCRIPT = _resolve_quaid_script("docs_rag.py", "datastore/docsdb/rag.py")
 _EXTRACT_SCRIPT = _resolve_quaid_script("extract.py", "ingest/extract.py")
@@ -4044,11 +4078,25 @@ def run_extraction(
                 pass
 
             result = parse_extraction_response(raw_response)
+            runtime_helper = _load_runtime_cached_payload_helper()
+            augmented = runtime_helper(
+                transcript=combined_transcript,
+                parsed_payload=result,
+                owner_id=identity["display_name"],
+                label="single-call",
+                session_date_hint=last_date if reviews else None,
+            )
             cached = {
-                "facts": result.get("facts") or [],
-                "soul_snippets": result.get("soul_snippets", {}),
-                "journal_entries": result.get("journal_entries", {}),
-                "project_logs": _normalize_project_logs(result.get("project_logs", {})),
+                "facts": list(augmented.get("facts", []) or []),
+                "raw_facts": list(augmented.get("raw_facts", []) or []),
+                "soul_snippets": dict(augmented.get("soul_snippets", {}) or {}),
+                "raw_snippets": dict(augmented.get("raw_snippets", {}) or {}),
+                "journal_entries": dict(augmented.get("journal_entries", {}) or {}),
+                "raw_journal": dict(augmented.get("raw_journal", {}) or {}),
+                "project_logs": _normalize_project_logs(augmented.get("project_logs", {})),
+                "raw_project_logs": _normalize_project_logs(augmented.get("raw_project_logs", {})),
+                "explicit_structural_anchor_facts": int(augmented.get("explicit_structural_anchor_facts", 0) or 0),
+                "facts_skipped": int(augmented.get("facts_skipped", 0) or 0),
                 "usage": usage,
                 "model": model,
                 "sessions": [r.session_num for r in reviews],
@@ -5605,6 +5653,7 @@ def _run_runtime_rolling_driver(
         driver_env["BENCHMARK_FINAL_SIGNAL"] = str(final_signal)
     else:
         driver_env.pop("BENCHMARK_FINAL_SIGNAL", None)
+    driver_env.setdefault("QUAID_DISABLE_DISCOVERY_CURSOR_SCAN", "1")
     driver_env.setdefault(
         "BENCHMARK_ROLLING_MAX_PRESERVED_SIGNAL_RETRIES",
         str(max(60, int(timeout_seconds))),
@@ -6382,6 +6431,7 @@ def run_per_day_extraction(
                 "cache_path": cache_path,
                 "prompt": chunk_prompt,
                 "user_message": user_message,
+                "transcript": combined_transcript,
                 "chars": len(combined_transcript),
                 "day_keys": sorted(set(day_keys)),
             }
@@ -6407,11 +6457,25 @@ def run_per_day_extraction(
             )
             elapsed = time.time() - t0
             result = parse_extraction_response(raw_response)
+            runtime_helper = _load_runtime_cached_payload_helper()
+            augmented = runtime_helper(
+                transcript=job["transcript"],
+                parsed_payload=result,
+                owner_id=identity["display_name"],
+                label=f"cached-preextract-{job['chunk_idx']:03d}",
+                session_date_hint=job["date"],
+            )
             cached = {
-                "facts": result.get("facts", []),
-                "soul_snippets": result.get("soul_snippets", {}),
-                "journal_entries": result.get("journal_entries", {}),
-                "project_logs": _normalize_project_logs(result.get("project_logs", {})),
+                "facts": list(augmented.get("facts", []) or []),
+                "raw_facts": list(augmented.get("raw_facts", []) or []),
+                "soul_snippets": dict(augmented.get("soul_snippets", {}) or {}),
+                "raw_snippets": dict(augmented.get("raw_snippets", {}) or {}),
+                "journal_entries": dict(augmented.get("journal_entries", {}) or {}),
+                "raw_journal": dict(augmented.get("raw_journal", {}) or {}),
+                "project_logs": _normalize_project_logs(augmented.get("project_logs", {})),
+                "raw_project_logs": _normalize_project_logs(augmented.get("raw_project_logs", {})),
+                "explicit_structural_anchor_facts": int(augmented.get("explicit_structural_anchor_facts", 0) or 0),
+                "facts_skipped": int(augmented.get("facts_skipped", 0) or 0),
                 "usage": usage,
                 "model": model,
                 "sessions": job["snums"],
@@ -11097,6 +11161,7 @@ def _make_env(
     env["QUAID_INSTANCE"] = _BENCHMARK_QUAID_INSTANCE
     env["MEMORY_DB_PATH"] = str(workspace / "data" / "memory.db")
     env["QUAID_DISABLE_NOTIFICATIONS"] = "1"
+    env.setdefault("QUAID_DISABLE_DISCOVERY_CURSOR_SCAN", "1")
     env["QUAID_LLM_USAGE_LOG_PATH"] = str(_usage_log_path(workspace))
     if llm_usage_phase:
         env["QUAID_LLM_USAGE_PHASE"] = llm_usage_phase

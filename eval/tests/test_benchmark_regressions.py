@@ -2149,6 +2149,7 @@ class TestOBDExtractionTimeoutEnv:
         )
 
         assert out["signals_processed"] == 0
+        assert captured["env"]["QUAID_DISABLE_DISCOVERY_CURSOR_SCAN"] == "1"
         assert captured["env"]["BENCHMARK_ROLLING_MAX_PRESERVED_SIGNAL_RETRIES"] == "60"
         assert "max_repeated_signal_retries" in captured["driver_code"]
         assert "rolling driver signal preserved after" in captured["driver_code"]
@@ -9428,6 +9429,24 @@ class TestPerDayExtraction:
             rpb, "parse_extraction_response",
             lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
         )
+        monkeypatch.setattr(
+            rpb,
+            "_load_runtime_cached_payload_helper",
+            lambda: (
+                lambda *, parsed_payload, **_kwargs: {
+                    "facts": list(parsed_payload.get("facts", []) or []),
+                    "raw_facts": list(parsed_payload.get("facts", []) or []),
+                    "soul_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "raw_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "journal_entries": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "raw_journal": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "raw_project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "explicit_structural_anchor_facts": 0,
+                    "facts_skipped": 0,
+                }
+            ),
+        )
         monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
         monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
         monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
@@ -9504,6 +9523,24 @@ class TestPerDayExtraction:
                 "project_logs": {"recipe-app": ["Added pantry import docs."]},
             },
         )
+        monkeypatch.setattr(
+            rpb,
+            "_load_runtime_cached_payload_helper",
+            lambda: (
+                lambda *, parsed_payload, **_kwargs: {
+                    "facts": list(parsed_payload.get("facts", []) or []),
+                    "raw_facts": list(parsed_payload.get("facts", []) or []),
+                    "soul_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "raw_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "journal_entries": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "raw_journal": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "raw_project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "explicit_structural_anchor_facts": 0,
+                    "facts_skipped": 0,
+                }
+            ),
+        )
         monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
         monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
         monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
@@ -9572,6 +9609,24 @@ class TestPerDayExtraction:
                 "project_logs": {"recipe-app": ["This should stay out of project docs in disabled mode."]},
             },
         )
+        monkeypatch.setattr(
+            rpb,
+            "_load_runtime_cached_payload_helper",
+            lambda: (
+                lambda *, parsed_payload, **_kwargs: {
+                    "facts": list(parsed_payload.get("facts", []) or []),
+                    "raw_facts": list(parsed_payload.get("facts", []) or []),
+                    "soul_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "raw_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "journal_entries": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "raw_journal": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "raw_project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "explicit_structural_anchor_facts": 0,
+                    "facts_skipped": 0,
+                }
+            ),
+        )
         monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
         monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
         monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
@@ -9626,6 +9681,24 @@ class TestPerDayExtraction:
             rpb, "parse_extraction_response",
             lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
         )
+        monkeypatch.setattr(
+            rpb,
+            "_load_runtime_cached_payload_helper",
+            lambda: (
+                lambda *, parsed_payload, **_kwargs: {
+                    "facts": list(parsed_payload.get("facts", []) or []),
+                    "raw_facts": list(parsed_payload.get("facts", []) or []),
+                    "soul_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "raw_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "journal_entries": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "raw_journal": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "raw_project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "explicit_structural_anchor_facts": 0,
+                    "facts_skipped": 0,
+                }
+            ),
+        )
         monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
         monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
         monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
@@ -9674,6 +9747,24 @@ class TestPerDayExtraction:
             "parse_extraction_response",
             lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
         )
+        monkeypatch.setattr(
+            rpb,
+            "_load_runtime_cached_payload_helper",
+            lambda: (
+                lambda *, parsed_payload, **_kwargs: {
+                    "facts": list(parsed_payload.get("facts", []) or []),
+                    "raw_facts": list(parsed_payload.get("facts", []) or []),
+                    "soul_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "raw_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "journal_entries": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "raw_journal": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "raw_project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "explicit_structural_anchor_facts": 0,
+                    "facts_skipped": 0,
+                }
+            ),
+        )
         monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
         monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
         monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
@@ -9702,6 +9793,127 @@ class TestPerDayExtraction:
         cached_payload = json.loads(cache_path.read_text())
         assert cached_payload["chunk_idx"] == 0
         assert result["days"] == 1
+
+    def test_cached_preextract_persists_runtime_augmented_payload(self, tmp_path, monkeypatch):
+        workspace = tmp_path / "ws"
+        (workspace / "logs").mkdir(parents=True, exist_ok=True)
+        (workspace / "extraction_cache").mkdir(parents=True, exist_ok=True)
+        (workspace / "data").mkdir(parents=True, exist_ok=True)
+        self._init_db(workspace)
+
+        fake_dates = {1: "2026-05-26"}
+        monkeypatch.setattr(rpb, "SESSION_DATES", fake_dates)
+        monkeypatch.setattr(rpb, "load_all_reviews", lambda *a, **k: [_FakeReview(1, timestamp="2026-05-26 12:00:00 UTC")])
+        monkeypatch.setattr(
+            rpb,
+            "format_transcript_for_extraction",
+            lambda _r: (
+                "Maya: THE PINECONE. i forgot about that.\n\n"
+                "Assistant: Some things are unforgettable.\n\n"
+                "Maya: ok i can't believe you remember the pinecone thing from like... months ago."
+            ),
+        )
+        monkeypatch.setattr(rpb, "_resolve_assets_dir", lambda: tmp_path / "assets")
+        self._stub_prompt_context(monkeypatch, ["personal"])
+        monkeypatch.setattr(rpb, "_write_prompt_trace", lambda *a, **k: None)
+        monkeypatch.setattr(rpb, "_call_anthropic_cached", lambda *a, **k: ("{}", {"input_tokens": 1, "output_tokens": 1}))
+        monkeypatch.setattr(
+            rpb,
+            "parse_extraction_response",
+            lambda _raw: {
+                "facts": [
+                    {
+                        "text": "If the assistant were a person, Maya would say it is a good listener who remembers stuff and doesn't make it weird",
+                        "speaker": "user",
+                        "category": "preference",
+                        "domains": ["personal"],
+                        "privacy": "shared",
+                    }
+                ],
+                "soul_snippets": {},
+                "journal_entries": {},
+                "project_logs": {},
+            },
+        )
+
+        captured_runtime = {}
+
+        def _runtime_helper(*, transcript, parsed_payload, owner_id, label, session_date_hint):
+            captured_runtime["transcript"] = transcript
+            captured_runtime["parsed_payload"] = parsed_payload
+            captured_runtime["owner_id"] = owner_id
+            captured_runtime["label"] = label
+            captured_runtime["session_date_hint"] = session_date_hint
+            return {
+                "facts": [
+                    {
+                        "text": "ok i can't believe you remember the pinecone thing from like... months ago",
+                        "speaker": "user",
+                        "category": "fact",
+                        "domains": ["personal"],
+                        "privacy": "shared",
+                        "structural_anchor_kind": "user_surprise_recall_anchor",
+                    }
+                ],
+                "raw_facts": [
+                    {
+                        "text": "ok i can't believe you remember the pinecone thing from like... months ago",
+                        "speaker": "user",
+                        "category": "fact",
+                        "domains": ["personal"],
+                        "privacy": "shared",
+                        "structural_anchor_kind": "user_surprise_recall_anchor",
+                    }
+                ],
+                "soul_snippets": {},
+                "raw_snippets": {},
+                "journal_entries": {},
+                "raw_journal": {},
+                "project_logs": {},
+                "raw_project_logs": {},
+                "explicit_structural_anchor_facts": 1,
+                "facts_skipped": 0,
+            }
+
+        monkeypatch.setattr(rpb, "_load_runtime_cached_payload_helper", lambda: _runtime_helper)
+
+        stored_payload = {}
+
+        def _store_facts(workspace_arg, facts_arg, *args, **kwargs):
+            stored_payload["facts"] = list(facts_arg)
+            return len(facts_arg), 0
+
+        monkeypatch.setattr(rpb, "_store_facts", _store_facts)
+        monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_journal_entry", lambda *a, **k: False)
+        monkeypatch.setattr(rpb, "write_project_logs", lambda *a, **k: {})
+        fake_repo = tmp_path / "recipe-app"
+        (fake_repo / ".git").mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(rpb, "_resolve_project_source_repo", lambda _p: fake_repo)
+        monkeypatch.setattr(rpb, "_handle_project_source_changed", lambda *a, **k: {})
+        monkeypatch.setattr(rpb, "_QUAID_DIR", tmp_path)
+        monkeypatch.setattr(rpb, "_python_cmd_for_quaid_script", lambda _s: [sys.executable])
+        monkeypatch.setattr(rpb.subprocess, "run", lambda *a, **k: _FakeSubprocessResult())
+
+        result = rpb.run_per_day_extraction(
+            workspace=workspace,
+            api_key="dummy",
+            no_cache=True,
+            model="claude-haiku-4-5-20251001",
+            max_sessions=1,
+            run_janitor_each_day=False,
+        )
+
+        cache_path = workspace / "extraction_cache" / "chunk-000.json"
+        cached_payload = json.loads(cache_path.read_text())
+        assert "Maya:" in captured_runtime["transcript"]
+        assert captured_runtime["owner_id"] == "Maya"
+        assert captured_runtime["session_date_hint"] == "2026-05-26"
+        assert cached_payload["facts"][0]["structural_anchor_kind"] == "user_surprise_recall_anchor"
+        assert cached_payload["raw_facts"][0]["structural_anchor_kind"] == "user_surprise_recall_anchor"
+        assert cached_payload["explicit_structural_anchor_facts"] == 1
+        assert stored_payload["facts"][0]["structural_anchor_kind"] == "user_surprise_recall_anchor"
+        assert result["stored"] == 1
 
     def test_auto_rolls_oversized_days_through_runtime_extract(self, tmp_path, monkeypatch):
         workspace = tmp_path / "ws"
@@ -9743,6 +9955,24 @@ class TestPerDayExtraction:
             rpb,
             "parse_extraction_response",
             lambda _raw: {"facts": [], "soul_snippets": {}, "journal_entries": {}, "project_logs": {}},
+        )
+        monkeypatch.setattr(
+            rpb,
+            "_load_runtime_cached_payload_helper",
+            lambda: (
+                lambda *, parsed_payload, **_kwargs: {
+                    "facts": list(parsed_payload.get("facts", []) or []),
+                    "raw_facts": list(parsed_payload.get("facts", []) or []),
+                    "soul_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "raw_snippets": dict(parsed_payload.get("soul_snippets", {}) or {}),
+                    "journal_entries": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "raw_journal": dict(parsed_payload.get("journal_entries", {}) or {}),
+                    "project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "raw_project_logs": dict(parsed_payload.get("project_logs", {}) or {}),
+                    "explicit_structural_anchor_facts": 0,
+                    "facts_skipped": 0,
+                }
+            ),
         )
         monkeypatch.setattr(rpb, "_store_facts", lambda *a, **k: (0, 0))
         monkeypatch.setattr(rpb, "write_snippet_entry", lambda *a, **k: False)
