@@ -101,33 +101,58 @@ The canonical query set is `283` scored prompts. Broken out by tier:
 
 Each query includes ground truth, evidence sessions, query type, and recall difficulty.
 
-## Launch Headline Results
+## Current Headline Results
 
 FC is included here as an upper-bound baseline, not as the target operating
 model. The question is not "can memory beat raw transcript in every short
 horizon case," but whether a persistent system can stay competitive while
 surviving resets and reducing long-run token cost.
 
-Headline launch summary:
+These headline rows are Quaid's numbers on the clean benchmark harness. They
+should be read as the current theoretical maximum for the same memory system
+without platform harness execution-path noise.
 
-| Metric | Quaid | FC Sonnet | OpenClaw Native |
-| --- | ---: | ---: | ---: |
-| AL-S | 92.23% | 92.90% | 69.40% |
-| Tokens | 9.52M | 29.83M | unknown |
-| AL-L | 87.81% | 87.70% | 63.06% |
-| Tokens | 9.97M | 34.60M | unknown |
-| AL-L OBD | 89.58% | 87.70% | unknown |
-| Tokens | 7.94M | 34.60M | unknown |
+| Surface | Quaid Sonnet/Sonnet | FC Sonnet | Quaid Tokens | FC Tokens |
+| --- | ---: | ---: | ---: | ---: |
+| AL-S | 93.64% | 93.11% | 7.95M | 29.83M |
+| AL-L | 88.52% | 88.69% | 9.64M | 26.50M |
+| AL-L OBD | 88.69% | 88.69% | 8.45M | 26.50M |
 
-Quaid was measured with Haiku fast, Sonnet deep, and a Sonnet agent running
-eval. `AL-L` and `AL-L OBD` are chosen here as the best representation of real
-use data; `AL-S` remains the cleaner, more idealized lane. `Sonnet/Haiku` remains the flagship
-configuration on cleanliness and overall benchmark tradeoffs. `Opus` was
-evaluated, but underperformed `Sonnet` overall and is not the recommended
-launch configuration. On `AL-L` and `AL-L OBD`, FC is forced to compact, and
-the drop in FC quality reflects that compaction plus the added noise in the
-larger corpus. OpenClaw Native tokens remain unknown due to telemetry
-restrictions.
+Quaid was measured with Haiku fast, Sonnet deep, and a Sonnet answer model on
+the clean harness. `AL-S` is the strongest current direct lane. `AL-L` and
+`AL-L OBD` are the more realistic long-context lanes. `Opus 4.7` was also
+evaluated, but `Sonnet` remains the cleaner headline configuration for Quaid.
+
+### OpenClaw Execution Results
+
+These rows are not clean-harness theoretical ceilings. They are affected by the
+OpenClaw execution path itself, and we are actively working to improve them.
+
+| Surface | OpenClaw Native | Quaid on OpenClaw |
+| --- | ---: | ---: |
+| AL-S | 26.49% | 80.97% |
+| AL-L | 31.72% | pending refresh |
+
+The main point of this split is:
+
+- the headline Quaid table above is the clean reference surface
+- the OpenClaw table measures the extra execution-path tax imposed by OC
+- we intentionally do not publish OC token numbers here because they are not
+  yet measured cleanly enough to be trustworthy
+- the native OC rows here were run with OpenClaw's built-in memory plugins
+  enabled: `memory-core`, `session-memory`, and `session-index`
+- the next required OC datapoint is a fresh Quaid-on-OpenClaw `AL-L` lane so
+  the OC table is complete on the same footing as the clean-harness block
+
+### Multilingual Preview
+
+On the first validated full Japanese `AL-S` harness run, Quaid handled a
+Kanji/Kana benchmark end-to-end at `74.73%` overall (`73.88%` on `T1-T4`).
+
+We are still actively improving multilingual retrieval and documentation
+surfaces, so this should be read as a preview rather than a headline claim. But
+it is already strong enough to show that non-Roman-script operation is viable
+at real benchmark scale, not just in isolated probes.
 
 Token accounting standard (public, effective April 18, 2026):
 
@@ -154,10 +179,10 @@ Benchmark note:
 
 Canonical docs for full tables and methodology:
 
-- Technical reports:
-  - [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260329.md)
-  - [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260405.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260405.md)
-  - [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260418.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260418.md)
+- Latest technical report:
+  - [`published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260430.md`](published/runbooks/AGENTLIFE_TECHNICAL_REPORT_20260430.md)
+- Runbooks folder:
+  - [`published/runbooks/`](published/runbooks/)
 
 ## Quick Start
 
