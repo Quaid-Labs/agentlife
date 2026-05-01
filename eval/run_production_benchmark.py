@@ -1154,6 +1154,8 @@ def _default_domain_descriptions() -> dict:
     """Load canonical domain defaults from plugin code, with safe fallback."""
     fallback = {
         "education": "school, learning, coursework, academic milestones",
+        "environment": "weather, climate, surroundings, and environmental conditions",
+        "family": "family members, caregiving, parenting, and relatives",
         "finance": "budgeting, purchases, salary, bills",
         "health": "training, injuries, routines, wellness",
         "hobby": "personal interests, crafts, games, and recreational pursuits",

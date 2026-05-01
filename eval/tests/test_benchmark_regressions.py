@@ -8760,6 +8760,8 @@ class TestLoadActiveDomainIds:
         active = {str(row[0]) for row in rows}
         assert "personal" in active
         assert "education" in active
+        assert "environment" in active
+        assert "family" in active
         assert "hobby" in active
 
 
