@@ -1,4 +1,5 @@
 import json
+import shlex
 import subprocess
 import sys
 import tarfile
@@ -1326,8 +1327,44 @@ class TestOpenClawNativeConfig:
 
         assert calls == ["oauth"]
 
-    def test_provision_openclaw_codex_oauth_writes_shared_credentials(self, monkeypatch):
+    def test_provision_openclaw_codex_oauth_writes_shared_credentials(self, monkeypatch, tmp_path):
         calls = []
+        home = tmp_path / "home"
+        runtime_quaid_home = tmp_path / "runtime-quaid"
+        home.mkdir()
+        auth_profiles = home / ".openclaw" / "agents" / "main" / "agent" / "auth-profiles.json"
+        auth_profiles.parent.mkdir(parents=True)
+        auth_profiles.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "profiles": {
+                        "openai:default": {"provider": "openai", "api_key": "stale-api-key"},
+                        "openai-codex:old@example.com": {"provider": "openai-codex", "access": "stale"},
+                        "other:default": {"provider": "other"},
+                    },
+                    "lastGood": {
+                        "openai": "openai:default",
+                        "openai-codex": "openai-codex:old@example.com",
+                    },
+                    "order": {
+                        "openai": ["openai:default"],
+                        "openai-codex": ["openai-codex:old@example.com"],
+                    },
+                }
+            )
+        )
+        env_path = home / ".openclaw" / ".env"
+        env_path.write_text(
+            "\n".join(
+                [
+                    "ANTHROPIC_API_KEY=sk-ant-test",
+                    "OPENAI_API_KEY=sk-stale",
+                    "OPENAI_OAUTH_TOKEN=old-token",
+                ]
+            )
+            + "\n"
+        )
 
         class _Vm:
             def ssh(self, command, input_data=None, **_kwargs):
@@ -1340,6 +1377,7 @@ class TestOpenClawNativeConfig:
 
                 return _Result()
 
+        monkeypatch.setattr(vmb, "VM_QUAID_HOME", str(runtime_quaid_home))
         monkeypatch.setattr(
             vmb,
             "_resolve_codex_oauth_profile_for_vm",
@@ -1362,6 +1400,9 @@ class TestOpenClawNativeConfig:
             },
         )
         vmb._provision_openclaw_codex_oauth(_Vm())
+        command = calls[0][0]
+        argv = shlex.split(command)
+        script = argv[2]
         assert json.loads(calls[0][1]) == {
             "type": "oauth",
             "provider": "openai-codex",
@@ -1373,26 +1414,53 @@ class TestOpenClawNativeConfig:
             "accountId": "acct-123",
             "expires": 12345000,
         }
-        assert "credentials.json" in calls[0][0]
-        assert "openai-codex:default" in calls[0][0]
-        assert "profile[" in calls[0][0]
-        assert "access" in calls[0][0]
-        assert "accountId" in calls[0][0]
-        assert "expires" in calls[0][0]
-        assert "legacy_key" in calls[0][0]
-        assert "OPENAI_OAUTH_TOKEN" in calls[0][0]
-        assert vmb.VM_QUAID_HOME in calls[0][0]
-        assert "runtime_quaid_home" in calls[0][0]
-        assert "shared" in calls[0][0]
-        assert "credentials.json" in calls[0][0]
-        assert "openclaw" in calls[0][0]
-        assert ".auth-token" in calls[0][0]
-        assert "auth_data.setdefault(" in calls[0][0]
-        assert "version" in calls[0][0]
-        assert "profile_key" in calls[0][0]
-        assert "profiles.pop(profile_key, None)" in calls[0][0]
-        assert "order[" in calls[0][0]
-        assert "openai-codex:default" in calls[0][0]
+        assert argv[:2] == ["python3", "-c"]
+        assert "credentials.json" in script
+        assert "openai-codex:default" in script
+        assert "profile[" in script
+        assert "access" in script
+        assert "accountId" in script
+        assert "expires" in script
+        assert "legacy_key" in script
+        assert "OPENAI_OAUTH_TOKEN" in script
+        assert "OPENAI_API_KEY" in script
+        assert vmb.VM_QUAID_HOME in script
+        assert "runtime_quaid_home" in script
+        assert "shared" in script
+        assert "credentials.json" in script
+        assert "openclaw" in script
+        assert ".auth-token" in script
+        assert "auth_data.setdefault(" in script
+        assert "version" in script
+        assert "profile_key" in script
+        assert "provider == 'openai'" in script
+        assert "str(profile_key).startswith('openai:')" in script
+        assert "profiles.pop(profile_key, None)" in script
+        assert "last_good.pop('openai', None)" in script
+        assert "order.pop('openai', None)" in script
+        assert "order[" in script
+        assert "openai-codex:default" in script
+
+        monkeypatch.setenv("HOME", str(home))
+        subprocess.run(
+            argv,
+            input=calls[0][1],
+            text=True,
+            check=True,
+            capture_output=True,
+        )
+        auth_data = json.loads(auth_profiles.read_text())
+        assert "openai:default" not in auth_data["profiles"]
+        assert "openai-codex:old@example.com" not in auth_data["profiles"]
+        assert auth_data["profiles"]["openai-codex:default"]["provider"] == "openai-codex"
+        assert auth_data["profiles"]["openai-codex:default"]["access"].startswith("eyJhbGci")
+        assert auth_data["lastGood"] == {"openai-codex": "openai-codex:default"}
+        assert auth_data["order"] == {"openai-codex": ["openai-codex:default"]}
+        env_lines = env_path.read_text().splitlines()
+        assert "ANTHROPIC_API_KEY=sk-ant-test" in env_lines
+        assert not any(line.startswith("OPENAI_API_KEY=") for line in env_lines)
+        assert "OPENAI_OAUTH_TOKEN=old-token" not in env_lines
+        assert any(line.startswith("OPENAI_OAUTH_TOKEN=eyJhbGci") for line in env_lines)
 
     def test_normalize_codex_oauth_profile_for_openclaw_decodes_jwt_metadata(self):
         profile = vmb._normalize_codex_oauth_profile_for_openclaw(
