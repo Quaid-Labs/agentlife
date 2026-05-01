@@ -171,6 +171,23 @@ launch_args_include_flag() {
   return 1
 }
 
+launch_arg_value() {
+  local flag="$1"
+  local default_value="${2:-}"
+  local i
+  for ((i=0; i<${#LAUNCH_ARGS[@]}; i++)); do
+    if [[ "${LAUNCH_ARGS[$i]}" == "$flag" ]] && (( i + 1 < ${#LAUNCH_ARGS[@]} )); then
+      printf '%s' "${LAUNCH_ARGS[$((i+1))]}"
+      return 0
+    fi
+    if [[ "${LAUNCH_ARGS[$i]}" == "$flag="* ]]; then
+      printf '%s' "${LAUNCH_ARGS[$i]#"$flag="}"
+      return 0
+    fi
+  done
+  printf '%s' "$default_value"
+}
+
 resolve_local_runner() {
   if [[ "$RUNNER_KIND" == "vm" ]]; then
     if [[ -f "$LOCAL_BENCH_ROOT/eval/vm_benchmark.py" ]]; then
@@ -508,13 +525,7 @@ run_cmd ssh "${SSH_OPTS[@]}" "$REMOTE" \
 
 echo ""
 echo "--- 1b) Sync fresh Claude credentials for OAuth-backed runs ---"
-BACKEND_ARG=""
-for ((i=0; i<${#LAUNCH_ARGS[@]}; i++)); do
-  if [[ "${LAUNCH_ARGS[$i]}" == "--backend" ]] && (( i + 1 < ${#LAUNCH_ARGS[@]} )); then
-    BACKEND_ARG="${LAUNCH_ARGS[$((i+1))]}"
-    break
-  fi
-done
+BACKEND_ARG="$(launch_arg_value "--backend" "")"
 OPTIONAL_BENCH_ENV=""
 LOCAL_CODEX_TOKEN_PATH=""
 LOCAL_CODEX_TEMP_PATH=""
@@ -657,21 +668,68 @@ fi
 if [[ -n "${BENCHMARK_MAX_QUERIES:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_MAX_QUERIES=$(printf %q "$BENCHMARK_MAX_QUERIES")"$'\n'
 fi
-if [[ -n "${OPENAI_API_KEY:-}" ]]; then
-  OPTIONAL_BENCH_ENV+="export OPENAI_API_KEY=$(printf %q "$OPENAI_API_KEY")"$'\n'
-else
-  LOCAL_OPENAI_KEY_PATH="$(resolve_local_config_secret_path openai judgeKeyPath || true)"
-  if [[ -z "$LOCAL_OPENAI_KEY_PATH" ]]; then
-    LOCAL_OPENAI_KEY_PATH="$(resolve_local_config_secret_path openai keyPath || true)"
-  fi
-  if [[ -n "$LOCAL_OPENAI_KEY_PATH" && -f "$LOCAL_OPENAI_KEY_PATH" ]]; then
-    LOCAL_OPENAI_KEY="$(tr -d '\r\n' < "$LOCAL_OPENAI_KEY_PATH")"
+JUDGE_PROVIDER_OVERRIDE="$(printf '%s' "${BENCHMARK_JUDGE_PROVIDER:-}" | tr '[:upper:]' '[:lower:]')"
+JUDGE_ARG="$(launch_arg_value "--judge" "gpt-4o-mini")"
+JUDGE_ARG_LOWER="$(printf '%s' "$JUDGE_ARG" | tr '[:upper:]' '[:lower:]')"
+ANSWER_MODEL_ARG="$(launch_arg_value "--answer-model" "")"
+ANSWER_MODEL_ARG_LOWER="$(printf '%s' "$ANSWER_MODEL_ARG" | tr '[:upper:]' '[:lower:]')"
+OPENAI_AUTH_MODE_ARG="$(launch_arg_value "--openai-auth-mode" "api")"
+OPENAI_AUTH_MODE_ARG_LOWER="$(printf '%s' "$OPENAI_AUTH_MODE_ARG" | tr '[:upper:]' '[:lower:]')"
+NEEDS_OPENAI_GLOBAL_API_KEY=false
+NEEDS_OPENAI_JUDGE_KEY=false
+if [[ "$BACKEND_ARG" == "openai" ]]; then
+  NEEDS_OPENAI_GLOBAL_API_KEY=true
+fi
+if [[ "$JUDGE_PROVIDER_OVERRIDE" == "openai" ]]; then
+  NEEDS_OPENAI_JUDGE_KEY=true
+elif [[ -z "$JUDGE_PROVIDER_OVERRIDE" && ( "$JUDGE_ARG_LOWER" == gpt-* || "$JUDGE_ARG_LOWER" == openai/* ) && "$BACKEND_ARG" != "codex" ]]; then
+  NEEDS_OPENAI_JUDGE_KEY=true
+fi
+if [[ "$RUNNER_KIND" == "vm" && "$OPENAI_AUTH_MODE_ARG_LOWER" == "api" && "$ANSWER_MODEL_ARG_LOWER" == openai/* ]]; then
+  NEEDS_OPENAI_GLOBAL_API_KEY=true
+fi
+if $NEEDS_OPENAI_GLOBAL_API_KEY; then
+  if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    OPTIONAL_BENCH_ENV+="export OPENAI_API_KEY=$(printf %q "$OPENAI_API_KEY")"$'\n'
   else
-    LOCAL_OPENAI_KEY=""
+    LOCAL_OPENAI_KEY_PATH="$(resolve_local_config_secret_path openai judgeKeyPath || true)"
+    if [[ -z "$LOCAL_OPENAI_KEY_PATH" ]]; then
+      LOCAL_OPENAI_KEY_PATH="$(resolve_local_config_secret_path openai keyPath || true)"
+    fi
+    if [[ -n "$LOCAL_OPENAI_KEY_PATH" && -f "$LOCAL_OPENAI_KEY_PATH" ]]; then
+      LOCAL_OPENAI_KEY="$(tr -d '\r\n' < "$LOCAL_OPENAI_KEY_PATH")"
+    else
+      LOCAL_OPENAI_KEY=""
+    fi
+    if [[ -n "$LOCAL_OPENAI_KEY" ]]; then
+      OPTIONAL_BENCH_ENV+="export OPENAI_API_KEY=$(printf %q "$LOCAL_OPENAI_KEY")"$'\n'
+    fi
   fi
-  if [[ -n "$LOCAL_OPENAI_KEY" ]]; then
-    OPTIONAL_BENCH_ENV+="export OPENAI_API_KEY=$(printf %q "$LOCAL_OPENAI_KEY")"$'\n'
+elif $NEEDS_OPENAI_JUDGE_KEY; then
+  REMOTE_OPENAI_JUDGE_KEY_PATH="~/.openai/benchmark-judge-api-key"
+  LOCAL_OPENAI_JUDGE_KEY_PATH=""
+  if [[ -n "${BENCHMARK_OPENAI_JUDGE_KEY_PATH:-}" && -f "${BENCHMARK_OPENAI_JUDGE_KEY_PATH:-}" ]]; then
+    LOCAL_OPENAI_JUDGE_KEY_PATH="$BENCHMARK_OPENAI_JUDGE_KEY_PATH"
+  else
+    LOCAL_OPENAI_JUDGE_KEY_PATH="$(resolve_local_config_secret_path openai judgeKeyPath || true)"
+    if [[ -z "$LOCAL_OPENAI_JUDGE_KEY_PATH" ]]; then
+      LOCAL_OPENAI_JUDGE_KEY_PATH="$(resolve_local_config_secret_path openai keyPath || true)"
+    fi
   fi
+  if [[ -n "$LOCAL_OPENAI_JUDGE_KEY_PATH" && -f "$LOCAL_OPENAI_JUDGE_KEY_PATH" ]]; then
+    run_cmd ssh -o BatchMode=yes -o ConnectTimeout=10 "$REMOTE" "mkdir -p ~/.openai"
+    run_cmd scp -p "$LOCAL_OPENAI_JUDGE_KEY_PATH" "$REMOTE:$REMOTE_OPENAI_JUDGE_KEY_PATH"
+    run_cmd ssh -o BatchMode=yes -o ConnectTimeout=10 "$REMOTE" "chmod 600 $REMOTE_OPENAI_JUDGE_KEY_PATH"
+    OPTIONAL_BENCH_ENV+="export BENCHMARK_OPENAI_JUDGE_KEY_PATH=$(printf %q "$REMOTE_OPENAI_JUDGE_KEY_PATH")"$'\n'
+  elif [[ -n "${BENCHMARK_OPENAI_JUDGE_KEY_PATH:-}" ]]; then
+    OPTIONAL_BENCH_ENV+="export BENCHMARK_OPENAI_JUDGE_KEY_PATH=$(printf %q "$BENCHMARK_OPENAI_JUDGE_KEY_PATH")"$'\n'
+  else
+    echo "ERROR: OpenAI judge requested but no local openai judgeKeyPath/keyPath was found" >&2
+    exit 1
+  fi
+fi
+if [[ -n "${BENCHMARK_JUDGE_PROVIDER:-}" ]]; then
+  OPTIONAL_BENCH_ENV+="export BENCHMARK_JUDGE_PROVIDER=$(printf %q "$BENCHMARK_JUDGE_PROVIDER")"$'\n'
 fi
 if [[ -n "${BENCHMARK_REQUIRE_QUERY_COUNT:-}" ]]; then
   OPTIONAL_BENCH_ENV+="export BENCHMARK_REQUIRE_QUERY_COUNT=$(printf %q "$BENCHMARK_REQUIRE_QUERY_COUNT")"$'\n'
