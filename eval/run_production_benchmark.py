@@ -11286,8 +11286,25 @@ def _get_api_key() -> str:
     sys.exit(1)
 
 
+def _read_openai_key_file(path_value: str) -> Optional[str]:
+    path = Path(path_value).expanduser()
+    if not path.exists():
+        return None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith("OPENAI_API_KEY="):
+            return stripped.split("=", 1)[1].strip().strip("\"'")
+        return stripped.strip("\"'")
+    return None
+
+
 def _get_openai_key() -> Optional[str]:
-    """Get OpenAI API key from env or .env file."""
+    """Get OpenAI API key for judge calls only."""
+    judge_key_path = os.environ.get("BENCHMARK_OPENAI_JUDGE_KEY_PATH")
+    if judge_key_path:
+        return _read_openai_key_file(judge_key_path)
     api_key = os.environ.get("OPENAI_API_KEY")
     if api_key:
         return api_key
