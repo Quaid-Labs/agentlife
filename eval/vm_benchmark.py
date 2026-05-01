@@ -50,6 +50,20 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 _DIR = Path(__file__).resolve().parent
+
+
+def _resolve_timestamp_annotations_path(scale: str) -> Path:
+    """Return the timestamp annotations file for VM timeout splitting."""
+    name = f"timestamps-{scale}.json"
+    data_dir = _DIR.parent / "data"
+    candidates = [
+        data_dir / "timestamps" / name,
+        data_dir / name,  # legacy local artifact path
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
 _REPO_ROOT = _DIR.parent
 _WORKSPACE = Path(os.environ.get("CLAWDBOT_WORKSPACE", Path.home() / "clawd"))
 _RUNNER_DIR = _WORKSPACE / "memory-stress-test" / "runner"
@@ -3176,7 +3190,7 @@ def inject_sessions(
     if splitting == "timeout" and system == "quaid":
         from session_splitter import SessionSplitter, build_message_stream
 
-        timestamps_path = _DIR.parent / "data" / f"timestamps-{scale}.json"
+        timestamps_path = _resolve_timestamp_annotations_path(scale)
         if not timestamps_path.exists():
             print(f"  ERROR: timestamps file not found: {timestamps_path}")
             print(f"  Run: python3 annotate_timestamps.py --scale {scale}")
@@ -5952,7 +5966,7 @@ def run_benchmark(
         split_label = f" via {splitting} splitting" if splitting != "perday" else ""
         print(f"\n[DRY RUN] Would inject {len(reviews)} sessions{split_label}, evaluate {len(queries)} queries")
         if splitting == "timeout":
-            ts_path = _DIR.parent / "data" / f"timestamps-{scale}.json"
+            ts_path = _resolve_timestamp_annotations_path(scale)
             print(f"  Timestamps: {ts_path} ({'exists' if ts_path.exists() else 'MISSING'})")
         return {"system": system, "mode": mode, "splitting": splitting, "dry_run": True}
 

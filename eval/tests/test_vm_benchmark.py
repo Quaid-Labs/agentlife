@@ -4086,6 +4086,29 @@ class TestSetupSystem:
 
 
 class TestQuaidCompaction:
+    def test_resolve_timestamp_annotations_path_prefers_committed_directory(self, monkeypatch, tmp_path):
+        eval_dir = tmp_path / "eval"
+        data_dir = tmp_path / "data"
+        committed = data_dir / "timestamps" / "timestamps-L.json"
+        legacy = data_dir / "timestamps-L.json"
+        committed.parent.mkdir(parents=True)
+        legacy.parent.mkdir(parents=True, exist_ok=True)
+        committed.write_text("{}\n", encoding="utf-8")
+        legacy.write_text("{}\n", encoding="utf-8")
+        monkeypatch.setattr(vmb, "_DIR", eval_dir)
+
+        assert vmb._resolve_timestamp_annotations_path("L") == committed
+
+    def test_resolve_timestamp_annotations_path_accepts_legacy_artifact(self, monkeypatch, tmp_path):
+        eval_dir = tmp_path / "eval"
+        data_dir = tmp_path / "data"
+        legacy = data_dir / "timestamps-S.json"
+        legacy.parent.mkdir(parents=True, exist_ok=True)
+        legacy.write_text("{}\n", encoding="utf-8")
+        monkeypatch.setattr(vmb, "_DIR", eval_dir)
+
+        assert vmb._resolve_timestamp_annotations_path("S") == legacy
+
     def test_quaid_benchmark_session_file_uses_adapter_owned_benchmark_subdir(self):
         path = vmb._quaid_benchmark_session_file("benchmark-quaid-s07")
         assert path == f"{vmb.VM_QUAID_BENCH_SESSIONS_DIR}/benchmark-quaid-s07.jsonl"
