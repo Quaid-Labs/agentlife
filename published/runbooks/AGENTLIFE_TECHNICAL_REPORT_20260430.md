@@ -5,11 +5,14 @@ the current document to review before release.
 
 Important scope note:
 
-- This report intentionally freezes the last full validated matrix rather than
-  folding in newer single-lane diagnostic runs.
+- This report intentionally freezes the clean direct/FC headline matrix rather
+  than folding in newer single-lane diagnostic runs.
+- The OpenClaw surface table now includes the later full Quaid-on-OpenClaw
+  `AL-S` refresh (`r1541`) because it supersedes the older `80.97%` OC row on
+  the same full-lane surface.
 - Post-April-24 narrow proofs, OC-gap studies, and eval-only lineage checks are
-  useful internal diagnostics, but they are not a refreshed full benchmark
-  block and therefore are not used here as headline publication rows.
+  useful internal diagnostics, but they are not a refreshed clean direct/FC
+  benchmark block and therefore are not used here as headline publication rows.
 
 ## Summary
 
@@ -31,7 +34,7 @@ The short version:
 - Current published OpenClaw surface anchors remain:
   - OpenClaw native `AL-S`: `26.49%`
   - OpenClaw native `AL-L`: `31.72%`
-  - Quaid on OpenClaw `AL-S`: `80.97%`
+  - Quaid on OpenClaw `AL-S`: `85.45%`
 
 Release-read:
 
@@ -39,9 +42,9 @@ Release-read:
   release framing.
 - The bigger unresolved story is not core Quaid collapse; it is the OpenClaw
   execution tax between stored memory and final answer behavior.
-- Because the newest OC investigations were single-lane diagnostics rather than
-  a refreshed full matrix, they are excluded from the headline tables here and
-  should be discussed separately if needed.
+- The newest full Quaid-on-OpenClaw `AL-S` row improved the OC surface to
+  `85.45%`; it should update the OC table, but not replace the clean direct
+  headline block.
 
 ## Headline Block
 
@@ -137,14 +140,15 @@ benchmark-validity repairs, not before them.
 
 ## Current OpenClaw Surface Table
 
-The last published OpenClaw surface table remains the correct release-review
-reference until a new full OC block is rerun and reviewed.
+The OpenClaw surface table separates host execution behavior from the clean
+direct Quaid headline rows above. The Quaid-on-OpenClaw `AL-S` row has been
+refreshed with a later full run; `AL-L` remains pending refresh.
 
 | Surface | Run | Method | Score | Notes |
 | --- | --- | --- | ---: | --- |
 | OpenClaw native `AL-S` | `oc-native-als-20260426aaf` | fresh full, clean eval-isolated | `26.49%` | current native small-lane baseline |
 | OpenClaw native `AL-L` | `oc-native-all-20260426aag` | fresh full, clean eval-isolated | `31.72%` | current native large-lane baseline |
-| Quaid on OpenClaw `AL-S` | `quaid-ocvm-full-bridgefix-20260428-010749` | fresh full embedded-Quaid VM run | `80.97%` | current trustworthy OC-VM Quaid baseline |
+| Quaid on OpenClaw `AL-S` | `r1541` | fresh full OC Quaid run; Anthropic Quaid internals, Sol Codex OAuth OC gateway, OpenAI API judge-only | `85.45%` | current trustworthy OC-VM Quaid baseline; no DB pollution signature observed |
 | Quaid direct `AL-S` | `r1421` | fresh full direct harness | `88.62%` | clean direct baseline used for the OC gap comparison |
 | Quaid direct `AL-S` Sonnet re-eval | `r1422 (r1421)` | eval-only stronger-answer recheck | `93.10%` | direct-path stronger-answer control |
 
@@ -152,11 +156,16 @@ reference until a new full OC block is rerun and reviewed.
 
 - The meaningful OC-VM Quaid comparison is against the fresh direct Quaid
   baseline, not against the stronger Sonnet re-eval headline.
-- On that apples-to-apples comparison, Quaid on OpenClaw remains down about
-  `7.65pp` (`88.62%` to `80.97%`).
+- On that report-local apples-to-apples comparison, Quaid on OpenClaw is now
+  down about `3.17pp` (`88.62%` to `85.45%`), improved from the prior
+  `80.97%` OC row.
 - That gap should still be read primarily as OpenClaw execution tax: noisier
   evidence surfacing, weaker freshness/current-state shaping, and answer-path
   distortion between stored memory and final prompt.
+- The `r1541` DB health readout did not show the earlier obvious bloat or
+  provider-noise signature: 617 nodes, 183 edges, 3 flagged rows, and no
+  `Quaid notice/error`, provider-noise, or stray `2024-`/`2025-` literal date
+  clusters in node text.
 - The native OpenClaw rows (`26.49%`, `31.72%`) remain current native baselines
   and should not be mixed with the embedded-Quaid story.
 
@@ -165,7 +174,8 @@ reference until a new full OC block is rerun and reviewed.
 The following are intentionally excluded from the headline tables here:
 
 - newer single-lane `AL-S` direct reruns
-- newer single-lane OpenClaw diagnostics
+- newer single-lane OpenClaw diagnostics other than the full `r1541`
+  Quaid-on-OpenClaw `AL-S` refresh recorded above
 - eval-only lineage experiments that reuse stored data
 - narrow three-query OC proofs
 
@@ -183,8 +193,10 @@ The correct high-level framing is:
 - direct Quaid headline quality remains strong
 - the repaired `AL-L OBD` row is legitimate and publication-safe
 - FC anchors remain competitive but much more expensive in prompt footprint
-- the OpenClaw story is still the main caveat, and should be discussed as an
-  execution-path tax rather than as evidence that core Quaid quality regressed
+- the OpenClaw story is still the main caveat, but the refreshed full `AL-S`
+  row moved from `80.97%` to `85.45%`; the remaining gap should be discussed as
+  execution-path and recall-surfacing tax rather than as evidence that core
+  Quaid quality regressed
 
 ## Publication Guidance
 
@@ -194,7 +206,7 @@ The correct high-level framing is:
 - Use `88.69%` as the repaired direct Quaid `AL-L OBD` headline.
 - Use `93.11%` / `92.76%` (`AL-S`) and `88.69%` / `89.40%` (`AL-L`) as the FC
   anchors.
-- Use `80.97%` as the current trustworthy Quaid-on-OpenClaw `AL-S` headline
+- Use `85.45%` as the current trustworthy Quaid-on-OpenClaw `AL-S` headline
   until a new full OC block supersedes it.
 - Do not replace the headline block with newer single-lane diagnostics unless a
   new full set is intentionally being published.

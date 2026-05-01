@@ -210,7 +210,7 @@ OpenClaw execution path itself, and we are actively working to improve them.
 
 | Surface | OpenClaw Native | Quaid on OpenClaw |
 | --- | ---: | ---: |
-| AgentLife Short | 26.49% | 80.97% |
+| AgentLife Short | 26.49% | 85.45% |
 | AgentLife Long | 31.72% | pending refresh |
 
 The main point of this split is:
@@ -221,6 +221,9 @@ The main point of this split is:
   yet measured cleanly enough to be trustworthy
 - the native OC rows here were run with OpenClaw's built-in memory plugins
   enabled: `memory-core`, `session-memory`, and `session-index`
+- the Quaid-on-OpenClaw Short row is `r1541`, a fresh full run using Anthropic
+  Quaid internals, the Sol Codex OAuth profile for the OC gateway, and OpenAI
+  API usage only for judging
 - the next required OC datapoint is a fresh Quaid-on-OpenClaw AgentLife Long
   lane so the OC table is complete on the same footing as the clean-harness
   block
