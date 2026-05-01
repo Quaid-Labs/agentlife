@@ -9,6 +9,23 @@ architectures that must operate over time. AgentLife tests the full agentic
 pipeline: days and months of data, projects, conversations, evolving context,
 and a user whose story changes over time.
 
+## Open Benchmark
+
+AgentLife is published as an open benchmark harness, and we explicitly invite
+other teams to benchmark their own systems against it.
+
+We are intentionally **not** maintaining a broad third-party leaderboard in
+this README at launch. Memory systems are highly configuration-sensitive, and
+it is too easy for one side to benchmark another system under the wrong setup,
+model choice, retrieval settings, or operating assumptions. Rather than claim
+ownership over other systems' benchmark rows, we prefer externally reproduced
+or vendor-reviewed runs with exact setup details.
+
+If you want to run your system on AgentLife, that is encouraged. The benchmark
+is meant to be reusable, inspectable, and disputable in the open. A good
+benchmark should make it easier for other people to test their own systems, not
+require them to trust our private setup choices.
+
 ## Why AgentLife?
 
 AgentLife tests the operating shape of a persistent agent: one user and one
