@@ -19,6 +19,11 @@ data/results*/
 data/imported-*/
 recovered-from-spark-r*/
 recovered-from-spark-*/
+reports/
+
+# Generated timestamp exports; canonical fixtures live in data/timestamps/.
+data/timestamps-L.json
+data/timestamps-S.json
 
 # Environment
 .env
