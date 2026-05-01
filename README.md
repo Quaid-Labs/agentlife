@@ -30,9 +30,9 @@ maintenance, and recall together:
 - maintenance pressure from deduplication, decay, distillation, and compaction
 - assistant-style judgment about what to surface and what not to surface
 
-For Quaid, AgentLife is the primary release-gate KPI. External memory benchmarks
-remain useful supporting signals, but AgentLife is the benchmark for whether a
-persistent agent memory system holds up as an operating product.
+AgentLife is designed to show whether a persistent memory system holds up as an
+operating product. External memory benchmarks remain useful supporting signals,
+but they do not replace full lifecycle evaluation.
 
 ## Dataset
 
@@ -273,27 +273,6 @@ Canonical local setup is documented in
 For quick local-only scripts that still read environment variables directly,
 `.env.example` remains available as a convenience template.
 
-### Benchmark OAuth Token
-
-For benchmark direct Anthropic API runs, prefer an explicit benchmark token
-path in `.agentlife-benchmark.local.json` instead of relying on local Claude
-Code login state:
-
-1. Generate a token with:
-   ```bash
-   claude setup-token
-   ```
-2. Put the token in a local secret file.
-3. Point `auth.anthropic.primaryKeyPath` at that file in
-   `.agentlife-benchmark.local.json`.
-
-Notes:
-- this is benchmark-only harness behavior
-- the launcher prefers `.agentlife-benchmark.local.json`
-- no legacy config fallback is supported in launch mode
-- do not add automatic fallback across multiple Anthropic OAuth accounts/tokens
-- secondary token switching is manual-only by operator action
-
 ### Run Evaluation
 
 ```bash
@@ -319,21 +298,6 @@ sessions or build a variant large-scale lane.
 ```bash
 python eval/densify.py --count 259 --output data/filler-sessions-extra/
 ```
-
-### Rolling Replay Utilities
-
-For long-transcript stress lanes that should exercise the real Quaid daemon path
-instead of the normal per-day ingest path:
-
-- `python scripts/export-imported-claude-history.py ...`
-  - Export a raw Claude Code transcript into day-sliced JSONL plus a manifest.
-- `python scripts/run-imported-claude-history.py ... --rolling`
-  - Replay those exported days through Quaid workspace setup, rolling extraction,
-    final flush, and janitor.
-
-These utilities are intended for migration/stress work, not scored leaderboard
-runs. See [docs/rolling-replay.md](docs/rolling-replay.md) for the manifest
-schema, replay summary schema, and rolling telemetry surfaces.
 
 ## Repository Structure
 
@@ -426,7 +390,5 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Notes
 
-- Public benchmark claims in this repo should stay aligned with the release
-  runbooks stored under `published/`.
-- Historical experiment artifacts and local scratch runs may still exist in the
-  working tree, but they should not leak into release docs or tarballs.
+Public benchmark claims in this repo should stay aligned with the release
+runbooks stored under `published/`.

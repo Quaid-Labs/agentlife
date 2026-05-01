@@ -46,6 +46,9 @@ test -f "$ROOT_DIR/published/runbooks/release-candidate/README.md"
 test -f "$ROOT_DIR/published/checkpoints/release-candidate/README.md"
 git -C "$ROOT_DIR" check-ignore -q .agentlife-benchmark.local.json
 
+echo "[release-check] public hygiene"
+python3 "$ROOT_DIR/scripts/check-public-hygiene.py"
+
 echo "[release-check] shell syntax"
 bash -n "$ROOT_DIR/scripts/launch-remote-benchmark.sh"
 bash -n "$ROOT_DIR/scripts/release-check.sh"

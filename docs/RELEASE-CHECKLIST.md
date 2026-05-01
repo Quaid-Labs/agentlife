@@ -31,16 +31,27 @@ Canonical split:
 4. Keep scratch data out of public release artifacts.
    - remote launch sync must not copy `.agentlife-benchmark.local.json`, `.env`,
      or `release/` to the benchmark host
+   - no root scratch/recovery directories should exist before push:
+     `recovered-from-spark-*`, `tmp/`, `__pycache__/`, or `reports/`
+   - README should contain benchmark-facing content only; local credential
+     setup belongs in `docs/LOCAL-DEVELOPMENT.md`, and migration/stress utility
+     details belong in focused docs such as `docs/rolling-replay.md`
 5. Confirm the canonical harness path is `eval/`.
    - `agentlife/eval/` is a legacy mirror and should not be treated as the
      primary entrypoint in release docs
-6. Run the lightweight release-candidate sync gate:
+6. Run the public hygiene gate directly when reviewing docs or local cleanup:
+
+```bash
+python3 scripts/check-public-hygiene.py
+```
+
+7. Run the lightweight release-candidate sync gate:
 
 ```bash
 ./scripts/release-sync.sh
 ```
 
-7. Optional full packaging gate (rare; usually unnecessary for this repo):
+8. Optional full packaging gate (rare; usually unnecessary for this repo):
 
 ```bash
 ./scripts/release-check.sh --full

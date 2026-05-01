@@ -289,9 +289,9 @@ For released/public numbers:
 - `published/runbooks/`
 - `published/checkpoints/`
 
-For working/internal rerun matrices:
+For development rerun matrices:
 
-- benchmark operator runbooks outside this repo
+- keep working notes outside the public release surface
 
 This methodology file should stay aligned with the released runbooks without
 duplicating their exact numeric tables inline.

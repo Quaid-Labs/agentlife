@@ -54,6 +54,8 @@ Example:
 - `primaryKeyPath`: path to the primary benchmark Anthropic OAuth token file
 - `secondaryKeyPath`: optional operator-switched backup token file
 - tokens should live outside the repo or in other ignored locations
+- do not add automatic fallback across multiple Anthropic OAuth accounts/tokens
+- secondary token switching is manual-only by operator action
 
 `auth.openai`
 
@@ -84,3 +86,16 @@ variables directly.
 
 Release-ready benchmark launches should not depend on ad-hoc shell exports when
 the local config can provide the same secret paths deterministically.
+
+## Benchmark OAuth Token
+
+For direct Anthropic-backed benchmark runs, prefer an explicit benchmark token
+path in `.agentlife-benchmark.local.json` instead of relying on local Claude
+Code login state:
+
+1. Generate a token with `claude setup-token`.
+2. Put the token in a local secret file outside the repo or in an ignored path.
+3. Point `auth.anthropic.primaryKeyPath` at that file.
+
+This is local harness behavior only. Keep tracked docs and examples free of real
+token values.
