@@ -35,14 +35,14 @@ Reference baselines are kept alongside Quaid:
 ### AgentLife S
 
 - `20` scripted arc sessions
-- about `100k` transcript tokens
+- about `92k` transcript tokens
 - no filler sessions
 
 ### AgentLife L
 
 - `20` arc sessions plus `259` filler sessions
 - `279` total sessions
-- about `200k` transcript tokens in current release methodology accounting
+- about `220k` transcript tokens in current release methodology accounting
 - same gold eval set as AgentLife S; filler sessions only add noise/scale
 - FC baseline for AL-L uses compaction at the `160k` boundary (summary prefix + trailing raw context window)
 

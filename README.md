@@ -9,107 +9,30 @@ architectures that must operate over time. AgentLife tests the full agentic
 pipeline: days and months of data, projects, conversations, evolving context,
 and a user whose story changes over time.
 
-## Benchmark Comparison
-
-The tables below position AgentLife against two widely cited long-memory
-benchmarks. The goal is to clarify benchmark structure and what each dataset
-actually measures, not to argue from rhetoric.
-
-### Dataset Scale
-
-| Dimension | LoCoMo | LongMemEval-S | LongMemEval-M | AgentLife S | AgentLife L |
-| --- | --- | --- | --- | --- | --- |
-| Conversations | 10 | 500 (per-question haystacks) | 500 (per-question haystacks) | 1 (continuous narrative) | 1 (continuous narrative) |
-| Sessions | 19–32 per conversation | ~30–50 per question | ~500 per question | 20 | 279 (20 arc + 259 filler) |
-| Tokens | 9K–26K per conversation | ~115K per question | ~1.5M per question | ~92K | ~423K |
-| Eval questions | 1,986 QA pairs across 10 conversations | 500 | 500 | 234 | 234 |
-| Fits in context window? | Yes (200K) | Yes (200K) | No | Yes (200K) | No |
-
-### What Each Benchmark Tests
-
-Table semantics:
-- `✅` = explicitly targeted by the benchmark's evaluated task design
-- `❌` = absent as a first-class benchmark target, not a claim that no incidental example exists
-
-| Capability | LoCoMo | LongMemEval | AgentLife |
-| --- | --- | --- | --- |
-| Single-fact recall | ✅ | ✅ | ✅ |
-| Multi-hop reasoning | ✅ | ✅ (multi-session) | ✅ (cross-reference) |
-| Temporal reasoning | ✅ | ✅ | ✅ |
-| Knowledge updates / stale facts | ❌ | ✅ | ✅ (contested_fact, stale_fact tiers) |
-| Contradiction detection | ❌ | ❌ | ✅ (facts evolve and contradict across sessions) |
-| Adversarial / unanswerable | ✅ (446 questions) | ✅ (abstention) | ✅ (adversarial_idk, adversarial_confirm, false_attribution) |
-| Project / technical state | ❌ | ❌ | ✅ (24 project_state questions, 15 architecture tier) |
-| Speaker attribution | ❌ | ❌ | ✅ (who said what) |
-| Non-question handling | ❌ | ❌ | ✅ (“Hi”, “Thanks” should not trigger recall) |
-| Emotional intelligence | ❌ | ❌ | ✅ (Tier 5: boundary awareness, self-awareness) |
-| Agent self-knowledge | ❌ | ❌ | ✅ (agent_retrieved: what did the agent do or suggest) |
-| Compaction pressure | ❌ | ❌ (static haystack) | ✅ (AgentLife L forces compaction events) |
-| Maintenance pipeline testing | ❌ | ❌ | ✅ (dedup, decay, journal distillation affect results) |
-| Interleaved personal + project | ❌ | ❌ | ✅ (Track 1 personal, Track 2 project, interleaved) |
-
-### Structural Limitations
-
-| Limitation | LoCoMo | LongMemEval | AgentLife |
-| --- | --- | --- | --- |
-| Context window bypass | Entire conversation can be bypassed with full-context on modern 200K models | LongMemEval-S can be bypassed with full-context on modern 200K models | AgentLife S fits; AgentLife L does not, so long runs force real retrieval |
-| Narrative coherence | 10 independent conversations with no cross-conversation continuity | Per-question isolated haystacks with no shared narrative | One continuous character arc across 20 sessions, where facts evolve, contradict, and resolve |
-| Maintenance sensitivity | Maintenance pipeline effects are absent as a benchmark target | Maintenance pipeline effects are absent as a benchmark target | Simulated day cycles and timestamps exercise dedup, contradiction handling, decay, and temporal recall under changing state |
-| What high scores prove | Strong contained conversational memory and reasoning | Strong long-haystack retrieval and reasoning | Lifecycle stability under changing state: extraction, maintenance, and recall all have to hold |
-| Metric type | Token F1, exact match, ROUGE, LLM judge | LLM judge (GPT-4o) | LLM judge (GPT-4o-mini, cross-vendor) |
-
-### Core Distinction
-
-LoCoMo and LongMemEval primarily test store-and-retrieve behavior: can a system
-recover information from a conversation history or a large haystack. That is an
-important capability, and those benchmarks are useful for long-memory retrieval
-and reasoning. But they do not by themselves test the maintenance operations
-that change what a long-running agent remembers.
-
-AgentLife is designed to test the full lifecycle: extraction, maintenance, and
-recall. Facts evolve across sessions, stale information must be replaced,
-contradictions must be resolved, and project-state memory is interleaved with
-personal narrative. As a result, high performance on AgentLife says more than
-"the model found the right passage." It says the memory pipeline stayed stable
-while the remembered world changed over time.
-
-That lifecycle pressure is not only conversational. AgentLife advances through
-simulated day cycles and explicit timestamps, so maintenance logic and temporal
-reasoning are exercised together. The benchmark therefore tests whether a
-system can preserve the right facts, retire the wrong ones, and still answer
-time-sensitive questions correctly after the world state has changed.
-
 ## Why AgentLife?
 
-AgentLife is designed for agentic lifecycle behavior under real operating
-conditions:
+AgentLife tests the operating shape of a persistent agent: one user and one
+assistant working together over many days while personal context, project state,
+and facts change.
 
-- long-running multi-session interaction
-- context resets between sessions
-- retrieval and synthesis under context pressure
-- conflicting/stale facts over time
-- project-state continuity across sessions
+Many memory benchmarks evaluate whether a system can recover facts from a fixed
+conversation or a per-question history. That is useful, but it is not the whole
+agent workload. Real agents must survive resets, keep project and personal state
+current, avoid surfacing irrelevant memory, and handle stale or contradictory
+facts after the world changes.
+
+AgentLife was created for that lifecycle setting. It evaluates extraction,
+maintenance, and recall together:
+
+- long-running multi-session interaction with context resets
+- personal and project-state continuity across the same user timeline
+- conflicting, corrected, and stale facts over time
+- maintenance pressure from deduplication, decay, distillation, and compaction
 - assistant-style judgment about what to surface and what not to surface
 
-AgentLife was created to evaluate systems like Quaid — persistent knowledge
-layers that must survive resets, continuity breaks, and rising context cost —
-but the benchmark itself is intended to evaluate any agent architecture
-operating beyond a single context window.
-
-For Quaid, AgentLife is the primary release-gate KPI. External memory
-benchmarks remain supporting signals for the development of personalized
-agentic memory.
-
-Full-context baselines are useful short-horizon upper bounds, but they grow
-linearly in cost and do not persist state across session resets. AgentLife is
-built to test the regime where persistence, cost scaling, and cross-session
-continuity decide whether an agent system actually holds up over time.
-
-It also covers categories that most memory benchmarks skip entirely: non-question
-restraint, emotional intelligence, privacy boundaries, hallucination resistance,
-and adversarial "don't make things up" behavior. That makes it a benchmark for
-assistant-like agentic systems, not just a benchmark for retrieval. It measures
-both what a system should share and what it should not.
+For Quaid, AgentLife is the primary release-gate KPI. External memory benchmarks
+remain useful supporting signals, but AgentLife is the benchmark for whether a
+persistent agent memory system holds up as an operating product.
 
 ## Dataset
 
@@ -124,8 +47,8 @@ All characters and events are fictional.
 
 | Variant | Description |
 | ------- | ----------- |
-| **AL-S (AgentLife Short)** | Core corpus only (~100K tokens, 20 arc sessions). |
-| **AL-L (AgentLife Long)** | AL-S plus filler sessions (~200K tokens) to force context-pressure behavior. |
+| **AL-S (AgentLife Short)** | Core corpus only (~92K tokens, 20 arc sessions). |
+| **AL-L (AgentLife Long)** | AL-S plus filler sessions (~220K tokens) to force context-pressure behavior. |
 | **AL-L OBD (One Big Day)** | AL-L data compressed into a one-day ingest path to stress heavy-session load. |
 | **FC (Full Context)** | No memory system; answer model sees raw/compacted transcript each query, but FC does not persist state across session resets. |
 | **OC Native** | OpenClaw built-in memory baseline (memory-core/session-memory/session-index). |
@@ -170,6 +93,75 @@ The canonical query set is `283` scored prompts. Broken out by tier:
 | **T5** | **emotional_intelligence** | 15 | Empathy, privacy boundaries, relational context, and socially appropriate responses under memory pressure. |
 
 Each query includes ground truth, evidence sessions, query type, and recall difficulty.
+
+## Benchmark Comparison
+
+The tables below position AgentLife against two widely cited long-memory
+benchmarks. The goal is to clarify benchmark structure and what each dataset
+actually measures.
+
+Scale notes use the published
+[LoCoMo paper](https://aclanthology.org/2024.acl-long.747.pdf), the released
+[LoCoMo dataset](https://github.com/snap-research/locomo), the
+[LongMemEval paper](https://arxiv.org/abs/2410.10813), and AgentLife's current
+release-methodology accounting.
+
+### Dataset Shape
+
+| Dimension | LoCoMo | LongMemEval-S | LongMemEval-M | AgentLife S | AgentLife L |
+| --- | --- | --- | --- | --- | --- |
+| Evaluation unit | 10 independent long conversations | 500 independent per-question histories | 500 independent per-question histories | 1 continuous user-agent lifecycle | Same lifecycle with filler load |
+| Sessions | 27.2 avg, up to 32 per conversation | ~50 sessions per question | 500 sessions per question | 20 arc sessions | 279 sessions: 20 arc + 259 filler |
+| Transcript scale | 16.6K avg tokens per conversation | ~115K history tokens per question | ~1.5M history tokens per question | ~92K transcript tokens | ~220K transcript tokens |
+| Scored prompts | 1,986 QA pairs over the released conversations | 500 | 500 | 283 | 283 |
+| Primary shape | Long human-human dialogue memory | Per-question user-assistant history retrieval | Large per-question user-assistant history retrieval | Persistent agent lifecycle | Persistent agent lifecycle under compaction pressure |
+
+### What Each Benchmark Tests
+
+Table semantics:
+- `✅` = explicitly targeted by the benchmark's evaluated task design
+- `❌` = absent as a first-class benchmark target, not a claim that no incidental example exists
+
+| Capability | LoCoMo | LongMemEval | AgentLife |
+| --- | --- | --- | --- |
+| Single-fact recall | ✅ | ✅ | ✅ |
+| Multi-hop reasoning | ✅ | ✅ | ✅ |
+| Temporal reasoning | ✅ | ✅ | ✅ |
+| Knowledge updates / stale facts | ❌ | ✅ | ✅ (contested_fact, stale_fact tiers) |
+| Contradiction detection | ❌ | ❌ | ✅ (facts evolve and contradict across sessions) |
+| Adversarial / unanswerable | ✅ | ✅ (abstention) | ✅ (adversarial_idk, adversarial_confirm, false_attribution) |
+| Project / technical state | ❌ | ❌ | ✅ (project_state, arch_comprehension, arch_planning) |
+| Speaker attribution | ❌ | ❌ | ✅ (who said what) |
+| Non-question handling | ❌ | ❌ | ✅ ("Hi", "Thanks" should not trigger memory dumps) |
+| Emotional intelligence | ❌ | ❌ | ✅ (Tier 5: boundary awareness, self-awareness) |
+| Agent action / tool-work memory | ❌ | ❌ | ✅ (agent_retrieved: what the agent did, found, or suggested) |
+| Compaction pressure | ❌ | ❌ | ✅ (AgentLife L forces compaction events) |
+| Maintenance pipeline testing | ❌ | ❌ | ✅ (dedup, decay, journal distillation affect results) |
+| Interleaved personal + project | ❌ | ❌ | ✅ (Track 1 personal, Track 2 project, interleaved) |
+
+### Structural Difference
+
+| Design axis | LoCoMo | LongMemEval | AgentLife |
+| --- | --- | --- | --- |
+| Continuity model | Independent conversations | Independent per-question histories | One user and assistant over one changing timeline |
+| Interaction model | Long social/dialogue history | Synthetic user-assistant histories assembled for each question | Personal life, project work, tool use, and assistant behavior interleaved |
+| State change model | Event-grounded history and temporal QA | Explicit knowledge-update questions | Facts become stale, contested, corrected, and operationally maintained |
+| Operational lifecycle | No extraction/maintenance pipeline target | Retrieval/indexing benchmark over supplied histories | Extraction, dedup, decay, journal distillation, compaction, and recall are all scored indirectly through answers |
+| What high scores prove | Strong contained conversational memory and reasoning | Strong long-history retrieval and reasoning | Lifecycle stability under changing state |
+
+### Core Distinction
+
+LoCoMo and LongMemEval are useful long-memory retrieval and reasoning
+benchmarks. They ask whether a system can recover information from long
+dialogue histories and answer correctly.
+
+AgentLife targets a different product question: can one persistent agent keep
+working with one user as the user's world changes? Agents are not usually handed
+disconnected histories and asked questions after the fact. They operate over
+days, across resets and compactions, while personal details, project state,
+assistant actions, and user preferences evolve. AgentLife therefore tests
+whether the memory pipeline keeps that world model current while still answering
+naturally and withholding irrelevant memory when appropriate.
 
 ## Current Headline Results
 
